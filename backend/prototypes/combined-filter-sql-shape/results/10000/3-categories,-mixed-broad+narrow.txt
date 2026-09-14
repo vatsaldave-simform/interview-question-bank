@@ -1,0 +1,130 @@
+--- SHAPE A — EXISTS per Category ---
+SELECT q.id, q.created_at
+FROM questions q
+WHERE (q.client_id IS NULL
+       OR EXISTS (SELECT 1 FROM permission_grants g
+                  WHERE g.viewer_id = 1 AND g.client_id = q.client_id))
+  AND EXISTS (SELECT 1 FROM question_tags qt
+                  WHERE qt.question_id = q.id AND qt.tag_id = ANY (ARRAY[1,2]))
+  AND EXISTS (SELECT 1 FROM question_tags qt
+                  WHERE qt.question_id = q.id AND qt.tag_id = ANY (ARRAY[41,42]))
+  AND EXISTS (SELECT 1 FROM question_tags qt
+                  WHERE qt.question_id = q.id AND qt.tag_id = ANY (ARRAY[156,158]))
+ORDER BY q.created_at DESC, q.id DESC LIMIT 50 OFFSET 0
+
+                                                                                              QUERY PLAN                                                                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1931.87..1932.00 rows=50 width=12) (actual time=5.303..5.319 rows=50 loops=1)
+   Buffers: shared hit=1323
+   ->  Sort  (cost=1931.87..1932.16 rows=117 width=12) (actual time=5.302..5.311 rows=50 loops=1)
+         Sort Key: q.created_at DESC, q.id DESC
+         Sort Method: quicksort  Memory: 28kB
+         Buffers: shared hit=1323
+         ->  Nested Loop Semi Join  (cost=213.09..1927.98 rows=117 width=12) (actual time=2.514..5.220 rows=78 loops=1)
+               Join Filter: (qt.question_id = qt_1.question_id)
+               Buffers: shared hit=1317
+               ->  Hash Semi Join  (cost=212.80..1802.47 rows=173 width=20) (actual time=2.413..3.972 rows=128 loops=1)
+                     Hash Cond: (q.id = qt.question_id)
+                     Buffers: shared hit=1060
+                     ->  Nested Loop  (cost=17.95..1597.35 rows=396 width=16) (actual time=0.311..1.804 rows=294 loops=1)
+                           Buffers: shared hit=1041
+                           ->  HashAggregate  (cost=17.66..21.98 rows=432 width=4) (actual time=0.271..0.346 rows=343 loops=1)
+                                 Group Key: qt_2.question_id
+                                 Batches: 1  Memory Usage: 45kB
+                                 Buffers: shared hit=11
+                                 ->  Index Only Scan using question_tags_tag_id_question_id_idx on question_tags qt_2  (cost=0.42..16.56 rows=441 width=4) (actual time=0.061..0.143 rows=349 loops=1)
+                                       Index Cond: (tag_id = ANY ('{156,158}'::integer[]))
+                                       Heap Fetches: 0
+                                       Buffers: shared hit=11
+                           ->  Index Scan using questions_pkey on questions q  (cost=0.29..3.79 rows=1 width=12) (actual time=0.004..0.004 rows=1 loops=343)
+                                 Index Cond: (id = qt_2.question_id)
+                                 Filter: ((client_id IS NULL) OR (hashed SubPlan 2))
+                                 Rows Removed by Filter: 0
+                                 Buffers: shared hit=1030
+                                 SubPlan 2
+                                   ->  Seq Scan on permission_grants g  (cost=0.00..1.02 rows=2 width=4) (actual time=0.008..0.009 rows=2 loops=1)
+                                         Filter: (viewer_id = 1)
+                                         Buffers: shared hit=1
+                     ->  Hash  (cost=140.68..140.68 rows=4334 width=4) (actual time=1.995..1.996 rows=4327 loops=1)
+                           Buckets: 8192  Batches: 1  Memory Usage: 217kB
+                           Buffers: shared hit=19
+                           ->  Index Only Scan using question_tags_tag_id_question_id_idx on question_tags qt  (cost=0.42..140.68 rows=4334 width=4) (actual time=0.051..1.063 rows=4327 loops=1)
+                                 Index Cond: (tag_id = ANY ('{1,2}'::integer[]))
+                                 Heap Fetches: 0
+                                 Buffers: shared hit=19
+               ->  Index Only Scan using question_tags_pkey on question_tags qt_1  (cost=0.29..0.71 rows=1 width=4) (actual time=0.009..0.009 rows=1 loops=128)
+                     Index Cond: (question_id = q.id)
+                     Filter: (tag_id = ANY ('{41,42}'::integer[]))
+                     Rows Removed by Filter: 6
+                     Heap Fetches: 0
+                     Buffers: shared hit=257
+ Planning:
+   Buffers: shared hit=351
+ Planning Time: 2.939 ms
+ Execution Time: 5.519 ms
+(48 rows)
+
+--- SHAPE B — grouped aggregate ---
+SELECT q.id, q.created_at
+FROM questions q
+JOIN question_tags qt ON qt.question_id = q.id
+JOIN tags t ON t.id = qt.tag_id
+WHERE (q.client_id IS NULL
+       OR EXISTS (SELECT 1 FROM permission_grants g
+                  WHERE g.viewer_id = 1 AND g.client_id = q.client_id))
+  AND qt.tag_id = ANY (ARRAY[1,2,41,42,156,158])
+GROUP BY q.id
+HAVING count(DISTINCT t.category_id) = 3
+ORDER BY q.created_at DESC, q.id DESC LIMIT 50 OFFSET 0
+
+                                                                                                QUERY PLAN                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=11561.73..11561.86 rows=50 width=12) (actual time=37.521..37.530 rows=50 loops=1)
+   Buffers: shared hit=24019
+   ->  Sort  (cost=11561.73..11561.87 rows=53 width=12) (actual time=37.520..37.525 rows=50 loops=1)
+         Sort Key: q.created_at DESC, q.id DESC
+         Sort Method: quicksort  Memory: 28kB
+         Buffers: shared hit=24019
+         ->  GroupAggregate  (cost=11370.94..11560.22 rows=53 width=12) (actual time=34.971..37.468 rows=78 loops=1)
+               Group Key: q.id
+               Filter: (count(DISTINCT t.category_id) = 3)
+               Rows Removed by Filter: 6931
+               Buffers: shared hit=24013
+               ->  Sort  (cost=11370.94..11396.63 rows=10277 width=16) (actual time=34.957..35.393 rows=9834 loops=1)
+                     Sort Key: q.id DESC, t.category_id
+                     Sort Method: quicksort  Memory: 845kB
+                     Buffers: shared hit=24013
+                     ->  Hash Join  (cost=6.54..10686.12 rows=10277 width=16) (actual time=0.173..31.488 rows=9834 loops=1)
+                           Hash Cond: (qt.tag_id = t.id)
+                           Buffers: shared hit=24013
+                           ->  Nested Loop  (cost=0.71..10652.65 rows=10277 width=16) (actual time=0.075..28.746 rows=9834 loops=1)
+                                 Buffers: shared hit=24011
+                                 ->  Index Only Scan using question_tags_tag_id_question_id_idx on question_tags qt  (cost=0.42..366.86 rows=11449 width=8) (actual time=0.054..2.245 rows=11219 loops=1)
+                                       Index Cond: (tag_id = ANY ('{1,2,41,42,156,158}'::integer[]))
+                                       Heap Fetches: 0
+                                       Buffers: shared hit=55
+                                 ->  Memoize  (cost=0.30..1.44 rows=1 width=12) (actual time=0.002..0.002 rows=1 loops=11219)
+                                       Cache Key: qt.question_id
+                                       Cache Mode: logical
+                                       Hits: 3234  Misses: 7985  Evictions: 0  Overflows: 0  Memory Usage: 859kB
+                                       Buffers: shared hit=23956
+                                       ->  Index Scan using questions_pkey on questions q  (cost=0.29..1.43 rows=1 width=12) (actual time=0.002..0.002 rows=1 loops=7985)
+                                             Index Cond: (id = qt.question_id)
+                                             Filter: ((client_id IS NULL) OR (hashed SubPlan 2))
+                                             Rows Removed by Filter: 0
+                                             Buffers: shared hit=23956
+                                             SubPlan 2
+                                               ->  Seq Scan on permission_grants g  (cost=0.00..1.02 rows=2 width=4) (actual time=0.008..0.009 rows=2 loops=1)
+                                                     Filter: (viewer_id = 1)
+                                                     Buffers: shared hit=1
+                           ->  Hash  (cost=3.70..3.70 rows=170 width=8) (actual time=0.078..0.078 rows=170 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 15kB
+                                 Buffers: shared hit=2
+                                 ->  Seq Scan on tags t  (cost=0.00..3.70 rows=170 width=8) (actual time=0.005..0.031 rows=170 loops=1)
+                                       Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=303
+ Planning Time: 1.805 ms
+ Execution Time: 37.951 ms
+(47 rows)
+
