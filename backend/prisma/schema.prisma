@@ -1,0 +1,14 @@
+// The datasource URL lives in prisma.config.ts (Prisma 7 moved it out of the schema).
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// No models yet. The walking skeleton carries the connection, the migration runner
+// and the truncation harness; the first tables arrive with the Viewer and the
+// Question tickets, which own that vocabulary.

@@ -1,1 +1,9 @@
 .claude
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!.env.test.example
+backend/src/generated/
