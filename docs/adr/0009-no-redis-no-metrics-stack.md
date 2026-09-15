@@ -12,3 +12,9 @@ enforcement from above it (ADR-0003). Keying by Viewer would make the cache almo
 requires is a domain audit log (ADR-0006), not distributed tracing — a distinction worth keeping
 straight. Performance evidence here means a query plan, so we rely on `EXPLAIN ANALYZE` plus
 `pg_stat_statements`, which needs no application instrumentation.
+
+**Scoped to local by ADR-0012.** The deployed bank runs on a Neon compute that suspends after five
+minutes and cannot be told not to, and `pg_stat_statements` does not retain its counters across a
+suspend. The extension is a development and evidence-gathering tool here, not a production
+observability story — which is consistent with performance claims being defended by committed
+`EXPLAIN ANALYZE` output rather than by anything running in the deployment.
