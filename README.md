@@ -70,9 +70,7 @@ in development as it does in the deployed image.
 
 ## Deployment
 
-**Deployed at:** _not yet — the Render service and Neon project have still to be
-created. Put the URL here when they are; it is the one thing in this section a reader
-cannot work out for themselves._
+**Deployed at:** <https://interview-question-bank.onrender.com>
 
 One free Render web service serves the API and the built client from a single origin,
 against a free Neon Postgres. There is no CORS and no second host. The decision, and
