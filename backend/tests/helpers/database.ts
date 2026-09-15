@@ -30,7 +30,9 @@ export function testDatabaseUrl(): string {
 export function createTestDatabase(applicationName?: string): Database {
   const url = new URL(testDatabaseUrl());
   if (applicationName) url.searchParams.set("application_name", applicationName);
-  return createDatabase(url.toString());
+  // Small on purpose: the suite runs files one at a time, and a test that watches
+  // the pool open and close in pg_stat_activity wants a number it can reason about.
+  return createDatabase(url.toString(), { poolMax: 5 });
 }
 
 /** Connections this database is holding open under the given application name. */

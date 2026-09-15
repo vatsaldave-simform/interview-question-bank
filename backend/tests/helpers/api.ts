@@ -24,7 +24,7 @@ export type TestApi = {
  * guarantees this project cares about can honestly be asserted.
  */
 export async function startTestApi(
-  options: { applicationName?: string } = {},
+  options: { applicationName?: string; frontendDir?: string } = {},
 ): Promise<TestApi> {
   const lines: LogLine[] = [];
   const logger: Logger = createLogger({
@@ -38,7 +38,11 @@ export async function startTestApi(
   });
 
   const database = createTestDatabase(options.applicationName);
-  const app = createApp({ logger, database });
+  const app = createApp({
+    logger,
+    database,
+    ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
+  });
   const server: RunningServer = await startServer({ app, port: 0, logger, shutdownTimeoutMs: 2_000 });
 
   return {

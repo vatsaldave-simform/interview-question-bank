@@ -46,3 +46,42 @@ jobs:
 
       # Against a real PostgreSQL, from a clean checkout, with no manual setup.
       - run: pnpm test
+
+  # Deployment is the tail of CI rather than a push trigger of its own, so nothing
+  # reaches the shared URL without the suite having passed against a real PostgreSQL
+  # (ADR-0012). Render's own auto-deploy is off; this job is the only way in.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    # Migrations and deploys are ordered, never concurrent: two runs overlapping could
+    # apply migrations in one order and deploy the images in the other.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Before the new image is deployed, so a migration has to be compatible with the
+      # version still running. Render's pre-deploy command, where this would otherwise
+      # belong, is available only on paid instances.
+      - name: Apply migrations to Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:migrate
+
+      - name: Trigger the Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl --fail --silent --show-error "$RENDER_DEPLOY_HOOK_URL"

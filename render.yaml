@@ -1,0 +1,48 @@
+# The deployed bank: one free Render web service serving the API and the built client
+# from one origin, against a free Neon Postgres. The reasoning is in
+# docs/adr/0012-deploy-to-render-and-neon.md.
+
+services:
+  - type: web
+    name: interview-question-bank
+    runtime: docker
+    plan: free
+    # Pick the region closest to the people using it, and create the Neon project in
+    # the matching one: every request pays the distance between them twice.
+    region: singapore
+
+    dockerfilePath: ./backend/Dockerfile
+    # The workspace root, because the image builds the shared package and the client
+    # alongside the API.
+    dockerContext: .
+
+    # No dockerCommand override: the image's own CMD is `node dist/index.js` and nothing
+    # else. Migrations are applied by the deploy workflow before this service is asked
+    # to restart, so a cold start — of which this tier has many — costs only the server
+    # coming up.
+
+    # Liveness, never readiness. Render uses this to decide whether to route traffic,
+    # and this one service also serves the client: a check that asked /ready would take
+    # the entire frontend off the air whenever the database blinked (ADR-0012).
+    healthCheckPath: /health
+
+    # Deploys come from the workflow, after the suite passes, so a push cannot reach
+    # the shared URL without going through CI.
+    autoDeploy: false
+
+    # Only what differs from the defaults in backend/src/config/env.ts, which is where
+    # a default is allowed to live. LOG_LEVEL, SHUTDOWN_TIMEOUT_MS and DATABASE_POOL_MAX
+    # are all already what this environment wants, so restating them here would just be
+    # a second place to remember to change.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Neon's direct, unpooled connection string. `sync: false` keeps the value out of
+      # git: Render prompts for it once and ignores this entry on every later sync, so
+      # rotating it in the dashboard is not undone by a deploy.
+      - key: DATABASE_URL
+        sync: false
+
+    # PORT is set by Render itself, and the API reads it from the environment.
+    # FRONTEND_DIR is set in the image, because it is a fact about the image's layout
+    # rather than about this environment.

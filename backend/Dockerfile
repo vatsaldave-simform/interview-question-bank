@@ -1,6 +1,9 @@
 # Built from the workspace root, because the API is a workspace package that depends on
-# the shared schema package (ADR-0010).
-FROM node:20-alpine
+# the shared schema package (ADR-0010), and because one origin serves both the API and
+# the built client (ADR-0012) — so the client is built here too.
+
+# ---------------------------------------------------------------------- builder
+FROM node:20-alpine AS builder
 
 RUN corepack enable
 WORKDIR /app
@@ -10,23 +13,51 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
-RUN pnpm install --frozen-lockfile --ignore-scripts \
-      --filter @iqb/shared --filter @iqb/backend
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY shared ./shared
 COPY backend ./backend
+COPY frontend ./frontend
 
 RUN pnpm --filter @iqb/shared build \
  && pnpm --filter @iqb/backend db:generate \
- && pnpm --filter @iqb/backend build
+ && pnpm --filter @iqb/backend build \
+ && pnpm --filter @iqb/frontend build
+
+# One self-contained directory holding the API and only the dependencies it needs at
+# run time, with @iqb/shared injected rather than symlinked out of the workspace.
+#
+# This is `pnpm deploy` rather than `pnpm prune --prod` for two reasons, both learned
+# the hard way: prune acts on the project it runs in, which here is the root, and the
+# root has no dependencies; and copying `node_modules` from a pnpm workspace copies the
+# whole `.pnpm` virtual store, so what the symlinks point at is irrelevant to the size
+# of the image. `deploy` builds a tree scoped to production from the outset.
+RUN pnpm --filter @iqb/backend deploy --prod /app/deploy
+
+# ---------------------------------------------------------------------- runtime
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+# The client the API serves. Unset, the API would serve no client at all, so this is
+# what makes the deployed image a single origin rather than a bare API.
+ENV FRONTEND_DIR=/app/frontend/dist
+
+# No TypeScript toolchain, no client bundler, no test runner, and no Prisma CLI: `--prod`
+# above left them all behind. The CLI was the largest thing in this image and none of the
+# API's own code loads it — it dragged in Prisma Studio, an effect runtime, an embedded
+# WASM Postgres and a copy of react-dom. Migrations belong to whoever is deploying, not
+# to the server process, so they run elsewhere: a one-shot compose service locally, and
+# the CI workflow for the deployment (ADR-0012).
+COPY --from=builder /app/deploy ./backend
+COPY --from=builder /app/frontend/dist ./frontend/dist
 
 USER node
 WORKDIR /app/backend
 EXPOSE 3000
 
-# Migrations run at start, so `docker compose up` against an empty database needs no
-# manual step. Both commands are the binaries themselves rather than `pnpm`, because
-# pnpm arrived through corepack as root and this stage runs as `node`, which cannot
-# read root's corepack cache. `exec` then hands PID 1 to node, so the SIGTERM compose
-# sends reaches the graceful shutdown instead of stopping at the shell.
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/index.js"]
+# `node` directly rather than through a shell or through pnpm: it takes PID 1, so the
+# SIGTERM compose and Render send reaches the graceful shutdown rather than stopping at
+# a shell that would not forward it. Nothing runs before it, which is why a cold start
+# on a tier that has many of them costs only the server coming up.
+CMD ["node", "dist/index.js"]

@@ -11,10 +11,14 @@ const env = readEnv();
 const logger = createLogger({ level: env.LOG_LEVEL });
 setRootLogger(logger);
 
-const database = createDatabase(env.DATABASE_URL);
+const database = createDatabase(env.DATABASE_URL, { poolMax: env.DATABASE_POOL_MAX });
 
 const server = await startServer({
-  app: createApp({ logger, database }),
+  app: createApp({
+    logger,
+    database,
+    ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
+  }),
   port: env.PORT,
   logger,
   shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS,
