@@ -8,6 +8,17 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   /** How long a shutdown waits for in-flight requests before closing sockets anyway. */
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  /**
+   * Connections this process may hold. The deployed database allows far more and has no
+   * pooler in front of it, so this leaves room to spare; ADR-0012 has the numbers.
+   */
+  DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
+  /**
+   * Where the built client lives. Unset, the API serves no client: how the suite runs,
+   * and how `pnpm dev` runs with Vite serving it instead. The deployed image sets it,
+   * because there one origin serves both (ADR-0012).
+   */
+  FRONTEND_DIR: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -16,8 +16,10 @@ cp .env.example .env
 docker compose up
 ```
 
-That builds the API, starts PostgreSQL, applies migrations, and serves on
-`http://localhost:3000`. Nothing else is needed.
+That builds the API and the client, starts PostgreSQL, applies migrations through a
+one-shot `migrate` service that the API waits on, and serves both from
+`http://localhost:3000`. Nothing else is needed. Use `up --build` after writing a
+migration, since the `migrate` service takes them from the image.
 
 ```sh
 curl localhost:3000/health   # {"status":"ok"}
@@ -59,7 +61,61 @@ frontend/   the Vite and React client
 Both ends infer their types from the schemas in `shared`, so a shape cannot drift
 between client and server. The client is a placeholder that reads the API's readiness
 through those schemas; its shell arrives with the login ticket. Run it with `pnpm dev`,
-which serves it on port 5173 and proxies `/api` to the API.
+which serves it on port 5173 and proxies the API's paths through without rewriting them.
+
+Application routes live under `/api`. `/health` and `/ready` deliberately do not: they
+answer the platform rather than the application, and the deployed health check asks for
+`/health` at the root. The dev server proxies all three, so a path means the same thing
+in development as it does in the deployed image.
+
+## Deployment
+
+**Deployed at:** _not yet — the Render service and Neon project have still to be
+created. Put the URL here when they are; it is the one thing in this section a reader
+cannot work out for themselves._
+
+One free Render web service serves the API and the built client from a single origin,
+against a free Neon Postgres. There is no CORS and no second host. The decision, and
+what was rejected to reach it, is [ADR-0012](docs/adr/0012-deploy-to-render-and-neon.md);
+`render.yaml` is the whole platform configuration.
+
+**It sleeps.** Render spins the free service down after fifteen minutes without traffic
+and takes about a minute to wake. Say so when you share the link — a minute of Render's
+loading page reads as broken to someone who wasn't told. Nothing pings it to keep it
+warm: the 750 free instance-hours are granted per workspace against a 744-hour month, so
+staying awake would exhaust the allowance before the month ended.
+
+**Deploys come from CI, not from pushes.** Render's auto-deploy is off. A push to `main`
+runs typecheck, build and the suite; only then does the workflow apply migrations to Neon
+and call Render's deploy hook. Two repository secrets make that work:
+
+| Secret | Value |
+| --- | --- |
+| `DATABASE_URL` | Neon's **direct** (unpooled) connection string |
+| `RENDER_DEPLOY_HOOK_URL` | From the service's Settings page on Render |
+
+Migrations are applied before the new image is deployed, so a migration has to be
+compatible with the version still running for the few seconds in between. Render's
+pre-deploy command, where this would otherwise belong, is paid-only.
+
+The server image runs `node dist/index.js` and nothing else — it carries no Prisma CLI.
+Applying a migration is something a deployment does, not something a server does on its
+way up. Locally that job belongs to a one-shot `migrate` compose service, built from the
+image's own `builder` stage, which runs to completion before the API starts; so
+`docker compose up` still needs no manual step, and a failed migration stops the API
+rather than crash-looping it.
+
+**Writing a migration means `docker compose up --build`.** The `migrate` service gets its
+migrations from the image, so a plain `up` will quietly apply the previous set.
+
+**Seeding and resetting are local.** Free Render services have no shell, no SSH and no
+one-off jobs, so there is no in-platform way to run the seed. Point `DATABASE_URL` at
+Neon from your own machine and run it there. The seed is destructive: it restores the
+known state and discards whatever has accumulated.
+
+The hosted bank holds seed data and throwaway test Questions, which is what makes
+publishing its demo credentials safe. Putting real Client-restricted Questions into it
+would invalidate that, and the free tier has no backups.
 
 ## What the skeleton carries
 

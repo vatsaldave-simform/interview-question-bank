@@ -1,5 +1,10 @@
 name: interview-question-bank
 
+# The API and the migration step address the same database; naming it once means they
+# cannot drift apart.
+x-database-url: &database-url
+  postgresql://${POSTGRES_USER:-iqb}:${POSTGRES_PASSWORD:-iqb}@db:5432/${POSTGRES_DB:-iqb}
+
 services:
   db:
     image: postgres:16-alpine
@@ -39,6 +44,28 @@ services:
       timeout: 3s
       retries: 15
 
+  # Migrations run here rather than in the API's own start-up, which is what lets the
+  # API image ship no Prisma CLI at all (ADR-0012). `docker compose up` still needs no
+  # manual step: this service runs to completion first and the API waits for it.
+  #
+  # Built from the API image's `builder` stage, which already holds the CLI, the schema
+  # and the migrations. Those layers are the same ones the api build produces, so this
+  # is a tag over the existing build cache rather than a second build.
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: builder
+    working_dir: /app/backend
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      db:
+        condition: service_healthy
+    # One shot. A failed migration should stop the deployment, not retry behind it.
+    restart: "no"
+
   api:
     build:
       context: .
@@ -48,12 +75,16 @@ services:
       PORT: 3000
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SHUTDOWN_TIMEOUT_MS: ${SHUTDOWN_TIMEOUT_MS:-10000}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-iqb}:${POSTGRES_PASSWORD:-iqb}@db:5432/${POSTGRES_DB:-iqb}
+      DATABASE_URL: *database-url
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
+      # So the schema is already in place when the first request arrives, and a failed
+      # migration keeps the API from starting against a database it does not match.
+      migrate:
+        condition: service_completed_successfully
     # Long enough for in-flight requests to finish before compose stops waiting.
     stop_grace_period: 15s
     healthcheck:

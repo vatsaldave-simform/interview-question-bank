@@ -65,12 +65,21 @@ Render's pre-deploy command — the natural home for `prisma migrate deploy` —
 paid instances. On free the choice is the container's `CMD`, which would re-run migrations on every
 cold start, many times a day; or a step outside the container.
 
-Auto-deploy is off. A GitHub Actions job on `main` runs typecheck, build and the existing suite
-against a real Postgres, then applies migrations to Neon, then triggers Render's deploy hook.
-`render.yaml` sets `dockerCommand` to `node dist/index.js`, overriding the image's `CMD` — **so the
-`Dockerfile` keeps applying migrations at start and `docker compose up` keeps working with no
-manual step**, while the deployed service does not carry them. Local and production genuinely want
-different startup behaviour, and this is the seam that lets both be true without forking the image.
+**Migrations run outside the image entirely.** The server image's `CMD` is `node dist/index.js` and
+nothing else, so it carries no Prisma CLI at all. Applying a migration is something a deployment
+does, not something a server process does on its way up, and treating it as the latter was what put
+a database migration tool inside a web server.
+
+Two callers do it instead. Locally, a one-shot `migrate` compose service built from the image's own
+`builder` stage — which already holds the CLI, the schema and the migrations — runs to completion
+before the API starts, through `depends_on: service_completed_successfully`. `docker compose up`
+therefore still needs no manual step, and a failed migration now keeps the API from starting
+against a schema it does not match rather than crash-looping it. In the deployment, the GitHub
+Actions job on `main` applies them to Neon after the suite passes and before it triggers Render's
+deploy hook. Auto-deploy is off, so that workflow is the only way in.
+
+`render.yaml` sets no `dockerCommand`: there is no longer a start-up behaviour to override, which
+is a decision that removed a mechanism rather than adding one.
 
 Configuration lives in a committed `render.yaml`, with secrets declared `sync: false` so their
 shape is versioned and reviewable while their values never enter git.
@@ -100,10 +109,27 @@ built to be: a report something can ask for, whose status code is part of the re
 - Migrations are applied before the new code is deployed, so a migration must be compatible with
   the version still running for the few seconds between. Expand-then-contract, deliberately
   accepted.
-- The `Dockerfile` becomes multi-stage and gains a frontend build. Its install is currently
-  filtered to `@iqb/shared` and `@iqb/backend`; the client's dependencies have to join it, and the
-  runtime stage should carry `dist` and production dependencies only. Image size is not vanity
-  here — it is cold-start seconds on a tier that cold-starts constantly.
+- The `Dockerfile` is multi-stage and builds the client; its install can no longer be filtered to
+  `@iqb/shared` and `@iqb/backend`, because the client's dependencies have to join it. The runtime
+  stage is produced by `pnpm deploy --prod` rather than by copying `node_modules`, which matters
+  more than it sounds: `pnpm prune --prod` acts only on the project it runs in, and in a workspace
+  that is the root, which has no dependencies; and copying `node_modules` out of a pnpm workspace
+  copies the entire `.pnpm` virtual store, so what the symlinks point at has no bearing on the size
+  of the image. Measured, in order: **766MB** copying `node_modules` with the CLI, **624MB** via
+  `pnpm deploy --prod`, **568MB** once migrations left the image.
+- **About 125MB of the remainder is `pnpm deploy` copying store entries nothing links to** —
+  `@prisma/studio-core`, `effect`, `pglite`, `react-dom`, `elkjs` — pulled in by the CLI during the
+  builder's full install and left behind in `.pnpm`. The API's real tree is only `@iqb/shared`,
+  `@prisma/client`, `@prisma/adapter-pg`, `express`, `pg`, `pino` and `zod`. Attempts to reclaim
+  it, all failed under pnpm 9.15.9: `deploy --legacy` does not exist; `--config.node-linker=hoisted`
+  ignores `--prod` and returns the dev tree; and `pnpm prune --prod` inside the deploy directory
+  cannot resolve the injected workspace package and empties `node_modules`. Worth revisiting on a
+  later pnpm, and cheap to check — the marker is whether `node_modules/.pnpm` holds
+  `@prisma+studio-core`.
+- **The `migrate` compose service bakes migrations in at build time**, because it runs from the
+  `builder` stage and that stage copies the source. Adding a migration therefore needs
+  `docker compose up --build`, not `docker compose up`. This is a genuine footgun: a plain `up`
+  after writing a migration silently applies the previous set.
 - Render's Hobby workspace includes 500 build-pipeline minutes a month, and every merge to `main`
   spends some. A build that grows past a few minutes is a budget question, not just a slow one.
 - Query-plan evidence (issues #12, #55) is captured locally against the compose Postgres and
