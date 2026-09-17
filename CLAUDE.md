@@ -18,3 +18,8 @@ Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `docs/ag
 
 `backend/src` is laid out by feature beside a platform zone, with a closed list of filename
 suffixes and a one-sentence comment rule. See `docs/agents/backend-structure.md`.
+
+### Delivery
+
+One ticket is several small PRs: one concern each, planned on the ticket and approved before code,
+merged sequentially to `main`. See `docs/agents/delivery.md`.
