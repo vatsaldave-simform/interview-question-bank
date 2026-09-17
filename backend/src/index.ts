@@ -21,6 +21,11 @@ const server = await startServer({
       secret: env.ACCESS_TOKEN_SECRET,
       lifetimeSeconds: env.ACCESS_TOKEN_LIFETIME_SECONDS,
     },
+    loginRateLimit: {
+      maxAttempts: env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
+      windowSeconds: env.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+    },
+    trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),
   port: env.PORT,

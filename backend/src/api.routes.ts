@@ -1,7 +1,11 @@
 import { Router } from "express";
-import { requireAuthenticatedViewer, type AuthDependencies } from "./features/auth/auth.middleware.js";
+import { requireAuthenticatedViewer } from "./features/auth/auth.middleware.js";
 import { notFoundHandler } from "./platform/http/error-handler.middleware.js";
-import { authenticatedAuthRoutes, publicAuthRoutes } from "./features/auth/auth.routes.js";
+import {
+  authenticatedAuthRoutes,
+  publicAuthRoutes,
+  type PublicAuthDependencies,
+} from "./features/auth/auth.routes.js";
 
 /**
  * Every application route mounts here, under /api (ADR-0012). The health and readiness
@@ -18,10 +22,10 @@ import { authenticatedAuthRoutes, publicAuthRoutes } from "./features/auth/auth.
  * is told 401 for every /api path alike, so the shape of the API cannot be mapped by
  * probing for which paths answer 404.
  */
-export function apiRoutes({ database, accessToken }: AuthDependencies): Router {
+export function apiRoutes({ database, accessToken, loginRateLimit }: PublicAuthDependencies): Router {
   const router = Router();
 
-  router.use("/auth", publicAuthRoutes({ database, accessToken }));
+  router.use("/auth", publicAuthRoutes({ database, accessToken, loginRateLimit }));
 
   router.use(requireAuthenticatedViewer({ database, accessToken }));
 

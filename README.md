@@ -57,6 +57,11 @@ curl -s localhost:3000/api/auth/me -H "authorization: Bearer $TOKEN"
 curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/me   # 401
 ```
 
+Logging in is rate limited per caller address, and only failed attempts count, so an
+ordinary Viewer signing in repeatedly is never locked out of their own account
+(ADR-0021). Behind a proxy, `TRUST_PROXY_HOPS` has to match how many there are, or the
+limit keys on the proxy rather than on the caller.
+
 Every `/api` path except `POST /api/auth/login` sits behind the authentication gate,
 including paths that do not exist: an anonymous caller is told 401 everywhere alike, so
 the shape of the API cannot be mapped by probing for which paths answer 404. Access

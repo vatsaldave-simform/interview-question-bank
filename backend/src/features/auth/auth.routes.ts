@@ -11,7 +11,14 @@ import type { AuthDependencies } from "./auth.middleware.js";
 import { hashPassword, verifyPassword } from "./password.js";
 import { findViewerByEmail } from "../viewers/viewers.repository.js";
 import { UnauthenticatedError } from "../../platform/errors.js";
+import {
+  limitRequests,
+  type RateLimitConfig,
+} from "../../platform/http/rate-limit.middleware.js";
 import { log } from "../../platform/logger.js";
+
+/** The public routes also need to know how hard a caller may knock (ADR-0021). */
+export type PublicAuthDependencies = AuthDependencies & { loginRateLimit: RateLimitConfig };
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
 const badCredentials = () => new UnauthenticatedError("Those credentials are not valid.");
@@ -20,10 +27,17 @@ const badCredentials = () => new UnauthenticatedError("Those credentials are not
  * The one route reachable without a token, because it is how a token is obtained.
  * Mounted ahead of the authentication gate for that reason alone.
  */
-export function publicAuthRoutes({ database, accessToken }: AuthDependencies): Router {
+export function publicAuthRoutes({
+  database,
+  accessToken,
+  loginRateLimit,
+}: PublicAuthDependencies): Router {
   const router = Router();
 
-  router.post("/login", async (req, res) => {
+  // On this route and not on the router: a request for a path the gate below owns
+  // passes through here first, and would otherwise spend the login allowance on its
+  // way to being refused.
+  router.post("/login", limitRequests(loginRateLimit), async (req, res) => {
     const credentials = loginRequestSchema.parse(req.body);
 
     const viewer = await findViewerByEmail(database, credentials.email);

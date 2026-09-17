@@ -13,10 +13,14 @@ export function seededViewer(role: ViewerRole): SeedViewer {
 }
 
 /** The login request itself, for a test that wants to read the response it got. */
-export function postLogin(api: TestApi, credentials: { email: string; password: string }) {
+export function postLogin(
+  api: TestApi,
+  credentials: { email: string; password: string },
+  headers: Record<string, string> = {},
+) {
   return api.request("/api/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(credentials),
   });
 }

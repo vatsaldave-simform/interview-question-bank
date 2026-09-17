@@ -46,6 +46,11 @@ services:
       # invalidates every token in flight, which is the point of it being short-lived.
       - key: ACCESS_TOKEN_SECRET
         generateValue: true
+      # Render's load balancer is the one hop in front of this service. The rate limit
+      # keys on the address this resolves to, so a wrong number here either shares one
+      # allowance between every caller or lets a caller invent an address (ADR-0021).
+      - key: TRUST_PROXY_HOPS
+        value: 1
 
     # PORT is set by Render itself, and the API reads it from the environment.
     # FRONTEND_DIR is set in the image, because it is a fact about the image's layout
