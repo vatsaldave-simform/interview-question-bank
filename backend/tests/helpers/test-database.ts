@@ -1,4 +1,4 @@
-import { createDatabase, type Database } from "../../src/db/prisma.js";
+import { createDatabase, type Database } from "../../src/platform/database.js";
 
 /**
  * The suite truncates whatever it connects to, so it refuses to connect to anything

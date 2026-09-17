@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Database } from "../src/db/prisma.js";
-import { connectionCount, createTestDatabase } from "./helpers/database.js";
-import { startTestApi } from "./helpers/api.js";
+import type { Database } from "../src/platform/database.js";
+import { connectionCount, createTestDatabase } from "./helpers/test-database.js";
+import { startTestApi } from "./helpers/test-api.js";
 import { readUntil } from "./helpers/wait.js";
 
 describe("graceful shutdown", () => {

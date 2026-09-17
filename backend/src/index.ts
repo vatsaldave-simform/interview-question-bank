@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
-import { loadEnvFile, readEnv } from "./config/env.js";
-import { createDatabase } from "./db/prisma.js";
-import { createLogger, setRootLogger } from "./logging/logger.js";
-import { startServer } from "./server.js";
+import { loadEnvFile, readEnv } from "./platform/env.js";
+import { createDatabase } from "./platform/database.js";
+import { createLogger, setRootLogger } from "./platform/logger.js";
+import { startServer } from "./platform/server.js";
 
 loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
 
@@ -17,6 +17,10 @@ const server = await startServer({
   app: createApp({
     logger,
     database,
+    accessToken: {
+      secret: env.ACCESS_TOKEN_SECRET,
+      lifetimeSeconds: env.ACCESS_TOKEN_LIFETIME_SECONDS,
+    },
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),
   port: env.PORT,

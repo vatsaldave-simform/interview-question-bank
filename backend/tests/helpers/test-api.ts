@@ -1,9 +1,11 @@
 import type { Logger } from "pino";
 import { createApp } from "../../src/app.js";
-import type { Database } from "../../src/db/prisma.js";
-import { createLogger } from "../../src/logging/logger.js";
-import { startServer, type RunningServer } from "../../src/server.js";
-import { createTestDatabase, truncateAll } from "./database.js";
+import type { AccessTokenConfig } from "../../src/features/auth/access-token.js";
+import type { Database } from "../../src/platform/database.js";
+import { createLogger } from "../../src/platform/logger.js";
+import { startServer, type RunningServer } from "../../src/platform/server.js";
+import { testAccessTokenSecret } from "./auth.js";
+import { createTestDatabase, truncateAll } from "./test-database.js";
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
 
@@ -24,7 +26,12 @@ export type TestApi = {
  * guarantees this project cares about can honestly be asserted.
  */
 export async function startTestApi(
-  options: { applicationName?: string; frontendDir?: string } = {},
+  options: {
+    applicationName?: string;
+    frontendDir?: string;
+    /** Overrides for the token configuration the environment would supply. */
+    accessToken?: Partial<AccessTokenConfig>;
+  } = {},
 ): Promise<TestApi> {
   const lines: LogLine[] = [];
   const logger: Logger = createLogger({
@@ -41,6 +48,13 @@ export async function startTestApi(
   const app = createApp({
     logger,
     database,
+    accessToken: {
+      secret: testAccessTokenSecret,
+      // Long enough that no test expires a token by accident; the file that tests
+      // expiry asks for a second of it instead.
+      lifetimeSeconds: 900,
+      ...options.accessToken,
+    },
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });
   const server: RunningServer = await startServer({ app, port: 0, logger, shutdownTimeoutMs: 2_000 });

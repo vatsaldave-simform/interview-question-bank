@@ -5,9 +5,11 @@ Questions tied to a Client stay visible only to Viewers holding a Permission Gra
 that Client. The vocabulary is defined in [CONTEXT.md](CONTEXT.md); the decisions behind
 the build are in [docs/adr](docs/adr).
 
-This is the walking skeleton. It comes up, answers health checks, logs every line of a
-request against that request's id, shuts down cleanly, and runs a test suite against a
-real PostgreSQL. The bank itself arrives in the tickets that follow.
+This is the walking skeleton plus its authenticated front door. It comes up, answers
+health checks, logs every line of a request against that request's id, shuts down
+cleanly, runs a test suite against a real PostgreSQL, and refuses every `/api` request
+that does not carry a valid access token. The bank itself arrives in the tickets that
+follow.
 
 ## Getting started
 
@@ -29,6 +31,38 @@ curl localhost:3000/ready    # {"status":"ready","checks":{"database":"up"}}
 `/health` is liveness and never touches the database, so a blinking database does not
 get the container restarted. `/ready` reports whether the database answers, and is the
 one to gate traffic on.
+
+## Signing in
+
+There is no registration endpoint — an Administrator creates Viewers (ADR-0016) — so an
+empty database has nobody who can log in. `docker compose up` seeds one Viewer per role
+on its way up, in a one-shot `seed` service the API waits for; running the API outside
+compose, `pnpm db:seed` does the same thing:
+
+| Address             | Password            | Role     |
+| ------------------- | ------------------- | -------- |
+| `reader@iqb.test`   | `reader-password`   | Reader   |
+| `author@iqb.test`   | `author-password`   | Author   |
+| `reviewer@iqb.test` | `reviewer-password` | Reviewer |
+
+They are development data, and the seed leaves an existing Viewer alone, so running it
+twice will not reset a password.
+
+```sh
+TOKEN=$(curl -s localhost:3000/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"author@iqb.test","password":"author-password"}' | jq -r .accessToken)
+
+curl -s localhost:3000/api/auth/me -H "authorization: Bearer $TOKEN"
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/me   # 401
+```
+
+Every `/api` path except `POST /api/auth/login` sits behind the authentication gate,
+including paths that do not exist: an anonymous caller is told 401 everywhere alike, so
+the shape of the API cannot be mapped by probing for which paths answer 404. Access
+tokens are short-lived and belong in memory, never in storage (ADR-0008);
+`ACCESS_TOKEN_LIFETIME_SECONDS` sets how short. Refresh tokens arrive in the next
+ticket, so a token currently expires with no way back but logging in again.
 
 ## Running the tests
 
@@ -106,10 +140,15 @@ rather than crash-looping it.
 **Writing a migration means `docker compose up --build`.** The `migrate` service gets its
 migrations from the image, so a plain `up` will quietly apply the previous set.
 
-**Seeding and resetting are local.** Free Render services have no shell, no SSH and no
-one-off jobs, so there is no in-platform way to run the seed. Point `DATABASE_URL` at
-Neon from your own machine and run it there. The seed is destructive: it restores the
-known state and discards whatever has accumulated.
+**Seeding is local.** Free Render services have no shell, no SSH and no one-off jobs, so
+there is no in-platform way to run the seed. Point `DATABASE_URL` at Neon from your own
+machine and run `pnpm db:seed` there. It is idempotent and leaves an existing Viewer
+untouched, so it can be re-run without resetting a password someone changed.
+
+`ACCESS_TOKEN_SECRET` is the one secret Render holds that is not in the table above:
+`render.yaml` asks the platform to generate it, so it is never in git and never typed by
+anyone. Rotating it in the dashboard signs everyone out, which is the point of tokens
+being short-lived rather than sessions being long.
 
 The hosted bank holds seed data and throwaway test Questions, which is what makes
 publishing its demo credentials safe. Putting real Client-restricted Questions into it
@@ -119,8 +158,8 @@ would invalidate that, and the free tier has no backups.
 
 **One error contract, enforced in one place.** Route handlers raise domain errors and
 never set a status code for one. The mapping from error code to status code lives in
-`backend/src/http/error-handler.ts` and nowhere else, which is what keeps the contract
-from drifting per endpoint as the API grows.
+`backend/src/platform/http/error-handler.middleware.ts` and nowhere else, which is what
+keeps the contract from drifting per endpoint as the API grows.
 
 Error responses carry the request id in the `x-request-id` header, deliberately not in
 the body. Two responses that have to be indistinguishable to a caller cannot carry
@@ -139,6 +178,15 @@ request without a logger being threaded through every function.
 **Graceful shutdown.** SIGTERM stops the listener, closes idle keep-alive sockets,
 waits out in-flight requests up to `SHUTDOWN_TIMEOUT_MS`, then closes the database pool.
 
+**No anonymous path.** The authentication gate is mounted on the `/api` router in front
+of everything but login, rather than on each endpoint, so a route added later is
+protected by where it was added rather than by someone remembering to protect it. The
+gate reads the Viewer from the database on every request instead of trusting the token's
+contents, which is what will let a role change or a deactivation take effect on the next
+request rather than when a token happens to expire. Every refusal is the same 401 with
+the same body; why it was refused — absent, malformed, expired, forged — goes to the log
+instead, where an operator can read it and a caller cannot.
+
 ## Prisma is pinned to exact 7.x
 
 `prisma` and `@prisma/client` are pinned to `7.10.0` with no caret, and should stay that
@@ -153,7 +201,7 @@ version.
 
 ## Where the database schema is
 
-`backend/prisma/schema.prisma` has a datasource and a generator and no models yet. The
-first tables arrive with the Viewer and Question tickets, which own that vocabulary. The
-test harness reads the table list at truncation time rather than keeping its own copy,
-so those tables are cleaned between tests without anyone updating the harness.
+`backend/prisma/schema.prisma` holds the `viewers` table and nothing else yet; the
+Question tables arrive with the tickets that own that vocabulary. The test harness reads
+the table list at truncation time rather than keeping its own copy, so those tables are
+cleaned between tests without anyone updating the harness.

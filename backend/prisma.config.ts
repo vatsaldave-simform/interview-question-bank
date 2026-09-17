@@ -14,6 +14,7 @@ const databaseUrl = process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: { path: "prisma/migrations" },
+  // `prisma db seed` and `pnpm db:seed` run the same thing, so there is one seed.
+  migrations: { path: "prisma/migrations", seed: "tsx src/commands/seed.ts" },
   ...(databaseUrl ? { datasource: { url: databaseUrl } } : {}),
 });

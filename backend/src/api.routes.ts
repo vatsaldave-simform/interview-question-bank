@@ -1,17 +1,31 @@
 import { Router } from "express";
-import { notFoundHandler } from "../http/error-handler.js";
+import { requireAuthenticatedViewer, type AuthDependencies } from "./features/auth/auth.middleware.js";
+import { notFoundHandler } from "./platform/http/error-handler.middleware.js";
+import { authenticatedAuthRoutes, publicAuthRoutes } from "./features/auth/auth.routes.js";
 
 /**
- * Every application route mounts here, under /api (ADR-0012). Later tickets add to
- * this router; the health and readiness routes deliberately do not, because they are
- * the contract with the platform rather than part of the application.
+ * Every application route mounts here, under /api (ADR-0012). The health and readiness
+ * routes deliberately do not, because they are the contract with the platform rather
+ * than part of the application, and the platform holds no credentials.
  *
- * The router ends in the not-found handler, so an unknown /api path is refused with
- * the error contract instead of falling through to the client's fallback and coming
- * back as HTML with a 200.
+ * The order is the design. Logging in comes first because it is how a token is
+ * obtained; the authentication gate comes next; everything after it — later tickets'
+ * routers, and the not-found handler that ends this one — is reachable only by an
+ * authenticated Viewer. A route added below the gate is protected by having been added
+ * there, rather than by remembering to protect it.
+ *
+ * The not-found handler sitting behind the gate is deliberate too: an anonymous caller
+ * is told 401 for every /api path alike, so the shape of the API cannot be mapped by
+ * probing for which paths answer 404.
  */
-export function apiRoutes(): Router {
+export function apiRoutes({ database, accessToken }: AuthDependencies): Router {
   const router = Router();
+
+  router.use("/auth", publicAuthRoutes({ database, accessToken }));
+
+  router.use(requireAuthenticatedViewer({ database, accessToken }));
+
+  router.use("/auth", authenticatedAuthRoutes());
   router.use(notFoundHandler);
   return router;
 }

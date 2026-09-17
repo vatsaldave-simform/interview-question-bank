@@ -1,15 +1,18 @@
 import express, { type Express } from "express";
 import type { Logger } from "pino";
-import type { Database } from "./db/prisma.js";
-import { frontendRoutes } from "./http/frontend.js";
-import { errorHandler, notFoundHandler } from "./http/error-handler.js";
-import { requestLogging } from "./http/request-logging.js";
-import { apiRoutes } from "./routes/api.js";
-import { healthRoutes } from "./routes/health.js";
+import type { AccessTokenConfig } from "./features/auth/access-token.js";
+import type { Database } from "./platform/database.js";
+import { frontendRoutes } from "./platform/http/frontend.routes.js";
+import { errorHandler, notFoundHandler } from "./platform/http/error-handler.middleware.js";
+import { requestLogging } from "./platform/http/request-logging.middleware.js";
+import { apiRoutes } from "./api.routes.js";
+import { healthRoutes } from "./platform/http/health.routes.js";
 
 export type AppDependencies = {
   logger: Logger;
   database: Database;
+  /** The secret access tokens are signed with, and how long they last (ADR-0008). */
+  accessToken: AccessTokenConfig;
   /**
    * Where the built client lives. Omitted, the API serves no client and every unrouted
    * path is a not_found — how the suite runs, and how `pnpm dev` runs with Vite serving
@@ -22,7 +25,7 @@ export type AppDependencies = {
  * The application, with its dependencies passed in rather than imported, so a test
  * can hand it a logger it can read and a client pointed at the test database.
  */
-export function createApp({ logger, database, frontendDir }: AppDependencies): Express {
+export function createApp({ logger, database, accessToken, frontendDir }: AppDependencies): Express {
   const app = express();
   app.disable("x-powered-by");
 
@@ -33,7 +36,7 @@ export function createApp({ logger, database, frontendDir }: AppDependencies): E
   // Liveness and readiness stay at the root: they answer the platform, not the
   // application, and Render's health check asks for /health there (ADR-0012).
   app.use(healthRoutes(database));
-  app.use("/api", apiRoutes());
+  app.use("/api", apiRoutes({ database, accessToken }));
 
   // Last, and only ever behind the routes above, so the fallback cannot answer for
   // something the API owns.
