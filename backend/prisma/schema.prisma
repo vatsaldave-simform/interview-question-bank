@@ -31,5 +31,33 @@ model Viewer {
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
+  refreshTokens RefreshToken[]
+
   @@map("viewers")
+}
+
+/// A refresh token, held in PostgreSQL rather than a cache because revocation and
+/// reuse detection are relational and have to survive a restart (ADR-0008).
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  /// Shared by every token rotated out of one login, so a detected reuse can revoke
+  /// each session descended from the token that leaked.
+  familyId  String    @db.Uuid
+  viewerId  String    @db.Uuid
+  viewer    Viewer    @relation(fields: [viewerId], references: [id])
+  /// The SHA-256 of the token. The token itself exists only in the caller's cookie, so
+  /// a copy of this table is not a set of usable credentials.
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  /// When this token was rotated away; presenting it after this is the reuse.
+  spentAt   DateTime? @db.Timestamptz(3)
+  /// Set on every member of a family at once, by a logout or by a detected reuse.
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  // Revocation reads a whole family at a time; the viewer index is what lets
+  // Deactivating a Viewer revoke their families immediately (ADR-0017).
+  @@index([familyId])
+  @@index([viewerId])
+  @@map("refresh_tokens")
 }
