@@ -9,6 +9,27 @@ datasource db {
   provider = "postgresql"
 }
 
-// No models yet. The walking skeleton carries the connection, the migration runner
-// and the truncation harness; the first tables arrive with the Viewer and the
-// Question tickets, which own that vocabulary.
+/// What a Viewer may do with Questions. Administrator is deliberately absent: it is an
+/// authority held beside one of these rather than a fourth value replacing one
+/// (ADR-0015), and it arrives with the administration tickets.
+enum ViewerRole {
+  reader
+  author
+  reviewer
+}
+
+/// The authenticated person a request acts as. No Viewer is ever deleted (ADR-0017),
+/// so nothing here cascades.
+model Viewer {
+  id           String     @id @default(uuid()) @db.Uuid
+  /// Lower-cased on the way in, so an address matches however it was typed.
+  email        String     @unique
+  /// The output of the password hasher, algorithm and parameters included. Never leaves
+  /// the database: no response, no log line.
+  passwordHash String
+  role         ViewerRole
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  @@map("viewers")
+}

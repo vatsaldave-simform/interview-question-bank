@@ -1,8 +1,8 @@
 import { apiErrorSchema, type ApiError, type ErrorCode } from "@iqb/shared";
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { z } from "zod";
-import { AppError, InvalidRequestError, NotFoundError } from "../errors/app-error.js";
-import { log } from "../logging/logger.js";
+import { AppError, InvalidRequestError, NotFoundError } from "../errors.js";
+import { log } from "../logger.js";
 
 /**
  * The whole mapping, in one place. Route handlers raise errors and never set a status

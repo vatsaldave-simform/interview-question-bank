@@ -42,6 +42,10 @@ services:
       # rotating it in the dashboard is not undone by a deploy.
       - key: DATABASE_URL
         sync: false
+      # Signs access tokens. Render generates it once and keeps it: rotating it here
+      # invalidates every token in flight, which is the point of it being short-lived.
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
 
     # PORT is set by Render itself, and the API reads it from the environment.
     # FRONTEND_DIR is set in the image, because it is a fact about the image's layout

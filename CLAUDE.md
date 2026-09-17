@@ -13,3 +13,8 @@ The five canonical triage roles, using their default label strings (no renaming)
 ### Domain docs
 
 Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Backend structure
+
+`backend/src` is laid out by feature beside a platform zone, with a closed list of filename
+suffixes and a one-sentence comment rule. See `docs/agents/backend-structure.md`.

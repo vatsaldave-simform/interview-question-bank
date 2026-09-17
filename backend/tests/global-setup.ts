@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { loadEnvFile } from "../src/config/env.js";
-import { testDatabaseUrl } from "./helpers/database.js";
+import { loadEnvFile } from "../src/platform/env.js";
+import { testDatabaseUrl } from "./helpers/test-database.js";
 
 const backendDir = fileURLToPath(new URL("..", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));

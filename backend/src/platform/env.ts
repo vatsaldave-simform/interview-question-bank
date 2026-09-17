@@ -14,6 +14,18 @@ const envSchema = z.object({
    */
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
   /**
+   * Signs access tokens. Required and unguessable: anything that knows it can mint a
+   * token for any Viewer. A short one is refused here rather than at the first forged
+   * request nobody notices.
+   */
+  ACCESS_TOKEN_SECRET: z.string().min(32),
+  /**
+   * How long an access token lasts. Short, so a leaked one stops working quickly
+   * (ADR-0008), and configurable so that the suite can set it to a second and watch a
+   * token expire without a clock abstraction.
+   */
+  ACCESS_TOKEN_LIFETIME_SECONDS: z.coerce.number().int().positive().default(900),
+  /**
    * Where the built client lives. Unset, the API serves no client: how the suite runs,
    * and how `pnpm dev` runs with Vite serving it instead. The deployed image sets it,
    * because there one origin serves both (ADR-0012).

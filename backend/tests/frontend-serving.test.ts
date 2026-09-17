@@ -1,7 +1,9 @@
 import { apiErrorSchema, readinessResponseSchema } from "@iqb/shared";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { startTestApi, type TestApi } from "./helpers/api.js";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.js";
+import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { logIn, seededViewer } from "./helpers/auth.js";
 
 const frontendDir = fileURLToPath(new URL("./fixtures/frontend", import.meta.url));
 
@@ -12,9 +14,15 @@ const frontendDir = fileURLToPath(new URL("./fixtures/frontend", import.meta.url
  */
 describe("serving the client alongside the API", () => {
   let api: TestApi;
+  let token: string;
 
   beforeAll(async () => {
     api = await startTestApi({ frontendDir });
+    await api.truncate();
+    await seedViewerAccounts(api.database);
+    // An authenticated caller, because /api is behind the authentication gate: these
+    // tests are about what the client fallback may swallow, not about the gate.
+    token = await logIn(api, seededViewer("reader"));
   });
   afterAll(async () => {
     await api.stop();
@@ -48,7 +56,9 @@ describe("serving the client alongside the API", () => {
   it("refuses an unknown API path with the error contract, never the client", async () => {
     // The fallback sitting in front of the error middleware would turn every mistyped
     // API path into a 200 carrying HTML. This is the test that says it does not.
-    const response = await api.request("/api/no-such-route");
+    const response = await api.request("/api/no-such-route", {
+      headers: { authorization: `Bearer ${token}` },
+    });
 
     expect(response.status).toBe(404);
     expect(response.headers.get("content-type")).toContain("application/json");
@@ -61,11 +71,24 @@ describe("serving the client alongside the API", () => {
     // A browser asks for HTML first. That must not be enough to get the client back
     // from a path that belongs to the API.
     const response = await api.request("/api/no-such-route", {
-      headers: { accept: "text/html,application/xhtml+xml" },
+      headers: { accept: "text/html,application/xhtml+xml", authorization: `Bearer ${token}` },
     });
 
     expect(response.status).toBe(404);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("not_found");
+  });
+
+  it("refuses an anonymous API path with the error contract too", async () => {
+    // Unauthenticated, the same path is 401 rather than 404 — the gate sits in front
+    // of the not-found handler. What matters here is that it is still the API
+    // answering in JSON, and never the client in HTML.
+    const response = await api.request("/api/no-such-route", {
+      headers: { accept: "text/html,application/xhtml+xml" },
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("unauthenticated");
   });
 
   it("refuses a write to an unknown path rather than answering it with the client", async () => {

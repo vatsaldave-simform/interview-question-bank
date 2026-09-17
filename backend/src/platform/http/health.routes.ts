@@ -1,7 +1,7 @@
 import { type HealthResponse, type ReadinessResponse } from "@iqb/shared";
 import { Router } from "express";
-import type { Database } from "../db/prisma.js";
-import { log } from "../logging/logger.js";
+import type { Database } from "../database.js";
+import { log } from "../logger.js";
 
 async function databaseIsUp(database: Database): Promise<boolean> {
   try {

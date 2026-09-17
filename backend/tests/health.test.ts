@@ -1,7 +1,7 @@
 import { healthResponseSchema, readinessResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { startTestApi, type TestApi } from "./helpers/api.js";
-import { withDatabaseUrl } from "./helpers/env.js";
+import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { withDatabaseUrl } from "./helpers/with-env.js";
 
 describe("health and readiness", () => {
   let api: TestApi;
