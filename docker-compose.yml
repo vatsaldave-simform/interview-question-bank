@@ -100,6 +100,10 @@ services:
       # Local only. The deployment generates its own and never reads this file.
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-local-development-access-token-secret}
       ACCESS_TOKEN_LIFETIME_SECONDS: ${ACCESS_TOKEN_LIFETIME_SECONDS:-900}
+      LOGIN_RATE_LIMIT_MAX_ATTEMPTS: ${LOGIN_RATE_LIMIT_MAX_ATTEMPTS:-20}
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${LOGIN_RATE_LIMIT_WINDOW_SECONDS:-900}
+      # Compose publishes the port straight to the host: no proxy, so no hops to trust.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
     ports:
       - "${PORT:-3000}:3000"
     depends_on:

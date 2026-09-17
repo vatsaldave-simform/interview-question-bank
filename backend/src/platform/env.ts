@@ -25,6 +25,11 @@ const envSchema = z.object({
    * token expire without a clock abstraction.
    */
   ACCESS_TOKEN_LIFETIME_SECONDS: z.coerce.number().int().positive().default(900),
+  /** Failed attempts on the unauthenticated endpoints one caller may make in a window. */
+  LOGIN_RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().int().positive().default(20),
+  LOGIN_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(900),
+  /** Proxies in front of the API; it has to match the real depth (ADR-0021). */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
   /**
    * Where the built client lives. Unset, the API serves no client: how the suite runs,
    * and how `pnpm dev` runs with Vite serving it instead. The deployed image sets it,

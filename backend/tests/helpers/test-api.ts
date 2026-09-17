@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import { createApp } from "../../src/app.js";
 import type { AccessTokenConfig } from "../../src/features/auth/access-token.js";
 import type { Database } from "../../src/platform/database.js";
+import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middleware.js";
 import { createLogger } from "../../src/platform/logger.js";
 import { startServer, type RunningServer } from "../../src/platform/server.js";
 import { testAccessTokenSecret } from "./auth.js";
@@ -31,6 +32,10 @@ export async function startTestApi(
     frontendDir?: string;
     /** Overrides for the token configuration the environment would supply. */
     accessToken?: Partial<AccessTokenConfig>;
+    /** Overrides for the rate limit the environment would supply. */
+    loginRateLimit?: Partial<RateLimitConfig>;
+    /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
+    trustProxyHops?: number;
   } = {},
 ): Promise<TestApi> {
   const lines: LogLine[] = [];
@@ -55,6 +60,14 @@ export async function startTestApi(
       lifetimeSeconds: 900,
       ...options.accessToken,
     },
+    loginRateLimit: {
+      // High enough that no test trips the limit by accident; the file that tests the
+      // limit asks for a low one.
+      maxAttempts: 1_000,
+      windowSeconds: 900,
+      ...options.loginRateLimit,
+    },
+    ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });
   const server: RunningServer = await startServer({ app, port: 0, logger, shutdownTimeoutMs: 2_000 });
