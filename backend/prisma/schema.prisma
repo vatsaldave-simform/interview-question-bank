@@ -31,7 +31,9 @@ model Viewer {
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
-  refreshTokens RefreshToken[]
+  refreshTokens    RefreshToken[]
+  permissionGrants PermissionGrant[]
+  questions        Question[]
 
   @@map("viewers")
 }
@@ -60,4 +62,122 @@ model RefreshToken {
   @@index([familyId])
   @@index([viewerId])
   @@map("refresh_tokens")
+}
+
+/// Whether a Question is awaiting a Reviewer, in the bank, or refused. A column and not
+/// a second table (ADR-0013).
+enum PublicationState {
+  pending
+  published
+  rejected
+}
+
+/// Where a Question came from. A column and not a Category, because a Tag can express
+/// neither "required" nor "exactly one".
+enum Provenance {
+  original
+  adapted
+  inherited
+}
+
+/// A named axis along which Questions are classified. These rows carry the ids Tags hang
+/// from; the names themselves are closed in `@iqb/shared` (ADR-0024).
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// The spelling a request writes, and the one `categoryNames` holds.
+  name        String   @unique
+  /// What a person reads, so the wire spelling never has to be shown to anyone.
+  displayName String
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  tags Tag[]
+
+  @@map("categories")
+}
+
+/// A single value belonging to exactly one Category, which the required `categoryId` and
+/// the unique pair are what make true rather than conventional.
+model Tag {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+  value      String
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  questions QuestionTag[]
+
+  @@unique([categoryId, value])
+  @@map("tags")
+}
+
+/// An organisation a Question may be restricted to. Never deleted (ADR-0017).
+model Client {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  permissionGrants PermissionGrant[]
+  questions        Question[]
+
+  @@map("clients")
+}
+
+/// The authority for one Viewer to see one Client's Questions.
+model PermissionGrant {
+  id        String   @id @default(uuid()) @db.Uuid
+  viewerId  String   @db.Uuid
+  viewer    Viewer   @relation(fields: [viewerId], references: [id])
+  clientId  String   @db.Uuid
+  client    Client   @relation(fields: [clientId], references: [id])
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([viewerId, clientId])
+  @@index([clientId])
+  @@map("permission_grants")
+}
+
+/// A single interview or screening question, with its Answer Notes, Tags and Provenance.
+/// Every read of this table goes through one scoped query builder, and the guarantee is
+/// structural: a second path to this table removes it (ADR-0003).
+model Question {
+  id               String           @id @default(uuid()) @db.Uuid
+  text             String
+  answerNotes      String
+  authorId         String           @db.Uuid
+  author           Viewer           @relation(fields: [authorId], references: [id])
+  /// At most one Client, and optional: unrestricted is the absence of a restriction
+  /// rather than a value meaning "everyone".
+  clientId         String?          @db.Uuid
+  // Restrict, against Prisma's SET NULL default: a deleted Client would otherwise
+  // silently declassify every Question restricted to it (ADR-0017).
+  client           Client?          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  publicationState PublicationState @default(pending)
+  provenance       Provenance
+  /// Named in the Author's own words, so free text rather than a link or a Tag.
+  source           String?
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+
+  tags QuestionTag[]
+
+  // Load-bearing: the ordering index the combined filter's early-stop strategy walks,
+  // and what makes pagination stable. Dropping it removes a plan (ADR-0011).
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([clientId])
+  @@index([authorId])
+  @@map("questions")
+}
+
+/// A Question carrying a Tag; several within one Category and across several are alike.
+model QuestionTag {
+  questionId String   @db.Uuid
+  question   Question @relation(fields: [questionId], references: [id])
+  tagId      String   @db.Uuid
+  tag        Tag      @relation(fields: [tagId], references: [id])
+
+  @@id([questionId, tagId])
+  // The other direction of the primary key, which is the index the planner drives from
+  // on a selective filter (ADR-0011).
+  @@index([tagId, questionId])
+  @@map("question_tags")
 }

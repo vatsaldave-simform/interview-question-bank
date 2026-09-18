@@ -16,6 +16,13 @@ export const seedViewers: readonly SeedViewer[] = [
   { email: "reviewer@iqb.test", password: "reviewer-password", role: "reviewer" },
 ];
 
+/** The seeded Viewer holding a role, for anything that has to name one of them. */
+export function seedViewerByRole(role: ViewerRole): SeedViewer {
+  const viewer = seedViewers.find((candidate) => candidate.role === role);
+  if (!viewer) throw new Error(`No seeded Viewer holds the role ${role}.`);
+  return viewer;
+}
+
 /**
  * Idempotent, and deliberately leaves an existing Viewer untouched: re-running the
  * seed against a database someone has been using must not reset a password or a role
