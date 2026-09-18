@@ -42,5 +42,5 @@ request a Viewer is waiting on. It is an indexed count on `familyId` against a h
 of rows, and it is the price of the guarantee in the paragraph above.
 
 The window it closes is narrow and needs two requests interleaved within it, so it
-cannot be reproduced reliably by a test. The suite asserts the invariant instead: after
-two concurrent rotations, no live token remains in the family.
+cannot be reproduced reliably by a test. The suite asserts the rule that must always
+hold instead: after two concurrent rotations, no live token remains in the family.

@@ -16,7 +16,7 @@ quietly: each of those acts lands in the Change Event log under the name of the 
 performed it. Requiring a second Administrator to approve each act buys a check that stalls the
 moment one person is away, which is the reasoning that settled self-publication in ADR-0013.
 
-One invariant is enforced: the last Administrator cannot be removed. Running with a single
+One rule is always enforced: the last Administrator cannot be removed. Running with a single
 Administrator is sensible; a system that *enforces* a maximum of one is not, because the failure
 it creates — the sole Administrator leaves, and appointing a replacement is an Administrator-only
 act — has no recovery path inside the system.

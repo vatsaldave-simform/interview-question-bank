@@ -6,8 +6,8 @@ address, in this process rather than in a cache (ADR-0009), and the refusal is r
 error contract's `rate_limited` rather than answered by the limiter's own responder — so the 429
 and its body come from the one middleware that decides every other status.
 
-**The limit is on the login route, not on the router the route sits in.** A request for a path the
-authentication gate owns passes through the public router first on its way to being refused, so a
+**The limit is on the login route, not on the router the route sits in.** A request for a path
+behind the sign-in check passes through the public router first on its way to being refused, so a
 limit mounted a level up would let a caller spend an address's login allowance by hammering an
 endpoint that never checks a password.
 
@@ -17,8 +17,8 @@ address, signing in each morning — to slow an attacker who, by definition, is 
 
 **Per-account limiting was rejected.** Locking a named Viewer after N failures stops a targeted
 guess against one account, but it hands out two things this project has spent its design refusing:
-an account oracle, since "your account is locked" differs from "those credentials are not valid"
-and so says the address exists; and a denial-of-service against any Viewer whose address an
+a way to find out an address has an account, since "your account is locked" differs from "those
+credentials are not valid"; and a denial-of-service against any Viewer whose address an
 attacker knows. Address-based limiting has neither property, and credential stuffing — many
 addresses from few sources — is the attack the brief names.
 

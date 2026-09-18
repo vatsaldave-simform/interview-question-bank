@@ -77,9 +77,9 @@ describe("how hard a caller may knock on the authentication endpoints", () => {
 
 describe("what the limit leaves alone", () => {
   it("does not spend the allowance on a refusal from another endpoint", async () => {
-    // The limit is on the login route, not on the /api/auth prefix: a path the
-    // authentication gate owns is refused through here on its way past, and a caller
-    // hammering one must not be able to lock an address out of logging in.
+    // The limit is on the login route, not on the /api/auth prefix: a path behind the
+    // sign-in check is refused through here on its way past, and a caller hammering one
+    // must not be able to lock an address out of logging in.
     const api = await limitedApi();
     const viewer = seededViewer("author");
 

@@ -9,8 +9,8 @@ import {
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { Database } from "../../platform/database.js";
 
-/** A Question as everything above this module sees one, its Tags named not numbered. */
-export type StoredQuestion = {
+/** A Question as the rest of the code sees one: its Tags carry names, not ids. */
+export type QuestionFromDb = {
   id: string;
   text: string;
   answerNotes: string;
@@ -23,29 +23,31 @@ export type StoredQuestion = {
   createdAt: Date;
 };
 
-/** The outer gate: no Client restriction, or a Permission Grant for the one named
- * (ADR-0002). */
+/** The first check: the Question has no Client, or the Viewer holds a Permission Grant
+ * for the one it names (ADR-0002). */
 function visibleTo(viewer: Viewer): Prisma.QuestionWhereInput {
   return {
     OR: [{ clientId: null }, { client: { permissionGrants: { some: { viewerId: viewer.id } } } }],
   };
 }
 
-/** The inner gate: a Pending or Rejected Question reaches only its Author and Reviewers,
- * whose empty predicate buys nothing outside the visibility one this is AND-ed with
- * (ADR-0013). */
+/**
+ * The second check: a Pending or Rejected Question reaches only its Author and Reviewers.
+ * A Reviewer gets an empty condition, which cannot widen the visibility check this is
+ * AND-ed with, so a Reviewer still sees no Client they hold no Grant for (ADR-0013).
+ */
 function inTheBankFor(viewer: Viewer): Prisma.QuestionWhereInput {
   if (viewer.role === "reviewer") return {};
   return { OR: [{ publicationState: "published" }, { authorId: viewer.id }] };
 }
 
-/** Unexported, and there is no unscoped variant: a caller able to build a `where` of
- * their own is the second path that ends the guarantee (ADR-0003). */
+/** Not exported, and there is no version without the checks: a caller who can write a
+ * `where` of their own is the second way in that ends the guarantee (ADR-0003). */
 function visibleQuestions(viewer: Viewer): Prisma.QuestionWhereInput {
   return { AND: [visibleTo(viewer), inTheBankFor(viewer)] };
 }
 
-const storedQuestionFields = {
+const questionFieldsToRead = {
   id: true,
   text: true,
   answerNotes: true,
@@ -58,14 +60,14 @@ const storedQuestionFields = {
   tags: { select: { tag: { select: { value: true, category: { select: { name: true } } } } } },
 } satisfies Prisma.QuestionSelect;
 
-type SelectedQuestion = Prisma.QuestionGetPayload<{ select: typeof storedQuestionFields }>;
+type QuestionRow = Prisma.QuestionGetPayload<{ select: typeof questionFieldsToRead }>;
 
-function toStoredQuestion(question: SelectedQuestion): StoredQuestion {
+function toQuestionFromDb(question: QuestionRow): QuestionFromDb {
   return {
     ...question,
     tags: question.tags.map(({ tag }) => ({
-      // Parsed rather than cast: a Category row outside the closed vocabulary is a
-      // drift the seed is supposed to prevent, and is worth failing loudly (ADR-0024).
+      // Parsed rather than cast: a Category row outside the closed list means the rows
+      // and the code are out of sync, which the seed prevents, so fail loudly (ADR-0024).
       category: categoryNameSchema.parse(tag.category.name),
       tag: tag.value,
     })),
@@ -78,12 +80,12 @@ export async function findVisibleQuestionById(
   database: Database,
   viewer: Viewer,
   id: string,
-): Promise<StoredQuestion | null> {
+): Promise<QuestionFromDb | null> {
   const question = await database.question.findFirst({
     where: { AND: [{ id }, visibleQuestions(viewer)] },
-    select: storedQuestionFields,
+    select: questionFieldsToRead,
   });
-  return question === null ? null : toStoredQuestion(question);
+  return question === null ? null : toQuestionFromDb(question);
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
@@ -101,7 +103,7 @@ export async function insertQuestion(
   database: Database,
   viewer: Viewer,
   question: NewQuestion,
-): Promise<StoredQuestion> {
+): Promise<QuestionFromDb> {
   const stored = await database.question.create({
     data: {
       text: question.text,
@@ -113,9 +115,9 @@ export async function insertQuestion(
       // join's primary key would otherwise refuse the write.
       tags: { create: [...new Set(question.tagIds)].map((tagId) => ({ tagId })) },
     },
-    select: storedQuestionFields,
+    select: questionFieldsToRead,
   });
-  return toStoredQuestion(stored);
+  return toQuestionFromDb(stored);
 }
 
 /** The Tag rows a request names, however few of them turn out to exist. */
@@ -126,7 +128,7 @@ export async function findTagsNamed(
   if (tags.length === 0) return [];
 
   const rows = await database.tag.findMany({
-    // One disjunct per named Tag, each pairing the value with its Category, so a value
+    // One OR branch per named Tag, each pairing the value with its Category, so a value
     // that exists under a different Category does not match.
     where: { OR: tags.map(({ category, tag }) => ({ value: tag, category: { name: category } })) },
     select: { id: true, value: true, category: { select: { name: true } } },

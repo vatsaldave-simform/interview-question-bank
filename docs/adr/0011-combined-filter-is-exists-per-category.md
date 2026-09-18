@@ -26,9 +26,9 @@ filter is selective or the page is deep, the planner abandons the ordering-index
 from `question_tags (tag_id, question_id)` instead, hash-aggregating candidates and sorting them.
 It picks a strategy per selectivity. Shape B's plan is the same blocking aggregate every time.
 
-Shape A also composes better with the scoped query builder (ADR-0003): each Category contributes
-one independent predicate on top of the visibility predicate, rather than restructuring the
-statement into a grouped query whose `HAVING` has to be recomputed as filters change.
+Shape A also fits better with the shared query function (ADR-0003): each Category adds one more
+condition on top of the visibility condition, rather than reshaping the statement into a grouped
+query whose `HAVING` has to be worked out again every time the filters change.
 
 ## Consequences
 

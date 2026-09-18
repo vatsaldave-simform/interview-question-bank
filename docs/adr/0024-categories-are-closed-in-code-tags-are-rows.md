@@ -3,8 +3,8 @@
 Categories and Tags look like the same kind of thing — names a Question is classified by — and the
 obvious model makes them one: two tables, both open, both edited by whoever administers the bank.
 That model cannot satisfy the requirement that a Tag naming a Category that does not exist is
-refused **at the edge, before business logic runs**. An edge schema validates the request against
-what it knows in the process; a Category list living only in `categories` is not known there, so
+refused **at the edge, before business logic runs**. A schema at the edge checks the request against
+what the process already knows; a Category list living only in `categories` is not known there, so
 the refusal becomes a database lookup inside the handler, which is business logic by any reading.
 
 So the two are modelled asymmetrically. The Category **names** are a closed Zod enum in
@@ -19,8 +19,9 @@ line of code moving. Freezing the first in code and leaving the second in data p
 boundary where the real one already is.
 
 `categories` still exists as a table, because Tags need something to hang from and a Category
-carries a display name the wire spelling should not have to serve as. It is seeded from the same
-closed list, so the enum and the rows cannot drift apart without the seed saying so. `CONTEXT.md`
+carries a display name that the spelling used in the API should not have to serve as. It is seeded
+from the same closed list, so the enum and the rows cannot get out of sync without the seed saying
+so. `CONTEXT.md`
 has no glossary term for that display name — a gap worth closing when the vocabulary is next
 revisited, and not a reason to reach for *label*, which the glossary avoids for Tag.
 

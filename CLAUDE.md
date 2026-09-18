@@ -2,13 +2,18 @@
 
 ## Agent skills
 
+### Plain language
+
+Everything a person reads — comments, names, docs, issue titles, commit messages — is written in
+plain words and short sentences. See `docs/agents/plain-language.md`.
+
 ### Issue tracker
 
 Issues live in this repo's GitHub Issues, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five canonical triage roles, using their default label strings (no renaming). See `docs/agents/triage-labels.md`.
+The five standard triage roles, using their default label strings (no renaming). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

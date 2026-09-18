@@ -54,7 +54,7 @@ function refuseSession(res: Response, cookie: RefreshCookieConfig): never {
 
 /**
  * The routes reachable without an access token, because they are how one is obtained.
- * Mounted ahead of the authentication gate for that reason alone.
+ * Mounted ahead of the sign-in check for that reason alone.
  */
 export function publicAuthRoutes({
   database,
@@ -65,9 +65,9 @@ export function publicAuthRoutes({
 }: PublicAuthDependencies): Router {
   const router = Router();
 
-  // On each route and not on the router: a request for a path the gate below owns
-  // passes through here first, and would otherwise spend the allowance on its way to
-  // being refused.
+  // On each route and not on the router: a request for a path behind the sign-in check
+  // below passes through here first, and would otherwise spend the allowance on its way
+  // to being refused.
   router.post("/login", limitRequests(authRateLimit), async (req, res) => {
     const credentials = loginRequestSchema.parse(req.body);
 
@@ -75,8 +75,9 @@ export function publicAuthRoutes({
     if (!viewer) {
       // Hash the presented password and throw the result away. Hashing costs what
       // verifying costs, so an address with no account takes as long to refuse as a
-      // wrong password does; without this the response time alone is an account
-      // oracle, which is the thing ADR-0016 refuses to hand out on the reset page.
+      // wrong password does; without this the response time alone would tell a caller
+      // which addresses have accounts, which is the thing ADR-0016 refuses to hand out
+      // on the reset page.
       await hashPassword(credentials.password);
       throw badCredentials();
     }
@@ -133,7 +134,7 @@ export function publicAuthRoutes({
   return router;
 }
 
-/** Mounted behind the gate: it answers for whoever the presented token authenticates. */
+/** Mounted behind the sign-in check: it answers for whoever the presented token names. */
 export function authenticatedAuthRoutes(): Router {
   const router = Router();
 

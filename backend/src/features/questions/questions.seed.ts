@@ -46,8 +46,8 @@ export const seedCategories: readonly SeedCategory[] = [
 const seedAuthorEmail = seedViewerByRole("author").email;
 
 /**
- * Questions in every Publication State, restricted and unrestricted, so that both gates
- * — and the two of them in combination — are exercisable from the first run.
+ * Questions in every Publication State, restricted and unrestricted, so that both checks
+ * — and the two of them together — can be exercised from the first run.
  */
 export const seedQuestions: readonly SeedQuestion[] = [
   {
@@ -123,9 +123,9 @@ const tagKey = ({ category, tag }: SeedTagReference): string => `${category}/${t
 /**
  * Writes the questions table directly rather than through its repository, which is not
  * the second read path ADR-0003 warns of: this runs as a command, with no Viewer to
- * scope by and nothing to answer.
+ * filter by and nobody to answer.
  *
- * Idempotent, and deliberately leaves an existing row untouched: re-running the seed
+ * Safe to run twice, and deliberately leaves an existing row untouched: re-running the seed
  * against a database someone has been using must not undo their edits. The Questions
  * carry fixed ids for the same reason — there is no other key to recognise them by.
  */

@@ -5,7 +5,7 @@ Questions tied to a Client stay visible only to Viewers holding a Permission Gra
 that Client. The vocabulary is defined in [CONTEXT.md](CONTEXT.md); the decisions behind
 the build are in [docs/adr](docs/adr).
 
-This is the walking skeleton plus its authenticated front door. It comes up, answers
+This is the thinnest version that runs end to end, plus its sign-in front door. It comes up, answers
 health checks, logs every line of a request against that request's id, shuts down
 cleanly, runs a test suite against a real PostgreSQL, and refuses every `/api` request
 that does not carry a valid access token. The bank itself arrives in the tickets that
@@ -30,7 +30,7 @@ curl localhost:3000/ready    # {"status":"ready","checks":{"database":"up"}}
 
 `/health` is liveness and never touches the database, so a blinking database does not
 get the container restarted. `/ready` reports whether the database answers, and is the
-one to gate traffic on.
+one to send traffic on.
 
 ## Signing in
 
@@ -64,13 +64,13 @@ is never locked out of their own account
 limit keys on the proxy rather than on the caller.
 
 Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh` and
-`POST /api/auth/logout` sits behind the authentication gate, including paths that do not
-exist: an anonymous caller is told 401 everywhere alike, so the shape of the API cannot
-be mapped by probing for which paths answer 404. Access tokens are short-lived and
+`POST /api/auth/logout` sits behind the sign-in check, including paths that do not
+exist: a caller who is not signed in is told 401 everywhere alike, so nobody can map out
+the API by probing for which paths answer 404. Access tokens are short-lived and
 belong in memory, never in storage (ADR-0008); `ACCESS_TOKEN_LIFETIME_SECONDS` sets how
 short.
 
-Logging in also sets a refresh token as an httpOnly, Secure, SameSite cookie scoped to
+Logging in also sets a refresh token as an httpOnly, Secure, SameSite cookie limited to
 `/api/auth`. `POST /api/auth/refresh` exchanges it for a fresh access token and a new
 refresh token, and presenting one that has already been spent revokes every session
 descended from that login (ADR-0008, ADR-0023). `POST /api/auth/logout` ends the current
@@ -102,7 +102,7 @@ The suite refuses to start unless the database's name contains `test`, because e
 test truncates it.
 
 Tests issue real HTTP requests against the real application on an ephemeral port,
-backed by the test database, with truncation between tests. That is the seam every
+backed by the test database, with truncation between tests. That is the level every
 later ticket tests at: the guarantee this project is built around, that a
 Client-restricted Question is indistinguishable from one that does not exist, is a
 property of an HTTP response and cannot be asserted below it.
@@ -115,8 +115,8 @@ backend/    the Express API (ADR-0001)
 frontend/   the Vite and React client
 ```
 
-Both ends infer their types from the schemas in `shared`, so a shape cannot drift
-between client and server. The client is a placeholder that reads the API's readiness
+Both ends infer their types from the schemas in `shared`, so a shape cannot get out of
+sync between client and server. The client is a placeholder that reads the API's readiness
 through those schemas; its shell arrives with the login ticket. Run it with `pnpm dev`,
 which serves it on port 5173 and proxies the API's paths through without rewriting them.
 
@@ -165,8 +165,8 @@ migrations from the image, so a plain `up` will quietly apply the previous set.
 
 **Seeding is local.** Free Render services have no shell, no SSH and no one-off jobs, so
 there is no in-platform way to run the seed. Point `DATABASE_URL` at Neon from your own
-machine and run `pnpm db:seed` there. It is idempotent and leaves an existing Viewer
-untouched, so it can be re-run without resetting a password someone changed.
+machine and run `pnpm db:seed` there. It is safe to run twice and leaves an existing
+Viewer untouched, so it can be re-run without resetting a password someone changed.
 
 `ACCESS_TOKEN_SECRET` is the one secret Render holds that is not in the table above:
 `render.yaml` asks the platform to generate it, so it is never in git and never typed by
@@ -182,7 +182,7 @@ would invalidate that, and the free tier has no backups.
 **One error contract, enforced in one place.** Route handlers raise domain errors and
 never set a status code for one. The mapping from error code to status code lives in
 `backend/src/platform/http/error-handler.middleware.ts` and nowhere else, which is what
-keeps the contract from drifting per endpoint as the API grows.
+stops each endpoint answering differently as the API grows.
 
 Error responses carry the request id in the `x-request-id` header, deliberately not in
 the body. Two responses that have to be indistinguishable to a caller cannot carry
@@ -201,10 +201,10 @@ request without a logger being threaded through every function.
 **Graceful shutdown.** SIGTERM stops the listener, closes idle keep-alive sockets,
 waits out in-flight requests up to `SHUTDOWN_TIMEOUT_MS`, then closes the database pool.
 
-**No anonymous path.** The authentication gate is mounted on the `/api` router in front
-of everything but login, rather than on each endpoint, so a route added later is
+**No way in without signing in.** The sign-in check is mounted on the `/api` router in
+front of everything but login, rather than on each endpoint, so a route added later is
 protected by where it was added rather than by someone remembering to protect it. The
-gate reads the Viewer from the database on every request instead of trusting the token's
+check reads the Viewer from the database on every request instead of trusting the token's
 contents, which is what will let a role change or a deactivation take effect on the next
 request rather than when a token happens to expire. Every refusal is the same 401 with
 the same body; why it was refused — absent, malformed, expired, forged — goes to the log

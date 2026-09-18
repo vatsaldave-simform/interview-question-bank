@@ -10,9 +10,9 @@ const publishedAndRestricted = seedQuestions[1]!.id;
 const pendingAndRestricted = seedQuestions[4]!.id;
 
 /**
- * What a caller can and cannot learn from `GET /api/questions/:id`. The seam is already
- * tested directly; what only exists here is the response — the status and the bytes a
- * refused caller actually receives (ADR-0002).
+ * What a caller can and cannot learn from `GET /api/questions/:id`. The query function
+ * is already tested directly; what only exists here is the response — the status and the
+ * bytes a refused caller actually receives (ADR-0002).
  */
 describe("fetching a Question over HTTP", () => {
   let api: TestApi;
@@ -47,7 +47,7 @@ describe("fetching a Question over HTTP", () => {
     expect(await restricted.text()).toBe(await unknown.text());
   });
 
-  // Both gates at once, which ADR-0013 says have to hold in combination: this Question
+  // Both checks at once, which ADR-0013 says have to hold together: this Question
   // is restricted AND Pending, and the Reviewer holds no Grant for its Client.
   it("answers a Question that is both restricted and Pending with those same bytes", async () => {
     const token = await logIn(api, seededViewer("reviewer"));

@@ -14,7 +14,7 @@ export const seedGrantedViewerEmails: readonly string[] = [
   seedViewerByRole("reader").email,
 ];
 
-/** Idempotent, and leaves an existing Client and its Grants untouched. */
+/** Safe to run twice, and leaves an existing Client and its Grants untouched. */
 export async function seedClientAndGrants(database: Database): Promise<void> {
   const client = await database.client.upsert({
     where: { name: seedClient.name },

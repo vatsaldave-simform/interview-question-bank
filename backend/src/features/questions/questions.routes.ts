@@ -6,15 +6,15 @@ import { requireRole } from "../auth/require-role.middleware.js";
 import { addQuestion } from "./questions.service.js";
 import {
   findVisibleQuestionById,
-  type StoredQuestion,
+  type QuestionFromDb,
 } from "./questions.repository.js";
 import { NotFoundError } from "../../platform/errors.js";
 import type { Database } from "../../platform/database.js";
 
 const questionIdSchema = z.uuid();
 
-/** The stored Question on the wire: only the timestamp needs changing. */
-function toResponse(question: StoredQuestion): Question {
+/** The Question as the API answers with it: only the timestamp needs changing. */
+function toResponse(question: QuestionFromDb): Question {
   return { ...question, createdAt: question.createdAt.toISOString() };
 }
 

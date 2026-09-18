@@ -100,7 +100,7 @@ describe("adding a Question and fetching it back", () => {
     expect(fetched?.tags).toHaveLength(3);
   });
 
-  // The publication gate applies to a Question the moment it is written: nothing
+  // The review check applies to a Question the moment it is written: nothing
   // unvetted reaches a Reader, including something added a second ago (ADR-0013).
   it("keeps a newly added Question away from a Reader until it is Published", async () => {
     const author = await viewer("author");

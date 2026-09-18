@@ -1,5 +1,5 @@
 import type { AddQuestionRequest, QuestionTag, Viewer } from "@iqb/shared";
-import { findTagsNamed, insertQuestion, type StoredQuestion } from "./questions.repository.js";
+import { findTagsNamed, insertQuestion, type QuestionFromDb } from "./questions.repository.js";
 import type { Database } from "../../platform/database.js";
 import { InvalidRequestError } from "../../platform/errors.js";
 
@@ -33,7 +33,7 @@ export async function addQuestion(
   database: Database,
   viewer: Viewer,
   request: AddQuestionRequest,
-): Promise<StoredQuestion> {
+): Promise<QuestionFromDb> {
   const tagIds = await tagIdsFor(database, request.tags);
   return insertQuestion(database, viewer, {
     text: request.text,

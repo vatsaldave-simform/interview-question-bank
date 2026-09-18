@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { IssuedRefreshToken } from "./refresh-token.js";
 
-// Scoped to the routes that read it, so it is not sent on every other API request.
+// Limited to the routes that read it, so it is not sent on every other API request.
 const path = "/api/auth";
 
 const name = "iqb_refresh";

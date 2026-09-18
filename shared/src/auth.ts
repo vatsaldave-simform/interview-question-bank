@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 /**
- * The three roles a Viewer holds about Questions, in the spelling that travels on the
- * wire and sits in the database. Administrator is not here: it is a separate authority
+ * The three roles a Viewer holds about Questions, in the spelling the API uses and the
+ * database stores. Administrator is not here: it is a separate authority
  * held alongside one of these rather than a fourth value replacing them (ADR-0015).
  */
 export const viewerRoles = ["reader", "author", "reviewer"] as const;

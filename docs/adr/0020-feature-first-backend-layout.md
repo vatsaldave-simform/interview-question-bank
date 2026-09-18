@@ -15,7 +15,7 @@ a folder; reading `src/features/` is reading the domain.
 Health and frontend-serving live in `platform/http/`, not in `features/`. Neither is a domain
 concept: `/health` and `/ready` are the contract with Render (ADR-0012), and the frontend router
 serves a build artifact. `app.ts`, `index.ts` and `api.routes.ts` sit loose at the root of `src/`
-because wiring the zones together is the one job that belongs to neither.
+because connecting the two zones together is the one job that belongs to neither.
 
 There is no service layer yet, and that is deliberate rather than an omission. A route that parses,
 calls one function and responds does not need a file between those steps; a route that checks

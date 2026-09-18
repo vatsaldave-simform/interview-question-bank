@@ -15,7 +15,7 @@ export async function seedTheBank(database: Database): Promise<void> {
   await seedQuestionBank(database);
 }
 
-/** The seeded Viewer of a role, as the scoped query builder wants one. */
+/** The seeded Viewer of a role, in the shape the shared query function wants. */
 export function viewerByRole(database: Database, role: ViewerRole): Promise<Viewer> {
   return database.viewer.findUniqueOrThrow({
     where: { email: seededViewer(role).email },

@@ -20,8 +20,8 @@ describe("serving the client alongside the API", () => {
     api = await startTestApi({ frontendDir });
     await api.truncate();
     await seedViewerAccounts(api.database);
-    // An authenticated caller, because /api is behind the authentication gate: these
-    // tests are about what the client fallback may swallow, not about the gate.
+    // A signed-in caller, because /api is behind the sign-in check: these tests are
+    // about what the client fallback may swallow, not about the check.
     token = await logIn(api, seededViewer("reader"));
   });
   afterAll(async () => {
@@ -79,7 +79,7 @@ describe("serving the client alongside the API", () => {
   });
 
   it("refuses an anonymous API path with the error contract too", async () => {
-    // Unauthenticated, the same path is 401 rather than 404 — the gate sits in front
+    // Not signed in, the same path is 401 rather than 404 — the check sits in front
     // of the not-found handler. What matters here is that it is still the API
     // answering in JSON, and never the client in HTML.
     const response = await api.request("/api/no-such-route", {

@@ -21,9 +21,9 @@ function presentedToken(header: string | undefined): string | undefined {
 }
 
 /**
- * What anything behind the gate needs: the Viewers to resolve a token against, and the
- * configuration the token was signed with. One type, because all three of the gate, the
- * auth routes and the /api router want exactly this pair.
+ * What the sign-in check needs: the Viewers to look a token up against, and the settings
+ * the token was signed with. One type, because the check, the auth routes and the /api
+ * router all want exactly this pair.
  */
 export type AuthDependencies = {
   database: Database;
@@ -31,8 +31,8 @@ export type AuthDependencies = {
 };
 
 /**
- * The gate. Past it, every request acts as exactly one Viewer; short of it, no request
- * gets through at all — there is no anonymous path.
+ * The sign-in check. Past it, every request acts as exactly one Viewer. Short of it, no
+ * request gets through at all — there is no way in without signing in.
  */
 export function requireAuthenticatedViewer({
   database,

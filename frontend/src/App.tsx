@@ -2,7 +2,7 @@ import { readinessResponseSchema, type ReadinessResponse } from "@iqb/shared";
 import { useEffect, useState } from "react";
 
 /**
- * The client end of the walking skeleton: it reads the API's readiness through the
+ * The client end of the thinnest version that runs end to end: it reads readiness through the
  * same shared schema the API answers with, which is the whole point of the shared
  * package (ADR-0010). Login and the real shell arrive with the client shell ticket.
  *

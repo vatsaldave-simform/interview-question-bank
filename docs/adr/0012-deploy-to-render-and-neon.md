@@ -1,10 +1,10 @@
 # The deployed bank is one Render service on Neon Postgres, served from one origin
 
 The bank has to be reachable at a URL that can be shared with a department, at no cost, and it
-deploys from the walking skeleton rather than after the last ticket. A skeleton that has only ever
-run on `localhost` has proven half of what it claims; the point of building one is that it walks
-all the way to production, so the platform's problems arrive while the surface area is three
-endpoints instead of alongside an app that is also being debugged.
+deploys from the thinnest version that runs end to end, rather than after the last ticket. A
+version that has only ever run on `localhost` has proven half of what it claims; the point of
+building one is that it runs all the way to production, so the platform's problems arrive while
+there are three endpoints to check instead of alongside an app that is also being debugged.
 
 **The API and the client are one Render web service on the free instance type, backed by a free
 Neon Postgres, served from a single origin.** The free tiers that had reputations for this — Fly
@@ -135,7 +135,7 @@ built to be: a report something can ask for, whose status code is part of the re
 - Query-plan evidence (issues #12, #55) is captured locally against the compose Postgres and
   committed. Free-tier compute is throttled and shared, so timings taken there measure the host's
   spare capacity rather than the indexing decisions they are meant to defend.
-- **ADR-0009's `pg_stat_statements` reasoning is scoped to local by this decision.** Neon does
+- **ADR-0009's `pg_stat_statements` reasoning applies only locally, by this decision.** Neon does
   preload the extension on the free plan, but its counters do not survive a compute suspend, and
   suspend cannot be disabled — so on the deployment they report only whatever has happened since
   the last wake, which for an idle demo is nearly nothing.

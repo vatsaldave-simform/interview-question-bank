@@ -4,9 +4,9 @@ import { ForbiddenError } from "../../platform/errors.js";
 import { authenticatedViewer } from "./authenticated-viewer.js";
 
 /**
- * Safe on a route naming no Question, which is the only place it is used: a role
+ * Safe on a route that names no Question, which is the only place it is used: a role
  * refusal on a route that named one would say the Question exists, so such a route has
- * to resolve it through the visibility gate first (ADR-0002).
+ * to look it up through the visibility check first (ADR-0002).
  */
 export function requireRole(...roles: readonly ViewerRole[]): RequestHandler {
   return (req, _res, next) => {

@@ -38,7 +38,7 @@ export class UnauthenticatedError extends AppError {
 
 /**
  * The Viewer may not do this to something they can see. Only ever raised *after* the
- * visibility gate has passed, or it would reveal that the thing exists (ADR-0002).
+ * visibility check has passed, or it would reveal that the thing exists (ADR-0002).
  */
 export class ForbiddenError extends AppError {
   constructor(message = "You may not do that.") {

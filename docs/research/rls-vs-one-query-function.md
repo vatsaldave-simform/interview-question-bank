@@ -1,4 +1,4 @@
-# RLS vs. an application-level scoped query seam
+# RLS vs. one query function in the application
 
 Primary-source research for the "a user without permission for a client sees a genuine zero-match"
 requirement on Node/Express + PostgreSQL + Prisma.
@@ -11,7 +11,7 @@ URL is given. Prisma state as of this date: **ORM 8 is a release candidate** (`8
 
 ## Verdict (short)
 
-**Use (B), the application-level scoped query seam, as the enforcement mechanism for the 10-day POC.
+**Use (B), one query function in the application, as the way this is enforced for the 10-day POC.
 Do not adopt (A) RLS for the search path.**
 
 The deciding fact is not the pooling ergonomics (those are solvable) — it is a documented Postgres
@@ -44,7 +44,7 @@ Ranked reasons, strongest first:
 | 5 | Prisma Migrate makes the app user the table owner, so `FORCE ROW LEVEL SECURITY` is mandatory or policies silently do nothing | **Documented** |
 
 Where (A) still wins, and should be said out loud when defending this: RLS is the only option that is
-**default-deny at the database**, so a future read path that forgets the seam is still safe. (B) buys
+**default-deny at the database**, so a future read path that forgets the function is still safe. (B) buys
 its performance by making correctness a convention. Mitigations for that are in
 [§7](#7-verdict-in-full).
 

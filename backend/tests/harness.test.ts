@@ -38,7 +38,7 @@ describe("the test harness", () => {
     expect(await probeRows(api)).toEqual([]);
   });
 
-  it("restarts identity columns, so ids do not drift between tests", async () => {
+  it("restarts identity columns, so ids start from the same place in every test", async () => {
     await api.database.$executeRawUnsafe("INSERT INTO harness_probe (note) VALUES ('first')");
 
     const [row] = await api.database.$queryRawUnsafe<{ id: bigint }[]>(

@@ -24,8 +24,8 @@ export function seedViewerByRole(role: ViewerRole): SeedViewer {
 }
 
 /**
- * Idempotent, and deliberately leaves an existing Viewer untouched: re-running the
- * seed against a database someone has been using must not reset a password or a role
+ * Safe to run twice, and deliberately leaves an existing Viewer untouched: re-running
+ * the seed against a database someone has been using must not reset a password or a role
  * they changed.
  */
 export async function seedViewerAccounts(database: Database): Promise<void> {

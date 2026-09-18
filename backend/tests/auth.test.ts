@@ -187,8 +187,8 @@ describe("the end of the anonymous path", () => {
   });
 
   it("refuses an unknown /api path before deciding it is unknown", async () => {
-    // No route may be reached anonymously, including one that does not exist: the
-    // gate sits in front of the whole /api router rather than on each endpoint.
+    // No route may be reached without signing in, including one that does not exist:
+    // the check sits in front of the whole /api router rather than on each endpoint.
     const response = await api.request("/api/no-such-endpoint");
 
     expect(response.status).toBe(401);
@@ -220,7 +220,7 @@ describe("a short-lived access token", () => {
 
   beforeAll(async () => {
     // Lifetime comes from the environment, so expiry is tested by configuring a short
-    // one and waiting, rather than by putting a clock behind a seam. Two seconds and
+    // one and waiting, rather than by hiding a clock behind an interface. Two seconds and
     // not one: a JWT's expiry is a whole second, so a token signed late in a second is
     // good for barely any of the first one.
     api = await startTestApi({ accessToken: { lifetimeSeconds: 2 } });

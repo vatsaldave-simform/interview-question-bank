@@ -19,7 +19,7 @@ export type ServerOptions = {
 export type RunningServer = {
   url: string;
   port: number;
-  /** Idempotent: several signals arriving at once still shut down once. */
+  /** Safe to call twice: several signals arriving at once still shut down once. */
   stop: () => Promise<void>;
 };
 

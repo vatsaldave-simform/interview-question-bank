@@ -1,5 +1,8 @@
 # Delivery
 
+Issue titles, branch names, commit messages and PR descriptions follow
+`docs/agents/plain-language.md` like everything else a person reads.
+
 How a ticket becomes code. One ticket is normally several pull requests, each small enough to
 review in one sitting.
 
@@ -61,4 +64,4 @@ middleware, routes and a seed script. Under this document it is three PRs:
 | --- | --- | --- |
 | 1 | Viewer schema + migration, seed script, seeded credentials | 120 |
 | 2 | Password hashing and access-token sign/verify as pure units, with tests and ADR-0019 | 180 |
-| 3 | Login route, auth middleware, `authenticated-viewer`, HTTP wiring | 170 |
+| 3 | Login route, auth middleware, `authenticated-viewer`, HTTP setup | 170 |

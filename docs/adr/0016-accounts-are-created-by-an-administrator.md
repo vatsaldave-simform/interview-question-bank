@@ -27,7 +27,7 @@ Administrator pass a temporary credential out of band.
 
 Password reset answers identically whether or not the address belongs to a Viewer, and whether or
 not that Viewer is Deactivated. A project whose central guarantee is that a restricted Question is
-indistinguishable from one that does not exist should not hand out an account oracle on its login
-page.
+indistinguishable from one that does not exist should not tell a stranger which addresses have
+accounts on its login page.
 
 An Administrator gains a second queue, beside the Reviewer's Pending Questions.

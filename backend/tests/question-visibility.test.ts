@@ -15,11 +15,11 @@ const rejectedAndUnrestricted = seedQuestions[3]!.id;
 const pendingAndRestricted = seedQuestions[4]!.id;
 
 /**
- * The seam every later read composes on. Visibility is the outer gate and Publication
- * State the inner one (ADR-0002, ADR-0003, ADR-0013), asserted here rather than over
- * HTTP because this is where the predicate either exists or does not.
+ * The one function every later read builds on. Visibility is checked first and
+ * Publication State second (ADR-0002, ADR-0003, ADR-0013), asserted here rather than
+ * over HTTP because this is where the condition either exists or does not.
  */
-describe("fetching a Question through the scoped query builder", () => {
+describe("fetching a Question through the shared query function", () => {
   let database: Database;
 
   const viewer = (role: ViewerRole) => viewerByRole(database, role);
@@ -116,8 +116,8 @@ describe("fetching a Question through the scoped query builder", () => {
     expect(found?.id).toBe(pendingAndUnrestricted);
   });
 
-  // Both gates at once, which ADR-0013 says have to hold in combination and not merely
-  // one at a time: the review role is not a way around a Permission Grant.
+  // Both checks at once, which ADR-0013 says have to hold together and not merely one
+  // at a time: the review role is not a way around a Permission Grant.
   it("keeps a Question that is both restricted and Pending from a Reviewer holding no Grant", async () => {
     const reviewer = await viewer("reviewer");
 
@@ -128,7 +128,7 @@ describe("fetching a Question through the scoped query builder", () => {
     expect(neverExisted).toBeNull();
   });
 
-  // The Author rule lives inside the outer gate, never instead of it (ADR-0002). Only
+  // The Author rule runs after the visibility check, never instead of it (ADR-0002). Only
   // #37 can reach this state through the API, so the row is written directly.
   it("keeps an Author's own Pending Question out of reach when its Client is not theirs", async () => {
     const author = await viewer("author");
