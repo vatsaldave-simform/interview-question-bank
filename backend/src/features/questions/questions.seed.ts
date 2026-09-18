@@ -121,6 +121,10 @@ export const seedQuestions: readonly SeedQuestion[] = [
 const tagKey = ({ category, tag }: SeedTagReference): string => `${category}/${tag}`;
 
 /**
+ * Writes the questions table directly rather than through its repository, which is not
+ * the second read path ADR-0003 warns of: this runs as a command, with no Viewer to
+ * scope by and nothing to answer.
+ *
  * Idempotent, and deliberately leaves an existing row untouched: re-running the seed
  * against a database someone has been using must not undo their edits. The Questions
  * carry fixed ids for the same reason — there is no other key to recognise them by.
