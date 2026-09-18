@@ -65,3 +65,17 @@ export async function revokeRefreshTokenFamily(database: Database, familyId: str
     data: { revokedAt: new Date() },
   });
 }
+
+/**
+ * Whether anything in this family has been revoked, which is how a rotation that has
+ * already inserted its successor discovers that the family died underneath it.
+ */
+export async function refreshTokenFamilyIsRevoked(
+  database: Database,
+  familyId: string,
+): Promise<boolean> {
+  const revoked = await database.refreshToken.count({
+    where: { familyId, revokedAt: { not: null } },
+  });
+  return revoked > 0;
+}
