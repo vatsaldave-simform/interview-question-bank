@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx src/commands/seed.ts",
+    "db:seed:bulk": "tsx src/commands/seed-bulk-bank.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
