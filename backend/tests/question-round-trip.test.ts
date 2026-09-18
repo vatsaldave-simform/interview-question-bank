@@ -1,8 +1,8 @@
 import type { CategoryName, ViewerRole } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  addQuestion,
   findVisibleQuestionById,
+  insertQuestion,
 } from "../src/features/questions/questions.repository.js";
 import type { Database } from "../src/platform/database.js";
 import { seedTheBank, viewerByRole } from "./helpers/question-bank.js";
@@ -34,7 +34,7 @@ describe("adding a Question and fetching it back", () => {
   it("enters a new Question as Pending, authored by the Viewer who added it", async () => {
     const author = await viewer("author");
 
-    const added = await addQuestion(database, author, {
+    const added = await insertQuestion(database, author, {
       text: "How do you decide what belongs in a database transaction?",
       answerNotes: "Look for them reaching invariants rather than reciting ACID.",
       provenance: "original",
@@ -48,7 +48,7 @@ describe("adding a Question and fetching it back", () => {
   it("round-trips Provenance and Source through add and fetch", async () => {
     const author = await viewer("author");
 
-    const added = await addQuestion(database, author, {
+    const added = await insertQuestion(database, author, {
       text: "Explain the trade-off between normalisation and read performance.",
       answerNotes: "A good answer names a case where they denormalised on purpose.",
       provenance: "adapted",
@@ -64,7 +64,7 @@ describe("adding a Question and fetching it back", () => {
   it("leaves Source empty on a Question that names none", async () => {
     const author = await viewer("author");
 
-    const added = await addQuestion(database, author, {
+    const added = await insertQuestion(database, author, {
       text: "What does it mean for a function to be pure?",
       answerNotes: "Referential transparency, in their own words.",
       provenance: "original",
@@ -82,7 +82,7 @@ describe("adding a Question and fetching it back", () => {
       tagIdFor("seniority", "senior"),
     ]);
 
-    const added = await addQuestion(database, author, {
+    const added = await insertQuestion(database, author, {
       text: "How would you type a component that renders one of several shapes?",
       answerNotes: "Discriminated unions, and what goes wrong without them.",
       provenance: "original",
@@ -106,7 +106,7 @@ describe("adding a Question and fetching it back", () => {
     const author = await viewer("author");
     const reader = await viewer("reader");
 
-    const added = await addQuestion(database, author, {
+    const added = await insertQuestion(database, author, {
       text: "Describe a deployment you would not want to repeat.",
       answerNotes: "The interesting part is what they changed afterwards.",
       provenance: "inherited",
