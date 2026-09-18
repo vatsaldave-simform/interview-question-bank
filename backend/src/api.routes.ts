@@ -6,6 +6,7 @@ import {
   publicAuthRoutes,
   type PublicAuthDependencies,
 } from "./features/auth/auth.routes.js";
+import { questionRoutes } from "./features/questions/questions.routes.js";
 
 /**
  * Every application route mounts here, under /api (ADR-0012). The health and readiness
@@ -14,8 +15,8 @@ import {
  *
  * The order is the design. Starting, recovering and ending a session come first,
  * because they are how a token is obtained and given up; the authentication gate comes
- * next; everything after it — later tickets' routers, and the not-found handler that
- * ends this one — is reachable only by an authenticated Viewer. A route added below the gate is protected by having been added
+ * next; everything after it — the Questions router, later tickets' routers, and the
+ * not-found handler that ends this one — is reachable only by an authenticated Viewer. A route added below the gate is protected by having been added
  * there, rather than by remembering to protect it.
  *
  * The not-found handler sitting behind the gate is deliberate too: an anonymous caller
@@ -31,6 +32,7 @@ export function apiRoutes(dependencies: PublicAuthDependencies): Router {
   router.use(requireAuthenticatedViewer({ database, accessToken }));
 
   router.use("/auth", authenticatedAuthRoutes());
+  router.use("/questions", questionRoutes(database));
   router.use(notFoundHandler);
   return router;
 }

@@ -1,4 +1,11 @@
-import { categoryNameSchema, type CategoryName, type Provenance, type PublicationState, type Viewer } from "@iqb/shared";
+import {
+  categoryNameSchema,
+  type CategoryName,
+  type Provenance,
+  type PublicationState,
+  type QuestionTag,
+  type Viewer,
+} from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { Database } from "../../platform/database.js";
 
@@ -90,7 +97,7 @@ export type NewQuestion = {
 };
 
 /** The Author is the adding Viewer, never anything the request names. */
-export async function addQuestion(
+export async function insertQuestion(
   database: Database,
   viewer: Viewer,
   question: NewQuestion,
@@ -109,4 +116,20 @@ export async function addQuestion(
     select: storedQuestionFields,
   });
   return toStoredQuestion(stored);
+}
+
+/** The Tag rows a request names, however few of them turn out to exist. */
+export async function findTagsNamed(
+  database: Database,
+  tags: readonly QuestionTag[],
+): Promise<{ id: string; category: string; tag: string }[]> {
+  if (tags.length === 0) return [];
+
+  const rows = await database.tag.findMany({
+    // One disjunct per named Tag, each pairing the value with its Category, so a value
+    // that exists under a different Category does not match.
+    where: { OR: tags.map(({ category, tag }) => ({ value: tag, category: { name: category } })) },
+    select: { id: true, value: true, category: { select: { name: true } } },
+  });
+  return rows.map((row) => ({ id: row.id, category: row.category.name, tag: row.value }));
 }

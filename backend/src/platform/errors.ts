@@ -19,7 +19,10 @@ export class AppError extends Error {
   }
 }
 
-/** The request never reached business logic: it was malformed at the edge. */
+/**
+ * The request is refused before anything is written: malformed at the edge, or naming
+ * something — a Tag, say — that it needs to exist and that only the database can deny.
+ */
 export class InvalidRequestError extends AppError {
   constructor(message = "The request is not valid.", details?: unknown) {
     super("invalid_request", message, details);
