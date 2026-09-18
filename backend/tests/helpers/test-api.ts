@@ -2,6 +2,8 @@ import type { Logger } from "pino";
 import { createApp } from "../../src/app.js";
 import type { AccessTokenConfig } from "../../src/features/auth/access-token.js";
 import type { Database } from "../../src/platform/database.js";
+import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie.js";
+import type { RefreshTokenConfig } from "../../src/features/auth/refresh-token.js";
 import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middleware.js";
 import { createLogger } from "../../src/platform/logger.js";
 import { startServer, type RunningServer } from "../../src/platform/server.js";
@@ -33,7 +35,11 @@ export async function startTestApi(
     /** Overrides for the token configuration the environment would supply. */
     accessToken?: Partial<AccessTokenConfig>;
     /** Overrides for the rate limit the environment would supply. */
-    loginRateLimit?: Partial<RateLimitConfig>;
+    authRateLimit?: Partial<RateLimitConfig>;
+    /** Overrides for the refresh token's lifetime, for a test that expires one. */
+    refreshToken?: Partial<RefreshTokenConfig>;
+    /** Overrides for the cookie, for the test that asserts it is marked Secure. */
+    refreshCookie?: Partial<RefreshCookieConfig>;
     /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
     trustProxyHops?: number;
   } = {},
@@ -60,13 +66,17 @@ export async function startTestApi(
       lifetimeSeconds: 900,
       ...options.accessToken,
     },
-    loginRateLimit: {
+    authRateLimit: {
       // High enough that no test trips the limit by accident; the file that tests the
       // limit asks for a low one.
       maxAttempts: 1_000,
       windowSeconds: 900,
-      ...options.loginRateLimit,
+      ...options.authRateLimit,
     },
+    refreshToken: { lifetimeSeconds: 900, ...options.refreshToken },
+    // The suite speaks http, and a Secure cookie would never come back over it; the
+    // test that asserts the attribute is set asks for it explicitly.
+    refreshCookie: { secure: false, ...options.refreshCookie },
     ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });

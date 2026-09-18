@@ -21,10 +21,12 @@ const server = await startServer({
       secret: env.ACCESS_TOKEN_SECRET,
       lifetimeSeconds: env.ACCESS_TOKEN_LIFETIME_SECONDS,
     },
-    loginRateLimit: {
+    authRateLimit: {
       maxAttempts: env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
       windowSeconds: env.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
     },
+    refreshToken: { lifetimeSeconds: env.REFRESH_TOKEN_LIFETIME_SECONDS },
+    refreshCookie: { secure: env.REFRESH_COOKIE_SECURE },
     trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),

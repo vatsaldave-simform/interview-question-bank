@@ -1,6 +1,9 @@
 import express, { type Express } from "express";
 import type { Logger } from "pino";
+import cookieParser from "cookie-parser";
 import type { AccessTokenConfig } from "./features/auth/access-token.js";
+import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.js";
+import type { RefreshTokenConfig } from "./features/auth/refresh-token.js";
 import type { Database } from "./platform/database.js";
 import type { RateLimitConfig } from "./platform/http/rate-limit.middleware.js";
 import { frontendRoutes } from "./platform/http/frontend.routes.js";
@@ -15,7 +18,11 @@ export type AppDependencies = {
   /** The secret access tokens are signed with, and how long they last (ADR-0008). */
   accessToken: AccessTokenConfig;
   /** How hard a caller may knock on the unauthenticated endpoints (ADR-0021). */
-  loginRateLimit: RateLimitConfig;
+  authRateLimit: RateLimitConfig;
+  /** How long a session survives being away from it (ADR-0008). */
+  refreshToken: RefreshTokenConfig;
+  /** Whether the cookie carrying it is marked Secure. */
+  refreshCookie: RefreshCookieConfig;
   /** Proxies in front of the API, which is what makes `req.ip` the caller (ADR-0021). */
   trustProxyHops?: number;
   /**
@@ -34,7 +41,9 @@ export function createApp({
   logger,
   database,
   accessToken,
-  loginRateLimit,
+  authRateLimit,
+  refreshToken,
+  refreshCookie,
   trustProxyHops = 0,
   frontendDir,
 }: AppDependencies): Express {
@@ -47,11 +56,17 @@ export function createApp({
   // First, so that even a body that fails to parse is logged against a request id.
   app.use(requestLogging(logger));
   app.use(express.json({ limit: "100kb" }));
+  // Only the auth routes read a cookie, but parsing is cheap and mounting it there
+  // instead would put one middleware's reach out of step with this file's order.
+  app.use(cookieParser());
 
   // Liveness and readiness stay at the root: they answer the platform, not the
   // application, and Render's health check asks for /health there (ADR-0012).
   app.use(healthRoutes(database));
-  app.use("/api", apiRoutes({ database, accessToken, loginRateLimit }));
+  app.use(
+    "/api",
+    apiRoutes({ database, accessToken, authRateLimit, refreshToken, refreshCookie }),
+  );
 
   // Last, and only ever behind the routes above, so the fallback cannot answer for
   // something the API owns.

@@ -12,20 +12,21 @@ import {
  * routes deliberately do not, because they are the contract with the platform rather
  * than part of the application, and the platform holds no credentials.
  *
- * The order is the design. Logging in comes first because it is how a token is
- * obtained; the authentication gate comes next; everything after it — later tickets'
- * routers, and the not-found handler that ends this one — is reachable only by an
- * authenticated Viewer. A route added below the gate is protected by having been added
+ * The order is the design. Starting, recovering and ending a session come first,
+ * because they are how a token is obtained and given up; the authentication gate comes
+ * next; everything after it — later tickets' routers, and the not-found handler that
+ * ends this one — is reachable only by an authenticated Viewer. A route added below the gate is protected by having been added
  * there, rather than by remembering to protect it.
  *
  * The not-found handler sitting behind the gate is deliberate too: an anonymous caller
  * is told 401 for every /api path alike, so the shape of the API cannot be mapped by
  * probing for which paths answer 404.
  */
-export function apiRoutes({ database, accessToken, loginRateLimit }: PublicAuthDependencies): Router {
+export function apiRoutes(dependencies: PublicAuthDependencies): Router {
+  const { database, accessToken } = dependencies;
   const router = Router();
 
-  router.use("/auth", publicAuthRoutes({ database, accessToken, loginRateLimit }));
+  router.use("/auth", publicAuthRoutes(dependencies));
 
   router.use(requireAuthenticatedViewer({ database, accessToken }));
 
