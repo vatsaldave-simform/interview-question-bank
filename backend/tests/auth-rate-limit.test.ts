@@ -13,7 +13,7 @@ const started: TestApi[] = [];
  */
 async function limitedApi(options: { trustProxyHops?: number } = {}): Promise<TestApi> {
   const api = await startTestApi({
-    loginRateLimit: { maxAttempts, windowSeconds: 900 },
+    authRateLimit: { maxAttempts, windowSeconds: 900 },
     ...options,
   });
   started.push(api);
@@ -37,7 +37,7 @@ async function spendTheAllowance(api: TestApi, headers: Record<string, string> =
   }
 }
 
-describe("how hard a caller may knock on the login endpoint", () => {
+describe("how hard a caller may knock on the authentication endpoints", () => {
   it("refuses a burst of guesses with the error contract", async () => {
     const api = await limitedApi();
     await spendTheAllowance(api);
@@ -75,7 +75,7 @@ describe("how hard a caller may knock on the login endpoint", () => {
   });
 });
 
-describe("what the login limit leaves alone", () => {
+describe("what the limit leaves alone", () => {
   it("does not spend the allowance on a refusal from another endpoint", async () => {
     // The limit is on the login route, not on the /api/auth prefix: a path the
     // authentication gate owns is refused through here on its way past, and a caller
@@ -110,6 +110,37 @@ describe("what the login limit leaves alone", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(response.status).toBe(200);
+  });
+});
+
+describe("the endpoints the limit covers", () => {
+  const refresh = (api: TestApi): Promise<Response> =>
+    api.request("/api/auth/refresh", {
+      method: "POST",
+      headers: { cookie: "iqb_refresh=not a token anyone issued" },
+    });
+
+  // Refreshing is unauthenticated too, so a caller may guess at it as freely as they
+  // may guess at a password unless it is limited alongside login (ADR-0021).
+  it("refuses a burst of failed refreshes with the error contract's body", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      expect((await refresh(api)).status).toBe(401);
+    }
+
+    const response = await refresh(api);
+
+    expect(response.status).toBe(429);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("rate_limited");
+  });
+
+  // Each route counts its own, so a caller who has spent the login allowance can still
+  // recover the session they already hold.
+  it("keeps one endpoint's spent allowance out of another's", async () => {
+    const api = await limitedApi();
+    await spendTheAllowance(api);
+
+    expect((await refresh(api)).status).toBe(401);
   });
 });
 

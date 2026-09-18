@@ -2,14 +2,27 @@ import {
   loginRequestSchema,
   type CurrentViewerResponse,
   type LoginResponse,
+  type RefreshResponse,
   type Viewer,
 } from "@iqb/shared";
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { signAccessToken } from "./access-token.js";
 import { authenticatedViewer } from "./authenticated-viewer.js";
 import type { AuthDependencies } from "./auth.middleware.js";
 import { hashPassword, verifyPassword } from "./password.js";
-import { findViewerByEmail } from "../viewers/viewers.repository.js";
+import {
+  clearRefreshCookie,
+  presentedRefreshToken,
+  setRefreshCookie,
+  type RefreshCookieConfig,
+} from "./refresh-cookie.js";
+import {
+  issueRefreshToken,
+  revokeRefreshTokenFamilyOf,
+  rotateRefreshToken,
+  type RefreshTokenConfig,
+} from "./refresh-token.js";
+import { findViewerByEmail, findViewerById } from "../viewers/viewers.repository.js";
 import { UnauthenticatedError } from "../../platform/errors.js";
 import {
   limitRequests,
@@ -18,26 +31,44 @@ import {
 import { log } from "../../platform/logger.js";
 
 /** The public routes also need to know how hard a caller may knock (ADR-0021). */
-export type PublicAuthDependencies = AuthDependencies & { loginRateLimit: RateLimitConfig };
+export type PublicAuthDependencies = AuthDependencies & {
+  authRateLimit: RateLimitConfig;
+  refreshToken: RefreshTokenConfig;
+  refreshCookie: RefreshCookieConfig;
+};
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
 const badCredentials = () => new UnauthenticatedError("Those credentials are not valid.");
 
+/** A refusal a caller cannot learn anything from: there is no session, whichever way. */
+const noSession = () => new UnauthenticatedError("There is no session to refresh.");
+
 /**
- * The one route reachable without a token, because it is how a token is obtained.
+ * The cookie is cleared on every refusal, reuse included: the token it holds is dead
+ * either way, and leaving it would have the client present it again.
+ */
+function refuseSession(res: Response, cookie: RefreshCookieConfig): never {
+  clearRefreshCookie(res, cookie);
+  throw noSession();
+}
+
+/**
+ * The routes reachable without an access token, because they are how one is obtained.
  * Mounted ahead of the authentication gate for that reason alone.
  */
 export function publicAuthRoutes({
   database,
   accessToken,
-  loginRateLimit,
+  authRateLimit,
+  refreshToken,
+  refreshCookie,
 }: PublicAuthDependencies): Router {
   const router = Router();
 
-  // On this route and not on the router: a request for a path the gate below owns
-  // passes through here first, and would otherwise spend the login allowance on its
-  // way to being refused.
-  router.post("/login", limitRequests(loginRateLimit), async (req, res) => {
+  // On each route and not on the router: a request for a path the gate below owns
+  // passes through here first, and would otherwise spend the allowance on its way to
+  // being refused.
+  router.post("/login", limitRequests(authRateLimit), async (req, res) => {
     const credentials = loginRequestSchema.parse(req.body);
 
     const viewer = await findViewerByEmail(database, credentials.email);
@@ -58,8 +89,45 @@ export function publicAuthRoutes({
       expiresInSeconds: accessToken.lifetimeSeconds,
       viewer: { id: viewer.id, email: viewer.email, role: viewer.role } satisfies Viewer,
     };
+    // Last, so that a response that never gets built leaves no cookie and no row.
+    setRefreshCookie(res, await issueRefreshToken(database, viewer.id, refreshToken), refreshCookie);
     log().info({ viewerId: viewer.id, role: viewer.role }, "viewer signed in");
     res.json(body);
+  });
+
+  // What the client asks on load to recover an access token it never stored (ADR-0008).
+  router.post("/refresh", limitRequests(authRateLimit), async (req, res) => {
+    const presented = presentedRefreshToken(req);
+    if (presented === undefined) throw noSession();
+
+    const rotation = await rotateRefreshToken(database, presented, refreshToken);
+    if (!rotation.rotated) {
+      log().debug({ reason: rotation.reason }, "refresh refused");
+      refuseSession(res, refreshCookie);
+    }
+
+    // Read rather than trusted from the rotation, so a Viewer changed since they last
+    // refreshed takes effect now instead of when their family happens to end.
+    const viewer = await findViewerById(database, rotation.viewerId);
+    if (!viewer) refuseSession(res, refreshCookie);
+
+    setRefreshCookie(res, rotation.refreshToken, refreshCookie);
+    const body: RefreshResponse = {
+      accessToken: await signAccessToken(viewer.id, accessToken),
+      expiresInSeconds: accessToken.lifetimeSeconds,
+      viewer,
+    };
+    res.json(body);
+  });
+
+  // Answers the same whatever it was given, so it is safe to call twice and says
+  // nothing about whether the token it was handed meant anything.
+  router.post("/logout", limitRequests(authRateLimit), async (req, res) => {
+    const presented = presentedRefreshToken(req);
+    if (presented !== undefined) await revokeRefreshTokenFamilyOf(database, presented);
+
+    clearRefreshCookie(res, refreshCookie);
+    res.status(204).end();
   });
 
   return router;

@@ -57,17 +57,35 @@ curl -s localhost:3000/api/auth/me -H "authorization: Bearer $TOKEN"
 curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/me   # 401
 ```
 
-Logging in is rate limited per caller address, and only failed attempts count, so an
-ordinary Viewer signing in repeatedly is never locked out of their own account
+The authentication endpoints are rate limited per caller address, each with its own
+allowance, and only failed attempts count, so an ordinary Viewer signing in repeatedly
+is never locked out of their own account
 (ADR-0021). Behind a proxy, `TRUST_PROXY_HOPS` has to match how many there are, or the
 limit keys on the proxy rather than on the caller.
 
-Every `/api` path except `POST /api/auth/login` sits behind the authentication gate,
-including paths that do not exist: an anonymous caller is told 401 everywhere alike, so
-the shape of the API cannot be mapped by probing for which paths answer 404. Access
-tokens are short-lived and belong in memory, never in storage (ADR-0008);
-`ACCESS_TOKEN_LIFETIME_SECONDS` sets how short. Refresh tokens arrive in the next
-ticket, so a token currently expires with no way back but logging in again.
+Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh` and
+`POST /api/auth/logout` sits behind the authentication gate, including paths that do not
+exist: an anonymous caller is told 401 everywhere alike, so the shape of the API cannot
+be mapped by probing for which paths answer 404. Access tokens are short-lived and
+belong in memory, never in storage (ADR-0008); `ACCESS_TOKEN_LIFETIME_SECONDS` sets how
+short.
+
+Logging in also sets a refresh token as an httpOnly, Secure, SameSite cookie scoped to
+`/api/auth`. `POST /api/auth/refresh` exchanges it for a fresh access token and a new
+refresh token, and presenting one that has already been spent revokes every session
+descended from that login (ADR-0008, ADR-0023). `POST /api/auth/logout` ends the current
+one. `REFRESH_TOKEN_LIFETIME_SECONDS` sets how long a session survives being away, and
+`REFRESH_COOKIE_SECURE` is false only where the API is served over http.
+
+```sh
+# The cookie jar is what a browser would keep for you.
+curl -s -c jar -o /dev/null localhost:3000/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"author@iqb.test","password":"author-password"}'
+
+curl -s -b jar -c jar -X POST localhost:3000/api/auth/refresh | jq -r .accessToken
+curl -s -b jar -X POST -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/logout  # 204
+```
 
 ## Running the tests
 

@@ -52,6 +52,13 @@ export const loginResponseSchema = z
   .strict();
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
+/**
+ * A refresh answers with exactly what a login answers with, so a client that has just
+ * recovered a session and one that has just started one take the same path afterwards.
+ */
+export const refreshResponseSchema = loginResponseSchema;
+export type RefreshResponse = LoginResponse;
+
 /** Who the current access token authenticates. The client asks this after a reload. */
 export const currentViewerResponseSchema = z.object({ viewer: viewerSchema }).strict();
 export type CurrentViewerResponse = z.infer<typeof currentViewerResponseSchema>;

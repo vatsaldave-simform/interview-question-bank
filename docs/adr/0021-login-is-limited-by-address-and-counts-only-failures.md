@@ -28,6 +28,15 @@ first attacker lock out everyone. Trusting every hop is worse: `X-Forwarded-For`
 so a caller could invent an address per request and never be limited at all. `TRUST_PROXY_HOPS` is
 therefore a count, zero locally and one on Render, and has to match the real depth.
 
+**Refresh and logout joined the limit in #4, on the same terms.** They are unauthenticated
+for the same reason login is — a caller reaching them has no access token yet — so a limit
+on login alone would have left the two endpoints beside it free to be hammered. Each route
+carries its own limiter and so its own allowance, which is the rule above applied rather
+than bent: a caller who has spent the login allowance can still recover the session they
+already hold. The environment variables keep their `LOGIN_RATE_LIMIT_` names, because
+renaming what a deployment already sets is a change to the deployment, not to this
+decision.
+
 ## Consequences
 
 The window and the threshold are environment configuration, so the suite sets them low rather than
@@ -38,6 +47,11 @@ runs as one instance, and both reasons this has to be revisited before it runs a
 A shared outbound address is a shared allowance: an office that fails enough logins in a window
 locks out its own next attempt, correct password included. The threshold is set with room for
 that, and the failing-only rule is what keeps the ordinary day from reaching it.
+
+Logout is limited nominally rather than effectively: it answers 204 whatever it is
+given, and only failures count, so its allowance can never be spent. The limiter is
+mounted there so that an endpoint is never the exception nobody noticed, not because it
+holds anything back today.
 
 Exempting successes leaves one thing unlimited: a caller who holds a valid credential can spend the
 hasher as fast as it will answer. That is a caller who is already in, so it buys them nothing they

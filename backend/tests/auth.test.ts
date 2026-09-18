@@ -170,6 +170,9 @@ describe("the end of the anonymous path", () => {
     // nothing in the API does that (ADR-0017), the suite does it directly.
     const viewer = seededViewer("reader");
     const token = await logIn(api, viewer);
+    // Their refresh token goes first: nothing cascades from a Viewer (ADR-0017), so
+    // the row logging in just created would otherwise hold the delete back.
+    await api.database.refreshToken.deleteMany({ where: { viewer: { email: viewer.email } } });
     await api.database.viewer.delete({ where: { email: viewer.email } });
 
     try {
