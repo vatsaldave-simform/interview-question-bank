@@ -1,3 +1,5 @@
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../src/generated/prisma/client.js";
 import { createDatabase, type Database } from "../../src/platform/database.js";
 
 /**
@@ -33,6 +35,22 @@ export function createTestDatabase(applicationName?: string): Database {
   // Small on purpose: the suite runs files one at a time, and a test that watches
   // the pool open and close in pg_stat_activity wants a number it can reason about.
   return createDatabase(url.toString(), { poolMax: 5 });
+}
+
+/** A database that keeps every statement it sends, so a test can assert what the query
+ * function asked PostgreSQL for and not only what came back. */
+export type SqlLoggingDatabase = { database: Database; statements: string[] };
+
+/** Built here rather than by `createDatabase`, because logging every statement is a
+ * thing the suite wants and nothing in the running API does. */
+export function createSqlLoggingDatabase(): SqlLoggingDatabase {
+  const client = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: testDatabaseUrl(), max: 5 }),
+    log: [{ emit: "event", level: "query" }],
+  });
+  const statements: string[] = [];
+  client.$on("query", (event) => statements.push(event.query));
+  return { database: client, statements };
 }
 
 /** Connections this database is holding open under the given application name. */

@@ -87,6 +87,30 @@ curl -s -b jar -c jar -X POST localhost:3000/api/auth/refresh | jq -r .accessTok
 curl -s -b jar -X POST -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/logout  # 204
 ```
 
+## A bank big enough to time a query against
+
+`pnpm db:seed` writes five Questions. That is enough to read and not enough to time a
+query against, so `pnpm db:seed:bulk` writes a big bank beside them:
+
+```sh
+pnpm db:seed:bulk            # 10,000 Questions
+pnpm db:seed:bulk 50000      # as many as you ask for
+pnpm db:seed:bulk 10000 mine # ...from a seed value of your own
+```
+
+Everything about the bank comes from that seed value rather than from chance: which Tags
+a Question carries, whether it is restricted to the Client, its Publication State, when
+it was created. So the same value writes the same bank every time, and you can compare
+one timing against another. Ask for fewer Questions and you get part of that same bank,
+not a squeezed copy of it.
+
+Some Tags are carried by a third of the bank and some by one Question in fifty, on
+purpose. ADR-0011 chose between two SQL shapes by timing them, and the answer turned on
+how much of the bank a filter matches. A bank where every Tag matches about as much as
+every other cannot show that.
+
+`pnpm db:seed` never runs this, so it stays short enough to read.
+
 ## Running the tests
 
 The suite talks to a separate database service, so it never touches development data.
