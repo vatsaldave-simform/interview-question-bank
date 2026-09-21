@@ -88,6 +88,41 @@ export async function findVisibleQuestionById(
   return question === null ? null : toQuestionFromDb(question);
 }
 
+/** The Tag ids to filter by within one Category. Only the grouping reaches the query;
+ * the Category is named so a caller cannot mix two of them into one condition. */
+export type TagsInCategory = { category: CategoryName; tagIds: readonly string[] };
+
+export type QuestionQuery = {
+  /** One entry per Category named; none of them means the whole bank the Viewer sees. */
+  tagsPerCategory: readonly TagsInCategory[];
+  limit: number;
+  offset: number;
+};
+
+/** Prisma sends this as its own `EXISTS` over `question_tags`, which is the shape
+ * ADR-0011 measured against a join and a grouped count. */
+function carryingOneOf({ tagIds }: TagsInCategory): Prisma.QuestionWhereInput {
+  return { tags: { some: { tagId: { in: [...tagIds] } } } };
+}
+
+/** Built on the same `visibleQuestions` as every other read, so both checks are
+ * conditions in this one statement rather than a second pass (ADR-0003). */
+export async function findVisibleQuestions(
+  database: Database,
+  viewer: Viewer,
+  { tagsPerCategory, limit, offset }: QuestionQuery,
+): Promise<QuestionFromDb[]> {
+  const questions = await database.question.findMany({
+    where: { AND: [visibleQuestions(viewer), ...tagsPerCategory.map(carryingOneOf)] },
+    // The id settles a createdAt tie, so no Question shifts between two pages.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit,
+    skip: offset,
+    select: questionFieldsToRead,
+  });
+  return questions.map(toQuestionFromDb);
+}
+
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
  * moves it (ADR-0013), and no Client, since classifying is its own act (ADR-0018). */
 export type NewQuestion = {
