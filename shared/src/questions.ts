@@ -19,9 +19,12 @@ export const categoryNames = ["technology", "seniority", "question-type"] as con
 export const categoryNameSchema = z.enum(categoryNames);
 export type CategoryName = z.infer<typeof categoryNameSchema>;
 
+/** A Tag value as a request writes one, trimmed before it is measured. */
+const tagValueSchema = z.string().trim().min(1);
+
 /** A Tag as a request and a response name one: its Category, and its value. */
 export const questionTagSchema = z
-  .object({ category: categoryNameSchema, tag: z.string().trim().min(1) })
+  .object({ category: categoryNameSchema, tag: tagValueSchema })
   .strict();
 export type QuestionTag = z.infer<typeof questionTagSchema>;
 
@@ -63,3 +66,54 @@ export const addQuestionRequestSchema = z
   })
   .strict();
 export type AddQuestionRequest = z.infer<typeof addQuestionRequestSchema>;
+
+/** The page a request gets when it asks for no particular size. */
+export const defaultQuestionPageSize = 50;
+
+/** The most a caller may ask for at once. A request above it is refused rather than
+ * shrunk, because a page that is silently not the one you asked for is worse than a
+ * refusal you can read. */
+export const maxQuestionPageSize = 100;
+
+/** A Category names its Tag values by repeating the parameter, so one value and several
+ * arrive in different shapes and both mean the same thing. */
+const tagValuesSchema = z
+  .union([tagValueSchema, z.array(tagValueSchema).min(1)])
+  .transform((named) => (Array.isArray(named) ? named : [named]));
+
+/** One optional parameter per Category, built from the closed list so that a Category
+ * added to it is filterable without a second edit here (ADR-0024). */
+const tagValuesPerCategory = Object.fromEntries(
+  categoryNames.map((name) => [name, tagValuesSchema.optional()]),
+) as Record<CategoryName, z.ZodOptional<typeof tagValuesSchema>>;
+
+/**
+ * The filter as a URL carries it: `?technology=typescript&technology=react&seniority=senior`.
+ * Repeats within one parameter are the OR and separate parameters are the AND, so the
+ * URL says what the rule is. Strict, which is what refuses an unknown Category at the
+ * edge with no database lookup (ADR-0025).
+ */
+export const listQuestionsRequestSchema = z
+  .object({
+    ...tagValuesPerCategory,
+    limit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(maxQuestionPageSize)
+      .default(defaultQuestionPageSize),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .strict();
+export type ListQuestionsRequest = z.infer<typeof listQuestionsRequestSchema>;
+
+/** The page, and the page it is. A caller that named no `limit` cannot otherwise tell
+ * which one it got. */
+export const questionListResponseSchema = z
+  .object({
+    questions: z.array(questionSchema),
+    limit: z.number().int().positive(),
+    offset: z.number().int().min(0),
+  })
+  .strict();
+export type QuestionListResponse = z.infer<typeof questionListResponseSchema>;

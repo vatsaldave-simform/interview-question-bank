@@ -8,7 +8,7 @@ import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middlew
 import { createLogger } from "../../src/platform/logger.js";
 import { startServer, type RunningServer } from "../../src/platform/server.js";
 import { testAccessTokenSecret } from "./auth.js";
-import { createTestDatabase, truncateAll } from "./test-database.js";
+import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./test-database.js";
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
 
@@ -19,6 +19,9 @@ export type TestApi = {
   /** Everything the API has logged since the last `forgetLogs()`. */
   logLines: () => LogLine[];
   forgetLogs: () => void;
+  /** Every statement the API has sent, for a test proving something never reached the
+   * database. Empty unless `recordSql` was asked for. */
+  statements: () => string[];
   truncate: () => Promise<void>;
   stop: () => Promise<void>;
 };
@@ -42,6 +45,9 @@ export async function startTestApi(
     refreshCookie?: Partial<RefreshCookieConfig>;
     /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
     trustProxyHops?: number;
+    /** Keeps the statements the API sends, for a test that has to show a request was
+     * refused without the database being asked anything. */
+    recordSql?: boolean;
   } = {},
 ): Promise<TestApi> {
   const lines: LogLine[] = [];
@@ -55,7 +61,8 @@ export async function startTestApi(
     },
   });
 
-  const database = createTestDatabase(options.applicationName);
+  const recorded = options.recordSql ? createSqlLoggingDatabase() : null;
+  const database = recorded?.database ?? createTestDatabase(options.applicationName);
   const app = createApp({
     logger,
     database,
@@ -86,6 +93,7 @@ export async function startTestApi(
     database,
     request: (path, init) => fetch(new URL(path, server.url), init),
     logLines: () => [...lines],
+    statements: () => [...(recorded?.statements ?? [])],
     forgetLogs: () => {
       lines.length = 0;
     },

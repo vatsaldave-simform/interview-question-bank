@@ -1,9 +1,15 @@
-import { addQuestionRequestSchema, type Question, type QuestionResponse } from "@iqb/shared";
+import {
+  addQuestionRequestSchema,
+  listQuestionsRequestSchema,
+  type Question,
+  type QuestionListResponse,
+  type QuestionResponse,
+} from "@iqb/shared";
 import { Router } from "express";
 import { z } from "zod";
 import { authenticatedViewer } from "../auth/authenticated-viewer.js";
 import { requireRole } from "../auth/require-role.middleware.js";
-import { addQuestion } from "./questions.service.js";
+import { addQuestion, listQuestions } from "./questions.service.js";
 import {
   findVisibleQuestionById,
   type QuestionFromDb,
@@ -30,6 +36,19 @@ export function questionRoutes(database: Database): Router {
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.status(201).json(body);
+  });
+
+  router.get("/", async (req, res) => {
+    const request = listQuestionsRequestSchema.parse(req.query);
+
+    const questions = await listQuestions(database, authenticatedViewer(req), request);
+
+    const body: QuestionListResponse = {
+      questions: questions.map(toResponse),
+      limit: request.limit,
+      offset: request.offset,
+    };
+    res.json(body);
   });
 
   router.get("/:id", async (req, res) => {

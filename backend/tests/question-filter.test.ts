@@ -6,7 +6,7 @@ import {
 } from "../src/features/questions/questions.repository.js";
 import type { Database } from "../src/platform/database.js";
 import {
-  commonestTagIds,
+  commonestTags,
   sameAnswerInJavaScript,
   seedTheBulkBank,
   viewerByRole,
@@ -29,8 +29,8 @@ describe("filtering the bank by Category", () => {
     await seedTheBulkBank(database, bulk);
     reader = await viewerByRole(database, "reader");
     reviewer = await viewerByRole(database, "reviewer");
-    technology = await commonestTagIds(database, "technology", 2);
-    seniority = await commonestTagIds(database, "seniority", 1);
+    technology = (await commonestTags(database, "technology", 2)).ids;
+    seniority = (await commonestTags(database, "seniority", 1)).ids;
   });
   afterAll(async () => {
     await database.$disconnect();
