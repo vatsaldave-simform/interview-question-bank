@@ -31,11 +31,11 @@ export async function seedTheBulkBank(
 
 /** The Tags of a Category that most of the bank carries, commonest first, so a filter
  * built from them answers with a page rather than a handful of rows. */
-export async function commonestTagIds(
+export async function commonestTags(
   database: Database,
   category: CategoryName,
   howMany: number,
-): Promise<string[]> {
+): Promise<{ ids: string[]; values: string[] }> {
   const carried = await database.questionTag.groupBy({
     by: ["tagId"],
     where: { tag: { category: { name: category } } },
@@ -43,7 +43,29 @@ export async function commonestTagIds(
     orderBy: { _count: { tagId: "desc" } },
     take: howMany,
   });
-  return carried.map((tag) => tag.tagId);
+  const tags = await database.tag.findMany({
+    where: { id: { in: carried.map((tag) => tag.tagId) } },
+    select: { id: true, value: true },
+  });
+  // Back into the order the counts came in; `findMany` does not keep it.
+  const byId = new Map(tags.map((tag) => [tag.id, tag.value]));
+  const ids = carried.map((tag) => tag.tagId);
+  return { ids, values: ids.map((id) => byId.get(id)!) };
+}
+
+/** The list request itself, for a test that wants to read the response it got. */
+export function getQuestions(
+  api: TestApi,
+  params: Record<string, string | number | readonly string[]>,
+  token: string,
+): Promise<Response> {
+  const search = new URLSearchParams();
+  for (const [name, value] of Object.entries(params)) {
+    for (const one of Array.isArray(value) ? value : [value]) search.append(name, String(one));
+  }
+  return api.request(`/api/questions?${search.toString()}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
 }
 
 /**

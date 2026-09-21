@@ -6,7 +6,7 @@ import {
 } from "../src/features/questions/questions.repository.js";
 import type { Database } from "../src/platform/database.js";
 import {
-  commonestTagIds,
+  commonestTags,
   sameAnswerInJavaScript,
   seedTheBulkBank,
   viewerByRole,
@@ -28,7 +28,7 @@ describe("paging through a filtered bank", () => {
     await seedTheBulkBank(database, bulk);
     reader = await viewerByRole(database, "reader");
     tagsPerCategory = [
-      { category: "technology", tagIds: await commonestTagIds(database, "technology", 2) },
+      { category: "technology", tagIds: (await commonestTags(database, "technology", 2)).ids },
     ];
   });
   afterAll(async () => {
