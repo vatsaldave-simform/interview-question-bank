@@ -109,6 +109,13 @@ purpose. ADR-0011 chose between two SQL shapes by timing them, and the answer tu
 how much of the bank a filter matches. A bank where every Tag matches about as much as
 every other cannot show that.
 
+The Question text is spread the same way and for the same reason. Each Question is built
+from a fixed list of words, drawn so that the commonest lands in half the bank and the
+rarest in one Question in fifty, with two words together reaching four in a thousand. A
+bank whose Questions all said the same sentence would answer every search with everything
+or nothing, and a query plan measured against it would show the planner responding to
+nothing.
+
 `pnpm db:seed` never runs this, so it stays short enough to read.
 
 ## Where the query timings come from
@@ -137,6 +144,64 @@ statements the database has seen.
 and does not keep the counters across a suspend, so nothing there is worth timing
 (ADR-0009, ADR-0012). The test database has neither the library nor the view: the suite
 empties it between tests, and counters over that say nothing.
+
+## What the query plans say
+
+The combined query — a Category filter and a keyword search together — is the one this
+bank lives or dies by, so it is measured rather than asserted. `pnpm db:measure:plans`
+captures `EXPLAIN (ANALYZE, BUFFERS)` for ten scenarios against the bulk-seeded bank and
+writes them to [`docs/evidence/query-plans/`](docs/evidence/query-plans/), committed so
+that nobody has to reproduce them to read them.
+
+```sh
+docker compose up -d                          # db, migrations, seed, query counters
+pnpm db:seed:bulk                             # 10,000 Questions
+pnpm db:measure:plans ten-thousand-questions  # rewrites the committed capture
+```
+
+At ten thousand Questions, **every plan uses an index, none reads the whole table, and
+nothing takes longer than 7.3ms**:
+
+| scenario | ms | pages | driven by |
+| --- | ---: | ---: | --- |
+| a broad keyword, no Category | 5.45 | 1,052 | the search vector index |
+| a narrow keyword, no Category | 2.21 | 556 | the search vector index |
+| two keywords, no Category | 1.45 | 264 | the search vector index |
+| a broad keyword and a common Tag | 5.69 | 1,076 | both |
+| a broad keyword and a rare Tag | 2.40 | 898 | `question_tags` |
+| a broad keyword and two Categories | 7.33 | 1,117 | both |
+| a broad keyword, a deep page | 7.26 | 1,052 | the search vector index |
+
+The planner chooses which index drives the query from how selective each half is, and
+dropping either one takes a strategy away. **No index was added in response**: the two the
+query needs were already there, and the obvious candidate was built, measured and turned
+down. ADR-0029 has the numbers.
+
+A broad keyword does read every page of the questions table, through a bitmap heap scan
+rather than a sequential scan. That is not a missing index — a word carried by two
+Questions in five means reading two Questions in five.
+
+**Where the limit-and-offset ceiling sits.** Not where ADR-0011 put it for the list. A
+filtered list can stop as soon as it has filled a page, and `OFFSET` takes that away: the
+last page of a long result cost 12x the first. The search can never stop early, because
+the order is relevance and relevance is only known once every match has been ranked. So
+the first page and a page two thousand rows in run the same scan of 3,884 rows and differ
+only in the sort:
+
+```
+first page:   Sort Method: top-N heapsort  Memory: 31kB
+offset 2000:  Sort Method: quicksort       Memory: 370kB
+```
+
+That is 1.3x, not 12x. **Why it was not paid for**: keyset pagination is the usual answer
+to a deep `OFFSET`, and it would buy nothing here. It replaces "skip 2,000 rows" with
+"start after this row", which needs an order an index can walk. `ts_rank` is computed per
+row, so there is no such index and no such cursor. The cost is the ranking, and every page
+pays it.
+
+Timings are from one machine and move by a few tenths of a millisecond between runs; the
+page counts do not, which is why they are the column to read. Everything here is local, by
+ADR-0012 — the deployment is never timed.
 
 ## Near-duplicate detection
 
