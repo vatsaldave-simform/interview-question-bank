@@ -13,6 +13,13 @@ and query it with `websearch_to_tsquery` through `$queryRaw`.
 
 - The `tsvector` column is declared `Unsupported("tsvector")?` in `schema.prisma`. It must be
   **optional**: a required `Unsupported` field removes `create`/`update`/`upsert` from the client.
+- Declaring it is not enough on its own, which the research left open and building it settled.
+  Prisma reads a stored generated column back as a column **default**, so a schema that
+  declares the column but not the expression still differs from the migration history, and the
+  next `migrate dev` writes an `ALTER` that takes the generated-ness away. The expression has to
+  be repeated in `@default(dbgenerated(...))`, spelled the way PostgreSQL reads it back
+  (`'english'::regconfig`, `COALESCE`, the added brackets). `backend/tests/search-column.test.ts`
+  runs the same comparison `migrate dev` runs and fails if the two ever disagree.
 - Near-duplicate detection is a *different* problem and gets a different mechanism
   (`pg_trgm` over Question text alone, GiST-indexed for the KNN ordering case). Using one
   mechanism for both would serve neither.
