@@ -1,6 +1,7 @@
 import { categoryNames, publicationStates, type CategoryName } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  bankVocabulary,
   bulkTagPrefix,
   seedBulkBank,
   type BulkBankOptions,
@@ -57,6 +58,25 @@ async function tagPopularity(database: Database, category: CategoryName): Promis
     _count: { _all: true },
   });
   return carried.map((tag) => tag._count._all).sort((one, other) => other - one);
+}
+
+/** How many of the bulk bank's Questions a keyword search finds, asked the way the search
+ * asks it so that stemming and the Answer Notes count here too. */
+async function questionsFound(database: Database, keywords: string): Promise<number> {
+  const [row] = await database.$queryRaw<{ found: bigint }[]>`
+    SELECT count(*) AS found
+      FROM questions q
+     WHERE q."searchVector" @@ websearch_to_tsquery('english', ${keywords})
+       AND q.id <> ALL(${seedQuestions.map((question) => question.id)}::uuid[])
+  `;
+  return Number(row?.found ?? 0);
+}
+
+/** What each word of the vocabulary finds, commonest first. */
+async function everyWordsReach(database: Database): Promise<number[]> {
+  const found: number[] = [];
+  for (const word of bankVocabulary) found.push(await questionsFound(database, word));
+  return found.sort((one, other) => other - one);
 }
 
 describe("the bulk bank", () => {
@@ -127,6 +147,40 @@ describe("the bulk bank", () => {
     const rarest = popularity[popularity.length - 1]!;
     expect(popularity.length).toBeGreaterThan(20);
     expect(commonest).toBeGreaterThan(rarest * 10);
+  });
+
+  it("spreads the words a search can be aimed at from common to rare", async () => {
+    const reach = await everyWordsReach(database);
+
+    const commonest = reach[0]!;
+    const rarest = reach[reach.length - 1]!;
+    // Without this the bank is one sentence with the row number changed, every word in
+    // it matches all ten thousand Questions or none, and a plan measured against it
+    // shows the planner responding to nothing.
+    expect(commonest).toBeGreaterThan(bulk.count * 0.25);
+    expect(rarest).toBeLessThan(bulk.count * 0.1);
+    expect(commonest).toBeGreaterThan(rarest * 5);
+  });
+
+  it("narrows further when a search names a second word", async () => {
+    const [first, second] = ["migration", "deadlock"];
+
+    const both = await questionsFound(database, `${first} ${second}`);
+
+    // Two words are AND-ed, which is how a search reaches a part of the bank smaller
+    // than any single word of the vocabulary can.
+    expect(both).toBeLessThan(await questionsFound(database, first));
+    expect(both).toBeLessThan(await questionsFound(database, second));
+  });
+
+  it("writes Question text that is not one template with a number in it", async () => {
+    const questions = await database.question.findMany({
+      where: fromTheBulkBank,
+      select: { text: true },
+    });
+
+    const distinct = new Set(questions.map((question) => question.text));
+    expect(distinct.size).toBeGreaterThan(bulk.count * 0.95);
   });
 
   it("gives two Questions the same createdAt, so the id tiebreaker has a tie to break", async () => {

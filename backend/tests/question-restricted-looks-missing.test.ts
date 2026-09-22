@@ -7,7 +7,7 @@ import {
   clientIdNamed,
   getQuestions,
   inBothClientsQuestions,
-  inEveryBulkQuestion,
+  inMuchOfTheBulkBank,
   inNoQuestionAtAll,
   inTheOtherClientsQuestionsOnly,
   seedTheBank,
@@ -229,7 +229,7 @@ describe("what a response says about the Questions it left out", () => {
     page.questions.map((question) => question.id);
 
   it("carries the page it was asked for and no count of anything", async () => {
-    const asked = { keywords: inEveryBulkQuestion, limit: 20, offset: 40 };
+    const asked = { keywords: inMuchOfTheBulkBank, limit: 20, offset: 40 };
 
     const bodies = await Promise.all(
       [reviewerToken, readerToken].map(
@@ -252,7 +252,7 @@ describe("what a response says about the Questions it left out", () => {
   });
 
   it("hands a Viewer holding no Grant full pages, so an excluded Question takes no slot", async () => {
-    const query = { keywords: inEveryBulkQuestion, limit: 25 };
+    const query = { keywords: inMuchOfTheBulkBank, limit: 25 };
 
     const first = await pageOf({ ...query, offset: 0 }, reviewerToken);
     const second = await pageOf({ ...query, offset: 25 }, reviewerToken);
@@ -277,7 +277,7 @@ describe("what a response says about the Questions it left out", () => {
     });
 
     const searched = await statementsDuring(() =>
-      getQuestions(api, { keywords: inEveryBulkQuestion, limit: 25 }, reviewerToken),
+      getQuestions(api, { keywords: inMuchOfTheBulkBank, limit: 25 }, reviewerToken),
     );
     const filtered = await statementsDuring(() =>
       getQuestions(api, { technology: "typescript", limit: 25 }, reviewerToken),

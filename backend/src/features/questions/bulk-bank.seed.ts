@@ -34,6 +34,60 @@ const taggingPerCategory: Record<CategoryName, CategoryTagging> = {
   "question-type": { extraTags: 6, coverage: 1, maxTags: 2 },
 };
 
+/**
+ * The words a keyword search can be aimed at, commonest first. Fixed rather than picked
+ * per seed value, so two banks written from different seed values can still be timed
+ * against the same search.
+ */
+export const bankVocabulary = [
+  "test", "data", "design", "failure", "latency", "cache", "queue", "index", "retry", "timeout",
+  "schema", "migration", "rollback", "logging", "tracing", "metrics", "deadlock", "transaction",
+  "isolation", "replication", "sharding", "pagination", "throttling", "backpressure",
+  "idempotency", "concurrency", "immutability", "serialization", "validation", "authentication",
+  "authorization", "encryption", "hashing", "tokens", "sessions", "cookies", "middleware",
+  "routing", "streaming", "batching", "polling", "webhooks", "versioning", "deprecation",
+  "rate limiting", "circuit breaker", "feature flags", "canary release", "observability",
+  "profiling", "garbage collection", "memory leak", "thread pool", "connection pooling",
+  "load balancing", "service discovery", "leader election", "consensus", "eventual consistency",
+  "checkpointing", "compaction", "bloom filter", "trie", "heap", "quicksort", "binary search",
+  "lookup table", "linked list", "recursion", "memoization", "dynamic programming",
+  "graph traversal", "topological sort", "union find", "sliding window", "two pointers",
+  "closure", "hoisting", "prototype chain", "event loop", "microtask", "promise", "generator",
+  "decorator", "mixin", "dependency injection", "inversion of control", "liskov substitution",
+  "open closed", "single responsibility", "law of demeter", "anti-corruption layer",
+  "bounded context", "ubiquitous language",
+] as const;
+
+/** How many of those words one Question carries, three in its text and two in its Answer
+ * Notes. Five is what spreads a search across half the bank for the commonest word, one
+ * Question in fifty for the rarest, and four in a thousand for a pair of them. */
+const wordsPerQuestion = 5;
+
+/** The same curve `pickTag` uses, and for the same reason: a search that matches as much
+ * of the bank whatever it asks for cannot tell one query plan from another (ADR-0011). */
+const wordWeighting = 2.2;
+
+type QuestionFrame = (first: string, second: string, third: string) => string;
+type AnswerNotesFrame = (first: string, second: string) => string;
+
+const questionFrames: readonly QuestionFrame[] = [
+  (a, b, c) => `How would you approach ${a} when ${b} and ${c} pull in different directions?`,
+  (a, b, c) => `Explain what ${a} costs a team that already relies on ${b}, and where ${c} fits.`,
+  (a, b, c) =>
+    `Describe a time ${a} failed in production. What did ${b} tell you, and what did you ` +
+    `change about ${c}?`,
+  (a, b, c) => `When would you choose ${a} over ${b}, and what does that decide about ${c}?`,
+  (a, b, c) => `Walk through how you would prove ${a} holds under load, given ${b} and ${c}.`,
+  (a, b, c) => `A service is slow and ${a} looks healthy. How do ${b} and ${c} narrow it down?`,
+];
+
+const answerNotesFrames: readonly AnswerNotesFrame[] = [
+  (a, b) => `Look for ${a} named without prompting, and for the ${b} they would measure first.`,
+  (a, b) => `A strong answer weighs ${a} against ${b} rather than picking one and defending it.`,
+  (a, b) => `Expect ${a} to come up early. ${b} is the follow-up that separates depth from recall.`,
+  (a, b) => `Watch for an answer that treats ${a} as free, and ask what ${b} costs first.`,
+];
+
 const restrictedShare = 0.2;
 const provenances: readonly Provenance[] = ["original", "adapted", "inherited"];
 
@@ -80,10 +134,11 @@ export async function seedBulkBank(
     const isRestricted = randomFor(seed, `${key}:restricted`) < restrictedShare;
     if (isRestricted) restricted += 1;
 
+    const words = wordsFor(seed, key);
     questionRows.push({
       id,
-      text: `Bulk bank Question ${n}: how would you approach the case it describes?`,
-      answerNotes: `Answer notes for bulk bank Question ${n}: look for the trade-off named.`,
+      text: questionText(seed, key, words),
+      answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
       clientId: isRestricted ? client.id : null,
       publicationState: publicationStateFor(randomFor(seed, `${key}:state`)),
@@ -162,6 +217,40 @@ function inPopularityOrder(seed: string, category: CategoryName, tags: TagRow[])
  * by one Question in fifty (ADR-0011). */
 function pickTag(tags: TagRow[], random: number): TagRow {
   return tags[Math.floor(random ** 2.2 * tags.length)]!;
+}
+
+/** The words one Question carries, drawn from the front of the vocabulary far more often
+ * than from the back. */
+function wordsFor(seed: string, key: string): string[] {
+  const carried: string[] = [];
+  for (let pick = 0; pick < wordsPerQuestion; pick += 1) {
+    carried.push(nextWordAfter(carried, randomFor(seed, `${key}:word:${pick}`)));
+  }
+  return carried;
+}
+
+/** Steps past a word the Question already carries, so no sentence names the same thing
+ * twice. */
+function nextWordAfter(carried: readonly string[], random: number): string {
+  let at = Math.floor(random ** wordWeighting * bankVocabulary.length);
+  while (carried.includes(bankVocabulary[at]!)) at = (at + 1) % bankVocabulary.length;
+  return bankVocabulary[at]!;
+}
+
+function questionText(seed: string, key: string, words: readonly string[]): string {
+  const frame = pickFrame(questionFrames, randomFor(seed, `${key}:frame`));
+  return frame(words[0]!, words[1]!, words[2]!);
+}
+
+function answerNotesText(seed: string, key: string, words: readonly string[]): string {
+  const frame = pickFrame(answerNotesFrames, randomFor(seed, `${key}:notes`));
+  return frame(words[3]!, words[4]!);
+}
+
+/** Evenly, unlike the words: a frame is the sentence around the words and is not what a
+ * search is aimed at. */
+function pickFrame<Frame>(frames: readonly Frame[], random: number): Frame {
+  return frames[Math.floor(random * frames.length)]!;
 }
 
 /** Mostly Published, so a filter has a bank to answer from, and enough of the other two
