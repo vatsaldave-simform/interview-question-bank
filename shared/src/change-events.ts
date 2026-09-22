@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { provenanceSchema, questionTagSchema } from "./questions.js";
+import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
 /**
- * What a Change Event says happened. Two values so far, because two things write one;
- * Publishing, Rejecting and refusing a Near-Duplicate add their own (ADR-0006).
+ * What a Change Event says happened. Publishing and Rejecting add their own (ADR-0006).
  */
-export const changeEventTypes = ["question_added", "question_edited"] as const;
+export const changeEventTypes = [
+  "question_added",
+  "question_edited",
+  "near_duplicate_refused",
+  "near_duplicate_overridden",
+] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
 
@@ -24,6 +28,28 @@ export const questionAddedSchema = z
   })
   .strict();
 export type QuestionAdded = z.infer<typeof questionAddedSchema>;
+
+/**
+ * A submission refused because it closely resembled something already in the bank. The
+ * whole attempt is here, Near-Duplicates included, because no Question was stored to point
+ * and this row is the only record the attempt ever leaves (ADR-0006).
+ */
+export const nearDuplicateRefusedSchema = z
+  .object({
+    attempted: questionAddedSchema,
+    nearDuplicates: z.array(nearDuplicateSchema),
+  })
+  .strict();
+export type NearDuplicateRefused = z.infer<typeof nearDuplicateRefusedSchema>;
+
+/**
+ * An Author saying a match was wrong and submitting anyway. The Question this names is
+ * the one that was stored, and the Viewer on the event is who made the call.
+ */
+export const nearDuplicateOverriddenSchema = z
+  .object({ nearDuplicates: z.array(nearDuplicateSchema) })
+  .strict();
+export type NearDuplicateOverridden = z.infer<typeof nearDuplicateOverriddenSchema>;
 
 /** One field as it was, and as it became. */
 function changedFrom<T extends z.ZodTypeAny>(value: T) {
@@ -59,6 +85,14 @@ const changeEventSchema = z.object({
 export const changeEventResponseSchema = z.discriminatedUnion("type", [
   changeEventSchema.extend({ type: z.literal("question_added"), payload: questionAddedSchema }),
   changeEventSchema.extend({ type: z.literal("question_edited"), payload: questionEditedSchema }),
+  changeEventSchema.extend({
+    type: z.literal("near_duplicate_refused"),
+    payload: nearDuplicateRefusedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("near_duplicate_overridden"),
+    payload: nearDuplicateOverriddenSchema,
+  }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
 

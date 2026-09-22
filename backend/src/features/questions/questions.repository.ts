@@ -4,6 +4,7 @@ import {
   nearDuplicateThreshold,
   type CategoryName,
   type NearDuplicate,
+  type NearDuplicateRefused,
   type Provenance,
   type PublicationState,
   type QuestionEdited,
@@ -12,6 +13,7 @@ import {
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.js";
 import {
+  aboutAnotherQuestion,
   changeEventFieldsToRead,
   insertChangeEvent,
   toChangeEventFromDb,
@@ -114,6 +116,11 @@ export async function findEventsAboutVisibleQuestion(
     where: { AND: [{ id }, visibleQuestions(viewer)] },
     select: {
       changeEvents: {
+        // Being able to see a Question is not being able to see what its Author was
+        // warned about: those events name Questions of their own (ADR-0028).
+        where: {
+          OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
+        },
         // The time comes from the process that wrote the event, so two events can share
         // one; the id settles that, and the order is at least the same every read.
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -242,12 +249,8 @@ export async function searchVisibleQuestions(
 
 /**
  * The Questions a submission closely resembles, closest first, and none below the
- * threshold. Question text only, never Answer Notes: similarity counts the characters
- * two strings share, so adding the Notes in buries the signal (ADR-0004).
- *
- * Visible and Published, whoever is asking, a Reviewer included. A match among the
- * Questions the submitter cannot reach would tell them one exists, which is the leak
- * detection must not become (ADR-0007, ADR-0014).
+ * threshold. Question text only, never Answer Notes (ADR-0004), and Visible and Published
+ * whoever is asking, a Reviewer included (ADR-0007, ADR-0014).
  */
 export async function findNearDuplicates(
   database: Database,
@@ -287,12 +290,13 @@ function distinctTagIds(tagIds: readonly string[]): string[] {
   return [...new Set(tagIds)];
 }
 
-/** The Author is the adding Viewer, never anything the request names. Its Change Event
- * is written in the same transaction, so an added Question always carries its trace. */
+/** The Author is the adding Viewer, never anything the request names. Its Change Events
+ * are written in the same transaction, so an added Question always carries its trace. */
 export async function insertQuestion(
   database: Database,
   viewer: Viewer,
   question: NewQuestion,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb> {
   return database.$transaction(async (transaction) => {
     const stored = await transaction.question.create({
@@ -320,7 +324,33 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
+
+    if (overridden.length > 0) {
+      await insertChangeEvent(transaction, {
+        type: "near_duplicate_overridden",
+        questionId: added.id,
+        viewerId: viewer.id,
+        payload: { nearDuplicates: [...overridden] },
+      });
+    }
     return added;
+  });
+}
+
+/**
+ * The trace a refused submission leaves. It names no Question because none was stored,
+ * which is the case the log exists as a log for (ADR-0006).
+ */
+export async function recordRefusedSubmission(
+  database: Database,
+  viewer: Viewer,
+  refused: NearDuplicateRefused,
+): Promise<void> {
+  await insertChangeEvent(database, {
+    type: "near_duplicate_refused",
+    questionId: null,
+    viewerId: viewer.id,
+    payload: refused,
   });
 }
 

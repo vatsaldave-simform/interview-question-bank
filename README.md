@@ -111,6 +111,73 @@ every other cannot show that.
 
 `pnpm db:seed` never runs this, so it stays short enough to read.
 
+## Near-duplicate detection
+
+A Question submitted to the bank is measured against the Questions already in it, and a
+close match is answered at submission time rather than stored quietly:
+
+```sh
+curl -s -X POST localhost:3000/api/questions \
+  -H 'content-type: application/json' -H "authorization: Bearer $TOKEN" \
+  -d '{"text":"Explain the difference between an interface and a type in TypeScript.",
+       "answerNotes":"...","provenance":"original"}'
+# 409, with the closest few Near-Duplicates in error.details
+```
+
+If that is wrong, say so and submit it again. That stores the Question, and records
+the decision against the Author who made it:
+
+```sh
+# ...the same body, plus:
+#   "confirmedNotANearDuplicate": true
+```
+
+**What is compared.** Question text alone, never the Answer Notes. Similarity counts the
+characters two strings share, so measuring a one-line Question against a paragraph of
+Notes scores near zero however plainly one is a copy of the other (ADR-0004).
+
+**What is compared against.** The Questions the submitting Viewer can already read, and
+only the Published ones. A check across the whole bank would answer a submission with
+"this closely duplicates an existing Question" when the match is restricted to a Client
+the submitter holds no Permission Grant for, which tells them that Question exists
+(ADR-0007). Published only, so nobody learns about a Question sitting in a review queue
+they cannot see either (ADR-0014). The cost is real and accepted: the bank can hold
+genuine duplicates on opposite sides of a visibility boundary.
+
+**The threshold is 0.45**, on the zero-to-one scale `pg_trgm` measures similarity on.
+Trigram similarity ignores word order and punctuation, so it is measuring the words two
+Questions share. Measured against this bank and rewordings of it:
+
+| Pair | Similarity |
+| --- | --- |
+| The same Question, a trailing clause added | 0.87 |
+| The same Question, one word swapped | 0.87 |
+| The same Question, reworded | 0.78 |
+| The same Question, reworded heavily | 0.56 |
+| Different Questions sharing their opening words | 0.40 |
+| Different Questions on the same subject | 0.28 |
+| Unrelated Questions | 0.06 |
+
+Every genuine Near-Duplicate scores 0.56 or above and nothing that is not one reaches 0.40, so
+0.45 sits in the gap with room either side. `pg_trgm`'s own default of 0.3 is inside the
+noise for text this long and would refuse honest submissions. The number is
+`nearDuplicateThreshold` in `shared/src/questions.ts`; change it there and the measurements
+above are what to re-run.
+
+**Both outcomes leave a trace.** A refusal is recorded as a Change Event naming no
+Question — nothing was stored — and carrying the whole attempt, which is why the history
+is an event log rather than versions of a row (ADR-0006). An override is recorded against
+the Question it stored, in the same transaction, so the Question and the record of the
+call it took cannot exist apart.
+
+Both of those events name Near-Duplicates, which are Questions in their own right, so only
+the Viewer an event names may read it. Somebody else reading the same Question's history
+does not see the event at all — its presence alone would say a Question they cannot reach
+exists (ADR-0028).
+
+Detection runs at submission today. Publication and text edits are the other two moments
+it belongs at, and they arrive with their own ticket (ADR-0014).
+
 ## Running the tests
 
 The suite talks to a separate database service, so it never touches development data.

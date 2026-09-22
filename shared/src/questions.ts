@@ -63,6 +63,9 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
+    /** The Author's own word that a match detection found is wrong, which is the only
+     * thing that stores a Question detection has refused once. */
+    confirmedNotANearDuplicate: z.boolean().default(false),
   })
   .strict();
 export type AddQuestionRequest = z.infer<typeof addQuestionRequestSchema>;
@@ -92,7 +95,7 @@ export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
  */
 export const nearDuplicateThreshold = 0.45;
 
-/** The most matches a refused submission names. An Author judging a false positive needs
+/** The most Near-Duplicates a refused submission names. An Author judging a false positive
  * the closest few, and a longer list is a wall rather than help. */
 export const mostNearDuplicatesNamed = 3;
 
@@ -108,6 +111,13 @@ export const nearDuplicateSchema = z
   })
   .strict();
 export type NearDuplicate = z.infer<typeof nearDuplicateSchema>;
+
+/** What a refused submission carries in its error details, so an Author can read what
+ * their Question was judged against without a second request. */
+export const nearDuplicatesFoundSchema = z
+  .object({ nearDuplicates: z.array(nearDuplicateSchema).min(1) })
+  .strict();
+export type NearDuplicatesFound = z.infer<typeof nearDuplicatesFoundSchema>;
 
 /** The page a request gets when it asks for no particular size. */
 export const defaultQuestionPageSize = 50;

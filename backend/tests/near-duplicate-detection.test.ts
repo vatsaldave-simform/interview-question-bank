@@ -36,23 +36,23 @@ describe("finding what a submission closely resembles", () => {
   it("names the Question a submission resembles, with its text and how close it is", async () => {
     const author = await viewerByRole(database, "author");
 
-    const matches = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
+    const nearDuplicates = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
 
-    expect(matches.map((match) => match.questionId)).toEqual([seededQuestionIds.aboutTypeScript]);
-    expect(matches[0]!.similarity).toBeGreaterThanOrEqual(nearDuplicateThreshold);
-    expect(matches[0]!.text).toContain("TypeScript");
+    expect(nearDuplicates.map((near) => near.questionId)).toEqual([seededQuestionIds.aboutTypeScript]);
+    expect(nearDuplicates[0]!.similarity).toBeGreaterThanOrEqual(nearDuplicateThreshold);
+    expect(nearDuplicates[0]!.text).toContain("TypeScript");
   });
 
   it("names nothing for a Question on the same subject that is not a copy of one", async () => {
     const author = await viewerByRole(database, "author");
 
-    const matches = await findNearDuplicates(
+    const nearDuplicates = await findNearDuplicates(
       database,
       author,
       aboutTypeScriptWithoutBeingTheSameQuestion,
     );
 
-    expect(matches).toEqual([]);
+    expect(nearDuplicates).toEqual([]);
   });
 
   it("never names a restricted Question to a Viewer holding no Grant for its Client", async () => {
@@ -60,17 +60,17 @@ describe("finding what a submission closely resembles", () => {
     // this text copies belongs to the second.
     const reader = await viewerByRole(database, "reader");
 
-    const matches = await findNearDuplicates(database, reader, nearlyTheOtherClientsBookingOne);
+    const nearDuplicates = await findNearDuplicates(database, reader, nearlyTheOtherClientsBookingOne);
 
-    expect(matches).toEqual([]);
+    expect(nearDuplicates).toEqual([]);
   });
 
   it("names that same Question to a Viewer who does hold the Grant", async () => {
     const reviewer = await viewerByRole(database, "reviewer");
 
-    const matches = await findNearDuplicates(database, reviewer, nearlyTheOtherClientsBookingOne);
+    const nearDuplicates = await findNearDuplicates(database, reviewer, nearlyTheOtherClientsBookingOne);
 
-    expect(matches.map((match) => match.questionId)).toEqual([
+    expect(nearDuplicates.map((near) => near.questionId)).toEqual([
       seededQuestionIds.aboutTheOtherClientsBooking,
     ]);
   });
@@ -78,9 +78,22 @@ describe("finding what a submission closely resembles", () => {
   it("never names a Pending Question, even to a Reviewer whose queue it is in", async () => {
     const reviewer = await viewerByRole(database, "reviewer");
 
-    const matches = await findNearDuplicates(database, reviewer, nearlyThePendingOne);
+    const nearDuplicates = await findNearDuplicates(database, reviewer, nearlyThePendingOne);
 
-    expect(matches).toEqual([]);
+    expect(nearDuplicates).toEqual([]);
+  });
+
+  it("measures the Question text and not the Answer Notes (ADR-0004)", async () => {
+    const author = await viewerByRole(database, "author");
+    // Word for word the Answer Notes of the seeded TypeScript Question. Were the Notes
+    // in the comparison, this would be the closest thing in the bank by a long way.
+    const theAnswerNotesOfOne =
+      "A good answer reaches declaration merging and the fact that interfaces are open, " +
+      "then says which they reach for by default and why.";
+
+    const nearDuplicates = await findNearDuplicates(database, author, theAnswerNotesOfOne);
+
+    expect(nearDuplicates).toEqual([]);
   });
 
   it("has the GiST index that the closest-first ordering is answered from", async () => {
@@ -109,8 +122,8 @@ describe("finding what a submission closely resembles", () => {
       });
     }
 
-    const matches = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
+    const nearDuplicates = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
 
-    expect(matches).toHaveLength(mostNearDuplicatesNamed);
+    expect(nearDuplicates).toHaveLength(mostNearDuplicatesNamed);
   });
 });

@@ -194,11 +194,13 @@ model QuestionTag {
   @@map("question_tags")
 }
 
-/// What happened to the bank. Two values, because two things write an event so far; the
-/// tickets that Publish, Reject and refuse a Near-Duplicate add their own (ADR-0006).
+/// What happened to the bank. The tickets that Publish and Reject add their own
+/// (ADR-0006).
 enum ChangeEventType {
   question_added
   question_edited
+  near_duplicate_refused
+  near_duplicate_overridden
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and
