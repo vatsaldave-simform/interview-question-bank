@@ -63,6 +63,9 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
+    /** The Author's own word that a match detection found is wrong, which is the only
+     * thing that stores a Question detection has refused once. */
+    confirmedNotANearDuplicate: z.boolean().default(false),
   })
   .strict();
 export type AddQuestionRequest = z.infer<typeof addQuestionRequestSchema>;
@@ -84,6 +87,37 @@ export const editQuestionRequestSchema = z
     message: "An edit names at least one of text, answerNotes or tags.",
   });
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
+
+/**
+ * How alike two Questions' text has to be before one counts as a Near-Duplicate of the
+ * other, on the zero-to-one scale trigram similarity measures. Measured against the bank
+ * rather than picked, and the measurements are in the README.
+ */
+export const nearDuplicateThreshold = 0.45;
+
+/** The most Near-Duplicates a refused submission names. An Author judging a false positive
+ * the closest few, and a longer list is a wall rather than help. */
+export const mostNearDuplicatesNamed = 3;
+
+/**
+ * A Question a submission closely resembles, and how closely. The text is safe to send:
+ * detection only ever looks at Questions the submitting Viewer can already read (ADR-0007).
+ */
+export const nearDuplicateSchema = z
+  .object({
+    questionId: z.uuid(),
+    text: z.string(),
+    similarity: z.number().min(0).max(1),
+  })
+  .strict();
+export type NearDuplicate = z.infer<typeof nearDuplicateSchema>;
+
+/** What a refused submission carries in its error details, so an Author can read what
+ * their Question was judged against without a second request. */
+export const nearDuplicatesFoundSchema = z
+  .object({ nearDuplicates: z.array(nearDuplicateSchema).min(1) })
+  .strict();
+export type NearDuplicatesFound = z.infer<typeof nearDuplicatesFoundSchema>;
 
 /** The page a request gets when it asks for no particular size. */
 export const defaultQuestionPageSize = 50;

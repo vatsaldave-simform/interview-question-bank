@@ -4,14 +4,17 @@ import {
   type CategoryName,
   type EditQuestionRequest,
   type ListQuestionsRequest,
+  type NearDuplicatesFound,
   type QuestionTag,
   type Viewer,
 } from "@iqb/shared";
 import {
+  findNearDuplicates,
   findTagsNamed,
   findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
+  recordRefusedSubmission,
   searchVisibleQuestions,
   updateVisibleQuestion,
   type QuestionFromDb,
@@ -19,7 +22,12 @@ import {
 } from "./questions.repository.js";
 import { mayEdit } from "./may-edit.js";
 import type { Database } from "../../platform/database.js";
-import { ForbiddenError, InvalidRequestError, NotFoundError } from "../../platform/errors.js";
+import {
+  ConflictError,
+  ForbiddenError,
+  InvalidRequestError,
+  NotFoundError,
+} from "../../platform/errors.js";
 
 /** The spelling both sides of the lookup agree on. */
 const tagKey = (category: string, tag: string): string => `${category}/${tag}`;
@@ -100,20 +108,47 @@ async function tagIdsNamed(
   return tags.map((tag) => idOf(found, tag));
 }
 
-/** Named Tags become ids; everything else the repository already knows how to do. */
+/** Detection runs before anything is stored, so an Author hears about a Near-Duplicate
+ * while the Question is still in front of them (ADR-0014). */
 export async function addQuestion(
   database: Database,
   viewer: Viewer,
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  return insertQuestion(database, viewer, {
-    text: request.text,
-    answerNotes: request.answerNotes,
-    provenance: request.provenance,
-    ...(request.source === undefined ? {} : { source: request.source }),
-    tagIds,
-  });
+  const nearDuplicates = await findNearDuplicates(database, viewer, request.text);
+
+  if (nearDuplicates.length > 0 && !request.confirmedNotANearDuplicate) {
+    await recordRefusedSubmission(database, viewer, {
+      attempted: {
+        text: request.text,
+        answerNotes: request.answerNotes,
+        provenance: request.provenance,
+        source: request.source ?? null,
+        tags: [...request.tags],
+      },
+      nearDuplicates,
+    });
+    const found: NearDuplicatesFound = { nearDuplicates };
+    throw new ConflictError(
+      "This Question closely resembles one already in the bank. Submit it again " +
+        "confirming it is genuinely different if that is wrong.",
+      found,
+    );
+  }
+
+  return insertQuestion(
+    database,
+    viewer,
+    {
+      text: request.text,
+      answerNotes: request.answerNotes,
+      provenance: request.provenance,
+      ...(request.source === undefined ? {} : { source: request.source }),
+      tagIds,
+    },
+    nearDuplicates,
+  );
 }
 
 /**

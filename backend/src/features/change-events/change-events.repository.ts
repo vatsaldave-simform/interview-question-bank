@@ -1,6 +1,11 @@
 import {
+  nearDuplicateOverriddenSchema,
+  nearDuplicateRefusedSchema,
   questionAddedSchema,
   questionEditedSchema,
+  type NearDuplicateOverridden,
+  type NearDuplicateRefused,
+  type ChangeEventType,
   type QuestionAdded,
   type QuestionEdited,
 } from "@iqb/shared";
@@ -12,11 +17,11 @@ import type { Database } from "../../platform/database.js";
 export type DatabaseOrTransaction = Database | Prisma.TransactionClient;
 
 /** The type and the payload travel together, so an edit's before and after cannot be
- * filed as an addition, and only an addition may name no Question (ADR-0006). */
+ * filed as an addition, and only a refused submission may name no Question (ADR-0006). */
 export type NewChangeEvent =
   | {
       type: "question_added";
-      questionId: string | null;
+      questionId: string;
       viewerId: string;
       payload: QuestionAdded;
     }
@@ -25,7 +30,30 @@ export type NewChangeEvent =
       questionId: string;
       viewerId: string;
       payload: QuestionEdited;
+    }
+  | {
+      /** Null, never an id: nothing was stored, which is the whole point of this one. */
+      type: "near_duplicate_refused";
+      questionId: null;
+      viewerId: string;
+      payload: NearDuplicateRefused;
+    }
+  | {
+      type: "near_duplicate_overridden";
+      questionId: string;
+      viewerId: string;
+      payload: NearDuplicateOverridden;
     };
+
+/**
+ * The kinds whose payload names a Question other than the one the event hangs off. Only
+ * the Viewer the event names may read one, because its presence alone says that other
+ * Question exists (ADR-0028).
+ */
+export const aboutAnotherQuestion = [
+  "near_duplicate_refused",
+  "near_duplicate_overridden",
+] as const satisfies readonly ChangeEventType[];
 
 export async function insertChangeEvent(
   database: DatabaseOrTransaction,
@@ -64,6 +92,8 @@ export type ChangeEventFromDb = {
 } & (
   | { type: "question_added"; payload: QuestionAdded }
   | { type: "question_edited"; payload: QuestionEdited }
+  | { type: "near_duplicate_refused"; payload: NearDuplicateRefused }
+  | { type: "near_duplicate_overridden"; payload: NearDuplicateOverridden }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -80,5 +110,13 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
       return { ...happened, type: row.type, payload: questionAddedSchema.parse(row.payload) };
     case "question_edited":
       return { ...happened, type: row.type, payload: questionEditedSchema.parse(row.payload) };
+    case "near_duplicate_refused":
+      return { ...happened, type: row.type, payload: nearDuplicateRefusedSchema.parse(row.payload) };
+    case "near_duplicate_overridden":
+      return {
+        ...happened,
+        type: row.type,
+        payload: nearDuplicateOverriddenSchema.parse(row.payload),
+      };
   }
 }

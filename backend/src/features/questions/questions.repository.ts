@@ -1,6 +1,10 @@
 import {
   categoryNameSchema,
+  mostNearDuplicatesNamed,
+  nearDuplicateThreshold,
   type CategoryName,
+  type NearDuplicate,
+  type NearDuplicateRefused,
   type Provenance,
   type PublicationState,
   type QuestionEdited,
@@ -9,6 +13,7 @@ import {
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.js";
 import {
+  aboutAnotherQuestion,
   changeEventFieldsToRead,
   insertChangeEvent,
   toChangeEventFromDb,
@@ -111,6 +116,11 @@ export async function findEventsAboutVisibleQuestion(
     where: { AND: [{ id }, visibleQuestions(viewer)] },
     select: {
       changeEvents: {
+        // Being able to see a Question is not being able to see what its Author was
+        // warned about: those events name Questions of their own (ADR-0028).
+        where: {
+          OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
+        },
         // The time comes from the process that wrote the event, so two events can share
         // one; the id settles that, and the order is at least the same every read.
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -156,14 +166,20 @@ export async function findVisibleQuestions(
   return questions.map(toQuestionFromDb);
 }
 
-/** The same thing `visibleTo` and `inTheBankFor` say, in SQL, because the search below
- * is hand written and cannot take a `where` (ADR-0026). */
-function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
-  const visible = Prisma.sql`(
+/** What `visibleTo` says, in SQL, because the queries below are hand written and cannot
+ * take a `where` (ADR-0026). Its own function because detection pairs it with a different
+ * second check from the one the search pairs it with. */
+function visibleToInSql(viewer: Viewer): Prisma.Sql {
+  return Prisma.sql`(
     q."clientId" IS NULL
     OR EXISTS (SELECT 1 FROM permission_grants g
                 WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
   )`;
+}
+
+/** The same thing `visibleTo` and `inTheBankFor` say, in SQL (ADR-0026). */
+function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
+  const visible = visibleToInSql(viewer);
   if (viewer.role === "reviewer") return visible;
   return Prisma.sql`${visible} AND (
     q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
@@ -231,6 +247,33 @@ export async function searchVisibleQuestions(
   }));
 }
 
+/**
+ * The Questions a submission closely resembles, closest first, and none below the
+ * threshold. Question text only, never Answer Notes (ADR-0004), and Visible and Published
+ * whoever is asking, a Reviewer included (ADR-0007, ADR-0014).
+ */
+export async function findNearDuplicates(
+  database: Database,
+  viewer: Viewer,
+  text: string,
+): Promise<NearDuplicate[]> {
+  return database.$queryRaw<NearDuplicate[]>`
+    SELECT nearest.id AS "questionId", nearest.text, nearest.similarity
+      FROM (
+        SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
+          FROM questions q
+         WHERE ${visibleToInSql(viewer)}
+           AND q."publicationState" = 'published'
+         -- Ordered by distance rather than by similarity, because distance is what the
+         -- GiST index can answer; the two are the same order (ADR-0004).
+         ORDER BY q.text <-> ${text}
+         LIMIT ${mostNearDuplicatesNamed}
+      ) nearest
+     WHERE nearest.similarity >= ${nearDuplicateThreshold}
+     ORDER BY nearest.similarity DESC, nearest.id DESC
+  `;
+}
+
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
  * moves it (ADR-0013), and no Client, since classifying is its own act (ADR-0018). */
 export type NewQuestion = {
@@ -247,12 +290,13 @@ function distinctTagIds(tagIds: readonly string[]): string[] {
   return [...new Set(tagIds)];
 }
 
-/** The Author is the adding Viewer, never anything the request names. Its Change Event
- * is written in the same transaction, so an added Question always carries its trace. */
+/** The Author is the adding Viewer, never anything the request names. Its Change Events
+ * are written in the same transaction, so an added Question always carries its trace. */
 export async function insertQuestion(
   database: Database,
   viewer: Viewer,
   question: NewQuestion,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb> {
   return database.$transaction(async (transaction) => {
     const stored = await transaction.question.create({
@@ -280,7 +324,33 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
+
+    if (overridden.length > 0) {
+      await insertChangeEvent(transaction, {
+        type: "near_duplicate_overridden",
+        questionId: added.id,
+        viewerId: viewer.id,
+        payload: { nearDuplicates: [...overridden] },
+      });
+    }
     return added;
+  });
+}
+
+/**
+ * The trace a refused submission leaves. It names no Question because none was stored,
+ * which is the case the log exists as a log for (ADR-0006).
+ */
+export async function recordRefusedSubmission(
+  database: Database,
+  viewer: Viewer,
+  refused: NearDuplicateRefused,
+): Promise<void> {
+  await insertChangeEvent(database, {
+    type: "near_duplicate_refused",
+    questionId: null,
+    viewerId: viewer.id,
+    payload: refused,
   });
 }
 
