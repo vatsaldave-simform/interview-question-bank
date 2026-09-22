@@ -1,13 +1,16 @@
-import { questionListResponseSchema } from "@iqb/shared";
+import { questionListResponseSchema, type QuestionListResponse } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { hashPassword } from "../src/features/auth/password.js";
+import { seedClient } from "../src/features/clients/clients.seed.js";
 import { logIn, seededViewer } from "./helpers/auth.js";
 import {
   getQuestions,
   inBothClientsQuestions,
+  inEveryBulkQuestion,
   inNoQuestionAtAll,
   inTheOtherClientsQuestionsOnly,
   seedTheBank,
+  seedTheBulkBank,
   seededQuestionIds,
   tagOnNoQuestionAtAll,
   tagOnTheOtherClientsQuestionsOnly,
@@ -172,5 +175,113 @@ describe("a restricted Question and a Question that is not there", () => {
         seededQuestionIds.aboutTheOtherClientsIntake,
       ].sort(),
     );
+  });
+});
+
+const bulk = { count: 600, seed: "a-test-of-what-a-response-leaves-out" };
+
+/**
+ * The other half of the guarantee. The excluded Question is missing from the page, and
+ * nothing else in the response says it was ever there: not the page metadata, not the
+ * number of rows the page came back with, and not a second statement that read it and
+ * dropped it. A bulk bank, because "the page is still full" needs a full page.
+ */
+describe("what a response says about the Questions it left out", () => {
+  let api: TestApi;
+  let readerToken: string;
+  let reviewerToken: string;
+  /** The Client the bulk bank restricts to; the Reviewer holds no Grant for it. */
+  let restrictedTo: string;
+
+  beforeAll(async () => {
+    api = await startTestApi({ recordSql: true });
+    await seedTheBulkBank(api.database, bulk);
+    readerToken = await logIn(api, seededViewer("reader"));
+    reviewerToken = await logIn(api, seededViewer("reviewer"));
+    const client = await api.database.client.findUniqueOrThrow({
+      where: { name: seedClient.name },
+      select: { id: true },
+    });
+    restrictedTo = client.id;
+  });
+  afterAll(async () => {
+    await api.stop();
+  });
+
+  /** What the API sent to the database while doing one thing. */
+  async function statementsDuring(request: () => Promise<Response>): Promise<string[]> {
+    const before = api.statements().length;
+    await request();
+    return api.statements().slice(before);
+  }
+
+  async function pageOf(
+    params: Record<string, string | number>,
+    token: string,
+  ): Promise<QuestionListResponse> {
+    const response = await getQuestions(api, params, token);
+    return questionListResponseSchema.parse(await response.json());
+  }
+
+  const idsOf = (page: QuestionListResponse): string[] =>
+    page.questions.map((question) => question.id);
+
+  it("carries the page it was asked for and no count of anything", async () => {
+    const asked = { keywords: inEveryBulkQuestion, limit: 20, offset: 40 };
+
+    const bodies = await Promise.all(
+      [reviewerToken, readerToken].map(
+        async (token) =>
+          (await (await getQuestions(api, asked, token)).json()) as Record<string, unknown>,
+      ),
+    );
+
+    for (const body of bodies) {
+      // Exactly these three. A total, a number of matches or a "some were hidden" flag
+      // would each differ between these two Viewers and say what was left out.
+      expect(Object.keys(body).sort()).toEqual(["limit", "offset", "questions"]);
+      const page = questionListResponseSchema.parse(body);
+      expect(page.limit).toBe(asked.limit);
+      expect(page.offset).toBe(asked.offset);
+    }
+    // The two did read different banks, so matching metadata is a constraint here and
+    // not two identical requests agreeing with each other.
+    expect(bodies[0]!.questions).not.toEqual(bodies[1]!.questions);
+  });
+
+  it("hands a Viewer holding no Grant full pages, so an excluded Question takes no slot", async () => {
+    const query = { keywords: inEveryBulkQuestion, limit: 25 };
+
+    const first = await pageOf({ ...query, offset: 0 }, reviewerToken);
+    const second = await pageOf({ ...query, offset: 25 }, reviewerToken);
+    const both = await pageOf({ ...query, limit: 50, offset: 0 }, reviewerToken);
+
+    // Full, rather than 25 less however many the Viewer may not have. A read that
+    // fetched a page and then dropped the restricted rows would come back short.
+    expect(first.questions).toHaveLength(25);
+    expect(second.questions).toHaveLength(25);
+    expect([...idsOf(first), ...idsOf(second)]).toEqual(idsOf(both));
+    expect(both.questions.every((question) => question.clientId !== restrictedTo)).toBe(true);
+    // And the same request really did have Questions to leave out: the Reader holds the
+    // Grant and their page carries them.
+    const forReader = await pageOf({ ...query, offset: 0 }, readerToken);
+    expect(forReader.questions.some((question) => question.clientId === restrictedTo)).toBe(true);
+  });
+
+  it("reads the questions table once, and that one read names the Permission Grants", async () => {
+    const searched = await statementsDuring(() =>
+      getQuestions(api, { keywords: inEveryBulkQuestion, limit: 25 }, reviewerToken),
+    );
+    const filtered = await statementsDuring(() =>
+      getQuestions(api, { technology: "typescript", limit: 25 }, reviewerToken),
+    );
+
+    for (const asked of [searched, filtered]) {
+      // One statement reads Questions and it is the one carrying the check. A second
+      // one is what fetching restricted rows and discarding them would look like.
+      const readingQuestions = asked.filter((sql) => /\bquestions\b/.test(sql));
+      expect(readingQuestions).toHaveLength(1);
+      expect(readingQuestions[0]).toContain("permission_grants");
+    }
   });
 });
