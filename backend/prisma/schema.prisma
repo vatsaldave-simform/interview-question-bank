@@ -168,6 +168,10 @@ model Question {
 
   // What makes the keyword search an index lookup rather than a scan (ADR-0004).
   @@index([searchVector], type: Gin)
+  // Near-duplicate detection orders by how close a submission is to each Question, and
+  // GiST is the only index type that can answer that ordering (ADR-0004). Declared here
+  // as well as in the migration, or the next `migrate dev` drops it.
+  @@index([text(ops: raw("gist_trgm_ops"))], type: Gist)
   // Load-bearing: the ordering index the combined filter's early-stop strategy walks,
   // and what makes pagination stable. Dropping it removes a plan (ADR-0011).
   @@index([createdAt(sort: Desc), id(sort: Desc)])

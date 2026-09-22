@@ -1,6 +1,9 @@
 import {
   categoryNameSchema,
+  mostNearDuplicatesNamed,
+  nearDuplicateThreshold,
   type CategoryName,
+  type NearDuplicate,
   type Provenance,
   type PublicationState,
   type QuestionEdited,
@@ -156,14 +159,20 @@ export async function findVisibleQuestions(
   return questions.map(toQuestionFromDb);
 }
 
-/** The same thing `visibleTo` and `inTheBankFor` say, in SQL, because the search below
- * is hand written and cannot take a `where` (ADR-0026). */
-function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
-  const visible = Prisma.sql`(
+/** What `visibleTo` says, in SQL, because the queries below are hand written and cannot
+ * take a `where` (ADR-0026). Its own function because detection pairs it with a different
+ * second check from the one the search pairs it with. */
+function visibleToInSql(viewer: Viewer): Prisma.Sql {
+  return Prisma.sql`(
     q."clientId" IS NULL
     OR EXISTS (SELECT 1 FROM permission_grants g
                 WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
   )`;
+}
+
+/** The same thing `visibleTo` and `inTheBankFor` say, in SQL (ADR-0026). */
+function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
+  const visible = visibleToInSql(viewer);
   if (viewer.role === "reviewer") return visible;
   return Prisma.sql`${visible} AND (
     q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
@@ -229,6 +238,37 @@ export async function searchVisibleQuestions(
       tag: carried.tag,
     })),
   }));
+}
+
+/**
+ * The Questions a submission closely resembles, closest first, and none below the
+ * threshold. Question text only, never Answer Notes: similarity counts the characters
+ * two strings share, so adding the Notes in buries the signal (ADR-0004).
+ *
+ * Visible and Published, whoever is asking, a Reviewer included. A match among the
+ * Questions the submitter cannot reach would tell them one exists, which is the leak
+ * detection must not become (ADR-0007, ADR-0014).
+ */
+export async function findNearDuplicates(
+  database: Database,
+  viewer: Viewer,
+  text: string,
+): Promise<NearDuplicate[]> {
+  return database.$queryRaw<NearDuplicate[]>`
+    SELECT nearest.id AS "questionId", nearest.text, nearest.similarity
+      FROM (
+        SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
+          FROM questions q
+         WHERE ${visibleToInSql(viewer)}
+           AND q."publicationState" = 'published'
+         -- Ordered by distance rather than by similarity, because distance is what the
+         -- GiST index can answer; the two are the same order (ADR-0004).
+         ORDER BY q.text <-> ${text}
+         LIMIT ${mostNearDuplicatesNamed}
+      ) nearest
+     WHERE nearest.similarity >= ${nearDuplicateThreshold}
+     ORDER BY nearest.similarity DESC, nearest.id DESC
+  `;
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
