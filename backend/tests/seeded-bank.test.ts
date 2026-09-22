@@ -2,8 +2,9 @@ import { categoryNames, publicationStates } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   seedClient,
-  seedClientAndGrants,
-  seedGrantedViewerEmails,
+  seedClients,
+  seedClientsAndGrants,
+  seedOtherClient,
 } from "../src/features/clients/clients.seed.js";
 import {
   seedCategories,
@@ -25,7 +26,7 @@ describe("the seed", () => {
     database = createTestDatabase();
     await truncateAll(database);
     await seedViewerAccounts(database);
-    await seedClientAndGrants(database);
+    await seedClientsAndGrants(database);
     await seedQuestionBank(database);
   });
   afterAll(async () => {
@@ -50,16 +51,42 @@ describe("the seed", () => {
     }
   });
 
-  it("grants some Viewers permission for the Client and leaves others without one", async () => {
+  it("grants some Viewers permission for each Client and leaves others without one", async () => {
     const grants = await database.permissionGrant.findMany({
       include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
     });
 
-    expect(grants.map((grant) => grant.viewer.email).sort()).toEqual(
-      [...seedGrantedViewerEmails].sort(),
+    for (const seeded of seedClients) {
+      const held = grants.filter((grant) => grant.client.name === seeded.name);
+      expect(held.map((grant) => grant.viewer.email).sort()).toEqual([...seeded.grantedTo].sort());
+      expect(seeded.grantedTo.length).toBeLessThan(seedViewers.length);
+    }
+    expect(grants).toHaveLength(seedClients.flatMap((seeded) => seeded.grantedTo).length);
+  });
+
+  // The pair the guarantee is proved with: a Viewer holding one of them holds neither
+  // the other nor nothing at all, so a search can cross the two Clients.
+  it("gives the two Clients no Viewer in common and leaves neither unheld", async () => {
+    const holders = new Map(
+      seedClients.map((seeded) => [seeded.name, new Set(seeded.grantedTo)] as const),
     );
-    expect(grants.every((grant) => grant.client.name === seedClient.name)).toBe(true);
-    expect(seedGrantedViewerEmails.length).toBeLessThan(seedViewers.length);
+
+    const first = holders.get(seedClient.name)!;
+    const second = holders.get(seedOtherClient.name)!;
+    expect(first.size).toBeGreaterThan(0);
+    expect(second.size).toBeGreaterThan(0);
+    expect([...first].filter((email) => second.has(email))).toEqual([]);
+  });
+
+  it("restricts a Question to each Client and leaves some restricted to neither", async () => {
+    const perClient = await database.question.groupBy({
+      by: ["clientId"],
+      _count: { _all: true },
+    });
+
+    const restricted = perClient.filter((group) => group.clientId !== null);
+    expect(restricted).toHaveLength(seedClients.length);
+    expect(perClient.some((group) => group.clientId === null)).toBe(true);
   });
 
   it("seeds Questions in every Publication State", async () => {
@@ -99,7 +126,7 @@ describe("the seed", () => {
       select: { id: true, text: true },
     });
 
-    await seedClientAndGrants(database);
+    await seedClientsAndGrants(database);
     await seedQuestionBank(database);
 
     const after = await database.question.findUniqueOrThrow({
@@ -116,7 +143,7 @@ describe("the seed", () => {
       database.permissionGrant.count(),
     ]);
 
-    await seedClientAndGrants(database);
+    await seedClientsAndGrants(database);
     await seedQuestionBank(database);
 
     expect(await Promise.all([

@@ -1,6 +1,6 @@
 import type { CategoryName, Provenance, PublicationState } from "@iqb/shared";
 import type { Database } from "../../platform/database.js";
-import { seedClient } from "../clients/clients.seed.js";
+import { seedClient, seedClients, seedOtherClient } from "../clients/clients.seed.js";
 import { seedViewerByRole } from "../viewers/viewers.seed.js";
 
 export type SeedCategory = {
@@ -17,8 +17,8 @@ export type SeedQuestion = {
   text: string;
   answerNotes: string;
   authorEmail: string;
-  /** Whether the Question is restricted to the seeded Client. */
-  restricted: boolean;
+  /** The Client this Question is restricted to, by name; absent for the open bank. */
+  restrictedTo?: string;
   publicationState: PublicationState;
   provenance: Provenance;
   source?: string;
@@ -33,7 +33,9 @@ export const seedCategories: readonly SeedCategory[] = [
   {
     name: "technology",
     displayName: "Technology",
-    tags: ["typescript", "javascript", "react", "node", "postgres"],
+    // `javascript` is carried by no seeded Question and `python` only by the second
+    // Client's, which is the pair a Category filter has to answer identically for.
+    tags: ["typescript", "javascript", "react", "node", "postgres", "python"],
   },
   { name: "seniority", displayName: "Seniority", tags: ["junior", "mid", "senior"] },
   {
@@ -47,7 +49,8 @@ const seedAuthorEmail = seedViewerByRole("author").email;
 
 /**
  * Questions in every Publication State, restricted and unrestricted, so that both checks
- * — and the two of them together — can be exercised from the first run.
+ * — and the two of them together — can be exercised from the first run. Each Client
+ * carries a Published and a Pending Question, so neither is the restricted one.
  */
 export const seedQuestions: readonly SeedQuestion[] = [
   {
@@ -57,7 +60,6 @@ export const seedQuestions: readonly SeedQuestion[] = [
       "A good answer reaches declaration merging and the fact that interfaces are open, " +
       "then says which they reach for by default and why.",
     authorEmail: seedAuthorEmail,
-    restricted: false,
     publicationState: "published",
     provenance: "original",
     tags: [
@@ -72,7 +74,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "How would you migrate this client's reporting pipeline off nightly batch jobs?",
     answerNotes: "Look for staged cutover, backfill and a way to compare the two outputs.",
     authorEmail: seedAuthorEmail,
-    restricted: true,
+    restrictedTo: seedClient.name,
     publicationState: "published",
     provenance: "adapted",
     source: "Designing Data-Intensive Applications, chapter 11",
@@ -87,7 +89,6 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "Describe a time you disagreed with a technical decision and what you did about it.",
     answerNotes: "The interesting part is what they did once the decision went against them.",
     authorEmail: seedAuthorEmail,
-    restricted: false,
     publicationState: "pending",
     provenance: "inherited",
     tags: [{ category: "question-type", tag: "behavioural" }],
@@ -97,7 +98,6 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "What is 2 + 2?",
     answerNotes: "None worth recording.",
     authorEmail: seedAuthorEmail,
-    restricted: false,
     publicationState: "rejected",
     provenance: "original",
     tags: [{ category: "seniority", tag: "junior" }],
@@ -107,11 +107,40 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "Walk through the trade-offs in this client's current React rendering strategy.",
     answerNotes: "Expect them to ask what the measured problem is before answering.",
     authorEmail: seedAuthorEmail,
-    restricted: true,
+    restrictedTo: seedClient.name,
     publicationState: "pending",
     provenance: "original",
     tags: [
       { category: "technology", tag: "react" },
+      { category: "question-type", tag: "practical" },
+    ],
+  },
+  // "migrate" appears in this Published Question and in the first Client's, and nowhere
+  // in the open bank: one search crosses both Clients and matches nothing else.
+  {
+    id: "a0000000-0000-4000-8000-000000000006",
+    text: "How would you migrate this client's Python booking service onto the shared data model?",
+    answerNotes: "Look for a rollout that can be stopped halfway, and for who is told when it is.",
+    authorEmail: seedAuthorEmail,
+    restrictedTo: seedOtherClient.name,
+    publicationState: "published",
+    provenance: "original",
+    tags: [
+      { category: "technology", tag: "python" },
+      { category: "seniority", tag: "senior" },
+      { category: "question-type", tag: "system-design" },
+    ],
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000007",
+    text: "Which part of this client's intake process would you automate first, and why that part?",
+    answerNotes: "The reasoning is the answer; the part they pick barely matters.",
+    authorEmail: seedAuthorEmail,
+    restrictedTo: seedOtherClient.name,
+    publicationState: "pending",
+    provenance: "original",
+    tags: [
+      { category: "technology", tag: "python" },
       { category: "question-type", tag: "practical" },
     ],
   },
@@ -133,10 +162,14 @@ export async function seedQuestionBank(database: Database): Promise<void> {
   const tagIds = await seedCategoriesAndTags(database);
 
   // Seeded by `clients.seed.ts`, which the seed command runs first.
-  const client = await database.client.findUniqueOrThrow({
-    where: { name: seedClient.name },
-    select: { id: true },
-  });
+  const clientIds = new Map<string, string>();
+  for (const seeded of seedClients) {
+    const client = await database.client.findUniqueOrThrow({
+      where: { name: seeded.name },
+      select: { id: true },
+    });
+    clientIds.set(seeded.name, client.id);
+  }
 
   for (const question of seedQuestions) {
     const author = await database.viewer.findUniqueOrThrow({
@@ -151,7 +184,9 @@ export async function seedQuestionBank(database: Database): Promise<void> {
         text: question.text,
         answerNotes: question.answerNotes,
         authorId: author.id,
-        ...(question.restricted ? { clientId: client.id } : {}),
+        ...(question.restrictedTo === undefined
+          ? {}
+          : { clientId: clientId(clientIds, question.restrictedTo) }),
         publicationState: question.publicationState,
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
@@ -184,6 +219,13 @@ async function seedCategoriesAndTags(database: Database): Promise<Map<string, st
   }
 
   return tagIds;
+}
+
+/** A seeded Question restricted to a Client no seed writes is a mistake in this file. */
+function clientId(clientIds: Map<string, string>, name: string): string {
+  const id = clientIds.get(name);
+  if (!id) throw new Error(`The seed names a Client that is not seeded: ${name}.`);
+  return id;
 }
 
 /** A seeded Question naming a Tag no seeded Category holds is a mistake in this file. */

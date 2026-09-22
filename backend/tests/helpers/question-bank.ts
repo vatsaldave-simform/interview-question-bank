@@ -4,7 +4,7 @@ import {
   type BulkBankOptions,
 } from "../../src/features/questions/bulk-bank.seed.js";
 import type { TagsInCategory } from "../../src/features/questions/questions.repository.js";
-import { seedClientAndGrants } from "../../src/features/clients/clients.seed.js";
+import { seedClientsAndGrants } from "../../src/features/clients/clients.seed.js";
 import { seedQuestionBank } from "../../src/features/questions/questions.seed.js";
 import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.js";
 import type { Database } from "../../src/platform/database.js";
@@ -16,7 +16,7 @@ import { truncateAll } from "./test-database.js";
 export async function seedTheBank(database: Database): Promise<void> {
   await truncateAll(database);
   await seedViewerAccounts(database);
-  await seedClientAndGrants(database);
+  await seedClientsAndGrants(database);
   await seedQuestionBank(database);
 }
 

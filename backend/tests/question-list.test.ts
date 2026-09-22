@@ -7,6 +7,7 @@ import {
   questionListResponseSchema,
 } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { seedClient } from "../src/features/clients/clients.seed.js";
 import type { TagsInCategory } from "../src/features/questions/questions.repository.js";
 import { logIn, seededViewer } from "./helpers/auth.js";
 import {
@@ -168,6 +169,13 @@ describe("listing Questions over HTTP", () => {
   });
 
   it("never puts a Client-restricted Question in a page for a Viewer holding no Grant", async () => {
+    // The Reviewer holds no Grant for this Client, and does hold one for the other
+    // seeded Client, so the check is "not this one" rather than "not restricted at all".
+    const restrictedTo = await api.database.client.findUniqueOrThrow({
+      where: { name: seedClient.name },
+      select: { id: true },
+    });
+
     const forReviewer = await getQuestions(api, { limit: maxQuestionPageSize }, reviewerToken);
     const forReader = await getQuestions(api, { limit: maxQuestionPageSize }, readerToken);
 
@@ -175,8 +183,12 @@ describe("listing Questions over HTTP", () => {
     const seenByReader = questionListResponseSchema.parse(await forReader.json());
     // Non-empty first, or "no restricted Question here" would be true of nothing.
     expect(seenByReviewer.questions.length).toBeGreaterThan(0);
-    expect(seenByReviewer.questions.every((question) => question.clientId === null)).toBe(true);
-    expect(seenByReader.questions.some((question) => question.clientId !== null)).toBe(true);
+    expect(
+      seenByReviewer.questions.every((question) => question.clientId !== restrictedTo.id),
+    ).toBe(true);
+    expect(seenByReader.questions.some((question) => question.clientId === restrictedTo.id)).toBe(
+      true,
+    );
   });
 
   it("returns the Questions a keyword and a Category filter both match", async () => {

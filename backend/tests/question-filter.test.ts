@@ -1,5 +1,6 @@
 import type { Viewer } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { seedClient } from "../src/features/clients/clients.seed.js";
 import {
   findVisibleQuestions,
   type QuestionQuery,
@@ -80,12 +81,18 @@ describe("filtering the bank by Category", () => {
 
   it("keeps a Client-restricted Question out of a page for a Viewer holding no Grant", async () => {
     const query = queryForEveryMatch([{ category: "technology", tagIds: technology }]);
+    // The bulk bank restricts to this Client, and the Reviewer holds no Grant for it.
+    // Not "no Client at all": the Reviewer does hold a Grant for the other seeded one.
+    const restrictedTo = await database.client.findUniqueOrThrow({
+      where: { name: seedClient.name },
+      select: { id: true },
+    });
 
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
     const seenByReader = await findVisibleQuestions(database, reader, query);
 
-    expect(seenByReviewer.every((question) => question.clientId === null)).toBe(true);
-    expect(seenByReader.some((question) => question.clientId !== null)).toBe(true);
+    expect(seenByReviewer.every((question) => question.clientId !== restrictedTo.id)).toBe(true);
+    expect(seenByReader.some((question) => question.clientId === restrictedTo.id)).toBe(true);
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {

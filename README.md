@@ -89,8 +89,8 @@ curl -s -b jar -X POST -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/
 
 ## A bank big enough to time a query against
 
-`pnpm db:seed` writes five Questions. That is enough to read and not enough to time a
-query against, so `pnpm db:seed:bulk` writes a big bank beside them:
+`pnpm db:seed` writes seven Questions across two Clients. That is enough to read and not
+enough to time a query against, so `pnpm db:seed:bulk` writes a big bank beside them:
 
 ```sh
 pnpm db:seed:bulk            # 10,000 Questions
@@ -99,7 +99,7 @@ pnpm db:seed:bulk 10000 mine # ...from a seed value of your own
 ```
 
 Everything about the bank comes from that seed value rather than from chance: which Tags
-a Question carries, whether it is restricted to the Client, its Publication State, when
+a Question carries, whether it is restricted to the first Client, its Publication State, when
 it was created. So the same value writes the same bank every time, and you can compare
 one timing against another. Ask for fewer Questions and you get part of that same bank,
 not a squeezed copy of it.
