@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   capturePlan,
   readPlan,
-  refreshStatistics,
   scenariosForTheBank,
+  vacuumAndAnalyze,
 } from "../src/features/questions/query-plans.js";
 import { seedBulkBank } from "../src/features/questions/bulk-bank.seed.js";
 import type { Database } from "../src/platform/database.js";
@@ -65,7 +65,7 @@ describe("capturing a plan", () => {
     // Far smaller than a bank worth drawing a conclusion from. This asks whether the
     // harness runs and reads its own output, not how fast anything is.
     await seedBulkBank(database, { count: 400, seed: "a-test-of-the-plan-harness" });
-    await refreshStatistics(database);
+    await vacuumAndAnalyze(database);
   });
   afterAll(async () => {
     await database.$disconnect();

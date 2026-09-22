@@ -5,8 +5,8 @@ import { loadEnvFile, readEnv } from "../platform/env.js";
 import { createDatabase } from "../platform/database.js";
 import {
   capturePlan,
-  refreshStatistics,
   scenariosForTheBank,
+  vacuumAndAnalyze,
   type CapturedPlan,
 } from "../features/questions/query-plans.js";
 
@@ -72,7 +72,7 @@ try {
     );
   }
 
-  await refreshStatistics(database);
+  await vacuumAndAnalyze(database);
   const scenarios = await scenariosForTheBank(database);
 
   const captured: CapturedPlan[] = [];

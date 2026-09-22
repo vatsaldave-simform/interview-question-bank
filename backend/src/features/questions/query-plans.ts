@@ -31,13 +31,19 @@ export type CapturedPlan = {
 };
 
 /**
- * The planner decides from table statistics, and writing ten thousand Questions does not
- * update them. Measured before this runs, every plan is a plan for a table the database
- * still thinks is nearly empty.
+ * Two things the bulk seed leaves undone, and a plan measured without either is not
+ * reproducible.
+ *
+ * ANALYZE, because the planner decides from table statistics and writing ten thousand
+ * Questions does not update them. VACUUM, because a freshly written table has no
+ * visibility map, so an index scan has to visit the heap for every row it finds: the
+ * combined query measured 9,632 pages on a fresh load and 1,081 once autovacuum had
+ * caught up. Waiting for autovacuum instead would make the evidence depend on how long
+ * someone happened to take between seeding and measuring.
  */
-export async function refreshStatistics(database: Database): Promise<void> {
+export async function vacuumAndAnalyze(database: Database): Promise<void> {
   await database.$executeRawUnsafe(
-    "ANALYZE questions, question_tags, tags, categories, permission_grants",
+    "VACUUM (ANALYZE) questions, question_tags, tags, categories, permission_grants",
   );
 }
 
