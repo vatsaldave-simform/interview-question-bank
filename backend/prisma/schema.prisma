@@ -34,6 +34,7 @@ model Viewer {
   refreshTokens    RefreshToken[]
   permissionGrants PermissionGrant[]
   questions        Question[]
+  changeEvents     ChangeEvent[]
 
   @@map("viewers")
 }
@@ -162,7 +163,8 @@ model Question {
   createdAt        DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
 
-  tags QuestionTag[]
+  tags         QuestionTag[]
+  changeEvents ChangeEvent[]
 
   // What makes the keyword search an index lookup rather than a scan (ADR-0004).
   @@index([searchVector], type: Gin)
@@ -186,4 +188,37 @@ model QuestionTag {
   // on a selective filter (ADR-0011).
   @@index([tagId, questionId])
   @@map("question_tags")
+}
+
+/// What happened to the bank. Two values, because two things write an event so far; the
+/// tickets that Publish, Reject and refuse a Near-Duplicate add their own (ADR-0006).
+enum ChangeEventType {
+  question_added
+  question_edited
+}
+
+/// An append-only record of something that happened to the bank, naming who did it and
+/// when. Nothing here is ever updated or deleted, and a trigger in the migration is what
+/// holds to that rather than everyone remembering to (ADR-0027).
+model ChangeEvent {
+  id         String          @id @default(uuid()) @db.Uuid
+  /// Null for an event about a submission that stored no Question, which is the whole
+  /// reason this is a log and not a version of the questions table (ADR-0006).
+  questionId String?         @db.Uuid
+  // Restrict, against Prisma's SET NULL default for an optional relation: a deleted
+  // Question would otherwise quietly cut its own history loose (ADR-0017).
+  question   Question?       @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  /// The Viewer who did it. They keep their name here after they are Deactivated
+  /// (ADR-0017), which is why nothing about this row cascades.
+  viewerId   String          @db.Uuid
+  viewer     Viewer          @relation(fields: [viewerId], references: [id])
+  type       ChangeEventType
+  /// What happened, in the shape the type names: the whole content of an addition, or
+  /// before and after for each field an edit changed.
+  payload    Json
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+
+  // The history of one Question in order, which is the only way this table is read.
+  @@index([questionId, createdAt])
+  @@map("change_events")
 }

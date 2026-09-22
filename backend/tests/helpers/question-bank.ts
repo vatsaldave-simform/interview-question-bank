@@ -25,10 +25,15 @@ export async function seedTheBank(database: Database): Promise<void> {
  * Permission Grants alone. For a test that changes a Question and wants the next one to
  * start from the seeded bank: truncating everything would change the Viewer ids too, and
  * every access token already handed out would stop naming anybody.
+ *
+ * Truncated rather than deleted, because a Change Event cannot be deleted and neither can
+ * a Question one names. No row trigger fires on a truncate, which is what leaves the test
+ * database clearable (ADR-0027).
  */
 export async function resetTheQuestions(database: Database): Promise<void> {
-  await database.questionTag.deleteMany();
-  await database.question.deleteMany();
+  await database.$executeRawUnsafe(
+    "TRUNCATE TABLE questions, question_tags, change_events CASCADE",
+  );
   await seedQuestionBank(database);
 }
 
