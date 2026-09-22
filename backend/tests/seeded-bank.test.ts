@@ -67,12 +67,14 @@ describe("the seed", () => {
   // The pair the guarantee is proved with: a Viewer holding one of them holds neither
   // the other nor nothing at all, so a search can cross the two Clients.
   it("gives the two Clients no Viewer in common and leaves neither unheld", async () => {
-    const holders = new Map(
-      seedClients.map((seeded) => [seeded.name, new Set(seeded.grantedTo)] as const),
-    );
+    const grants = await database.permissionGrant.findMany({
+      include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
+    });
+    const holdersOf = (name: string) =>
+      new Set(grants.filter((grant) => grant.client.name === name).map((g) => g.viewer.email));
 
-    const first = holders.get(seedClient.name)!;
-    const second = holders.get(seedOtherClient.name)!;
+    const first = holdersOf(seedClient.name);
+    const second = holdersOf(seedOtherClient.name);
     expect(first.size).toBeGreaterThan(0);
     expect(second.size).toBeGreaterThan(0);
     expect([...first].filter((email) => second.has(email))).toEqual([]);

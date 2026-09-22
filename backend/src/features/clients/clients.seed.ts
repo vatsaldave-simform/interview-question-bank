@@ -8,21 +8,17 @@ export type SeedClient = {
 };
 
 /**
- * The Client most of the seeded bank hangs from, and — just as deliberately — the
- * Reviewer is left without a Grant for it, which is the case that proves review is not a
- * visibility bypass (ADR-0013). A Grant is a separate fact from a role, so the Reader
- * holding one is not an oversight either.
+ * The Client most of the seeded bank hangs from. The Reviewer is deliberately left
+ * without a Grant for it, which is the case that proves review is not a visibility
+ * bypass (ADR-0013); the Reader holding one shows a Grant is not a role.
  */
 export const seedClient: SeedClient = {
   name: "Northwind Trading",
   grantedTo: [seedViewerByRole("author").email, seedViewerByRole("reader").email],
 };
 
-/**
- * A second Client sharing nothing with the first, held by the one Viewer the first is
- * kept from. No Viewer holds both, so each Client has someone on either side of it and a
- * single search can cross the two.
- */
+/** A second Client, held by the one Viewer the first is kept from: no Viewer holds both,
+ * so each Client has someone on either side of it. */
 export const seedOtherClient: SeedClient = {
   name: "Kingsbridge Health",
   grantedTo: [seedViewerByRole("reviewer").email],

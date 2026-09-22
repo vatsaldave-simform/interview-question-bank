@@ -7,6 +7,7 @@ import {
 } from "../src/features/questions/questions.repository.js";
 import type { Database } from "../src/platform/database.js";
 import {
+  clientIdNamed,
   commonestTags,
   sameAnswerInJavaScript,
   seedTheBulkBank,
@@ -83,16 +84,13 @@ describe("filtering the bank by Category", () => {
     const query = queryForEveryMatch([{ category: "technology", tagIds: technology }]);
     // The bulk bank restricts to this Client, and the Reviewer holds no Grant for it.
     // Not "no Client at all": the Reviewer does hold a Grant for the other seeded one.
-    const restrictedTo = await database.client.findUniqueOrThrow({
-      where: { name: seedClient.name },
-      select: { id: true },
-    });
+    const restrictedTo = await clientIdNamed(database, seedClient.name);
 
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
     const seenByReader = await findVisibleQuestions(database, reader, query);
 
-    expect(seenByReviewer.every((question) => question.clientId !== restrictedTo.id)).toBe(true);
-    expect(seenByReader.some((question) => question.clientId === restrictedTo.id)).toBe(true);
+    expect(seenByReviewer.every((question) => question.clientId !== restrictedTo)).toBe(true);
+    expect(seenByReader.some((question) => question.clientId === restrictedTo)).toBe(true);
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {

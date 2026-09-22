@@ -4,6 +4,7 @@ import { hashPassword } from "../src/features/auth/password.js";
 import { seedClient } from "../src/features/clients/clients.seed.js";
 import { logIn, seededViewer } from "./helpers/auth.js";
 import {
+  clientIdNamed,
   getQuestions,
   inBothClientsQuestions,
   inEveryBulkQuestion,
@@ -95,8 +96,15 @@ describe("a restricted Question and a Question that is not there", () => {
       noGrantToken,
     );
     const nothing = await getQuestions(api, { keywords: inNoQuestionAtAll }, noGrantToken);
+    const holder = await getQuestions(
+      api,
+      { keywords: inTheOtherClientsQuestionsOnly },
+      reviewerToken,
+    );
 
-    expect(await statusAndBody(restricted)).toBe(await statusAndBody(nothing));
+    const zeroMatch = await statusAndBody(nothing);
+    expect(await statusAndBody(restricted)).toBe(zeroMatch);
+    expect(await statusAndBody(holder)).not.toBe(zeroMatch);
   });
 
   it("finds that same keyword's Question for the Viewer who does hold the Grant", async () => {
@@ -133,8 +141,11 @@ describe("a restricted Question and a Question that is not there", () => {
   it("answers a Viewer holding no Grant nothing for that same term", async () => {
     const both = await getQuestions(api, { keywords: inBothClientsQuestions }, noGrantToken);
     const nothing = await getQuestions(api, { keywords: inNoQuestionAtAll }, noGrantToken);
+    const holder = await getQuestions(api, { keywords: inBothClientsQuestions }, readerToken);
 
-    expect(await statusAndBody(both)).toBe(await statusAndBody(nothing));
+    const zeroMatch = await statusAndBody(nothing);
+    expect(await statusAndBody(both)).toBe(zeroMatch);
+    expect(await statusAndBody(holder)).not.toBe(zeroMatch);
   });
 
   it("answers a Category filter matching only another Client's Questions as one matching nothing", async () => {
@@ -198,11 +209,7 @@ describe("what a response says about the Questions it left out", () => {
     await seedTheBulkBank(api.database, bulk);
     readerToken = await logIn(api, seededViewer("reader"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
-    const client = await api.database.client.findUniqueOrThrow({
-      where: { name: seedClient.name },
-      select: { id: true },
-    });
-    restrictedTo = client.id;
+    restrictedTo = await clientIdNamed(api.database, seedClient.name);
   });
   afterAll(async () => {
     await api.stop();
@@ -268,20 +275,37 @@ describe("what a response says about the Questions it left out", () => {
     expect(forReader.questions.some((question) => question.clientId === restrictedTo)).toBe(true);
   });
 
-  it("reads the questions table once, and that one read names the Permission Grants", async () => {
+  it("reads the questions table once per request, and that read names the Permission Grants", async () => {
+    const hidden = await api.database.question.findFirstOrThrow({
+      where: { clientId: restrictedTo },
+      select: { id: true },
+    });
+
     const searched = await statementsDuring(() =>
       getQuestions(api, { keywords: inEveryBulkQuestion, limit: 25 }, reviewerToken),
     );
     const filtered = await statementsDuring(() =>
       getQuestions(api, { technology: "typescript", limit: 25 }, reviewerToken),
     );
+    // The single fetch is a third way to the questions table, and "no code path" means
+    // this one too.
+    const fetched = await statementsDuring(() =>
+      api.request(`/api/questions/${hidden.id}`, {
+        headers: { authorization: `Bearer ${reviewerToken}` },
+      }),
+    );
 
-    for (const asked of [searched, filtered]) {
+    for (const asked of [searched, filtered, fetched]) {
       // One statement reads Questions and it is the one carrying the check. A second
       // one is what fetching restricted rows and discarding them would look like.
       const readingQuestions = asked.filter((sql) => /\bquestions\b/.test(sql));
       expect(readingQuestions).toHaveLength(1);
       expect(readingQuestions[0]).toContain("permission_grants");
+    }
+    // The page is cut in that same statement, so the check runs before the rows are
+    // counted out rather than on whatever came back.
+    for (const asked of [searched, filtered]) {
+      expect(asked.find((sql) => /\bquestions\b/.test(sql))).toMatch(/LIMIT/i);
     }
   });
 });

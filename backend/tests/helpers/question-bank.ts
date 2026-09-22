@@ -115,6 +115,13 @@ export async function sameAnswerInJavaScript(
     .map((question) => question.id);
 }
 
+/** The id of a seeded Client, which only the database knows: the seed names Clients but
+ * the rows carry the ids. */
+export async function clientIdNamed(database: Database, name: string): Promise<string> {
+  const client = await database.client.findUniqueOrThrow({ where: { name }, select: { id: true } });
+  return client.id;
+}
+
 /** The seeded Viewer of a role, in the shape the shared query function wants. */
 export function viewerByRole(database: Database, role: ViewerRole): Promise<Viewer> {
   return database.viewer.findUniqueOrThrow({

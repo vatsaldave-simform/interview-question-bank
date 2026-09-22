@@ -8,6 +8,7 @@ import type { Database } from "../src/platform/database.js";
 import {
   commonestTags,
   inEveryBulkQuestion,
+  inNoQuestionAtAll,
   inOneAnswerNoteOnly,
   seedTheBank,
   seedTheBulkBank,
@@ -87,7 +88,7 @@ describe("searching the bank by keyword", () => {
   });
 
   it("finds nothing rather than everything when no Question holds the keyword", async () => {
-    expect(await search(reader, "kubernetes")).toEqual([]);
+    expect(await search(reader, inNoQuestionAtAll)).toEqual([]);
   });
 });
 
