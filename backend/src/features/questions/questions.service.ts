@@ -2,20 +2,24 @@ import {
   categoryNames,
   type AddQuestionRequest,
   type CategoryName,
+  type EditQuestionRequest,
   type ListQuestionsRequest,
   type QuestionTag,
   type Viewer,
 } from "@iqb/shared";
 import {
   findTagsNamed,
+  findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
   searchVisibleQuestions,
+  updateVisibleQuestion,
   type QuestionFromDb,
   type TagsInCategory,
 } from "./questions.repository.js";
+import { mayEdit } from "./may-edit.js";
 import type { Database } from "../../platform/database.js";
-import { InvalidRequestError } from "../../platform/errors.js";
+import { ForbiddenError, InvalidRequestError, NotFoundError } from "../../platform/errors.js";
 
 /** The spelling both sides of the lookup agree on. */
 const tagKey = (category: string, tag: string): string => `${category}/${tag}`;
@@ -87,14 +91,22 @@ export async function listQuestions(
   return searchVisibleQuestions(database, viewer, { ...page, keywords: request.keywords });
 }
 
+/** The named Tags as ids, in the order they were named. */
+async function tagIdsNamed(
+  database: Database,
+  tags: readonly QuestionTag[],
+): Promise<string[]> {
+  const found = await lookUpTagIds(database, tags);
+  return tags.map((tag) => idOf(found, tag));
+}
+
 /** Named Tags become ids; everything else the repository already knows how to do. */
 export async function addQuestion(
   database: Database,
   viewer: Viewer,
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
-  const found = await lookUpTagIds(database, request.tags);
-  const tagIds = request.tags.map((tag) => idOf(found, tag));
+  const tagIds = await tagIdsNamed(database, request.tags);
   return insertQuestion(database, viewer, {
     text: request.text,
     answerNotes: request.answerNotes,
@@ -102,4 +114,32 @@ export async function addQuestion(
     ...(request.source === undefined ? {} : { source: request.source }),
     tagIds,
   });
+}
+
+/**
+ * The order here is the rule. The Question is looked up through the same function every
+ * read goes through, so an id that is not Visible is answered as one that names nothing;
+ * only then does the role rule run, and only then is its 403 honest (ADR-0002).
+ */
+export async function editQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  request: EditQuestionRequest,
+): Promise<QuestionFromDb> {
+  const question = await findVisibleQuestionById(database, viewer, id);
+  if (question === null) throw new NotFoundError();
+  if (!mayEdit(viewer, question)) throw new ForbiddenError();
+
+  const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
+
+  const edited = await updateVisibleQuestion(database, viewer, id, {
+    ...(request.text === undefined ? {} : { text: request.text }),
+    ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
+    ...(tagIds === undefined ? {} : { tagIds }),
+  });
+  // A Permission Grant can be revoked between the look-up and the write, and a write
+  // that no longer reaches the Question answers as a missing one rather than raising.
+  if (edited === null) throw new NotFoundError();
+  return edited;
 }

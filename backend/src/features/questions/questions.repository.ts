@@ -208,6 +208,12 @@ export type NewQuestion = {
   tagIds: readonly string[];
 };
 
+/** Naming a Tag twice means what naming it once means, and the join's primary key would
+ * otherwise refuse the write. */
+function distinctTagIds(tagIds: readonly string[]): string[] {
+  return [...new Set(tagIds)];
+}
+
 /** The Author is the adding Viewer, never anything the request names. */
 export async function insertQuestion(
   database: Database,
@@ -221,13 +227,59 @@ export async function insertQuestion(
       authorId: viewer.id,
       provenance: question.provenance,
       ...(question.source === undefined ? {} : { source: question.source }),
-      // Deduplicated: naming a Tag twice means what naming it once means, and the
-      // join's primary key would otherwise refuse the write.
-      tags: { create: [...new Set(question.tagIds)].map((tagId) => ({ tagId })) },
+      tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
     },
     select: questionFieldsToRead,
   });
   return toQuestionFromDb(stored);
+}
+
+/** What an edit changes. A part left out stays as it is; `tagIds`, when named, replaces
+ * every Tag the Question carried. */
+export type QuestionEdit = {
+  text?: string;
+  answerNotes?: string;
+  tagIds?: readonly string[];
+};
+
+/**
+ * Null for a Question that is not Visible and one that does not exist alike, exactly as
+ * the fetch answers (ADR-0002). The write is built on the same `visibleQuestions` as the
+ * reads, so a caller does not become the second way to the questions table (ADR-0003).
+ */
+export async function updateVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  edit: QuestionEdit,
+): Promise<QuestionFromDb | null> {
+  return database.$transaction(async (transaction) => {
+    const visible: Prisma.QuestionWhereInput = { AND: [{ id }, visibleQuestions(viewer)] };
+
+    const { count } = await transaction.question.updateMany({
+      where: visible,
+      data: {
+        ...(edit.text === undefined ? {} : { text: edit.text }),
+        ...(edit.answerNotes === undefined ? {} : { answerNotes: edit.answerNotes }),
+      },
+    });
+    if (count === 0) return null;
+
+    if (edit.tagIds !== undefined) {
+      // Named by id alone, which is safe only below the return above: that is where this
+      // Question was established to be Visible to this Viewer.
+      await transaction.questionTag.deleteMany({ where: { questionId: id } });
+      await transaction.questionTag.createMany({
+        data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
+      });
+    }
+
+    const updated = await transaction.question.findFirst({
+      where: visible,
+      select: questionFieldsToRead,
+    });
+    return updated === null ? null : toQuestionFromDb(updated);
+  });
 }
 
 /** The Tag rows a request names, however few of them turn out to exist. */
