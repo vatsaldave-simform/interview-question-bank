@@ -3,10 +3,17 @@ import {
   type CategoryName,
   type Provenance,
   type PublicationState,
+  type QuestionEdited,
   type QuestionTag,
   type Viewer,
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.js";
+import {
+  changeEventFieldsToRead,
+  insertChangeEvent,
+  toChangeEventFromDb,
+  type ChangeEventFromDb,
+} from "../change-events/change-events.repository.js";
 import type { Database } from "../../platform/database.js";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
@@ -86,6 +93,32 @@ export async function findVisibleQuestionById(
     select: questionFieldsToRead,
   });
   return question === null ? null : toQuestionFromDb(question);
+}
+
+/**
+ * The history of a Question, oldest first. Null for a Question that is not Visible and
+ * one that does not exist alike (ADR-0002); an empty list would not do, because that is
+ * what a Question nobody has touched yet has.
+ */
+export async function findEventsAboutVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+): Promise<ChangeEventFromDb[] | null> {
+  // The events hang off the same condition as every other read, so there is no way to
+  // reach the log for an id nobody checked (ADR-0003).
+  const question = await database.question.findFirst({
+    where: { AND: [{ id }, visibleQuestions(viewer)] },
+    select: {
+      changeEvents: {
+        // The time comes from the process that wrote the event, so two events can share
+        // one; the id settles that, and the order is at least the same every read.
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: changeEventFieldsToRead,
+      },
+    },
+  });
+  return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
 }
 
 /** The Tag ids to filter by within one Category. Only the grouping reaches the query;
@@ -214,24 +247,41 @@ function distinctTagIds(tagIds: readonly string[]): string[] {
   return [...new Set(tagIds)];
 }
 
-/** The Author is the adding Viewer, never anything the request names. */
+/** The Author is the adding Viewer, never anything the request names. Its Change Event
+ * is written in the same transaction, so an added Question always carries its trace. */
 export async function insertQuestion(
   database: Database,
   viewer: Viewer,
   question: NewQuestion,
 ): Promise<QuestionFromDb> {
-  const stored = await database.question.create({
-    data: {
-      text: question.text,
-      answerNotes: question.answerNotes,
-      authorId: viewer.id,
-      provenance: question.provenance,
-      ...(question.source === undefined ? {} : { source: question.source }),
-      tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
-    },
-    select: questionFieldsToRead,
+  return database.$transaction(async (transaction) => {
+    const stored = await transaction.question.create({
+      data: {
+        text: question.text,
+        answerNotes: question.answerNotes,
+        authorId: viewer.id,
+        provenance: question.provenance,
+        ...(question.source === undefined ? {} : { source: question.source }),
+        tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
+      },
+      select: questionFieldsToRead,
+    });
+
+    const added = toQuestionFromDb(stored);
+    await insertChangeEvent(transaction, {
+      type: "question_added",
+      questionId: added.id,
+      viewerId: viewer.id,
+      payload: {
+        text: added.text,
+        answerNotes: added.answerNotes,
+        provenance: added.provenance,
+        source: added.source,
+        tags: added.tags,
+      },
+    });
+    return added;
   });
-  return toQuestionFromDb(stored);
 }
 
 /** What an edit changes. A part left out stays as it is; `tagIds`, when named, replaces
@@ -241,6 +291,27 @@ export type QuestionEdit = {
   answerNotes?: string;
   tagIds?: readonly string[];
 };
+
+/** The Tags of a Question as one string, so two sets of them can be compared whatever
+ * order the database handed them back in. */
+function tagsAsText(tags: readonly QuestionTag[]): string {
+  return JSON.stringify([...tags].map(({ category, tag }) => `${category}/${tag}`).sort());
+}
+
+/** Null when the edit changed nothing: a request may name a field and give it the value
+ * already there, and a Change Event saying so would describe a change nobody made. */
+function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdited | null {
+  const changed: QuestionEdited = {
+    ...(before.text === after.text ? {} : { text: { before: before.text, after: after.text } }),
+    ...(before.answerNotes === after.answerNotes
+      ? {}
+      : { answerNotes: { before: before.answerNotes, after: after.answerNotes } }),
+    ...(tagsAsText(before.tags) === tagsAsText(after.tags)
+      ? {}
+      : { tags: { before: before.tags, after: after.tags } }),
+  };
+  return Object.keys(changed).length === 0 ? null : changed;
+}
 
 /**
  * Null for a Question that is not Visible and one that does not exist alike, exactly as
@@ -255,6 +326,13 @@ export async function updateVisibleQuestion(
 ): Promise<QuestionFromDb | null> {
   return database.$transaction(async (transaction) => {
     const visible: Prisma.QuestionWhereInput = { AND: [{ id }, visibleQuestions(viewer)] };
+
+    // Read before the write, because the event carries what each changed field was.
+    const before = await transaction.question.findFirst({
+      where: visible,
+      select: questionFieldsToRead,
+    });
+    if (before === null) return null;
 
     const { count } = await transaction.question.updateMany({
       where: visible,
@@ -274,11 +352,25 @@ export async function updateVisibleQuestion(
       });
     }
 
-    const updated = await transaction.question.findFirst({
-      where: visible,
+    // Read by id, not by `visible` again. A Permission Grant revoked since the write
+    // would make that second read find nothing, and the edit is already committed by
+    // then: the Change Event would be the thing lost.
+    const updated = await transaction.question.findUniqueOrThrow({
+      where: { id },
       select: questionFieldsToRead,
     });
-    return updated === null ? null : toQuestionFromDb(updated);
+
+    const after = toQuestionFromDb(updated);
+    const changed = whatChanged(toQuestionFromDb(before), after);
+    if (changed !== null) {
+      await insertChangeEvent(transaction, {
+        type: "question_edited",
+        questionId: id,
+        viewerId: viewer.id,
+        payload: changed,
+      });
+    }
+    return after;
   });
 }
 

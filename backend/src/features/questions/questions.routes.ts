@@ -2,7 +2,9 @@ import {
   addQuestionRequestSchema,
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
+  type ChangeEvent,
   type Question,
+  type QuestionHistoryResponse,
   type QuestionListResponse,
   type QuestionResponse,
 } from "@iqb/shared";
@@ -12,9 +14,11 @@ import { authenticatedViewer } from "../auth/authenticated-viewer.js";
 import { requireRole } from "../auth/require-role.middleware.js";
 import { addQuestion, editQuestion, listQuestions } from "./questions.service.js";
 import {
+  findEventsAboutVisibleQuestion,
   findVisibleQuestionById,
   type QuestionFromDb,
 } from "./questions.repository.js";
+import type { ChangeEventFromDb } from "../change-events/change-events.repository.js";
 import { NotFoundError } from "../../platform/errors.js";
 import type { Database } from "../../platform/database.js";
 
@@ -31,6 +35,12 @@ function questionIdNamed(req: Request): string {
 /** The Question as the API answers with it: only the timestamp needs changing. */
 function toResponse(question: QuestionFromDb): Question {
   return { ...question, createdAt: question.createdAt.toISOString() };
+}
+
+/** The Change Event as the API answers with it. The time is called what it is here: the
+ * event is when something happened, not when a row was created. */
+function toEventResponse({ createdAt, ...event }: ChangeEventFromDb): ChangeEvent {
+  return { ...event, at: createdAt.toISOString() };
 }
 
 export function questionRoutes(database: Database): Router {
@@ -67,6 +77,18 @@ export function questionRoutes(database: Database): Router {
     if (question === null) throw new NotFoundError();
 
     const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  // Any Viewer who can see the Question may read how it got there, so no `requireRole`:
+  // a Reader reads history like anybody else.
+  router.get("/:id/history", async (req, res) => {
+    const id = questionIdNamed(req);
+
+    const events = await findEventsAboutVisibleQuestion(database, authenticatedViewer(req), id);
+    if (events === null) throw new NotFoundError();
+
+    const body: QuestionHistoryResponse = { events: events.map(toEventResponse) };
     res.json(body);
   });
 

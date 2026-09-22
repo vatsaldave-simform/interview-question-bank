@@ -1,4 +1,4 @@
-import type { CategoryName, Viewer, ViewerRole } from "@iqb/shared";
+import { questionResponseSchema, type CategoryName, type Viewer, type ViewerRole } from "@iqb/shared";
 import {
   seedBulkBank,
   type BulkBankOptions,
@@ -25,10 +25,15 @@ export async function seedTheBank(database: Database): Promise<void> {
  * Permission Grants alone. For a test that changes a Question and wants the next one to
  * start from the seeded bank: truncating everything would change the Viewer ids too, and
  * every access token already handed out would stop naming anybody.
+ *
+ * Truncated rather than deleted, because a Change Event cannot be deleted and neither can
+ * a Question one names. No row trigger fires on a truncate, which is what leaves the test
+ * database clearable (ADR-0027).
  */
 export async function resetTheQuestions(database: Database): Promise<void> {
-  await database.questionTag.deleteMany();
-  await database.question.deleteMany();
+  await database.$executeRawUnsafe(
+    "TRUNCATE TABLE questions, question_tags, change_events CASCADE",
+  );
   await seedQuestionBank(database);
 }
 
@@ -207,6 +212,19 @@ export function patchQuestion(
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
+}
+
+/** Adds a Question over HTTP and hands back its id, for a test whose subject is what
+ * happened rather than the adding. */
+export async function addAQuestion(
+  api: TestApi,
+  body: Record<string, unknown>,
+  token: string,
+): Promise<string> {
+  const response = await postQuestion(api, aQuestion(body), token);
+  if (response.status !== 201) throw new Error(`Adding a Question failed with ${response.status}.`);
+  const added = questionResponseSchema.parse(await response.json());
+  return added.question.id;
 }
 
 /** A Question good enough to be accepted, for a test varying one thing about it. */
