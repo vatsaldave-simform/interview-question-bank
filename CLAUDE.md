@@ -26,5 +26,6 @@ suffixes and a one-sentence comment rule. See `docs/agents/backend-structure.md`
 
 ### Delivery
 
-One ticket is several small PRs: one concern each, planned on the ticket and approved before code,
-merged sequentially to `main`. See `docs/agents/delivery.md`.
+One ticket is one branch and one PR, built as small commits: one concern each, planned on the
+ticket and approved before code. Commits and the PR each wait for approval, and neither names a
+tool or an assistant. See `docs/agents/delivery.md`.

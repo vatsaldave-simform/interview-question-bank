@@ -3,14 +3,15 @@
 Issue titles, branch names, commit messages and PR descriptions follow
 `docs/agents/plain-language.md` like everything else a person reads.
 
-How a ticket becomes code. One ticket is normally several pull requests, each small enough to
-review in one sitting.
+How a ticket becomes code. One ticket is one branch and one pull request, built as several small
+commits — one chunk each, every one small enough to review in one sitting.
 
-## One PR, one concern
+## One commit, one concern
 
-A pull request carries **one reviewable concern**: one question a reviewer holds in their head
-while reading it. "Is the data model right?" and "is the crypto right?" and "is the HTTP contract
-right?" are three concerns, not one, even when they land in the same feature.
+A commit carries **one reviewable concern**: one question a reviewer holds in their head while
+reading it. "Is the data model right?" and "is the crypto right?" and "is the HTTP contract
+right?" are three concerns, not one, even when they land in the same feature. A reviewer reads the
+PR commit by commit and meets them one at a time.
 
 There is no line cap. A concern that honestly needs 600 lines ships as 600 lines.
 
@@ -29,36 +30,56 @@ together or not at all.
    it contains, the estimated hand-written source lines, and what it deliberately leaves out.
 3. **Wait for the plan to be approved.** Do not start chunk 1 before then.
 
-Carving a branch into PRs after the code exists does not work — by then everything touches
-everything. That is where 1600-line branches come from.
+Carving the work into chunks after the code exists does not work — by then everything touches
+everything. That is where 1600-line branches come from. The plan is what keeps the commits
+separable, so it is still written and approved first even though they now share one branch.
 
-Each chunk PR references the plan: `chunk 2 of #<n>`.
+Each chunk commit references the plan: `chunk 2 of #<n>`.
 
-## One chunk at a time, sequential to `main`
+## One chunk at a time, in order
 
-Chunk N+1 branches off `main` **after chunk N is merged**, so review feedback lands before anything
-is built on top of it. Do not build the next chunk locally on top of an unmerged one; that is how a
-large working tree reappears under a new name.
+Write chunk N+1 on top of chunk N, committed, on the same branch. In order, because a later chunk
+usually builds on an earlier one and the commits have to read that way.
 
-Stacked PRs are for when a later chunk genuinely cannot wait on review of an earlier one. They are
-not the default — every rebase after a review comment cascades through the stack.
+Do not let the chunks blur into each other. Finish one, commit it, then start the next — a single
+commit holding two chunks cannot be un-mixed later, and that is the whole point of the split.
 
 ## What a chunk must clear
 
-- It merges, its tests pass, CI is green.
+- Its tests pass, and it stands on its own: a reviewer can check out that commit and typecheck it.
 - It does **not** need to ship user-visible behaviour. A tested primitive with no caller yet is
-  fine — demanding end-to-end value per chunk is exactly what forces fat PRs in a layered backend.
-- The ticket runs to completion. Do not leave a stack half-landed and move to another ticket.
+  fine — demanding end-to-end value per chunk is exactly what forces fat commits in a layered
+  backend.
+- The ticket runs to completion. Do not leave a branch half-built and move to another ticket.
 
-## Commits and PRs are the maintainer's to make
+## What the PR must clear
 
-Write the code and hand over the commit message. Do not run `git commit`, push, or open the PR.
-Commenting on issues with `gh issue comment` is fine.
+- It merges, the whole suite passes, CI is green.
+- Its description lists the chunks and what each one asks a reviewer, so the commit-by-commit
+  reading is obvious to whoever opens it.
+
+## Commits and PRs wait for approval
+
+Work on a branch, never on `main`. One branch per ticket, off `main`, named in plain words like
+the ones already here: `feat/question-list-http`.
+
+There are two approvals, and they are separate:
+
+1. **Commit** once the maintainer approves the work.
+2. **Open the PR** against `main` once they approve that too. Approving the code is not
+   approving the PR.
+
+So: branch, write the code, run the tests, then stop and ask. Commenting on issues with
+`gh issue comment` needs no approval.
+
+Commit messages and PR descriptions name no tool and no assistant — no `Co-Authored-By` line,
+no "generated with" footer. Who wrote a line is in the blame; what a reader needs from a commit
+message is why the line is there.
 
 ## Worked example
 
-PR #44 shipped login as 1287 lines across 45 files: schema, password hashing, token signing,
-middleware, routes and a seed script. Under this document it is three PRs:
+PR #44 shipped login as 1287 lines across 45 files in one commit: schema, password hashing, token
+signing, middleware, routes and a seed script. Under this document it is one PR of three commits:
 
 | Chunk | Contents | ~src lines |
 | --- | --- | --- |
