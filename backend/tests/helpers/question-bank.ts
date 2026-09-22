@@ -20,6 +20,18 @@ export async function seedTheBank(database: Database): Promise<void> {
   await seedQuestionBank(database);
 }
 
+/**
+ * The Questions back as the seed writes them, leaving the Viewers, the Clients and the
+ * Permission Grants alone. For a test that changes a Question and wants the next one to
+ * start from the seeded bank: truncating everything would change the Viewer ids too, and
+ * every access token already handed out would stop naming anybody.
+ */
+export async function resetTheQuestions(database: Database): Promise<void> {
+  await database.questionTag.deleteMany();
+  await database.question.deleteMany();
+  await seedQuestionBank(database);
+}
+
 /** The fixtures plus a bulk bank, for a test that needs more than five Questions. */
 export async function seedTheBulkBank(
   database: Database,
@@ -181,6 +193,20 @@ export function postQuestion(api: TestApi, body: unknown, token: string): Promis
 
 export function getQuestion(api: TestApi, id: string, token: string): Promise<Response> {
   return api.request(`/api/questions/${id}`, { headers: { authorization: `Bearer ${token}` } });
+}
+
+/** The edit request itself, for a test that wants to read the response it got. */
+export function patchQuestion(
+  api: TestApi,
+  id: string,
+  body: unknown,
+  token: string,
+): Promise<Response> {
+  return api.request(`/api/questions/${id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
 }
 
 /** A Question good enough to be accepted, for a test varying one thing about it. */

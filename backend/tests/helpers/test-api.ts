@@ -12,6 +12,12 @@ import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./tes
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
 
+/** Everything a caller gets to look at, in one string a test can compare. Two responses
+ * that have to be indistinguishable are held to each other through this. */
+export async function statusAndBody(response: Response): Promise<string> {
+  return `${response.status} ${await response.text()}`;
+}
+
 export type TestApi = {
   /** Issues a real HTTP request against the running API. */
   request: (path: string, init?: RequestInit) => Promise<Response>;

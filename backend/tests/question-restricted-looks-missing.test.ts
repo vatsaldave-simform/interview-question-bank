@@ -16,7 +16,7 @@ import {
   tagOnNoQuestionAtAll,
   tagOnTheOtherClientsQuestionsOnly,
 } from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.js";
 
 /**
  * A Viewer holding no Permission Grant at all. Every seeded Viewer holds one for one
@@ -63,11 +63,6 @@ describe("a restricted Question and a Question that is not there", () => {
   afterAll(async () => {
     await api.stop();
   });
-
-  /** Everything a caller gets to look at, in one string a test can compare. */
-  async function statusAndBody(response: Response): Promise<string> {
-    return `${response.status} ${await response.text()}`;
-  }
 
   it("answers a keyword matching only another Client's Questions as one matching nothing", async () => {
     const restricted = await getQuestions(

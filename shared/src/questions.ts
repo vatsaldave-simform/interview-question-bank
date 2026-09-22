@@ -67,6 +67,24 @@ export const addQuestionRequestSchema = z
   .strict();
 export type AddQuestionRequest = z.infer<typeof addQuestionRequestSchema>;
 
+/**
+ * What an edit names: the parts it leaves out stay as they are, and Tags are replaced
+ * whole. Strict, so an edit reaching for the Publication State or the Client is refused
+ * at the edge, because moving a Question between States and widening its restriction are
+ * a Reviewer's acts rather than edits (ADR-0013, ADR-0018).
+ */
+export const editQuestionRequestSchema = z
+  .object({
+    text: z.string().trim().min(1).optional(),
+    answerNotes: z.string().trim().min(1).optional(),
+    tags: z.array(questionTagSchema).optional(),
+  })
+  .strict()
+  .refine((request) => Object.values(request).some((named) => named !== undefined), {
+    message: "An edit names at least one of text, answerNotes or tags.",
+  });
+export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
+
 /** The page a request gets when it asks for no particular size. */
 export const defaultQuestionPageSize = 50;
 
