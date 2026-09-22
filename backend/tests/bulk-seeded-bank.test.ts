@@ -13,8 +13,8 @@ import { createTestDatabase } from "./helpers/test-database.js";
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
 const bulk: BulkBankOptions = { count: 600, seed: "a-test-of-the-bulk-bank" };
 
-/** The small seed writes five Questions of its own, which would answer several of the
- * assertions below on their own, so every one of them asks about these rows only. */
+/** The small seed writes a handful of Questions of its own, which would answer several
+ * of the assertions below on their own, so every one of them asks about these rows only. */
 const fromTheBulkBank = { id: { notIn: seedQuestions.map((question) => question.id) } };
 
 type BankRow = {

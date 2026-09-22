@@ -4,7 +4,7 @@ import { seedClient } from "../src/features/clients/clients.seed.js";
 import { findVisibleQuestionById } from "../src/features/questions/questions.repository.js";
 import { seedQuestions } from "../src/features/questions/questions.seed.js";
 import type { Database } from "../src/platform/database.js";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.js";
+import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.js";
 import { createTestDatabase } from "./helpers/test-database.js";
 
 /** The seeded Questions this file reasons about, by what makes each one interesting. */
@@ -150,13 +150,13 @@ describe("fetching a Question through the shared query function", () => {
   });
 
   it("hands that same Question to a Reviewer who does hold the Grant", async () => {
-    const client = await database.client.findUniqueOrThrow({ where: { name: seedClient.name } });
+    const clientId = await clientIdNamed(database, seedClient.name);
     const permitted = await database.viewer.create({
       data: {
         email: "permitted-reviewer@iqb.test",
         passwordHash: "not used by this test",
         role: "reviewer",
-        permissionGrants: { create: { clientId: client.id } },
+        permissionGrants: { create: { clientId } },
       },
       select: { id: true, email: true, role: true },
     });
