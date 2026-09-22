@@ -1,5 +1,6 @@
 import { questionResponseSchema, type CategoryName, type Viewer, type ViewerRole } from "@iqb/shared";
 import {
+  bankVocabulary,
   seedBulkBank,
   type BulkBankOptions,
 } from "../../src/features/questions/bulk-bank.seed.js";
@@ -163,9 +164,13 @@ export const seededQuestionIds = {
   aboutTheOtherClientsIntake: "a0000000-0000-4000-8000-000000000007",
 } as const;
 
-/** A word every bulk Question carries, so a search on it answers with a bank rather than
- * a handful of rows. */
-export const inEveryBulkQuestion = "approach";
+/** The word the most bulk Questions carry — about half of them — so a search on it
+ * answers with a large part of the bank rather than a handful of rows. No word is in
+ * every bulk Question: a bank like that cannot tell one query plan from another. */
+export const inMuchOfTheBulkBank = bankVocabulary[0];
+
+/** The word the next most carry, for a search that has to match two words at once. */
+export const alsoInMuchOfTheBulkBank = bankVocabulary[1];
 
 /** A word only one seeded Question holds, and only in its Answer Notes. */
 export const inOneAnswerNoteOnly = "merging";

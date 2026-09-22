@@ -14,7 +14,7 @@ import {
   clientIdNamed,
   commonestTags,
   getQuestions,
-  inEveryBulkQuestion,
+  inMuchOfTheBulkBank,
   inOneAnswerNoteOnly,
   sameAnswerInJavaScript,
   seedTheBulkBank,
@@ -204,7 +204,7 @@ describe("listing Questions over HTTP", () => {
       await (await getQuestions(api, filter, readerToken)).json(),
     );
     const keywordOnly = questionListResponseSchema.parse(
-      await (await getQuestions(api, { keywords: inEveryBulkQuestion }, readerToken)).json(),
+      await (await getQuestions(api, { keywords: inMuchOfTheBulkBank }, readerToken)).json(),
     );
     expect(filterOnly.questions.length).toBeGreaterThan(both.questions.length);
     expect(keywordOnly.questions.length).toBeGreaterThan(both.questions.length);
@@ -213,7 +213,7 @@ describe("listing Questions over HTTP", () => {
   it("refuses an unknown Tag even when the request also searches", async () => {
     const response = await getQuestions(
       api,
-      { keywords: inEveryBulkQuestion, technology: "no-such-tag" },
+      { keywords: inMuchOfTheBulkBank, technology: "no-such-tag" },
       readerToken,
     );
 
@@ -241,7 +241,7 @@ describe("listing Questions over HTTP", () => {
   });
 
   it("carries the page it used back to a caller that searched", async () => {
-    const response = await getQuestions(api, { keywords: inEveryBulkQuestion }, readerToken);
+    const response = await getQuestions(api, { keywords: inMuchOfTheBulkBank }, readerToken);
 
     const body = questionListResponseSchema.parse(await response.json());
     expect(body.limit).toBe(defaultQuestionPageSize);

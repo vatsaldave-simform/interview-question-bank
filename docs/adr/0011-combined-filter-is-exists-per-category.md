@@ -44,9 +44,11 @@ query whose `HAVING` has to be worked out again every time the filters change.
   last page of a 2,333-row result costs Shape A 20.3ms against 1.7ms for the first — a 12x penalty
   that erases the early-stop advantage. Keyset pagination would remove it but changes the API
   shape; at this size it is not worth paying for. This is where the limit-and-offset ceiling sits.
-- Composing keyword search (ADR-0004) on top of this shape is not covered by this measurement.
-  Adding `tsvector @@ websearch_to_tsquery` introduces a second index the planner must choose
-  between, and is measured separately under issue #12.
+- Composing keyword search (ADR-0004) on top of this shape was measured separately, under issue
+  #12, and needed no index of its own: **ADR-0029**. The planner picks which of the two indexes
+  drives the query from how selective each half is, which is this shape's per-selectivity
+  behaviour again. The search's limit-and-offset ceiling is not the one above, though — it cannot
+  stop early at all, so a deep page costs it 1.3x rather than 12x.
 
 Evidence, harness and full `EXPLAIN (ANALYZE, BUFFERS)` plans:
 `backend/prototypes/combined-filter-sql-shape/`, kept out of main on a throwaway branch.

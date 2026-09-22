@@ -199,16 +199,21 @@ export type QuestionSearch = QuestionQuery & { keywords: string };
 /** The row the search reads back; `tags` arrives as JSON built by the database. */
 type SearchRow = Omit<QuestionFromDb, "tags"> & { tags: { category: string; tag: string }[] };
 
-/** Keyword search across Question text and Answer Notes, matched against the stored
- * column rather than a vector worked out per row (ADR-0004). */
-export async function searchVisibleQuestions(
-  database: Database,
+/**
+ * The statement the search sends. Built here rather than where it is run, so the query
+ * plan committed as evidence is the plan of the statement that ships and cannot get out
+ * of sync with it (issue #12).
+ *
+ * Handing this out opens no second way to the questions table: both checks are built in,
+ * and there is no argument that removes them or adds a condition of its own (ADR-0003).
+ */
+export function searchStatement(
   viewer: Viewer,
   { keywords, tagsPerCategory, limit, offset }: QuestionSearch,
-): Promise<QuestionFromDb[]> {
+): Prisma.Sql {
   const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
 
-  const rows = await database.$queryRaw<SearchRow[]>`
+  return Prisma.sql`
     WITH matched AS (
       SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
         FROM questions q,
@@ -236,6 +241,16 @@ export async function searchVisibleQuestions(
       ) carried ON true
      ORDER BY matched.rank DESC, q.id DESC
   `;
+}
+
+/** Keyword search across Question text and Answer Notes, matched against the stored
+ * column rather than a vector worked out per row (ADR-0004). */
+export async function searchVisibleQuestions(
+  database: Database,
+  viewer: Viewer,
+  search: QuestionSearch,
+): Promise<QuestionFromDb[]> {
+  const rows = await database.$queryRaw<SearchRow[]>(searchStatement(viewer, search));
 
   return rows.map((row) => ({
     ...row,

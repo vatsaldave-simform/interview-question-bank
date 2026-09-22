@@ -7,7 +7,8 @@ import {
 import type { Database } from "../src/platform/database.js";
 import {
   commonestTags,
-  inEveryBulkQuestion,
+  alsoInMuchOfTheBulkBank,
+  inMuchOfTheBulkBank,
   inNoQuestionAtAll,
   inOneAnswerNoteOnly,
   seedTheBank,
@@ -125,7 +126,7 @@ describe("keyword search alongside a Category filter", () => {
     ];
 
     const both = await searchVisibleQuestions(database, reader, {
-      keywords: inEveryBulkQuestion,
+      keywords: inMuchOfTheBulkBank,
       tagsPerCategory,
       ...wholeAnswer,
     });
@@ -135,7 +136,7 @@ describe("keyword search alongside a Category filter", () => {
     const keywordOnly = new Set(
       idsOf(
         await searchVisibleQuestions(database, reader, {
-          keywords: inEveryBulkQuestion,
+          keywords: inMuchOfTheBulkBank,
           tagsPerCategory: [],
           ...wholeAnswer,
         }),
@@ -152,7 +153,7 @@ describe("keyword search alongside a Category filter", () => {
   });
 
   it("orders by relevance, with the Question id settling a tie", async () => {
-    const keywords = `${inEveryBulkQuestion} trade-off`;
+    const keywords = `${inMuchOfTheBulkBank} ${alsoInMuchOfTheBulkBank}`;
     const pageSize = 40;
 
     const found = await searchVisibleQuestions(database, reader, {
@@ -188,7 +189,7 @@ describe("keyword search alongside a Category filter", () => {
   });
 
   it("pages without repeating a Question or skipping one", async () => {
-    const query = { keywords: inEveryBulkQuestion, tagsPerCategory: [] };
+    const query = { keywords: inMuchOfTheBulkBank, tagsPerCategory: [] };
 
     const firstPage = await searchVisibleQuestions(database, reader, {
       ...query,
@@ -213,7 +214,7 @@ describe("keyword search alongside a Category filter", () => {
     sqlLog.statements.length = 0;
 
     await searchVisibleQuestions(database, reader, {
-      keywords: inEveryBulkQuestion,
+      keywords: inMuchOfTheBulkBank,
       tagsPerCategory: [
         { category: "technology", tagIds: technology },
         { category: "seniority", tagIds: seniority },

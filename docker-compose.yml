@@ -25,6 +25,24 @@ services:
       timeout: 3s
       retries: 15
 
+  # Creates the view the query timings are read from. The library is already preloaded
+  # by the db command above, but the view still has to be created once per database, and
+  # nothing was doing it. A service rather than an init script because an init script
+  # runs only when the volume is new, and a database someone already has would quietly
+  # never get it.
+  #
+  # Local only, and safe to run twice. The deployed bank suspends after five minutes and
+  # loses the counters, so it is measured by committed EXPLAIN ANALYZE output instead
+  # (ADR-0009, ADR-0012). db-test deliberately has neither: the suite empties it between
+  # tests, and counters over that say nothing.
+  query-stats:
+    image: postgres:16-alpine
+    command: ["psql", *database-url, "-c", "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   # The database the suite truncates. A separate service with storage in memory, so it
   # is fast, disposable, and cannot reach development data however wrong a URL goes.
   db-test:
