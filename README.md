@@ -303,6 +303,10 @@ sync between client and server. The client is a placeholder that reads the API's
 through those schemas; its shell arrives with the login ticket. Run it with `pnpm dev`,
 which serves it on port 5173 and proxies the API's paths through without rewriting them.
 
+How `frontend/src` is laid out is in [docs/agents/frontend-structure.md](docs/agents/frontend-structure.md)
+and ADR-0030. One rule belongs here too: `frontend/src/ui/shadcn/` is written by `shadcn add`, so
+anything changed there by hand is overwritten the next time a component is added.
+
 Application routes live under `/api`. `/health` and `/ready` deliberately do not: they
 answer the platform rather than the application, and the deployed health check asks for
 `/health` at the root. The dev server proxies all three, so a path means the same thing
