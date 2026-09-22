@@ -127,11 +127,16 @@ export function viewerByRole(database: Database, role: ViewerRole): Promise<View
 export const seededQuestionIds = {
   /** Published and unrestricted. Its Answer Notes are the only place "merging" appears. */
   aboutTypeScript: "a0000000-0000-4000-8000-000000000001",
-  /** Published, and restricted to the seeded Client: the Reader holds the Grant and the
+  /** Published, and restricted to the first Client: the Reader holds the Grant and the
    * Reviewer does not, which is the pair worth searching for. */
   aboutTheClientsPipeline: "a0000000-0000-4000-8000-000000000002",
   /** Pending and unrestricted, so a Reader may not reach it and a Reviewer may. */
   aboutDisagreeing: "a0000000-0000-4000-8000-000000000003",
+  /** Published, and restricted to the second Client, so the Reviewer holds the Grant and
+   * the Reader does not. The other way round from the pipeline one. */
+  aboutTheOtherClientsBooking: "a0000000-0000-4000-8000-000000000006",
+  /** Pending, and restricted to the second Client. */
+  aboutTheOtherClientsIntake: "a0000000-0000-4000-8000-000000000007",
 } as const;
 
 /** A word every bulk Question carries, so a search on it answers with a bank rather than
@@ -140,6 +145,20 @@ export const inEveryBulkQuestion = "approach";
 
 /** A word only one seeded Question holds, and only in its Answer Notes. */
 export const inOneAnswerNoteOnly = "merging";
+
+/** A word only the second Client's Questions hold. */
+export const inTheOtherClientsQuestionsOnly = "booking";
+
+/** A word one Published Question of each Client holds, and nothing in the open bank. */
+export const inBothClientsQuestions = "migrate";
+
+/** A word no Question in the bank holds, which is what a genuine zero-match is. */
+export const inNoQuestionAtAll = "kubernetes";
+
+/** A Tag carried only by the second Client's Questions, and one carried by no Question
+ * at all. A Category filter has to answer identically for the two. */
+export const tagOnTheOtherClientsQuestionsOnly = { category: "technology", tag: "python" } as const;
+export const tagOnNoQuestionAtAll = { category: "technology", tag: "javascript" } as const;
 
 /** A uuid that is well formed and names nothing, which is what "does not exist" means. */
 export const unknownQuestionId = "b0000000-0000-4000-8000-00000000ffff";
