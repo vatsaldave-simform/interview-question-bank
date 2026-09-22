@@ -42,3 +42,28 @@ export const questionEditedSchema = z
   })
   .strict();
 export type QuestionEdited = z.infer<typeof questionEditedSchema>;
+
+/** What every Change Event says, whatever happened: which Question, which Viewer, when. */
+const changeEventSchema = z.object({
+  id: z.uuid(),
+  /** Null for an event about a submission that stored no Question (ADR-0006). */
+  questionId: z.uuid().nullable(),
+  viewerId: z.uuid(),
+  at: z.iso.datetime(),
+});
+
+/**
+ * A Change Event as the API answers with one. The type and the payload are read together,
+ * so a caller that has looked at the type knows the shape of what it is holding.
+ */
+export const changeEventResponseSchema = z.discriminatedUnion("type", [
+  changeEventSchema.extend({ type: z.literal("question_added"), payload: questionAddedSchema }),
+  changeEventSchema.extend({ type: z.literal("question_edited"), payload: questionEditedSchema }),
+]);
+export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
+
+/** The history of one Question, oldest first, because a history is read forwards. */
+export const questionHistoryResponseSchema = z
+  .object({ events: z.array(changeEventResponseSchema) })
+  .strict();
+export type QuestionHistoryResponse = z.infer<typeof questionHistoryResponseSchema>;

@@ -1,4 +1,9 @@
-import type { QuestionAdded, QuestionEdited } from "@iqb/shared";
+import {
+  questionAddedSchema,
+  questionEditedSchema,
+  type QuestionAdded,
+  type QuestionEdited,
+} from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { Database } from "../../platform/database.js";
 
@@ -43,4 +48,46 @@ export async function insertChangeEvent(
       payload: event.payload,
     },
   });
+}
+
+/** What a read of the log asks for. Exported because the history is read through the
+ * same condition every Question read goes through, which lives next to them (ADR-0003). */
+export const changeEventFieldsToRead = {
+  id: true,
+  questionId: true,
+  viewerId: true,
+  type: true,
+  payload: true,
+  createdAt: true,
+} satisfies Prisma.ChangeEventSelect;
+
+type ChangeEventRow = Prisma.ChangeEventGetPayload<{ select: typeof changeEventFieldsToRead }>;
+
+/** A Change Event as the rest of the code sees one: its payload is the shape its type
+ * says, rather than whatever JSON happens to be in the column. */
+export type ChangeEventFromDb = {
+  id: string;
+  questionId: string | null;
+  viewerId: string;
+  createdAt: Date;
+} & (
+  | { type: "question_added"; payload: QuestionAdded }
+  | { type: "question_edited"; payload: QuestionEdited }
+);
+
+/** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
+ * does not match its type means the rows and the code are out of sync (ADR-0024). */
+export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
+  const happened = {
+    id: row.id,
+    questionId: row.questionId,
+    viewerId: row.viewerId,
+    createdAt: row.createdAt,
+  };
+  switch (row.type) {
+    case "question_added":
+      return { ...happened, type: row.type, payload: questionAddedSchema.parse(row.payload) };
+    case "question_edited":
+      return { ...happened, type: row.type, payload: questionEditedSchema.parse(row.payload) };
+  }
 }

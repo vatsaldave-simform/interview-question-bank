@@ -8,7 +8,12 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.js";
-import { insertChangeEvent } from "../change-events/change-events.repository.js";
+import {
+  changeEventFieldsToRead,
+  insertChangeEvent,
+  toChangeEventFromDb,
+  type ChangeEventFromDb,
+} from "../change-events/change-events.repository.js";
 import type { Database } from "../../platform/database.js";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
@@ -88,6 +93,30 @@ export async function findVisibleQuestionById(
     select: questionFieldsToRead,
   });
   return question === null ? null : toQuestionFromDb(question);
+}
+
+/**
+ * The history of a Question, oldest first, because a history is read forwards. Null for
+ * a Question that is not Visible and one that does not exist alike, exactly as the fetch
+ * answers (ADR-0002) — and null rather than an empty list, because a Question nobody has
+ * touched yet has no events either and the two must not answer differently.
+ *
+ * The events hang off the same `visibleQuestions` condition as every other read, in one
+ * statement, so there is no version of this that reads the log for an id nobody checked
+ * (ADR-0003).
+ */
+export async function findEventsAboutVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+): Promise<ChangeEventFromDb[] | null> {
+  const question = await database.question.findFirst({
+    where: { AND: [{ id }, visibleQuestions(viewer)] },
+    select: {
+      changeEvents: { orderBy: { createdAt: "asc" }, select: changeEventFieldsToRead },
+    },
+  });
+  return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
 }
 
 /** The Tag ids to filter by within one Category. Only the grouping reaches the query;
