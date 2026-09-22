@@ -1,8 +1,9 @@
-import { questionResponseSchema, type ChangeEventType } from "@iqb/shared";
+import type { ChangeEventType } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, seededViewer } from "./helpers/auth.js";
 import {
   aQuestion,
+  addAQuestion,
   patchQuestion,
   postQuestion,
   resetTheQuestions,
@@ -50,16 +51,13 @@ describe("the trace a change leaves", () => {
 
   const newText = "What would you change about the way this team reviews code?";
 
-  /** Adds a Question over HTTP and hands back its id. */
-  async function addAQuestion(body: Record<string, unknown> = {}): Promise<string> {
-    const response = await postQuestion(api, aQuestion(body), authorToken);
-    if (response.status !== 201) throw new Error(`Adding failed with ${response.status}.`);
-    return questionResponseSchema.parse(await response.json()).question.id;
-  }
+  /** Added by the Author, which every test here does before it looks at anything. */
+  const addOne = (body: Record<string, unknown> = {}): Promise<string> =>
+    addAQuestion(api, body, authorToken);
 
   it("records the whole content of a Question that was added", async () => {
     const before = new Date();
-    const id = await addAQuestion({
+    const id = await addOne({
       provenance: "adapted",
       source: "A book somebody read",
       tags: [{ category: "technology", tag: "react" }],
@@ -81,7 +79,7 @@ describe("the trace a change leaves", () => {
   });
 
   it("records an addition that named no Source or Tags as having named none", async () => {
-    const id = await addAQuestion();
+    const id = await addOne();
 
     const [added] = await eventsAbout(api, id);
 
@@ -89,7 +87,7 @@ describe("the trace a change leaves", () => {
   });
 
   it("records an edit as the changed fields only, before and after", async () => {
-    const id = await addAQuestion();
+    const id = await addOne();
 
     await patchQuestion(api, id, { text: newText }, authorToken);
 
@@ -103,7 +101,7 @@ describe("the trace a change leaves", () => {
   });
 
   it("gives adding then editing two events, with the Viewer who did each one", async () => {
-    const id = await addAQuestion();
+    const id = await addOne();
 
     await patchQuestion(api, id, { text: newText }, reviewerToken);
 
@@ -117,7 +115,7 @@ describe("the trace a change leaves", () => {
   });
 
   it("records the Tags a Question carried and the ones it carries now", async () => {
-    const id = await addAQuestion({ tags: [{ category: "technology", tag: "react" }] });
+    const id = await addOne({ tags: [{ category: "technology", tag: "react" }] });
     const tags = [{ category: "technology", tag: "node" }];
 
     await patchQuestion(api, id, { tags }, authorToken);
@@ -129,7 +127,7 @@ describe("the trace a change leaves", () => {
   });
 
   it("records nothing for an edit that names a field and leaves it as it was", async () => {
-    const id = await addAQuestion();
+    const id = await addOne();
 
     const response = await patchQuestion(api, id, { text: aQuestion()["text"] }, authorToken);
 
@@ -168,14 +166,36 @@ describe("the trace a change leaves", () => {
       expect(await eventsAbout(api, id)).toEqual([]);
     }
   });
+});
 
-  it("writes the event and the Question together, so neither can arrive without the other", async () => {
-    const id = await addAQuestion();
+/**
+ * That the Question and its Change Event are written together, read off the statements
+ * the API actually sent. Nothing else can show this: after a successful add both rows are
+ * there either way, and the difference only appears if the process dies between them.
+ */
+describe("the Question and its Change Event in one transaction", () => {
+  let api: TestApi;
+  let authorToken: string;
 
-    // A Question with no event would mean the event is written after the transaction
-    // commits, and a crash in between would lose it.
-    const questions = await api.database.question.count({ where: { id } });
-    expect(questions).toBe(1);
-    expect(await eventsAbout(api, id)).toHaveLength(1);
+  beforeAll(async () => {
+    api = await startTestApi({ recordSql: true });
+    await seedTheBank(api.database);
+    authorToken = await logIn(api, seededViewer("author"));
+  });
+  afterAll(async () => {
+    await api.stop();
+  });
+
+  it("sends both inserts with no commit in between", async () => {
+    await addAQuestion(api, {}, authorToken);
+
+    const sent = api
+      .statements()
+      .filter((statement) => /^(COMMIT|ROLLBACK)|INSERT INTO "public"\."(questions|change_events)"/.test(statement))
+      .map((statement) => (statement.startsWith("INSERT") ? statement.split('"')[3] : statement));
+
+    // The seed's own inserts come first, each committed on its own, so what matters is
+    // the end: the two inserts, then one commit covering the pair.
+    expect(sent.slice(-3)).toEqual(["questions", "change_events", "COMMIT"]);
   });
 });

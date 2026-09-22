@@ -7,19 +7,12 @@ import {
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { Database } from "../../platform/database.js";
 
-/**
- * The database, or the transaction a change is already running in. An event is written
- * beside the change it describes, so that neither can happen without the other.
- */
-export type WhereTheChangeIsBeingWritten = Database | Prisma.TransactionClient;
+/** The transaction the change itself is running in, so that an event and the change it
+ * describes cannot happen without each other. */
+export type DatabaseOrTransaction = Database | Prisma.TransactionClient;
 
-/**
- * An event about to be written. The type and the payload travel together, so an edit's
- * before-and-after cannot be filed as an addition.
- *
- * An addition names no Question when the submission stored none, which is the case
- * ADR-0006 exists for; an edit always has one to name.
- */
+/** The type and the payload travel together, so an edit's before and after cannot be
+ * filed as an addition, and only an addition may name no Question (ADR-0006). */
 export type NewChangeEvent =
   | {
       type: "question_added";
@@ -34,10 +27,8 @@ export type NewChangeEvent =
       payload: QuestionEdited;
     };
 
-/** The time is the database's, not this process's, so events from two machines still
- * sort against each other. */
 export async function insertChangeEvent(
-  database: WhereTheChangeIsBeingWritten,
+  database: DatabaseOrTransaction,
   event: NewChangeEvent,
 ): Promise<void> {
   await database.changeEvent.create({
@@ -50,8 +41,8 @@ export async function insertChangeEvent(
   });
 }
 
-/** What a read of the log asks for. Exported because the history is read through the
- * same condition every Question read goes through, which lives next to them (ADR-0003). */
+/** Exported because the history is read through the same condition every Question read
+ * goes through, and that condition lives next to them (ADR-0003). */
 export const changeEventFieldsToRead = {
   id: true,
   questionId: true,

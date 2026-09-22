@@ -12,9 +12,9 @@ refused alike, and none of them has to know the rule exists.
 ## Consequences
 
 `TRUNCATE` is not covered. Row triggers do not fire on it, and the suite empties the database that
-way between tests. Leaving it uncovered is the choice: covering it would make the test database
-unclearable, and truncating a table is an act on the whole database rather than an edit to a
-Change Event.
+way between tests. Leaving it uncovered is deliberate. Covering it would leave the test database
+with no way to be emptied, and truncating a table is an act on the whole database rather than an
+edit to one Change Event.
 
 The test helper that puts the seeded Questions back can no longer delete them, because a Question
 with events cannot be deleted either. It truncates instead.

@@ -1,4 +1,4 @@
-import type { CategoryName, Viewer, ViewerRole } from "@iqb/shared";
+import { questionResponseSchema, type CategoryName, type Viewer, type ViewerRole } from "@iqb/shared";
 import {
   seedBulkBank,
   type BulkBankOptions,
@@ -212,6 +212,19 @@ export function patchQuestion(
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
+}
+
+/** Adds a Question over HTTP and hands back its id, for a test whose subject is what
+ * happened rather than the adding. */
+export async function addAQuestion(
+  api: TestApi,
+  body: Record<string, unknown>,
+  token: string,
+): Promise<string> {
+  const response = await postQuestion(api, aQuestion(body), token);
+  if (response.status !== 201) throw new Error(`Adding a Question failed with ${response.status}.`);
+  const added = questionResponseSchema.parse(await response.json());
+  return added.question.id;
 }
 
 /** A Question good enough to be accepted, for a test varying one thing about it. */

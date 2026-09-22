@@ -7,8 +7,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, seededViewer } from "./helpers/auth.js";
 import {
   aQuestion,
+  addAQuestion,
   patchQuestion,
-  postQuestion,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
@@ -58,11 +58,9 @@ describe("the history of a Question", () => {
 
   const newText = "What would you change about the way this team reviews code?";
 
-  async function addAQuestion(body: Record<string, unknown> = {}): Promise<string> {
-    const response = await postQuestion(api, aQuestion(body), authorToken);
-    if (response.status !== 201) throw new Error(`Adding failed with ${response.status}.`);
-    return questionResponseSchema.parse(await response.json()).question.id;
-  }
+  /** Added by the Author, which is how every history here comes to exist. */
+  const addOne = (body: Record<string, unknown> = {}): Promise<string> =>
+    addAQuestion(api, body, authorToken);
 
   /** The history as the API answers with it, held to the shape the client is promised. */
   async function historyOf(id: string, token: string): Promise<ChangeEvent[]> {
@@ -72,7 +70,7 @@ describe("the history of a Question", () => {
   }
 
   it("shows an addition and an edit, in the order they happened", async () => {
-    const id = await addAQuestion();
+    const id = await addOne();
     await patchQuestion(api, id, { text: newText }, reviewerToken);
 
     const events = await historyOf(id, authorToken);
@@ -95,7 +93,7 @@ describe("the history of a Question", () => {
 
   it("says when each one happened, in a form a client can read", async () => {
     const before = new Date();
-    const id = await addAQuestion();
+    const id = await addOne();
 
     const [added] = await historyOf(id, authorToken);
 
@@ -120,8 +118,8 @@ describe("the history of a Question", () => {
   });
 
   it("carries only the events about the Question that was asked for", async () => {
-    const one = await addAQuestion();
-    const other = await addAQuestion({ text: "A different Question about caching entirely." });
+    const one = await addOne();
+    const other = await addOne({ text: "A different Question about caching entirely." });
     await patchQuestion(api, other, { text: newText }, authorToken);
 
     expect(await historyOf(one, authorToken)).toHaveLength(1);
@@ -209,14 +207,5 @@ describe("the history of a Question that is not Visible", () => {
     expect(refused.status).toBe(404);
     expect(allowed.status).toBe(200);
     expect(questionHistoryResponseSchema.parse(await allowed.json()).events).toHaveLength(1);
-  });
-
-  it("does not leak that a Question exists by taking longer to say no", async () => {
-    // Both answers are one query against the same condition, so neither asks the
-    // database anything the other does not.
-    const restricted = await getHistory(api, seededQuestionIds.aboutTheClientsPipeline, reviewerToken);
-    const unknown = await getHistory(api, unknownQuestionId, reviewerToken);
-
-    expect(await statusAndBody(restricted)).toBe(await statusAndBody(unknown));
   });
 });

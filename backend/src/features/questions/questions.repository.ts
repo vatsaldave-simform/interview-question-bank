@@ -96,24 +96,26 @@ export async function findVisibleQuestionById(
 }
 
 /**
- * The history of a Question, oldest first, because a history is read forwards. Null for
- * a Question that is not Visible and one that does not exist alike, exactly as the fetch
- * answers (ADR-0002) — and null rather than an empty list, because a Question nobody has
- * touched yet has no events either and the two must not answer differently.
- *
- * The events hang off the same `visibleQuestions` condition as every other read, in one
- * statement, so there is no version of this that reads the log for an id nobody checked
- * (ADR-0003).
+ * The history of a Question, oldest first. Null for a Question that is not Visible and
+ * one that does not exist alike (ADR-0002); an empty list would not do, because that is
+ * what a Question nobody has touched yet has.
  */
 export async function findEventsAboutVisibleQuestion(
   database: Database,
   viewer: Viewer,
   id: string,
 ): Promise<ChangeEventFromDb[] | null> {
+  // The events hang off the same condition as every other read, so there is no way to
+  // reach the log for an id nobody checked (ADR-0003).
   const question = await database.question.findFirst({
     where: { AND: [{ id }, visibleQuestions(viewer)] },
     select: {
-      changeEvents: { orderBy: { createdAt: "asc" }, select: changeEventFieldsToRead },
+      changeEvents: {
+        // The time comes from the process that wrote the event, so two events can share
+        // one; the id settles that, and the order is at least the same every read.
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: changeEventFieldsToRead,
+      },
     },
   });
   return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
@@ -245,12 +247,8 @@ function distinctTagIds(tagIds: readonly string[]): string[] {
   return [...new Set(tagIds)];
 }
 
-/**
- * The Author is the adding Viewer, never anything the request names.
- *
- * The Change Event is written in the same transaction as the Question, so the bank
- * cannot end up holding a Question that nothing says who added.
- */
+/** The Author is the adding Viewer, never anything the request names. Its Change Event
+ * is written in the same transaction, so an added Question always carries its trace. */
 export async function insertQuestion(
   database: Database,
   viewer: Viewer,
@@ -300,11 +298,8 @@ function tagsAsText(tags: readonly QuestionTag[]): string {
   return JSON.stringify([...tags].map(({ category, tag }) => `${category}/${tag}`).sort());
 }
 
-/**
- * What the edit changed, each field with what it was and what it became. Null when it
- * changed nothing: a request may name a field and give it the value already there, and
- * a history entry saying so would be a change that never happened.
- */
+/** Null when the edit changed nothing: a request may name a field and give it the value
+ * already there, and a Change Event saying so would describe a change nobody made. */
 function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdited | null {
   const changed: QuestionEdited = {
     ...(before.text === after.text ? {} : { text: { before: before.text, after: after.text } }),
@@ -322,9 +317,6 @@ function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdi
  * Null for a Question that is not Visible and one that does not exist alike, exactly as
  * the fetch answers (ADR-0002). The write is built on the same `visibleQuestions` as the
  * reads, so a caller does not become the second way to the questions table (ADR-0003).
- *
- * The Change Event is written here rather than by the caller, in the same transaction as
- * the edit, so an edit that lands always leaves its trace.
  */
 export async function updateVisibleQuestion(
   database: Database,
@@ -360,11 +352,13 @@ export async function updateVisibleQuestion(
       });
     }
 
-    const updated = await transaction.question.findFirst({
-      where: visible,
+    // Read by id, not by `visible` again. A Permission Grant revoked since the write
+    // would make that second read find nothing, and the edit is already committed by
+    // then: the Change Event would be the thing lost.
+    const updated = await transaction.question.findUniqueOrThrow({
+      where: { id },
       select: questionFieldsToRead,
     });
-    if (updated === null) return null;
 
     const after = toQuestionFromDb(updated);
     const changed = whatChanged(toQuestionFromDb(before), after);
