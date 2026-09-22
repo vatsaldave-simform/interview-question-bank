@@ -75,6 +75,10 @@ export const defaultQuestionPageSize = 50;
  * refusal you can read. */
 export const maxQuestionPageSize = 100;
 
+/** Long enough for anything a person types and short enough that nobody sends a
+ * document. A request above it is refused, for the reason a page above the cap is. */
+export const maxKeywordsLength = 200;
+
 /** A Category names its Tag values by repeating the parameter, so one value and several
  * arrive in different shapes and both mean the same thing. */
 const tagValuesSchema = z
@@ -88,14 +92,22 @@ const tagValuesPerCategory = Object.fromEntries(
 ) as Record<CategoryName, z.ZodOptional<typeof tagValuesSchema>>;
 
 /**
- * The filter as a URL carries it: `?technology=typescript&technology=react&seniority=senior`.
- * Repeats within one parameter are the OR and separate parameters are the AND, so the
- * URL says what the rule is. Strict, which is what refuses an unknown Category at the
- * edge with no database lookup (ADR-0025).
+ * The filter as a URL carries it: `?technology=typescript&technology=react&seniority=senior`,
+ * with `&keywords=cache` to search as well. Repeats within one parameter are the OR and
+ * separate parameters are the AND, so the URL says what the rule is. Strict, which is what
+ * refuses an unknown Category at the edge with no database lookup (ADR-0025).
  */
 export const listQuestionsRequestSchema = z
   .object({
     ...tagValuesPerCategory,
+    /** Absent and empty mean the same thing, so `?keywords=` alone asks for the whole
+     * bank rather than for nothing. */
+    keywords: z
+      .string()
+      .trim()
+      .max(maxKeywordsLength)
+      .optional()
+      .transform((typed) => (typed === "" ? undefined : typed)),
     limit: z.coerce
       .number()
       .int()

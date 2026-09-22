@@ -10,6 +10,7 @@ import {
   findTagsNamed,
   findVisibleQuestions,
   insertQuestion,
+  searchVisibleQuestions,
   type QuestionFromDb,
   type TagsInCategory,
 } from "./questions.repository.js";
@@ -60,8 +61,8 @@ function namedPerCategory(
     .filter(({ tags }) => tags.length > 0);
 }
 
-/** Named Tags become ids grouped by Category, which is the only shape the query
- * function accepts; it never looks a name up itself (ADR-0003). */
+/** Named Tags become ids grouped by Category, which is the only shape either query
+ * function accepts; neither looks a name up itself (ADR-0003). */
 export async function listQuestions(
   database: Database,
   viewer: Viewer,
@@ -77,11 +78,13 @@ export async function listQuestions(
     category,
     tagIds: tags.map((named) => idOf(found, named)),
   }));
-  return findVisibleQuestions(database, viewer, {
-    tagsPerCategory,
-    limit: request.limit,
-    offset: request.offset,
-  });
+  const page = { tagsPerCategory, limit: request.limit, offset: request.offset };
+
+  // Keywords change the order as well as the answer: most relevant first rather than
+  // newest first (ADR-0026).
+
+  if (request.keywords === undefined) return findVisibleQuestions(database, viewer, page);
+  return searchVisibleQuestions(database, viewer, { ...page, keywords: request.keywords });
 }
 
 /** Named Tags become ids; everything else the repository already knows how to do. */

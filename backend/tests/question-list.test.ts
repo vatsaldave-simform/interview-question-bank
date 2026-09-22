@@ -2,6 +2,7 @@ import {
   apiErrorSchema,
   categoryNames,
   defaultQuestionPageSize,
+  maxKeywordsLength,
   maxQuestionPageSize,
   questionListResponseSchema,
 } from "@iqb/shared";
@@ -11,13 +12,17 @@ import { logIn, seededViewer } from "./helpers/auth.js";
 import {
   commonestTags,
   getQuestions,
+  inEveryBulkQuestion,
+  inOneAnswerNoteOnly,
   sameAnswerInJavaScript,
   seedTheBulkBank,
+  seededQuestionIds,
   viewerByRole,
 } from "./helpers/question-bank.js";
 import { startTestApi, type TestApi } from "./helpers/test-api.js";
 
 const bulk = { count: 600, seed: "a-test-of-the-question-list" };
+
 
 /**
  * The filter as a caller meets it: a URL. The query is already tested directly, so what
@@ -174,10 +179,70 @@ describe("listing Questions over HTTP", () => {
     expect(seenByReader.questions.some((question) => question.clientId !== null)).toBe(true);
   });
 
+  it("returns the Questions a keyword and a Category filter both match", async () => {
+    const filter = { technology: "typescript" };
+
+    const searched = await getQuestions(api, { ...filter, keywords: inOneAnswerNoteOnly }, readerToken);
+
+    const both = questionListResponseSchema.parse(await searched.json());
+    expect(both.questions.map((question) => question.id)).toEqual([
+      seededQuestionIds.aboutTypeScript,
+    ]);
+
+    // Each half of the request alone answers with more, so neither was read and dropped.
+    const filterOnly = questionListResponseSchema.parse(
+      await (await getQuestions(api, filter, readerToken)).json(),
+    );
+    const keywordOnly = questionListResponseSchema.parse(
+      await (await getQuestions(api, { keywords: inEveryBulkQuestion }, readerToken)).json(),
+    );
+    expect(filterOnly.questions.length).toBeGreaterThan(both.questions.length);
+    expect(keywordOnly.questions.length).toBeGreaterThan(both.questions.length);
+  });
+
+  it("refuses an unknown Tag even when the request also searches", async () => {
+    const response = await getQuestions(
+      api,
+      { keywords: inEveryBulkQuestion, technology: "no-such-tag" },
+      readerToken,
+    );
+
+    expect(response.status).toBe(400);
+    expect(apiErrorSchema.parse(await response.json()).error.message).toContain("No such Tag");
+  });
+
+  it("refuses keywords longer than the cap rather than cutting them short", async () => {
+    const tooLong = "a".repeat(maxKeywordsLength + 1);
+
+    const response = await getQuestions(api, { keywords: tooLong }, readerToken);
+
+    expect(response.status).toBe(400);
+    // And the length just under it is answered, so the cap is where it says it is.
+    const atTheCap = await getQuestions(api, { keywords: "a".repeat(maxKeywordsLength) }, readerToken);
+    expect(atTheCap.status).toBe(200);
+  });
+
+  it("reads an empty keywords parameter as no keywords at all", async () => {
+    const response = await getQuestions(api, { keywords: "  " }, readerToken);
+
+    // The whole bank the Reader can see, newest first, rather than an empty page.
+    const body = questionListResponseSchema.parse(await response.json());
+    expect(body.questions.length).toBe(defaultQuestionPageSize);
+  });
+
+  it("carries the page it used back to a caller that searched", async () => {
+    const response = await getQuestions(api, { keywords: inEveryBulkQuestion }, readerToken);
+
+    const body = questionListResponseSchema.parse(await response.json());
+    expect(body.limit).toBe(defaultQuestionPageSize);
+    expect(body.offset).toBe(0);
+  });
+
   // A Category is a query parameter, so a Category named `limit` would silently eat the
   // page size. Nothing stops someone adding one but this (ADR-0025).
   it("names no Category that a page parameter already uses", () => {
     expect(categoryNames).not.toContain("limit");
     expect(categoryNames).not.toContain("offset");
+    expect(categoryNames).not.toContain("keywords");
   });
 });

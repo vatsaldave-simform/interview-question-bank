@@ -39,8 +39,9 @@ later, in someone else's pagination.
 
 ## Consequences
 
-- Adding a Category adds a query parameter. If it were ever named `limit` or `offset` it would eat
-  that parameter silently, so the test naming the reserved words has to keep up with the list.
+- Adding a Category adds a query parameter. If it were ever named `limit`, `offset` or `keywords`
+  it would eat that parameter silently, so the test naming the reserved words has to keep up with
+  the list.
 - The response carries the `limit` and `offset` it used. A caller that named neither cannot
   otherwise know which page it got, since the default lives on the server.
 - No total count. It is a second query over the same condition, ADR-0011 measured only the page
