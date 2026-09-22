@@ -6,7 +6,7 @@ import {
   type QuestionTag,
   type Viewer,
 } from "@iqb/shared";
-import type { Prisma } from "../../generated/prisma/client.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import type { Database } from "../../platform/database.js";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
@@ -121,6 +121,81 @@ export async function findVisibleQuestions(
     select: questionFieldsToRead,
   });
   return questions.map(toQuestionFromDb);
+}
+
+/** The same thing `visibleTo` and `inTheBankFor` say, in SQL, because the search below
+ * is hand written and cannot take a `where` (ADR-0026). */
+function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
+  const visible = Prisma.sql`(
+    q."clientId" IS NULL
+    OR EXISTS (SELECT 1 FROM permission_grants g
+                WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
+  )`;
+  if (viewer.role === "reviewer") return visible;
+  return Prisma.sql`${visible} AND (
+    q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
+  )`;
+}
+
+/** One of these per Category named, which is the shape ADR-0011 measured. */
+function carryingOneOfInSql({ tagIds }: TagsInCategory): Prisma.Sql {
+  return Prisma.sql`EXISTS (SELECT 1 FROM question_tags qt
+                             WHERE qt."questionId" = q.id
+                               AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
+}
+
+/** What a Viewer typed, alongside the same filters the list takes. */
+export type QuestionSearch = QuestionQuery & { keywords: string };
+
+/** The row the search reads back; `tags` arrives as JSON built by the database. */
+type SearchRow = Omit<QuestionFromDb, "tags"> & { tags: { category: string; tag: string }[] };
+
+/** Keyword search across Question text and Answer Notes, matched against the stored
+ * column rather than a vector worked out per row (ADR-0004). */
+export async function searchVisibleQuestions(
+  database: Database,
+  viewer: Viewer,
+  { keywords, tagsPerCategory, limit, offset }: QuestionSearch,
+): Promise<QuestionFromDb[]> {
+  const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
+
+  const rows = await database.$queryRaw<SearchRow[]>`
+    WITH matched AS (
+      SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
+        FROM questions q,
+             -- Never raises on what a person types, which strict to_tsquery does
+             -- on anything holding an operator or a stray bracket (ADR-0004).
+             websearch_to_tsquery('english', ${keywords}) AS search(query)
+       WHERE q."searchVector" @@ search.query
+         AND ${Prisma.join(conditions, " AND ")}
+       ORDER BY rank DESC, q.id DESC
+       LIMIT ${limit} OFFSET ${offset}
+    )
+    SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
+           q."publicationState", q.provenance, q.source, q."createdAt",
+           coalesce(carried.tags, '[]'::json) AS tags
+      FROM matched
+      JOIN questions q ON q.id = matched.id
+      -- After the page has been cut, so the Tags of a Question the page left out are
+      -- never gathered.
+      LEFT JOIN LATERAL (
+        SELECT json_agg(json_build_object('category', c.name, 'tag', t.value)) AS tags
+          FROM question_tags qt
+          JOIN tags t ON t.id = qt."tagId"
+          JOIN categories c ON c.id = t."categoryId"
+         WHERE qt."questionId" = q.id
+      ) carried ON true
+     ORDER BY matched.rank DESC, q.id DESC
+  `;
+
+  return rows.map((row) => ({
+    ...row,
+    // Parsed, not cast, for the reason `toQuestionFromDb` parses (ADR-0024).
+    tags: row.tags.map((carried) => ({
+      category: categoryNameSchema.parse(carried.category),
+      tag: carried.tag,
+    })),
+  }));
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer

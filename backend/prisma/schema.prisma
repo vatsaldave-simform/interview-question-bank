@@ -155,11 +155,17 @@ model Question {
   provenance       Provenance
   /// Named in the Author's own words, so free text rather than a link or a Tag.
   source           String?
+  /// The lexemes of text and Answer Notes, kept up to date by PostgreSQL itself. Optional,
+  /// and the expression is repeated here, or `migrate dev` drops what the migration made
+  /// and the client loses create, update and upsert (ADR-0004).
+  searchVector     Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((COALESCE(text, ''::text) || ' '::text) || COALESCE(\"answerNotes\", ''::text)))"))
   createdAt        DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
 
   tags QuestionTag[]
 
+  // What makes the keyword search an index lookup rather than a scan (ADR-0004).
+  @@index([searchVector], type: Gin)
   // Load-bearing: the ordering index the combined filter's early-stop strategy walks,
   // and what makes pagination stable. Dropping it removes a plan (ADR-0011).
   @@index([createdAt(sort: Desc), id(sort: Desc)])

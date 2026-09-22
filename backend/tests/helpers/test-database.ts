@@ -37,6 +37,24 @@ export function createTestDatabase(applicationName?: string): Database {
   return createDatabase(url.toString(), { poolMax: 5 });
 }
 
+/**
+ * An empty scratch database on the same server, for the check that replays the whole
+ * migration history somewhere it cannot harm anything. Dropped and remade each time, so
+ * the replay starts from nothing; the name carries "test" like the suite's own.
+ */
+export async function makeShadowDatabase(database: Database): Promise<string> {
+  const url = new URL(testDatabaseUrl());
+  const name = `${url.pathname.replace(/^\//, "")}_shadow`;
+
+  // Not parameters: a database name cannot be one, and both parts are built here rather
+  // than taken from a request.
+  await database.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+  await database.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
+
+  url.pathname = `/${name}`;
+  return url.toString();
+}
+
 /** A database that keeps every statement it sends, so a test can assert what the query
  * function asked PostgreSQL for and not only what came back. */
 export type SqlLoggingDatabase = { database: Database; statements: string[] };

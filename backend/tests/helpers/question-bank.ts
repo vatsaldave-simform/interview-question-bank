@@ -123,6 +123,24 @@ export function viewerByRole(database: Database, role: ViewerRole): Promise<View
   });
 }
 
+/** Seeded Questions a test names by hand. The ids are fixed by `questions.seed.ts`. */
+export const seededQuestionIds = {
+  /** Published and unrestricted. Its Answer Notes are the only place "merging" appears. */
+  aboutTypeScript: "a0000000-0000-4000-8000-000000000001",
+  /** Published, and restricted to the seeded Client: the Reader holds the Grant and the
+   * Reviewer does not, which is the pair worth searching for. */
+  aboutTheClientsPipeline: "a0000000-0000-4000-8000-000000000002",
+  /** Pending and unrestricted, so a Reader may not reach it and a Reviewer may. */
+  aboutDisagreeing: "a0000000-0000-4000-8000-000000000003",
+} as const;
+
+/** A word every bulk Question carries, so a search on it answers with a bank rather than
+ * a handful of rows. */
+export const inEveryBulkQuestion = "approach";
+
+/** A word only one seeded Question holds, and only in its Answer Notes. */
+export const inOneAnswerNoteOnly = "merging";
+
 /** A uuid that is well formed and names nothing, which is what "does not exist" means. */
 export const unknownQuestionId = "b0000000-0000-4000-8000-00000000ffff";
 
