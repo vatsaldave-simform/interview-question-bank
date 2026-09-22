@@ -23,7 +23,11 @@ const writeTo = fileURLToPath(
   new URL(`../../../docs/evidence/query-plans/${label}.md`, import.meta.url),
 );
 
-function asMarkdown(bank: number, captured: CapturedPlan[], measuredAt: string): string {
+/** What the plans depend on besides the query, so a reader can tell whether a capture of
+ * their own is comparable. */
+type Where = { bank: number; server: string; measuredAt: string };
+
+function asMarkdown(captured: CapturedPlan[], { bank, server, measuredAt }: Where): string {
   const summary = captured.map(
     (one) =>
       `| ${one.scenario.name} | ${one.milliseconds.toFixed(2)} | ${one.buffers} | ` +
@@ -46,9 +50,12 @@ function asMarkdown(bank: number, captured: CapturedPlan[], measuredAt: string):
     "the host's spare capacity rather than the indexing decision it is meant to defend",
     "(ADR-0012).",
     "",
-    `Measured at ${measuredAt}. Every statement is the one the search sends, taken from the`,
-    "repository itself rather than retyped here, so this cannot get out of sync with what",
-    "ships. Each plan is the second of two runs, so it is not measuring a cold cache.",
+    `Measured at ${measuredAt} against ${server}.`,
+    "",
+    "Every statement is the one the search sends, taken from the repository itself rather",
+    "than retyped here, so this cannot get out of sync with what ships. The tables are",
+    "vacuumed and analysed first, and each plan is the second of two runs, so neither a",
+    "cold cache nor a missing visibility map is what gets measured.",
     "",
     "| scenario | ms | pages | whole table read | indexes used |",
     "| --- | ---: | ---: | --- | --- |",
@@ -86,8 +93,19 @@ try {
     );
   }
 
+  const [running] = await database.$queryRaw<{ server: string }[]>`
+    SELECT current_setting('server_version') AS server
+  `;
+
   await mkdir(dirname(writeTo), { recursive: true });
-  await writeFile(writeTo, asMarkdown(bank, captured, new Date().toISOString()));
+  await writeFile(
+    writeTo,
+    asMarkdown(captured, {
+      bank,
+      server: `PostgreSQL ${running?.server ?? "an unknown version"}`,
+      measuredAt: new Date().toISOString(),
+    }),
+  );
   console.log(`\nWritten to docs/evidence/query-plans/${label}.md`);
 } finally {
   await database.$disconnect();
