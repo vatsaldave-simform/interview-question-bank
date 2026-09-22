@@ -111,6 +111,33 @@ every other cannot show that.
 
 `pnpm db:seed` never runs this, so it stays short enough to read.
 
+## Where the query timings come from
+
+There is no metrics stack here on purpose (ADR-0009). Performance is defended with query
+plans and with PostgreSQL's own counters, which need nothing added to the API.
+
+`docker compose up` turns those counters on: the `db` service preloads
+`pg_stat_statements`, and a one-shot `query-stats` service creates the view it is read
+through. It runs every time and is safe to run twice, so a database you already had gets
+the view as well as a fresh one.
+
+```sh
+docker compose exec db psql -U iqb -d iqb -c "
+  SELECT calls, round(mean_exec_time::numeric, 2) AS mean_ms, left(query, 60) AS query
+    FROM pg_stat_statements
+   ORDER BY mean_exec_time DESC
+   LIMIT 10"
+```
+
+Clear them with `SELECT pg_stat_statements_reset()` before a run you want to read on its
+own — otherwise the migrations and the seed are still in there, and they are the slowest
+statements the database has seen.
+
+**Local only.** The deployed bank runs on a Neon compute that suspends after five minutes
+and does not keep the counters across a suspend, so nothing there is worth timing
+(ADR-0009, ADR-0012). The test database has neither the library nor the view: the suite
+empties it between tests, and counters over that say nothing.
+
 ## Near-duplicate detection
 
 A Question submitted to the bank is measured against the Questions already in it, and a
