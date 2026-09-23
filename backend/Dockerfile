@@ -8,7 +8,9 @@
 # ---------------------------------------------------------------------- builder
 FROM node:24-alpine AS builder
 
-RUN corepack enable
+# corepack is experimental in Node 24 and gone in 25, so pnpm comes from npm instead.
+# Keep this version the same as `packageManager` in the root package.json.
+RUN npm install -g pnpm@11.27.1
 WORKDIR /app
 
 # Manifests first, so a source change does not reinstall the world.
@@ -35,7 +37,10 @@ RUN pnpm --filter @iqb/shared build \
 # root has no dependencies; and copying `node_modules` from a pnpm workspace copies the
 # whole `.pnpm` virtual store, so what the symlinks point at is irrelevant to the size
 # of the image. `deploy` builds a tree scoped to production from the outset.
-RUN pnpm --filter @iqb/backend deploy --prod /app/deploy
+#
+# `--ignore-scripts` because the backend's `postinstall` runs `prisma generate`, and the
+# deploy folder has no `prisma` command to run it with. The client was generated above.
+RUN pnpm --filter @iqb/backend deploy --prod --ignore-scripts /app/deploy
 
 # ---------------------------------------------------------------------- runtime
 FROM node:24-alpine AS runtime
@@ -46,12 +51,12 @@ WORKDIR /app
 # what makes the deployed image a single origin rather than a bare API.
 ENV FRONTEND_DIR=/app/frontend/dist
 
-# No TypeScript toolchain, no client bundler, no test runner, and no Prisma CLI: `--prod`
-# above left them all behind. The CLI was the largest thing in this image and none of the
-# API's own code loads it — it dragged in Prisma Studio, an effect runtime, an embedded
-# WASM Postgres and a copy of react-dom. Migrations belong to whoever is deploying, not
-# to the server process, so they run elsewhere: a one-shot compose service locally, and
-# the CI workflow for the deployment (ADR-0012).
+# No client bundler and no test runner: `--prod` above left them behind. The Prisma CLI
+# package and TypeScript are still here, because pnpm 11 keeps them as optional peers of
+# `@prisma/client` (ADR-0033). Nothing runs them: the API's own code never loads the CLI.
+# Migrations belong to whoever is deploying, not to the server process, so they run
+# elsewhere: a one-shot compose service locally, and the CI workflow for the deployment
+# (ADR-0012).
 COPY --from=builder /app/deploy ./backend
 COPY --from=builder /app/frontend/dist ./frontend/dist
 

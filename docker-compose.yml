@@ -62,9 +62,9 @@ services:
       timeout: 3s
       retries: 15
 
-  # Migrations run here rather than in the API's own start-up, which is what lets the
-  # API image ship no Prisma CLI at all (ADR-0012). `docker compose up` still needs no
-  # manual step: this service runs to completion first and the API waits for it.
+  # Migrations run here rather than in the API's own start-up, so the API never runs the
+  # Prisma CLI (ADR-0012). `docker compose up` still needs no manual step: this service
+  # runs to completion first and the API waits for it.
   #
   # Built from the API image's `builder` stage, which already holds the CLI, the schema
   # and the migrations. Those layers are the same ones the api build produces, so this
