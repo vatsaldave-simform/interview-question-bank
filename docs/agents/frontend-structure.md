@@ -43,8 +43,8 @@ A file is named after what it is, never after the library it is built from — `
 not `tanstack.ts`.
 
 Files are kebab-case, exports are not: `question-list.tsx` exports `QuestionList`. Imports inside
-`frontend/src` are written `@/`-prefixed and carry no `.js` extension, unlike the rest of the repo
-(ADR-0030).
+`frontend/src` are written `@/`-prefixed and carry no extension, unlike the backend (`.ts`,
+ADR-0032) and `shared` (`.js`) (ADR-0030).
 
 Three suffixes, and no others:
 

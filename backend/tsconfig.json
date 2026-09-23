@@ -4,11 +4,10 @@
     "rootDir": "src",
     "outDir": "dist",
     "types": ["node"],
-    // Node runs the source as it is, so relative imports name the real `.ts` file.
-    // The build turns them back into `.js` for `dist/`.
+    // Node loads the file an import names, so imports end in `.ts` (ADR-0032).
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    // Node only strips types, so reject any code it cannot run that way.
+    // Node only removes types, so reject code that needs more than that (ADR-0032).
     "erasableSyntaxOnly": true
   },
   "include": ["src"]
