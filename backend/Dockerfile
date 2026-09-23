@@ -2,8 +2,11 @@
 # the shared schema package (ADR-0010), and because one origin serves both the API and
 # the built client (ADR-0012) — so the client is built here too.
 
+# The Node version matches .nvmrc at the root. Docker cannot read that file, so both
+# stages below name it again. Keep these two in step with .nvmrc.
+
 # ---------------------------------------------------------------------- builder
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN corepack enable
 WORKDIR /app
@@ -35,7 +38,7 @@ RUN pnpm --filter @iqb/shared build \
 RUN pnpm --filter @iqb/backend deploy --prod /app/deploy
 
 # ---------------------------------------------------------------------- runtime
-FROM node:20-alpine AS runtime
+FROM node:24-alpine AS runtime
 
 WORKDIR /app
 

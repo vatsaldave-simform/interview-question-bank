@@ -1,59 +1,26 @@
-import { readinessResponseSchema, type ReadinessResponse } from "@iqb/shared";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { createQueryClient } from "@/platform/query-client";
+import { useSession } from "@/platform/session";
+import { createAppRouter } from "@/routes";
 
-/**
- * The client end of the thinnest version that runs end to end: it reads readiness through the
- * same shared schema the API answers with, which is the whole point of the shared
- * package (ADR-0010). Login and the real shell arrive with the client shell ticket.
- *
- * The request is same-origin in the deployed image and proxied in development, so the
- * path is written once and means the same thing in both (ADR-0012).
- */
 export function App() {
-  const [readiness, setReadiness] = useState<
-    ReadinessResponse | "unreachable" | null
-  >(null);
+  const [queryClient] = useState(createQueryClient);
+  const [router] = useState(createAppRouter);
+  const session = useSession();
 
   useEffect(() => {
-    let cancelled = false;
-    void fetch("/ready")
-      .then(async (response) =>
-        readinessResponseSchema.parse(await response.json()),
-      )
-      .then((parsed) => {
-        if (!cancelled) setReadiness(parsed);
-      })
-      .catch(() => {
-        if (!cancelled) setReadiness("unreachable");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    // Handing the router a new context does not re-run `beforeLoad` on the routes already
+    // matched, so without this a Viewer who logged out would keep looking at the shell.
+    void router.invalidate();
+  }, [router, session]);
 
   return (
-    <main>
-      <h1>Interview Question Bank</h1>
-      <p>
-        API:{" "}
-        {readiness === null
-          ? "checking"
-          : readiness === "unreachable"
-            ? "unreachable"
-            : `${readiness.status} (database ${readiness.checks.database})`}
-      </p>
-      {/*
-        The deployed service sleeps after fifteen minutes and takes about a minute to
-        wake (ADR-0012). Saying so is the difference between a visitor reading the wait
-        as slow and reading it as broken. This belongs on the login screen once there
-        is one — issue #13.
-      */}
-      <p>
-        <small>
-          Hosted on a free tier that sleeps when idle. The first visit after a
-          quiet spell takes about a minute to wake; later ones are immediate.
-        </small>
-      </p>
-    </main>
+    // Query's provider wraps the router because a route's loader reaches the cache through
+    // it: the cache has to exist before any route can run.
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} context={{ session }} />
+    </QueryClientProvider>
   );
 }

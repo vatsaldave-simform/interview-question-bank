@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.19",
+    "node": ">=24.11",
     "pnpm": ">=9"
   },
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter @iqb/shared build && pnpm --parallel --filter @iqb/backend --filter @iqb/frontend dev",
     "typecheck": "pnpm --filter @iqb/shared build && pnpm -r typecheck",
-    "test": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend test",
+    "test": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend test && pnpm --filter @iqb/frontend test",
     "db:migrate": "pnpm --filter @iqb/backend db:migrate",
     "db:generate": "pnpm --filter @iqb/backend db:generate",
     "db:seed": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:seed",
