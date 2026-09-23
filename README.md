@@ -303,6 +303,14 @@ sync between client and server. The client is a placeholder that reads the API's
 through those schemas; its shell arrives with the login ticket. Run it with `pnpm dev`,
 which serves it on port 5173 and proxies the API's paths through without rewriting them.
 
+Where a file goes inside `frontend/src` is in
+[docs/agents/frontend-structure.md](docs/agents/frontend-structure.md), with the reasoning
+in ADR-0030 and ADR-0031. One part of it is worth repeating here:
+**`frontend/src/ui/shadcn/` is written by `shadcn add` and is not edited by hand.** To
+change a component there, change how it is used, or replace it with one of our own
+somewhere else. An edit made in that folder is lost the next time the component is
+re-added, and nothing warns you.
+
 How `frontend/src` is laid out is in [docs/agents/frontend-structure.md](docs/agents/frontend-structure.md)
 and ADR-0030. One rule belongs here too: `frontend/src/ui/shadcn/` is written by `shadcn add`, so
 anything changed there by hand is overwritten the next time a component is added.

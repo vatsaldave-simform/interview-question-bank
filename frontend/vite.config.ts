@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -11,6 +13,12 @@ const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:3000";
  * than under /api, because they answer the platform rather than the application.
  */
 export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    // What lets every import inside src be written `@/`-prefixed (ADR-0030). The same
+    // alias is in tsconfig.json, and in vitest.config.ts through this file.
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
   server: {
     port: Number(process.env.FRONTEND_PORT ?? 5173),
     proxy: Object.fromEntries(
