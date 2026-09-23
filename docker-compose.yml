@@ -87,15 +87,16 @@ services:
   # Creates the Viewers, because there is no registration endpoint (ADR-0016): without
   # this a fresh `docker compose up` has a running bank that nobody can log in to. It
   # runs in the builder stage for the same reason `migrate` does — that is where the
-  # TypeScript and its runner still are — and is idempotent, leaving an existing Viewer
-  # untouched. The deployment does not run it; seeding Neon is a local command (README).
+  # TypeScript source still is, which Node runs as it is — and is idempotent, leaving
+  # an existing Viewer untouched. The deployment does not run it; seeding Neon is a
+  # local command (README).
   seed:
     build:
       context: .
       dockerfile: backend/Dockerfile
       target: builder
     working_dir: /app/backend
-    command: ["./node_modules/.bin/tsx", "src/commands/seed.ts"]
+    command: ["node", "src/commands/seed.ts"]
     environment:
       DATABASE_URL: *database-url
       # Read only because the seed validates the whole environment on the way in.
