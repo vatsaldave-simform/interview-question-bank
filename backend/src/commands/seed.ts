@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { loadEnvFile, readEnv } from "../platform/env.js";
-import { createDatabase } from "../platform/database.js";
-import { seedViewerAccounts, seedViewers } from "../features/viewers/viewers.seed.js";
-import { seedClients, seedClientsAndGrants } from "../features/clients/clients.seed.js";
-import { seedQuestionBank, seedQuestions } from "../features/questions/questions.seed.js";
+import { loadEnvFile, readEnv } from "../platform/env.ts";
+import { createDatabase } from "../platform/database.ts";
+import { seedViewerAccounts, seedViewers } from "../features/viewers/viewers.seed.ts";
+import { seedClients, seedClientsAndGrants } from "../features/clients/clients.seed.ts";
+import { seedQuestionBank, seedQuestions } from "../features/questions/questions.seed.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 

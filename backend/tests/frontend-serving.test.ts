@@ -1,9 +1,9 @@
 import { apiErrorSchema, readinessResponseSchema } from "@iqb/shared";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 
 const frontendDir = fileURLToPath(new URL("./fixtures/frontend", import.meta.url));
 

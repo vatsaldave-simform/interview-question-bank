@@ -3,8 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   findVisibleQuestions,
   searchVisibleQuestions,
-} from "../src/features/questions/questions.repository.js";
-import type { Database } from "../src/platform/database.js";
+} from "../src/features/questions/questions.repository.ts";
+import type { Database } from "../src/platform/database.ts";
 import {
   commonestTags,
   alsoInMuchOfTheBulkBank,
@@ -15,12 +15,12 @@ import {
   seedTheBulkBank,
   seededQuestionIds,
   viewerByRole,
-} from "./helpers/question-bank.js";
+} from "./helpers/question-bank.ts";
 import {
   createSqlLoggingDatabase,
   createTestDatabase,
   type SqlLoggingDatabase,
-} from "./helpers/test-database.js";
+} from "./helpers/test-database.ts";
 
 const { aboutTypeScript, aboutTheClientsPipeline, aboutDisagreeing } = seededQuestionIds;
 

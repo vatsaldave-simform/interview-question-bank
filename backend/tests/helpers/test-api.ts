@@ -1,14 +1,14 @@
 import type { Logger } from "pino";
-import { createApp } from "../../src/app.js";
-import type { AccessTokenConfig } from "../../src/features/auth/access-token.js";
-import type { Database } from "../../src/platform/database.js";
-import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie.js";
-import type { RefreshTokenConfig } from "../../src/features/auth/refresh-token.js";
-import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middleware.js";
-import { createLogger } from "../../src/platform/logger.js";
-import { startServer, type RunningServer } from "../../src/platform/server.js";
-import { testAccessTokenSecret } from "./auth.js";
-import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./test-database.js";
+import { createApp } from "../../src/app.ts";
+import type { AccessTokenConfig } from "../../src/features/auth/access-token.ts";
+import type { Database } from "../../src/platform/database.ts";
+import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie.ts";
+import type { RefreshTokenConfig } from "../../src/features/auth/refresh-token.ts";
+import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middleware.ts";
+import { createLogger } from "../../src/platform/logger.ts";
+import { startServer, type RunningServer } from "../../src/platform/server.ts";
+import { testAccessTokenSecret } from "./auth.ts";
+import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./test-database.ts";
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
 

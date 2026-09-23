@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { createApp } from "./app.js";
-import { loadEnvFile, readEnv } from "./platform/env.js";
-import { createDatabase } from "./platform/database.js";
-import { createLogger, setRootLogger } from "./platform/logger.js";
-import { startServer } from "./platform/server.js";
+import { createApp } from "./app.ts";
+import { loadEnvFile, readEnv } from "./platform/env.ts";
+import { createDatabase } from "./platform/database.ts";
+import { createLogger, setRootLogger } from "./platform/logger.ts";
+import { startServer } from "./platform/server.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
 

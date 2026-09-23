@@ -1,13 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Database } from "../src/platform/database.js";
-import { seedTheBank } from "./helpers/question-bank.js";
+import type { Database } from "../src/platform/database.ts";
+import { seedTheBank } from "./helpers/question-bank.ts";
 import {
   createTestDatabase,
   makeShadowDatabase,
   testDatabaseUrl,
-} from "./helpers/test-database.js";
+} from "./helpers/test-database.ts";
 
 const backendDir = fileURLToPath(new URL("..", import.meta.url));
 const aQuestionId = "a0000000-0000-4000-8000-000000000001";

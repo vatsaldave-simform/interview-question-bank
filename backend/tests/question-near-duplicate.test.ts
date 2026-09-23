@@ -7,7 +7,7 @@ import {
   type ChangeEventType,
 } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   postQuestion,
@@ -15,8 +15,8 @@ import {
   seedTheBank,
   seededQuestionIds,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /** A reworded copy of a Published Question in the open bank, which everybody can see. */
 const nearlyTheTypeScriptOne =

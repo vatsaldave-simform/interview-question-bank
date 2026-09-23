@@ -9,8 +9,8 @@ import {
   type QuestionAdded,
   type QuestionEdited,
 } from "@iqb/shared";
-import type { Prisma } from "../../generated/prisma/client.js";
-import type { Database } from "../../platform/database.js";
+import type { Prisma } from "../../generated/prisma/client.ts";
+import type { Database } from "../../platform/database.ts";
 
 /** The transaction the change itself is running in, so that an event and the change it
  * describes cannot happen without each other. */

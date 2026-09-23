@@ -4,11 +4,11 @@ import {
   type Viewer,
   type ViewerRole,
 } from "@iqb/shared";
-import { Prisma } from "../../generated/prisma/client.js";
-import type { Database } from "../../platform/database.js";
-import { seedViewerByRole } from "../viewers/viewers.seed.js";
-import { bankVocabulary } from "./bulk-bank.seed.js";
-import { searchStatement, type QuestionSearch } from "./questions.repository.js";
+import { Prisma } from "../../generated/prisma/client.ts";
+import type { Database } from "../../platform/database.ts";
+import { seedViewerByRole } from "../viewers/viewers.seed.ts";
+import { bankVocabulary } from "./bulk-bank.seed.ts";
+import { searchStatement, type QuestionSearch } from "./questions.repository.ts";
 
 /** One query worth capturing a plan for, and why it is in the set. */
 export type PlanScenario = {

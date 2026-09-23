@@ -5,15 +5,15 @@ import {
   seedClients,
   seedClientsAndGrants,
   seedOtherClient,
-} from "../src/features/clients/clients.seed.js";
+} from "../src/features/clients/clients.seed.ts";
 import {
   seedCategories,
   seedQuestionBank,
   seedQuestions,
-} from "../src/features/questions/questions.seed.js";
-import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { createTestDatabase, truncateAll } from "./helpers/test-database.js";
+} from "../src/features/questions/questions.seed.ts";
+import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
  * The fixtures every later suite builds on, and the guarantee that re-running the seed

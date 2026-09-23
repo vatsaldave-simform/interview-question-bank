@@ -1,7 +1,7 @@
 import type { ViewerRole } from "@iqb/shared";
 import type { RequestHandler } from "express";
-import { ForbiddenError } from "../../platform/errors.js";
-import { authenticatedViewer } from "./authenticated-viewer.js";
+import { ForbiddenError } from "../../platform/errors.ts";
+import { authenticatedViewer } from "./authenticated-viewer.ts";
 
 /**
  * Safe on a route that names no Question, which is the only place it is used: a role

@@ -1,8 +1,8 @@
 import { questionListResponseSchema, type QuestionListResponse } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { hashPassword } from "../src/features/auth/password.js";
-import { seedClient } from "../src/features/clients/clients.seed.js";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { hashPassword } from "../src/features/auth/password.ts";
+import { seedClient } from "../src/features/clients/clients.seed.ts";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   clientIdNamed,
   getQuestions,
@@ -15,8 +15,8 @@ import {
   seededQuestionIds,
   tagOnNoQuestionAtAll,
   tagOnTheOtherClientsQuestionsOnly,
-} from "./helpers/question-bank.js";
-import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
 /**
  * A Viewer holding no Permission Grant at all. Every seeded Viewer holds one for one

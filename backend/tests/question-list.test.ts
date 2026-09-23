@@ -7,9 +7,9 @@ import {
   questionListResponseSchema,
 } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.js";
-import type { TagsInCategory } from "../src/features/questions/questions.repository.js";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { seedClient } from "../src/features/clients/clients.seed.ts";
+import type { TagsInCategory } from "../src/features/questions/questions.repository.ts";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   clientIdNamed,
   commonestTags,
@@ -20,8 +20,8 @@ import {
   seedTheBulkBank,
   seededQuestionIds,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 const bulk = { count: 600, seed: "a-test-of-the-question-list" };
 

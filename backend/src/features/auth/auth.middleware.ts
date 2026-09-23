@@ -1,9 +1,9 @@
 import type { RequestHandler } from "express";
-import type { Database } from "../../platform/database.js";
-import { UnauthenticatedError } from "../../platform/errors.js";
-import { log } from "../../platform/logger.js";
-import { verifyAccessToken, type AccessTokenConfig, type RefusalReason } from "./access-token.js";
-import { findViewerById } from "../viewers/viewers.repository.js";
+import type { Database } from "../../platform/database.ts";
+import { UnauthenticatedError } from "../../platform/errors.ts";
+import { log } from "../../platform/logger.ts";
+import { verifyAccessToken, type AccessTokenConfig, type RefusalReason } from "./access-token.ts";
+import { findViewerById } from "../viewers/viewers.repository.ts";
 
 const bearer = /^Bearer (?<token>\S+)$/;
 

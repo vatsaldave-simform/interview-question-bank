@@ -1,9 +1,9 @@
 import { mostNearDuplicatesNamed, nearDuplicateThreshold } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { findNearDuplicates } from "../src/features/questions/questions.repository.js";
-import type { Database } from "../src/platform/database.js";
-import { seedTheBank, seededQuestionIds, viewerByRole } from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+import { findNearDuplicates } from "../src/features/questions/questions.repository.ts";
+import type { Database } from "../src/platform/database.ts";
+import { seedTheBank, seededQuestionIds, viewerByRole } from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Reworded copies of seeded Questions, each well above the threshold. */
 const nearlyTheTypeScriptOne =

@@ -5,11 +5,11 @@ import {
   bulkTagPrefix,
   seedBulkBank,
   type BulkBankOptions,
-} from "../src/features/questions/bulk-bank.seed.js";
-import { seedQuestions } from "../src/features/questions/questions.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { seedTheBank } from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+} from "../src/features/questions/bulk-bank.seed.ts";
+import { seedQuestions } from "../src/features/questions/questions.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { seedTheBank } from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
 const bulk: BulkBankOptions = { count: 600, seed: "a-test-of-the-bulk-bank" };

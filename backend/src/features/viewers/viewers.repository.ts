@@ -1,5 +1,5 @@
 import type { Viewer } from "@iqb/shared";
-import type { Database } from "../../platform/database.js";
+import type { Database } from "../../platform/database.ts";
 
 /** Everything a response or a permission check may see. Never the stored credential. */
 const publicFields = { id: true, email: true, role: true } as const;

@@ -1,6 +1,6 @@
 import type { ViewerRole } from "@iqb/shared";
-import { hashPassword } from "../auth/password.js";
-import type { Database } from "../../platform/database.js";
+import { hashPassword } from "../auth/password.ts";
+import type { Database } from "../../platform/database.ts";
 
 export type SeedViewer = { email: string; password: string; role: ViewerRole };
 

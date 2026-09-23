@@ -1,11 +1,11 @@
 import type { ViewerRole } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.js";
-import { findVisibleQuestionById } from "../src/features/questions/questions.repository.js";
-import { seedQuestions } from "../src/features/questions/questions.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+import { seedClient } from "../src/features/clients/clients.seed.ts";
+import { findVisibleQuestionById } from "../src/features/questions/questions.repository.ts";
+import { seedQuestions } from "../src/features/questions/questions.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** The seeded Questions this file reasons about, by what makes each one interesting. */
 const publishedAndUnrestricted = seedQuestions[0]!.id;

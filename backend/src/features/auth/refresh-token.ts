@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import type { Database } from "../../platform/database.js";
+import type { Database } from "../../platform/database.ts";
 import {
   findRefreshTokenByHash,
   insertRefreshToken,
@@ -7,8 +7,8 @@ import {
   revokeRefreshTokenFamily,
   spendRefreshToken,
   type StoredRefreshToken,
-} from "./refresh-token.repository.js";
-import { log } from "../../platform/logger.js";
+} from "./refresh-token.repository.ts";
+import { log } from "../../platform/logger.ts";
 
 /** Long enough that the token needs no structure of its own to verify (ADR-0022). */
 const tokenBytes = 32;

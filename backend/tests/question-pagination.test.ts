@@ -3,15 +3,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   findVisibleQuestions,
   type QuestionQuery,
-} from "../src/features/questions/questions.repository.js";
-import type { Database } from "../src/platform/database.js";
+} from "../src/features/questions/questions.repository.ts";
+import type { Database } from "../src/platform/database.ts";
 import {
   commonestTags,
   sameAnswerInJavaScript,
   seedTheBulkBank,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+} from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Bigger than the other suites need: the filter has to leave enough Questions behind
  * for two of them to share a createdAt, which is the boundary worth paging across. */

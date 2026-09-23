@@ -1,6 +1,6 @@
 import type { ChangeEventType } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   addAQuestion,
@@ -10,8 +10,8 @@ import {
   seedTheBank,
   seededQuestionIds,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /** The events about one Question, oldest first, as rows. */
 async function eventsAbout(api: TestApi, questionId: string) {

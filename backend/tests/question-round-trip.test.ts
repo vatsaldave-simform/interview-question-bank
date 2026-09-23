@@ -3,10 +3,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   findVisibleQuestionById,
   insertQuestion,
-} from "../src/features/questions/questions.repository.js";
-import type { Database } from "../src/platform/database.js";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+} from "../src/features/questions/questions.repository.ts";
+import type { Database } from "../src/platform/database.ts";
+import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** What an Author writes comes back to them unchanged, and reaches nobody else yet. */
 describe("adding a Question and fetching it back", () => {

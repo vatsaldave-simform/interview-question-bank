@@ -1,7 +1,7 @@
 import { apiErrorSchema, questionResponseSchema, type Question } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { hashPassword } from "../src/features/auth/password.js";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { hashPassword } from "../src/features/auth/password.ts";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   getQuestion,
   patchQuestion,
@@ -10,9 +10,9 @@ import {
   seededQuestionIds,
   unknownQuestionId,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { updateVisibleQuestion } from "../src/features/questions/questions.repository.js";
-import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { updateVisibleQuestion } from "../src/features/questions/questions.repository.ts";
+import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
 /**
  * A second Author, because the seed holds one Viewer per role and "someone else's

@@ -1,8 +1,8 @@
 import { apiErrorSchema } from "@iqb/shared";
 import { afterAll, describe, expect, it } from "vitest";
-import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.js";
-import { logIn, postLogin, seededViewer } from "./helpers/auth.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
+import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 const maxAttempts = 3;
 const started: TestApi[] = [];

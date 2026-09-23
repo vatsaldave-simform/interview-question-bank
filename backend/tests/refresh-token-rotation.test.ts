@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { findRefreshTokenByHash } from "../src/features/auth/refresh-token.repository.js";
+import { findRefreshTokenByHash } from "../src/features/auth/refresh-token.repository.ts";
 import {
   hashRefreshToken,
   issueRefreshToken,
   revokeRefreshTokenFamilyOf,
   rotateRefreshToken,
   type RefreshTokenConfig,
-} from "../src/features/auth/refresh-token.js";
-import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { seededViewer } from "./helpers/auth.js";
-import { createTestDatabase, truncateAll } from "./helpers/test-database.js";
+} from "../src/features/auth/refresh-token.ts";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { seededViewer } from "./helpers/auth.ts";
+import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 const config: RefreshTokenConfig = { lifetimeSeconds: 900 };
 

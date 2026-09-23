@@ -10,17 +10,17 @@ import {
 } from "@iqb/shared";
 import { Router, type Request } from "express";
 import { z } from "zod";
-import { authenticatedViewer } from "../auth/authenticated-viewer.js";
-import { requireRole } from "../auth/require-role.middleware.js";
-import { addQuestion, editQuestion, listQuestions } from "./questions.service.js";
+import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
+import { requireRole } from "../auth/require-role.middleware.ts";
+import { addQuestion, editQuestion, listQuestions } from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
   findVisibleQuestionById,
   type QuestionFromDb,
-} from "./questions.repository.js";
-import type { ChangeEventFromDb } from "../change-events/change-events.repository.js";
-import { NotFoundError } from "../../platform/errors.js";
-import type { Database } from "../../platform/database.js";
+} from "./questions.repository.ts";
+import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
+import { NotFoundError } from "../../platform/errors.ts";
+import type { Database } from "../../platform/database.ts";
 
 const questionIdSchema = z.uuid();
 

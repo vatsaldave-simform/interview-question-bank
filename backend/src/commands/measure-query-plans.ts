@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadEnvFile, readEnv } from "../platform/env.js";
-import { createDatabase } from "../platform/database.js";
+import { loadEnvFile, readEnv } from "../platform/env.ts";
+import { createDatabase } from "../platform/database.ts";
 import {
   capturePlan,
   scenariosForTheBank,
   vacuumAndAnalyze,
   type CapturedPlan,
-} from "../features/questions/query-plans.js";
+} from "../features/questions/query-plans.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 

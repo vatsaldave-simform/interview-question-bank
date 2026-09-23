@@ -6,29 +6,29 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import { Router, type Response } from "express";
-import { signAccessToken } from "./access-token.js";
-import { authenticatedViewer } from "./authenticated-viewer.js";
-import type { AuthDependencies } from "./auth.middleware.js";
-import { hashPassword, verifyPassword } from "./password.js";
+import { signAccessToken } from "./access-token.ts";
+import { authenticatedViewer } from "./authenticated-viewer.ts";
+import type { AuthDependencies } from "./auth.middleware.ts";
+import { hashPassword, verifyPassword } from "./password.ts";
 import {
   clearRefreshCookie,
   presentedRefreshToken,
   setRefreshCookie,
   type RefreshCookieConfig,
-} from "./refresh-cookie.js";
+} from "./refresh-cookie.ts";
 import {
   issueRefreshToken,
   revokeRefreshTokenFamilyOf,
   rotateRefreshToken,
   type RefreshTokenConfig,
-} from "./refresh-token.js";
-import { findViewerByEmail, findViewerById } from "../viewers/viewers.repository.js";
-import { UnauthenticatedError } from "../../platform/errors.js";
+} from "./refresh-token.ts";
+import { findViewerByEmail, findViewerById } from "../viewers/viewers.repository.ts";
+import { UnauthenticatedError } from "../../platform/errors.ts";
 import {
   limitRequests,
   type RateLimitConfig,
-} from "../../platform/http/rate-limit.middleware.js";
-import { log } from "../../platform/logger.js";
+} from "../../platform/http/rate-limit.middleware.ts";
+import { log } from "../../platform/logger.ts";
 
 /** The public routes also need to know how hard a caller may knock (ADR-0021). */
 export type PublicAuthDependencies = AuthDependencies & {

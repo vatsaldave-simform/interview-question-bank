@@ -4,7 +4,7 @@ import {
   type ChangeEvent,
 } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   addAQuestion,
@@ -14,8 +14,8 @@ import {
   seededQuestionIds,
   unknownQuestionId,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
 /** The history request itself, for a test that wants to read the response it got. */
 function getHistory(api: TestApi, id: string, token: string): Promise<Response> {

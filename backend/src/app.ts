@@ -1,16 +1,16 @@
 import express, { type Express } from "express";
 import type { Logger } from "pino";
 import cookieParser from "cookie-parser";
-import type { AccessTokenConfig } from "./features/auth/access-token.js";
-import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.js";
-import type { RefreshTokenConfig } from "./features/auth/refresh-token.js";
-import type { Database } from "./platform/database.js";
-import type { RateLimitConfig } from "./platform/http/rate-limit.middleware.js";
-import { frontendRoutes } from "./platform/http/frontend.routes.js";
-import { errorHandler, notFoundHandler } from "./platform/http/error-handler.middleware.js";
-import { requestLogging } from "./platform/http/request-logging.middleware.js";
-import { apiRoutes } from "./api.routes.js";
-import { healthRoutes } from "./platform/http/health.routes.js";
+import type { AccessTokenConfig } from "./features/auth/access-token.ts";
+import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.ts";
+import type { RefreshTokenConfig } from "./features/auth/refresh-token.ts";
+import type { Database } from "./platform/database.ts";
+import type { RateLimitConfig } from "./platform/http/rate-limit.middleware.ts";
+import { frontendRoutes } from "./platform/http/frontend.routes.ts";
+import { errorHandler, notFoundHandler } from "./platform/http/error-handler.middleware.ts";
+import { requestLogging } from "./platform/http/request-logging.middleware.ts";
+import { apiRoutes } from "./api.routes.ts";
+import { healthRoutes } from "./platform/http/health.routes.ts";
 
 export type AppDependencies = {
   logger: Logger;

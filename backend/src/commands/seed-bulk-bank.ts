@@ -1,14 +1,14 @@
 import { fileURLToPath } from "node:url";
-import { loadEnvFile, readEnv } from "../platform/env.js";
-import { createDatabase } from "../platform/database.js";
-import { seedViewerAccounts } from "../features/viewers/viewers.seed.js";
-import { seedClientsAndGrants } from "../features/clients/clients.seed.js";
-import { seedQuestionBank } from "../features/questions/questions.seed.js";
+import { loadEnvFile, readEnv } from "../platform/env.ts";
+import { createDatabase } from "../platform/database.ts";
+import { seedViewerAccounts } from "../features/viewers/viewers.seed.ts";
+import { seedClientsAndGrants } from "../features/clients/clients.seed.ts";
+import { seedQuestionBank } from "../features/questions/questions.seed.ts";
 import {
   defaultBulkBank,
   seedBulkBank,
   type BulkBankOptions,
-} from "../features/questions/bulk-bank.seed.js";
+} from "../features/questions/bulk-bank.seed.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 

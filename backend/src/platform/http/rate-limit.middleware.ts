@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { rateLimit } from "express-rate-limit";
-import { RateLimitedError } from "../errors.js";
-import { log } from "../logger.js";
+import { RateLimitedError } from "../errors.ts";
+import { log } from "../logger.ts";
 
 export type RateLimitConfig = {
   windowSeconds: number;

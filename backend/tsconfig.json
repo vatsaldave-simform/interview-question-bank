@@ -3,7 +3,13 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node"]
+    "types": ["node"],
+    // Node runs the source as it is, so relative imports name the real `.ts` file.
+    // The build turns them back into `.js` for `dist/`.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    // Node only strips types, so reject any code it cannot run that way.
+    "erasableSyntaxOnly": true
   },
   "include": ["src"]
 }

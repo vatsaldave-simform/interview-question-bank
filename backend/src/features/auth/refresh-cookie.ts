@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { IssuedRefreshToken } from "./refresh-token.js";
+import type { IssuedRefreshToken } from "./refresh-token.ts";
 
 // Limited to the routes that read it, so it is not sent on every other API request.
 const path = "/api/auth";

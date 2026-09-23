@@ -1,4 +1,4 @@
-import type { Database } from "../../platform/database.js";
+import type { Database } from "../../platform/database.ts";
 
 /** Everything rotation needs to judge a presented token, and never the stored hash. */
 const judgeableFields = {
