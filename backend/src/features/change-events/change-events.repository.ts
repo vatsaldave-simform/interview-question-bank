@@ -75,6 +75,7 @@ export const changeEventFieldsToRead = {
   id: true,
   questionId: true,
   viewerId: true,
+  viewer: { select: { email: true } },
   type: true,
   payload: true,
   createdAt: true,
@@ -88,6 +89,7 @@ export type ChangeEventFromDb = {
   id: string;
   questionId: string | null;
   viewerId: string;
+  viewerEmail: string;
   createdAt: Date;
 } & (
   | { type: "question_added"; payload: QuestionAdded }
@@ -103,6 +105,7 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
     id: row.id,
     questionId: row.questionId,
     viewerId: row.viewerId,
+    viewerEmail: row.viewer.email,
     createdAt: row.createdAt,
   };
   switch (row.type) {
