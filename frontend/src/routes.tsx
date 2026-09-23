@@ -3,6 +3,7 @@ import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
 import { AppShell } from "@/platform/app-shell";
 import { rootRoute } from "@/platform/root-route";
+import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { requireSignedIn } from "@/platform/sign-in-check";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
@@ -46,7 +47,12 @@ const routeTree = rootRoute.addChildren([
 export function createAppRouter() {
   // Unknown until the silent sign-in answers, which is the truth at the moment the router
   // is built. App replaces it on every render.
-  return createRouter({ routeTree, context: { session: { status: "unknown" } } });
+  return createRouter({
+    routeTree,
+    context: { session: { status: "unknown" } },
+    parseSearch,
+    stringifySearch,
+  });
 }
 
 declare module "@tanstack/react-router" {
