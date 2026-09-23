@@ -11,10 +11,13 @@ export function App() {
   const session = useSession();
 
   useEffect(() => {
+    // The API answers each Viewer differently, so a cached answer must not outlive the
+    // session: the next Viewer in this tab would see it before their own request returns.
+    if (session.status === "signed-out") queryClient.clear();
     // Handing the router a new context does not re-run `beforeLoad` on the routes already
     // matched, so without this a Viewer who logged out would keep looking at the shell.
     void router.invalidate();
-  }, [router, session]);
+  }, [queryClient, router, session]);
 
   return (
     // Query's provider wraps the router because a route's loader reaches the cache through

@@ -1,3 +1,4 @@
+import type { CategoryListResponse, Question } from "@iqb/shared";
 import { vi, type Mock } from "vitest";
 
 /** Only ever used to turn the client's relative path into something a `Request` will
@@ -63,3 +64,29 @@ export const aSignedInAuthor = {
     role: "author" as const,
   },
 };
+
+/** A Question in the shape the API sends one, changed where a test says so. */
+export function aQuestion(changes: Partial<Question> = {}): Question {
+  return {
+    id: "a0000000-0000-4000-8000-000000000001",
+    text: "What does `satisfies` check that a type annotation does not?",
+    answerNotes: "Look for: it checks the value against the type without widening it.",
+    authorId: aSignedInAuthor.viewer.id,
+    clientId: null,
+    publicationState: "published",
+    provenance: "original",
+    source: null,
+    tags: [{ category: "technology", tag: "typescript" }],
+    createdAt: "2026-09-01T09:00:00.000Z",
+    ...changes,
+  };
+}
+
+/** What `GET /api/categories` answers with, cut down to what a test needs. */
+export const theCategories = {
+  categories: [
+    { name: "technology", displayName: "Technology", tags: ["node", "react", "typescript"] },
+    { name: "seniority", displayName: "Seniority", tags: ["junior", "mid", "senior"] },
+    { name: "question-type", displayName: "Question type", tags: ["conceptual", "practical"] },
+  ],
+} satisfies CategoryListResponse;
