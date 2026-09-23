@@ -1,6 +1,6 @@
 # Every Viewer reads the whole Tag list
 
-The browse screen (#14) filters by Tag, so it needs to know which Tags exist. Nothing told the
+The browse screen from #14 filters by Tag, so it needs to know which Tags exist. Nothing told the
 client that before. The Category names are a closed list in `@iqb/shared` (ADR-0024), but the Tag
 values and the Category display names are rows in the database.
 
@@ -14,8 +14,8 @@ Everywhere else, the rule is that a restricted Question looks the same as one th
 (ADR-0002). So the question is whether a Tag list breaks that. It does not, for two reasons.
 
 **No Question owns a Tag.** Tags are seeded content. Adding or editing a Question can only name a
-Tag that is already there. An unknown one is refused (ADR-0024). So a Tag being in the list says
-nothing about whether any Question carries it.
+Tag that is already there. The API refuses an unknown one (ADR-0024). So a Tag being in the list
+says nothing about whether any Question carries it.
 
 **The filter already answers this.** `?technology=python` answers 200 with an empty page for a
 Viewer who can see no Question carrying `python`. `?technology=nope` answers 400. So which Tags
@@ -31,11 +31,11 @@ with a seed. A copy in the client gets out of sync the first time someone seeds 
 filter would then offer a Tag the API refuses, or leave one out.
 
 **List only the Tags on Questions the Viewer can see.** That would be a list that changes with the
-Viewer's Grants. It would also have to be kept in step with the filter, which accepts every Tag.
+Viewer's Grants. It would also have to match the filter, which accepts every Tag.
 
 ## Consequences
 
-- If a later ticket lets a Question create a Tag as it is added, this decision has to be looked
-  at again. A Tag first written by a restricted Question would then say that the Question exists.
-- The list comes in the closed list's order, and Tags come in alphabetical order. A Category row
-  that the closed list does not name is left out, because no request can filter by it.
+- If a later ticket lets a Question create a Tag as it is added, that ticket must revisit this
+  decision. A Tag first written by a restricted Question would then say that the Question exists.
+- The list comes in the closed list's order, and Tags come in alphabetical order. The list leaves
+  out a Category row that the closed list does not name, because no request can filter by it.
