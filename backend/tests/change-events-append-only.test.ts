@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { Database } from "../src/platform/database.js";
+import type { Database } from "../src/platform/database.ts";
 import {
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+} from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /**
  * The table the history is kept in, and the two things about it that matter before

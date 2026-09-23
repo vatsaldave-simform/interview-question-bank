@@ -1,5 +1,5 @@
-import type { Database } from "../../platform/database.js";
-import { seedViewerByRole } from "../viewers/viewers.seed.js";
+import type { Database } from "../../platform/database.ts";
+import { seedViewerByRole } from "../viewers/viewers.seed.ts";
 
 export type SeedClient = {
   name: string;

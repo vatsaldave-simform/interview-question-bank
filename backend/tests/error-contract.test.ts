@@ -8,11 +8,11 @@ import {
   NotFoundError,
   RateLimitedError,
   UnauthenticatedError,
-} from "../src/platform/errors.js";
-import { errorHandler, notFoundHandler } from "../src/platform/http/error-handler.middleware.js";
-import { startServer, type RunningServer } from "../src/platform/server.js";
-import { createLogger } from "../src/platform/logger.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "../src/platform/errors.ts";
+import { errorHandler, notFoundHandler } from "../src/platform/http/error-handler.middleware.ts";
+import { startServer, type RunningServer } from "../src/platform/server.ts";
+import { createLogger } from "../src/platform/logger.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 describe("the error contract on the running API", () => {
   let api: TestApi;

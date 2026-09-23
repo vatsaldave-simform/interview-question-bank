@@ -11,15 +11,15 @@ import {
   type QuestionTag,
   type Viewer,
 } from "@iqb/shared";
-import { Prisma } from "../../generated/prisma/client.js";
+import { Prisma } from "../../generated/prisma/client.ts";
 import {
   aboutAnotherQuestion,
   changeEventFieldsToRead,
   insertChangeEvent,
   toChangeEventFromDb,
   type ChangeEventFromDb,
-} from "../change-events/change-events.repository.js";
-import type { Database } from "../../platform/database.js";
+} from "../change-events/change-events.repository.ts";
+import type { Database } from "../../platform/database.ts";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
 export type QuestionFromDb = {

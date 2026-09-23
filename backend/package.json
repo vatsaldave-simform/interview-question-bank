@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.test.json",
@@ -13,9 +13,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
-    "db:seed": "tsx src/commands/seed.ts",
-    "db:seed:bulk": "tsx src/commands/seed-bulk-bank.ts",
-    "db:measure:plans": "tsx src/commands/measure-query-plans.ts",
+    "db:seed": "node src/commands/seed.ts",
+    "db:seed:bulk": "node src/commands/seed-bulk-bank.ts",
+    "db:measure:plans": "node src/commands/measure-query-plans.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -37,7 +37,6 @@
     "@types/node": "^24.11.0",
     "@types/pg": "^8.23.1",
     "prisma": "7.10.0",
-    "tsx": "^4.23.13",
     "typescript": "5.9.3",
     "vitest": "^5.0.0"
   }

@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../src/generated/prisma/client.js";
-import { createDatabase, type Database } from "../../src/platform/database.js";
+import { PrismaClient } from "../../src/generated/prisma/client.ts";
+import { createDatabase, type Database } from "../../src/platform/database.ts";
 
 /**
  * The suite truncates whatever it connects to, so it refuses to connect to anything

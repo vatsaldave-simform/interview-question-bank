@@ -3,15 +3,15 @@ import {
   bankVocabulary,
   seedBulkBank,
   type BulkBankOptions,
-} from "../../src/features/questions/bulk-bank.seed.js";
-import type { TagsInCategory } from "../../src/features/questions/questions.repository.js";
-import { seedClientsAndGrants } from "../../src/features/clients/clients.seed.js";
-import { seedQuestionBank } from "../../src/features/questions/questions.seed.js";
-import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.js";
-import type { Database } from "../../src/platform/database.js";
-import { seededViewer } from "./auth.js";
-import type { TestApi } from "./test-api.js";
-import { truncateAll } from "./test-database.js";
+} from "../../src/features/questions/bulk-bank.seed.ts";
+import type { TagsInCategory } from "../../src/features/questions/questions.repository.ts";
+import { seedClientsAndGrants } from "../../src/features/clients/clients.seed.ts";
+import { seedQuestionBank } from "../../src/features/questions/questions.seed.ts";
+import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.ts";
+import type { Database } from "../../src/platform/database.ts";
+import { seededViewer } from "./auth.ts";
+import type { TestApi } from "./test-api.ts";
+import { truncateAll } from "./test-database.ts";
 
 /** An empty database filled with the fixtures, in the order the dependencies run. */
 export async function seedTheBank(database: Database): Promise<void> {

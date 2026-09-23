@@ -1,6 +1,6 @@
 import type { Viewer } from "@iqb/shared";
 import type { Request } from "express";
-import { UnauthenticatedError } from "../../platform/errors.js";
+import { UnauthenticatedError } from "../../platform/errors.ts";
 
 // Augments Express's Request globally: importing this file anywhere is what makes
 // `req.viewer` exist everywhere.

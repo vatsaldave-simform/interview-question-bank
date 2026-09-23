@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Database } from "../src/platform/database.js";
-import { connectionCount, createTestDatabase } from "./helpers/test-database.js";
-import { startTestApi } from "./helpers/test-api.js";
-import { readUntil } from "./helpers/wait.js";
+import type { Database } from "../src/platform/database.ts";
+import { connectionCount, createTestDatabase } from "./helpers/test-database.ts";
+import { startTestApi } from "./helpers/test-api.ts";
+import { readUntil } from "./helpers/wait.ts";
 
 describe("graceful shutdown", () => {
   // A client of its own, so it survives the shutdown it is watching.

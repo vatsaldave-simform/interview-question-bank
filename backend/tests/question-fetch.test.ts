@@ -1,9 +1,9 @@
 import { questionResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedQuestions } from "../src/features/questions/questions.seed.js";
-import { logIn, seededViewer } from "./helpers/auth.js";
-import { getQuestion, seedTheBank, unknownQuestionId } from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { seedQuestions } from "../src/features/questions/questions.seed.ts";
+import { logIn, seededViewer } from "./helpers/auth.ts";
+import { getQuestion, seedTheBank, unknownQuestionId } from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 const publishedAndUnrestricted = seedQuestions[0]!.id;
 const publishedAndRestricted = seedQuestions[1]!.id;

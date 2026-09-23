@@ -1,8 +1,8 @@
 import { apiErrorSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.js";
-import { aQuestion, postQuestion, seedTheBank } from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+import { logIn, seededViewer } from "./helpers/auth.ts";
+import { aQuestion, postQuestion, seedTheBank } from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /** What a submitted Question is refused for, and on which side of the edge. */
 describe("refusing a Question", () => {

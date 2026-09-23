@@ -1,14 +1,14 @@
 import { apiErrorSchema, questionResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.js";
+import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   getQuestion,
   postQuestion,
   seedTheBank,
   unknownQuestionId,
-} from "./helpers/question-bank.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/question-bank.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /** What `POST /api/questions` accepts, who may call it, and where a new Question lands. */
 describe("adding a Question over HTTP", () => {

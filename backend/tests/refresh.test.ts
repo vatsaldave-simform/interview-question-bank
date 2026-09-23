@@ -1,14 +1,14 @@
 import { apiErrorSchema, loginResponseSchema, refreshResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.js";
-import { postLogin, seededViewer } from "./helpers/auth.js";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
+import { postLogin, seededViewer } from "./helpers/auth.ts";
 import {
   refreshCookieAttributes,
   refreshCookieHeader,
   refreshCookieValue,
   setsRefreshCookie,
-} from "./helpers/cookies.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
+} from "./helpers/cookies.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /**
  * The session a Viewer keeps across a reload, and what happens to it when a token that

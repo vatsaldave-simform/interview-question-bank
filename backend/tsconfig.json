@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node"]
+    "types": ["node"],
+    // Node loads the file an import names, so imports end in `.ts` (ADR-0032).
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    // Node only removes types, so reject code that needs more than that (ADR-0032).
+    "erasableSyntaxOnly": true
   },
   "include": ["src"]
 }

@@ -4,11 +4,11 @@ import {
   insertRefreshToken,
   revokeRefreshTokenFamily,
   spendRefreshToken,
-} from "../src/features/auth/refresh-token.repository.js";
-import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { createTestDatabase, truncateAll } from "./helpers/test-database.js";
-import { seededViewer } from "./helpers/auth.js";
+} from "../src/features/auth/refresh-token.repository.ts";
+import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
+import { seededViewer } from "./helpers/auth.ts";
 
 /** The two writes that have to stay safe when one token is presented twice at once. */
 describe("the refresh token store", () => {

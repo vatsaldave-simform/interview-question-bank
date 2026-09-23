@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { RequestHandler } from "express";
 import type { Logger } from "pino";
-import { runWithRequestContext } from "../request-context.js";
+import { runWithRequestContext } from "../request-context.ts";
 
 const requestIdHeader = "x-request-id";
 

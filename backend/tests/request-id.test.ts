@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
-import { readUntil } from "./helpers/wait.js";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
+import { readUntil } from "./helpers/wait.ts";
 
 describe("request id in the response and the logs", () => {
   let api: TestApi;

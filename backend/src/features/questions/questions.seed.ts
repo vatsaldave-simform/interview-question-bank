@@ -1,7 +1,7 @@
 import type { CategoryName, Provenance, PublicationState } from "@iqb/shared";
-import type { Database } from "../../platform/database.js";
-import { seedClient, seedOtherClient, type SeedClient } from "../clients/clients.seed.js";
-import { seedViewerByRole } from "../viewers/viewers.seed.js";
+import type { Database } from "../../platform/database.ts";
+import { seedClient, seedOtherClient, type SeedClient } from "../clients/clients.seed.ts";
+import { seedViewerByRole } from "../viewers/viewers.seed.ts";
 
 export type SeedCategory = {
   name: CategoryName;

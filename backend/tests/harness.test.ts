@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
-import { testDatabaseUrl } from "./helpers/test-database.js";
-import { withDatabaseUrl } from "./helpers/with-env.js";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
+import { testDatabaseUrl } from "./helpers/test-database.ts";
+import { withDatabaseUrl } from "./helpers/with-env.ts";
 
 /**
  * The harness every later ticket builds on: a real application, a real database, and

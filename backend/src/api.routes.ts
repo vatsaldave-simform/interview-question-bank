@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { requireAuthenticatedViewer } from "./features/auth/auth.middleware.js";
-import { notFoundHandler } from "./platform/http/error-handler.middleware.js";
+import { requireAuthenticatedViewer } from "./features/auth/auth.middleware.ts";
+import { notFoundHandler } from "./platform/http/error-handler.middleware.ts";
 import {
   authenticatedAuthRoutes,
   publicAuthRoutes,
   type PublicAuthDependencies,
-} from "./features/auth/auth.routes.js";
-import { questionRoutes } from "./features/questions/questions.routes.js";
+} from "./features/auth/auth.routes.ts";
+import { questionRoutes } from "./features/questions/questions.routes.ts";
 
 /**
  * Every application route mounts here, under /api (ADR-0012). The health and readiness

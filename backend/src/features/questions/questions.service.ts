@@ -19,15 +19,15 @@ import {
   updateVisibleQuestion,
   type QuestionFromDb,
   type TagsInCategory,
-} from "./questions.repository.js";
-import { mayEdit } from "./may-edit.js";
-import type { Database } from "../../platform/database.js";
+} from "./questions.repository.ts";
+import { mayEdit } from "./may-edit.ts";
+import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
   ForbiddenError,
   InvalidRequestError,
   NotFoundError,
-} from "../../platform/errors.js";
+} from "../../platform/errors.ts";
 
 /** The spelling both sides of the lookup agree on. */
 const tagKey = (category: string, tag: string): string => `${category}/${tag}`;

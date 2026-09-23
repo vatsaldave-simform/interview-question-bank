@@ -1,7 +1,7 @@
 import { type HealthResponse, type ReadinessResponse } from "@iqb/shared";
 import { Router } from "express";
-import type { Database } from "../database.js";
-import { log } from "../logger.js";
+import type { Database } from "../database.ts";
+import { log } from "../logger.ts";
 
 async function databaseIsUp(database: Database): Promise<boolean> {
   try {

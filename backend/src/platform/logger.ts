@@ -1,5 +1,5 @@
 import { pino, type DestinationStream, type Logger } from "pino";
-import { currentRequestContext } from "./request-context.js";
+import { currentRequestContext } from "./request-context.ts";
 
 export type LoggerOptions = {
   level: string;

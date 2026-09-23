@@ -4,11 +4,11 @@ import {
   readPlan,
   scenariosForTheBank,
   vacuumAndAnalyze,
-} from "../src/features/questions/query-plans.js";
-import { seedBulkBank } from "../src/features/questions/bulk-bank.seed.js";
-import type { Database } from "../src/platform/database.js";
-import { seedTheBank } from "./helpers/question-bank.js";
-import { createTestDatabase } from "./helpers/test-database.js";
+} from "../src/features/questions/query-plans.ts";
+import { seedBulkBank } from "../src/features/questions/bulk-bank.seed.ts";
+import type { Database } from "../src/platform/database.ts";
+import { seedTheBank } from "./helpers/question-bank.ts";
+import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Trimmed from a real capture, keeping the lines the summary is read from. */
 const usingAnIndex = `

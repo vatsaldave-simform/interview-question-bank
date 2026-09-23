@@ -1,12 +1,12 @@
 import { loginResponseSchema } from "@iqb/shared";
-import { type SeedViewer } from "../../src/features/viewers/viewers.seed.js";
-import type { TestApi } from "./test-api.js";
+import { type SeedViewer } from "../../src/features/viewers/viewers.seed.ts";
+import type { TestApi } from "./test-api.ts";
 
 /** Long enough to satisfy the environment schema, and obviously not a real secret. */
 export const testAccessTokenSecret = "test-access-token-secret-do-not-deploy";
 
 /** The seeded Viewer holding a role, for a test that needs one of a particular kind. */
-export { seedViewerByRole as seededViewer } from "../../src/features/viewers/viewers.seed.js";
+export { seedViewerByRole as seededViewer } from "../../src/features/viewers/viewers.seed.ts";
 
 /** The login request itself, for a test that wants to read the response it got. */
 export function postLogin(

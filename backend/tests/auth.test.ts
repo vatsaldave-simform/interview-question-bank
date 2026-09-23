@@ -1,10 +1,10 @@
 import { apiErrorSchema, currentViewerResponseSchema, loginResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readEnv } from "../src/platform/env.js";
-import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.js";
-import { startTestApi, type TestApi } from "./helpers/test-api.js";
-import { logIn, postLogin, seededViewer, testAccessTokenSecret } from "./helpers/auth.js";
-import { readUntil } from "./helpers/wait.js";
+import { readEnv } from "../src/platform/env.ts";
+import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
+import { logIn, postLogin, seededViewer, testAccessTokenSecret } from "./helpers/auth.ts";
+import { readUntil } from "./helpers/wait.ts";
 
 describe("logging in", () => {
   let api: TestApi;

@@ -1,19 +1,19 @@
 import type { Viewer } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.js";
+import { seedClient } from "../src/features/clients/clients.seed.ts";
 import {
   findVisibleQuestions,
   type QuestionQuery,
-} from "../src/features/questions/questions.repository.js";
-import type { Database } from "../src/platform/database.js";
+} from "../src/features/questions/questions.repository.ts";
+import type { Database } from "../src/platform/database.ts";
 import {
   clientIdNamed,
   commonestTags,
   sameAnswerInJavaScript,
   seedTheBulkBank,
   viewerByRole,
-} from "./helpers/question-bank.js";
-import { createSqlLoggingDatabase, type SqlLoggingDatabase } from "./helpers/test-database.js";
+} from "./helpers/question-bank.ts";
+import { createSqlLoggingDatabase, type SqlLoggingDatabase } from "./helpers/test-database.ts";
 
 const bulk = { count: 600, seed: "a-test-of-the-combined-filter" };
 
