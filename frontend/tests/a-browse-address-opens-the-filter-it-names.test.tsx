@@ -41,4 +41,29 @@ describe("opening a browse address someone shared", () => {
 
     expect(window.location.search).toBe("?technology=react&technology=node");
   });
+
+  // Story 25 in #1: a Viewer is never silently handed wider results than they asked for.
+  it("refuses a misspelled Category rather than showing the whole bank", async () => {
+    const api = fakeBank((asked) => aPageOf([aQuestion()], asked));
+
+    renderTheWholeClient("/?technolgy=react");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The address names technolgy, which is not a filter.",
+    );
+    expect(listRequests(api)).toHaveLength(0);
+    expect(screen.queryByText(aQuestion().text)).not.toBeInTheDocument();
+  });
+
+  it("refuses a search named twice instead of breaking the page", async () => {
+    const api = fakeBank((asked) => aPageOf([aQuestion()], asked));
+
+    renderTheWholeClient("/?keywords=cache&keywords=miss");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The address gives keywords a value the bank cannot use.",
+    );
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeVisible();
+    expect(listRequests(api)).toHaveLength(0);
+  });
 });

@@ -307,7 +307,8 @@ link opens the same view: `/?technology=react&technology=node&keywords=cache`. R
 rewriting them.
 
 The client shows the Questions the API sent and nothing else. It never hides a row itself,
-because what a Viewer may see is the API's answer alone.
+because what a Viewer may see is the API's answer alone. An address the API would refuse, such as a
+misspelled Category, is refused on screen and never sent, so it cannot show the whole bank.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
 there is no session to recover, the signed-in shell if there is. The access token it gets

@@ -11,10 +11,8 @@ function getCategories(api: TestApi, token?: string): Promise<Response> {
   });
 }
 
-/**
- * What a client builds its filter from. The list is the bank's vocabulary rather than
- * anything a Question owns, so it has to be the same for every Viewer (ADR-0034).
- */
+/** The list is the bank's vocabulary rather than anything a Question owns, so every
+ * Viewer has to get the same one (ADR-0034). */
 describe("listing the Categories and their Tags over HTTP", () => {
   let api: TestApi;
 

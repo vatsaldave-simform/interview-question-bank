@@ -1,4 +1,4 @@
-import { browsePageSize } from "@/features/questions/questions.queries";
+import { browsePageSize } from "@/features/questions/browse.schema";
 import { Button } from "@/ui/shadcn/button";
 
 type BrowsePagesProps = {

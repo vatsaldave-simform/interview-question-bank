@@ -1,34 +1,45 @@
-import { categoryNames, type CategoryName } from "@iqb/shared";
+import {
+  categoryNames,
+  listQuestionsRequestSchema,
+  type CategoryName,
+  type ListQuestionsRequest,
+} from "@iqb/shared";
 import { z } from "zod";
 
-/** A blank value is a box nobody filled in, so it means the same as leaving it out. */
-function blankIsAbsent(text: string): string | undefined {
-  const trimmed = text.trim();
-  return trimmed === "" ? undefined : trimmed;
-}
+export const browsePageSize = 20;
 
-/** One Tag and several arrive in different shapes from the address, and mean the same. */
-const tagValuesSchema = z
-  .union([z.string(), z.array(z.string())])
-  .transform((named) => {
-    const values = [named].flat().flatMap((value) => blankIsAbsent(value) ?? []);
-    return values.length === 0 ? undefined : values;
-  })
-  .optional();
+/** What any one name in the address can hold: one value, or the same name repeated. */
+const addressValueSchema = z.union([z.string(), z.array(z.string())]).optional();
 
-const tagValuesPerCategory = Object.fromEntries(
-  categoryNames.map((name) => [name, tagValuesSchema]),
-) as Record<CategoryName, typeof tagValuesSchema>;
+const addressValuePerCategory = Object.fromEntries(
+  categoryNames.map((name) => [name, addressValueSchema]),
+) as Record<CategoryName, typeof addressValueSchema>;
 
-/**
- * The filter the browse screen is showing, as its address carries it. Something that is
- * not a filter is dropped, since it changes nothing about which Questions match. An
- * unknown Tag or an over-long search is kept for the API to refuse: dropping it would
- * quietly show more than the Viewer asked for.
- */
-export const browseSearchSchema = z.object({
-  ...tagValuesPerCategory,
-  keywords: z.string().transform(blankIsAbsent).optional(),
-  offset: z.coerce.number<string | number>().int().min(0).optional().catch(undefined),
+/** The browse address as it arrived, kept whole so that `listRequestFor` can refuse what
+ * the API would refuse rather than this schema quietly dropping it. */
+export const browseSearchSchema = z.looseObject({
+  ...addressValuePerCategory,
+  keywords: addressValueSchema,
+  offset: z.union([z.number(), z.string(), z.array(z.string())]).optional(),
 });
 export type BrowseSearch = z.infer<typeof browseSearchSchema>;
+
+/** The Tags the address names in one Category, however many times it names them. */
+export function tagsIn(search: BrowseSearch, category: CategoryName): string[] {
+  return [search[category] ?? []].flat();
+}
+
+export type ListRequestFromAddress = { request: ListQuestionsRequest } | { problem: string };
+
+/** Checks the address with the API's own schema, so a misspelled Category is refused
+ * here rather than sent as a request for the whole bank (ADR-0024). */
+export function listRequestFor(search: BrowseSearch): ListRequestFromAddress {
+  const checked = listQuestionsRequestSchema.safeParse({ ...search, limit: browsePageSize });
+  if (checked.success) return { request: checked.data };
+
+  const [issue] = checked.error.issues;
+  if (issue?.code === "unrecognized_keys") {
+    return { problem: `The address names ${issue.keys.join(" and ")}, which is not a filter.` };
+  }
+  return { problem: `The address gives ${String(issue?.path[0])} a value the bank cannot use.` };
+}

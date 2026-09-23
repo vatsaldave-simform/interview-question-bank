@@ -1,9 +1,9 @@
 import type { Question, Viewer } from "@iqb/shared";
-import { browsePageSize } from "@/features/questions/questions.queries";
+import { browsePageSize } from "@/features/questions/browse.schema";
 import { replaceSession } from "@/platform/session";
 import { aSignedInAuthor, answersWith, fakeApi, theCategories, type FakeApi } from "./fake-api";
 
-/** How a test answers the question list. The default is one page holding one Question. */
+/** How a test answers the question list; `aPageOf` builds the usual answer. */
 type AnswerTheList = (asked: URL) => Response | Promise<Response>;
 
 export function aPageOf(questions: Question[], asked: URL): Response {

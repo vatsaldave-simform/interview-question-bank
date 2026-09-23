@@ -1,9 +1,5 @@
-/**
- * Read and write the part of the address after `?` the way the API reads its own query:
- * a name given twice is a list, and every value is plain text. The router's default
- * writes JSON instead, which would make a shared link look nothing like the request it
- * sends (ADR-0025).
- */
+/** Reads a name given twice as a list, the way the API reads its query, where the
+ * router's default would read JSON and make a shared link unlike the request (ADR-0025). */
 export function parseSearch(searchText: string): Record<string, string | string[]> {
   const read: Record<string, string | string[]> = {};
   for (const [name, value] of new URLSearchParams(searchText)) {

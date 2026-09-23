@@ -36,8 +36,8 @@ describe("the browse screen", () => {
     expect(within(card).getByText("mid")).toBeVisible();
   });
 
-  // The API is the only thing that decides what a Viewer may see. A client that hid a
-  // restricted or Pending row would be a second answer to that question.
+  // A client that hid a restricted or Pending row would be a second answer to what a
+  // Viewer may see, and only the API gives that answer.
   it("shows every Question the API sent, restricted or Pending, without judging any", async () => {
     const questions = [
       aQuestion({ id: "a0000000-0000-4000-8000-000000000001", text: "In the open bank" }),

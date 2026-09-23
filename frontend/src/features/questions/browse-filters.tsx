@@ -1,5 +1,5 @@
 import type { CategoryName, CategoryWithTags } from "@iqb/shared";
-import type { BrowseSearch } from "@/features/questions/browse.schema";
+import { tagsIn, type BrowseSearch } from "@/features/questions/browse.schema";
 import { useCategories } from "@/features/questions/questions.queries";
 import { Alert, AlertDescription } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -11,8 +11,8 @@ type BrowseFiltersProps = {
   onSearchChange: (search: BrowseSearch) => void;
 };
 
-/** One group of checkboxes per Category: ticking two in one group widens that Category,
- * and ticking in two groups narrows across them, as the API reads it (ADR-0025). */
+/** Two Tags ticked in one Category widen it, and Tags ticked in two Categories narrow
+ * across them, which is how the API reads the filter (ADR-0025). */
 export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
   const categories = useCategories();
 
@@ -43,7 +43,7 @@ export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
         <CategoryTags
           key={category.name}
           category={category}
-          chosen={search[category.name] ?? []}
+          chosen={tagsIn(search, category.name)}
           onChange={(tags) => setTags(category.name, tags)}
         />
       ))}

@@ -1,11 +1,8 @@
 import { categoryNames, type CategoryWithTags } from "@iqb/shared";
 import type { Database } from "../../platform/database.ts";
 
-/**
- * Every Category in the closed list, in that list's order, and nothing the database holds
- * beyond it: a Category row the enum does not name is one no request can filter by
- * (ADR-0024).
- */
+/** Only the Categories the closed list names, in its order, because no request can filter
+ * by a Category row that the list leaves out (ADR-0024). */
 export async function findEveryCategoryWithTags(database: Database): Promise<CategoryWithTags[]> {
   const rows = await database.category.findMany({
     where: { name: { in: [...categoryNames] } },

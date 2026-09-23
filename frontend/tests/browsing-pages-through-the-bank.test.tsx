@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
-import { browsePageSize } from "@/features/questions/questions.queries";
+import { browsePageSize } from "@/features/questions/browse.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";

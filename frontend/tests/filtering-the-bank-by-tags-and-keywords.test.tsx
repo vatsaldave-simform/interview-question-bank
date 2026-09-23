@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
-import { browsePageSize } from "@/features/questions/questions.queries";
+import { browsePageSize } from "@/features/questions/browse.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
@@ -113,5 +113,29 @@ describe("filtering the bank", () => {
     await waitFor(() => expect(window.location.search).toBe(""));
     expect(screen.getByRole("checkbox", { name: "senior" })).not.toBeChecked();
     expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue("");
+  });
+
+  it("keeps the controls in step when the browser goes Back and Forward", async () => {
+    const api = aBankWithOneQuestion();
+    renderTheWholeClient("/");
+    await tick("react");
+    await waitFor(() => expect(window.location.search).toBe("?technology=react"));
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search" }), "cache{Enter}");
+    await waitFor(() => expect(window.location.search).toBe("?technology=react&keywords=cache"));
+
+    window.history.back();
+
+    await waitFor(() => expect(window.location.search).toBe("?technology=react"));
+    await waitFor(() => expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue(""));
+    expect(screen.getByRole("checkbox", { name: "react" })).toBeChecked();
+
+    window.history.back();
+
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: "react" })).not.toBeChecked());
+    await waitFor(() => expect(listRequests(api).at(-1)!.search).not.toContain("technology"));
+
+    window.history.forward();
+
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: "react" })).toBeChecked());
   });
 });

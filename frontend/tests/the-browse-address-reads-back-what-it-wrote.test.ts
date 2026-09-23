@@ -1,21 +1,28 @@
 import { maxKeywordsLength } from "@iqb/shared";
 import { describe, expect, it } from "vitest";
-import { browseSearchSchema } from "@/features/questions/browse.schema";
+import {
+  browsePageSize,
+  browseSearchSchema,
+  listRequestFor,
+} from "@/features/questions/browse.schema";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 
-function filtersIn(address: string) {
-  return browseSearchSchema.parse(parseSearch(address));
+function requestFor(address: string) {
+  return listRequestFor(browseSearchSchema.parse(parseSearch(address)));
 }
 
 describe("the browse address", () => {
   it("reads a Category named twice as two Tags, the way the API does", () => {
     expect(
-      filtersIn("?technology=react&technology=node&seniority=senior&keywords=cache&offset=20"),
+      requestFor("?technology=react&technology=node&seniority=senior&keywords=cache&offset=20"),
     ).toEqual({
-      technology: ["react", "node"],
-      seniority: ["senior"],
-      keywords: "cache",
-      offset: 20,
+      request: {
+        technology: ["react", "node"],
+        seniority: ["senior"],
+        keywords: "cache",
+        limit: browsePageSize,
+        offset: 20,
+      },
     });
   });
 
@@ -32,43 +39,63 @@ describe("the browse address", () => {
     );
   });
 
-  it("reads back the same filters it wrote", () => {
-    const filters = {
-      technology: ["react"],
-      seniority: ["junior", "mid"],
-      keywords: "what & why?",
-      offset: 60,
-    };
+  it("reads back the same filter it wrote", () => {
+    const search = { technology: ["react"], seniority: ["junior", "mid"], keywords: "what & why?" };
 
-    expect(filtersIn(stringifySearch(filters))).toEqual(filters);
+    expect(requestFor(stringifySearch(search))).toEqual({
+      request: { ...search, limit: browsePageSize, offset: 0 },
+    });
   });
 
   it("writes nothing at all when nothing is filtered", () => {
     expect(stringifySearch({ technology: [], keywords: undefined })).toBe("");
-    expect(filtersIn("")).toEqual({});
+    expect(requestFor("")).toEqual({ request: { limit: browsePageSize, offset: 0 } });
   });
 
-  it("drops what is not a filter, which can never widen the results", () => {
-    expect(filtersIn("?vibes=good&offset=soon&technology=react")).toEqual({
-      technology: ["react"],
-    });
-    expect(filtersIn("?offset=-50")).toEqual({});
-  });
-
-  it("drops a blank search or a blank Tag, which is a box nobody filled in", () => {
-    expect(filtersIn("?keywords=%20%20&technology=&seniority=senior")).toEqual({
-      seniority: ["senior"],
+  it("treats a blank search as no search, as the API does", () => {
+    expect(requestFor("?keywords=%20%20")).toEqual({
+      request: { limit: browsePageSize, offset: 0 },
     });
   });
 
-  // Dropping either would quietly show the whole bank. Kept, the API refuses them and
-  // the screen can say so.
-  it("keeps an unknown Tag and an over-long search for the API to refuse", () => {
-    const tooLong = "a".repeat(maxKeywordsLength + 1);
-
-    expect(filtersIn(`?technology=cobol&keywords=${tooLong}`)).toEqual({
-      technology: ["cobol"],
-      keywords: tooLong,
+  it("keeps an unknown Tag for the API to refuse, since only the database knows the Tags", () => {
+    expect(requestFor("?technology=cobol")).toEqual({
+      request: { technology: ["cobol"], limit: browsePageSize, offset: 0 },
     });
+  });
+});
+
+// Dropping any of these would quietly show more of the bank than the address asked for.
+describe("a browse address the API would refuse", () => {
+  it("is refused when it names a Category that does not exist", () => {
+    expect(requestFor("?technolgy=react")).toEqual({
+      problem: "The address names technolgy, which is not a filter.",
+    });
+  });
+
+  it("is refused when it names the search twice", () => {
+    expect(requestFor("?keywords=cache&keywords=miss")).toEqual({
+      problem: "The address gives keywords a value the bank cannot use.",
+    });
+  });
+
+  it("is refused when its page is not a page", () => {
+    for (const offset of ["soon", "-20", "1.5"]) {
+      expect(requestFor(`?offset=${offset}`)).toEqual({
+        problem: "The address gives offset a value the bank cannot use.",
+      });
+    }
+  });
+
+  it("is refused when its search is longer than the API accepts", () => {
+    expect(requestFor(`?keywords=${"a".repeat(maxKeywordsLength + 1)}`)).toEqual({
+      problem: "The address gives keywords a value the bank cannot use.",
+    });
+  });
+
+  it("is read without throwing, whatever it holds", () => {
+    expect(() =>
+      browseSearchSchema.parse(parseSearch("?offset=1&offset=2&keywords=a&keywords=b&x=")),
+    ).not.toThrow();
   });
 });

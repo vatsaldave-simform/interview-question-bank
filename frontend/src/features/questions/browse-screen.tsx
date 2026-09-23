@@ -1,5 +1,5 @@
 import type { QuestionListResponse } from "@iqb/shared";
-import type { BrowseSearch } from "@/features/questions/browse.schema";
+import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowsePages } from "@/features/questions/browse-pages";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
@@ -16,10 +16,11 @@ type BrowseScreenProps = {
 
 /** Knows nothing about the router: it is handed the filter and told how to change it. */
 export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
-  const list = useQuestionList(search);
-  const offset = search.offset ?? 0;
+  const asked = listRequestFor(search);
+  const request = "request" in asked ? asked.request : null;
+  const list = useQuestionList(request);
 
-  const filtered = Object.entries(search).some(
+  const namesAFilter = Object.entries(search).some(
     ([name, value]) => name !== "offset" && value !== undefined,
   );
 
@@ -27,7 +28,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
     <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[14rem_1fr]">
       <aside className="flex flex-col gap-6" aria-label="Filters">
         <BrowseFilters search={search} onSearchChange={onSearchChange} />
-        {filtered && (
+        {(namesAFilter || request === null) && (
           <Button variant="outline" size="sm" onClick={() => onSearchChange({})}>
             Clear filters
           </Button>
@@ -37,11 +38,18 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         <h1 className="text-2xl font-semibold">Questions</h1>
         <BrowseSearchBox
           // A new key resets the box to the address, after Back or Clear filters.
-          key={search.keywords ?? ""}
-          keywords={search.keywords}
+          key={String(search.keywords ?? "")}
+          keywords={typeof search.keywords === "string" ? search.keywords : undefined}
           onSearch={(keywords) => onSearchChange({ ...search, keywords, offset: undefined })}
         />
-        {list.isPending ? (
+        {"problem" in asked ? (
+          <Alert variant="destructive">
+            <AlertTitle>This address cannot be shown</AlertTitle>
+            <AlertDescription>
+              <p>{asked.problem} Clear the filters to start again.</p>
+            </AlertDescription>
+          </Alert>
+        ) : list.isPending ? (
           <p role="status" className="text-muted-foreground">
             Loading Questions…
           </p>
@@ -58,11 +66,15 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         ) : (
           <QuestionList page={list.data} />
         )}
-        <BrowsePages
-          offset={offset}
-          shown={list.data?.questions.length ?? null}
-          onMove={(next) => onSearchChange({ ...search, offset: next === 0 ? undefined : next })}
-        />
+        {request !== null && (
+          <BrowsePages
+            offset={request.offset}
+            shown={list.data?.questions.length ?? null}
+            onMove={(next) =>
+              onSearchChange({ ...search, offset: next === 0 ? undefined : next })
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -87,8 +99,8 @@ function QuestionList({ page }: { page: QuestionListResponse }) {
   );
 }
 
-/** The API's own words when it sent them. Anything else is an answer the shared schema
- * refused, and the parser's complaint means nothing to a Viewer. */
+/** Anything but an API refusal is an answer the shared schema refused, and the parser's
+ * complaint about it means nothing to a Viewer. */
 function whatWentWrong(reason: Error): string {
   return reason instanceof ApiFailure
     ? reason.message
