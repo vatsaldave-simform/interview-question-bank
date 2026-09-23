@@ -300,8 +300,14 @@ frontend/   the Vite and React client
 
 Both ends infer their types from the schemas in `shared`, so a shape cannot get out of
 sync between client and server. The client signs a Viewer in, keeps them signed in across
-a reload, and logs them out. Run it with `pnpm dev`, which serves it on port 5173 and
-proxies the API's paths through without rewriting them.
+a reload, and logs them out. Once signed in, it lists the bank a page at a time. The Viewer
+can tick Tags in each Category and search by keyword. All of it goes into the address, so a
+link opens the same view: `/?technology=react&technology=node&keywords=cache`. Run it with
+`pnpm dev`, which serves it on port 5173 and proxies the API's paths through without
+rewriting them.
+
+The client shows the Questions the API sent and nothing else. It never hides a row itself,
+because what a Viewer may see is the API's answer alone.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
 there is no session to recover, the signed-in shell if there is. The access token it gets
