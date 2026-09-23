@@ -299,9 +299,14 @@ frontend/   the Vite and React client
 ```
 
 Both ends infer their types from the schemas in `shared`, so a shape cannot get out of
-sync between client and server. The client is a placeholder that reads the API's readiness
-through those schemas; its shell arrives with the login ticket. Run it with `pnpm dev`,
-which serves it on port 5173 and proxies the API's paths through without rewriting them.
+sync between client and server. The client signs a Viewer in, keeps them signed in across
+a reload, and logs them out. Run it with `pnpm dev`, which serves it on port 5173 and
+proxies the API's paths through without rewriting them.
+
+On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
+there is no session to recover, the signed-in shell if there is. The access token it gets
+back is held in memory and nowhere else (ADR-0008), so a reload starts that ask again —
+the cookie is what survives, not the token.
 
 Where a file goes inside `frontend/src` is in
 [docs/agents/frontend-structure.md](docs/agents/frontend-structure.md), with the reasoning
@@ -310,10 +315,6 @@ in ADR-0030 and ADR-0031. One part of it is worth repeating here:
 change a component there, change how it is used, or replace it with one of our own
 somewhere else. An edit made in that folder is lost the next time the component is
 re-added, and nothing warns you.
-
-How `frontend/src` is laid out is in [docs/agents/frontend-structure.md](docs/agents/frontend-structure.md)
-and ADR-0030. One rule belongs here too: `frontend/src/ui/shadcn/` is written by `shadcn add`, so
-anything changed there by hand is overwritten the next time a component is added.
 
 Application routes live under `/api`. `/health` and `/ready` deliberately do not: they
 answer the platform rather than the application, and the deployed health check asks for

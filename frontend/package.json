@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@iqb/shared": "workspace:*",
+    "@tanstack/react-query": "^5.103.2",
+    "@tanstack/react-router": "^1.170.38",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "radix-ui": "^1.6.7",
