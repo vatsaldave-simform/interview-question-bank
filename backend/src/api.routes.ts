@@ -6,6 +6,7 @@ import {
   publicAuthRoutes,
   type PublicAuthDependencies,
 } from "./features/auth/auth.routes.ts";
+import { categoryRoutes } from "./features/categories/categories.routes.ts";
 import { questionRoutes } from "./features/questions/questions.routes.ts";
 
 /**
@@ -33,6 +34,7 @@ export function apiRoutes(dependencies: PublicAuthDependencies): Router {
 
   router.use("/auth", authenticatedAuthRoutes());
   router.use("/questions", questionRoutes(database));
+  router.use("/categories", categoryRoutes(database));
   router.use(notFoundHandler);
   return router;
 }

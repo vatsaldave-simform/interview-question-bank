@@ -19,6 +19,18 @@ export const categoryNames = ["technology", "seniority", "question-type"] as con
 export const categoryNameSchema = z.enum(categoryNames);
 export type CategoryName = z.infer<typeof categoryNameSchema>;
 
+/** A Category as a client builds its filter from one: the spelling a request writes, the
+ * name a person reads, and every Tag value it holds. */
+export const categoryWithTagsSchema = z
+  .object({ name: categoryNameSchema, displayName: z.string(), tags: z.array(z.string()) })
+  .strict();
+export type CategoryWithTags = z.infer<typeof categoryWithTagsSchema>;
+
+export const categoryListResponseSchema = z
+  .object({ categories: z.array(categoryWithTagsSchema) })
+  .strict();
+export type CategoryListResponse = z.infer<typeof categoryListResponseSchema>;
+
 /** A Tag value as a request writes one, trimmed before it is measured. */
 const tagValueSchema = z.string().trim().min(1);
 
