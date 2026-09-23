@@ -52,3 +52,14 @@ export function refusesWith(
     { status, headers: { "content-type": "application/json" } },
   );
 }
+
+/** What the API answers a successful login or refresh with. */
+export const aSignedInAuthor = {
+  accessToken: "a-signed-access-token",
+  expiresInSeconds: 900,
+  viewer: {
+    id: "7c3b4a1e-0000-4000-8000-000000000001",
+    email: "author@iqb.test",
+    role: "author" as const,
+  },
+};

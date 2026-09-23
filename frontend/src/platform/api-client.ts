@@ -1,5 +1,6 @@
 import { apiErrorSchema, type ErrorCode } from "@iqb/shared";
 import type { ZodType } from "zod";
+import { accessToken } from "@/platform/session";
 
 /**
  * A request the API refused, in the shape every error response has. Thrown rather than
@@ -36,11 +37,15 @@ type Sending = {
 /** Same-origin in the deployed image and proxied in development, so the cookie travels
  * either way and there is no CORS to configure (ADR-0012). */
 function sendingFor({ method = "GET", body, signal }: Sending): RequestInit {
+  // Read here rather than passed in by every caller: the token is held in one place and
+  // the client is the only thing that sends it (ADR-0030).
+  const token = accessToken();
   return {
     method,
     credentials: "same-origin",
     headers: {
       accept: "application/json",
+      ...(token === null ? {} : { authorization: `Bearer ${token}` }),
       ...(body === undefined ? {} : { "content-type": "application/json" }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
