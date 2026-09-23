@@ -3,7 +3,6 @@ packages:
   - backend
   - frontend
 
-# Refuse to install on a Node or pnpm older than the root package.json asks for.
 engineStrict: true
 
 # pnpm 11 stops the install when a dependency's install script has not been approved.
@@ -12,8 +11,7 @@ allowBuilds:
   prisma: true
   '@prisma/engines': true
 
-# pnpm 11 waits a day before it uses a new release. These two were already in the lockfile
-# when pnpm 11 arrived, and were less than a day old then.
+# Less than a day old when pnpm 11 arrived; delete this list once they are older (ADR-0033).
 minimumReleaseAgeExclude:
   - cn@0.4.0
   - '@exodus/bytes@1.16.0'
