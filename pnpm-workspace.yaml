@@ -2,3 +2,19 @@ packages:
   - shared
   - backend
   - frontend
+
+engineStrict: true
+
+# pnpm 11 stops the install when a dependency's install script has not been approved.
+allowBuilds:
+  esbuild: true
+  prisma: true
+  '@prisma/engines': true
+
+# Less than a day old when pnpm 11 arrived; delete this list once they are older (ADR-0033).
+minimumReleaseAgeExclude:
+  - cn@0.4.0
+  - '@exodus/bytes@1.16.0'
+
+# The Dockerfile's `pnpm deploy` needs this from pnpm 10 on (ADR-0033).
+injectWorkspacePackages: true

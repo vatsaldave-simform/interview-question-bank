@@ -8,7 +8,8 @@
 # ---------------------------------------------------------------------- builder
 FROM node:24-alpine AS builder
 
-RUN corepack enable
+# Keep this version the same as `packageManager` in the root package.json (ADR-0033).
+RUN npm install -g pnpm@11.27.1
 WORKDIR /app
 
 # Manifests first, so a source change does not reinstall the world.
@@ -35,7 +36,9 @@ RUN pnpm --filter @iqb/shared build \
 # root has no dependencies; and copying `node_modules` from a pnpm workspace copies the
 # whole `.pnpm` virtual store, so what the symlinks point at is irrelevant to the size
 # of the image. `deploy` builds a tree scoped to production from the outset.
-RUN pnpm --filter @iqb/backend deploy --prod /app/deploy
+#
+# `--ignore-scripts` because `prisma generate` already ran above (ADR-0033).
+RUN pnpm --filter @iqb/backend deploy --prod --ignore-scripts /app/deploy
 
 # ---------------------------------------------------------------------- runtime
 FROM node:24-alpine AS runtime
@@ -46,12 +49,7 @@ WORKDIR /app
 # what makes the deployed image a single origin rather than a bare API.
 ENV FRONTEND_DIR=/app/frontend/dist
 
-# No TypeScript toolchain, no client bundler, no test runner, and no Prisma CLI: `--prod`
-# above left them all behind. The CLI was the largest thing in this image and none of the
-# API's own code loads it — it dragged in Prisma Studio, an effect runtime, an embedded
-# WASM Postgres and a copy of react-dom. Migrations belong to whoever is deploying, not
-# to the server process, so they run elsewhere: a one-shot compose service locally, and
-# the CI workflow for the deployment (ADR-0012).
+# Nothing here runs the Prisma CLI: migrations run outside the image (ADR-0012, ADR-0033).
 COPY --from=builder /app/deploy ./backend
 COPY --from=builder /app/frontend/dist ./frontend/dist
 

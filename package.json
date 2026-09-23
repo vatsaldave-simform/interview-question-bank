@@ -4,7 +4,7 @@
   "type": "module",
   "engines": {
     "node": ">=24.11",
-    "pnpm": ">=9"
+    "pnpm": ">=11"
   },
   "scripts": {
     "build": "pnpm -r build",
@@ -17,5 +17,5 @@
     "db:seed:bulk": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:seed:bulk",
     "db:measure:plans": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:measure:plans"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@11.27.1"
 }
