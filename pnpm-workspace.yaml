@@ -2,3 +2,21 @@ packages:
   - shared
   - backend
   - frontend
+
+# Refuse to install on a Node or pnpm older than the root package.json asks for.
+engineStrict: true
+
+# pnpm 11 stops the install when a dependency's install script has not been approved.
+allowBuilds:
+  esbuild: true
+  prisma: true
+  '@prisma/engines': true
+
+# pnpm 11 waits a day before it uses a new release. These two were already in the lockfile
+# when pnpm 11 arrived, and were less than a day old then.
+minimumReleaseAgeExclude:
+  - cn@0.4.0
+  - '@exodus/bytes@1.16.0'
+
+# The Dockerfile's `pnpm deploy` needs this from pnpm 10 on (ADR-0033).
+injectWorkspacePackages: true
