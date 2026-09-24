@@ -208,6 +208,7 @@ enum ChangeEventType {
   administrator_appointed
   administrator_withdrawn
   role_changed
+  client_created
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

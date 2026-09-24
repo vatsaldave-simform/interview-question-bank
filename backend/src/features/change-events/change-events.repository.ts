@@ -1,6 +1,7 @@
 import {
   administratorAppointedSchema,
   administratorWithdrawnSchema,
+  clientCreatedSchema,
   nearDuplicateOverriddenSchema,
   nearDuplicateRefusedSchema,
   questionAddedSchema,
@@ -8,6 +9,7 @@ import {
   roleChangedSchema,
   type AdministratorAppointed,
   type AdministratorWithdrawn,
+  type ClientCreated,
   type NearDuplicateOverridden,
   type NearDuplicateRefused,
   type ChangeEventType,
@@ -64,6 +66,12 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: RoleChanged;
+    }
+  | {
+      type: "client_created";
+      questionId: null;
+      viewerId: string;
+      payload: ClientCreated;
     };
 
 /**
@@ -120,6 +128,7 @@ export type ChangeEventFromDb = {
   | { type: "administrator_appointed"; payload: AdministratorAppointed }
   | { type: "administrator_withdrawn"; payload: AdministratorWithdrawn }
   | { type: "role_changed"; payload: RoleChanged }
+  | { type: "client_created"; payload: ClientCreated }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -159,5 +168,7 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
       };
     case "role_changed":
       return { ...happened, type: row.type, payload: roleChangedSchema.parse(row.payload) };
+    case "client_created":
+      return { ...happened, type: row.type, payload: clientCreatedSchema.parse(row.payload) };
   }
 }
