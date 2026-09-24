@@ -52,7 +52,7 @@ describe("logging in", () => {
     });
 
     expect(stored.passwordHash).not.toContain(viewer.password);
-    expect(stored.passwordHash.startsWith("$argon2id$")).toBe(true);
+    expect(stored.passwordHash?.startsWith("$argon2id$")).toBe(true);
   });
 
   it("never returns anything derived from the stored credential", async () => {
@@ -87,6 +87,17 @@ describe("logging in", () => {
     const response = await postLogin(api, { email: "corrupt@iqb.test", password: "anything at all" });
 
     expect(response.status).toBe(401);
+  });
+
+  it("refuses a Viewer who has no password yet, the same way as a wrong password", async () => {
+    await api.database.viewer.create({ data: { email: "not-yet-set@iqb.test", role: "reader" } });
+    const viewer = seededViewer("author");
+
+    const noPassword = await postLogin(api, { email: "not-yet-set@iqb.test", password: "any guess" });
+    const wrongPassword = await postLogin(api, { email: viewer.email, password: "not the password" });
+
+    expect(noPassword.status).toBe(401);
+    expect(await noPassword.text()).toBe(await wrongPassword.text());
   });
 
   it("refuses a malformed body at the edge", async () => {
