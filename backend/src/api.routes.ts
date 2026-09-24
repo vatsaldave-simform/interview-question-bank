@@ -9,6 +9,7 @@ import {
 import { categoryRoutes } from "./features/categories/categories.routes.ts";
 import { questionRoutes } from "./features/questions/questions.routes.ts";
 import { administrationRoutes } from "./features/administration/administration.routes.ts";
+import { clientRoutes } from "./features/clients/clients.routes.ts";
 
 /**
  * Every application route mounts here, under /api (ADR-0012). The health and readiness
@@ -37,6 +38,7 @@ export function apiRoutes(dependencies: PublicAuthDependencies): Router {
   router.use("/questions", questionRoutes(database));
   router.use("/categories", categoryRoutes(database));
   router.use("/viewers", administrationRoutes(database));
+  router.use("/clients", clientRoutes(database));
   router.use(notFoundHandler);
   return router;
 }
