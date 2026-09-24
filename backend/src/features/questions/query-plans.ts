@@ -115,7 +115,7 @@ async function seededViewers(database: Database): Promise<Record<ViewerRole, Vie
     roles.map((role) =>
       database.viewer.findUniqueOrThrow({
         where: { email: seedViewerByRole(role).email },
-        select: { id: true, email: true, role: true },
+        select: { id: true, email: true, role: true, isAdministrator: true },
       }),
     ),
   );

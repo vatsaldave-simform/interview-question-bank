@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { viewerRoleSchema } from "./auth.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
 /**
@@ -9,6 +10,9 @@ export const changeEventTypes = [
   "question_edited",
   "near_duplicate_refused",
   "near_duplicate_overridden",
+  "administrator_appointed",
+  "administrator_withdrawn",
+  "role_changed",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -56,6 +60,26 @@ function changedFrom<T extends z.ZodTypeAny>(value: T) {
   return z.object({ before: value, after: value }).strict();
 }
 
+/** The Viewer an administrative event is about, named the way ADR-0035 names one:
+ * an id is not something a person can read. */
+const affectedViewerSchema = z.object({ id: z.uuid(), email: z.email() }).strict();
+
+/** An Administrator appointing another Viewer. The event's own `viewerId` is who did
+ * it, which is not always the Viewer this payload names (ADR-0015 permits appointing
+ * oneself, and self and target are then the same Viewer). */
+export const administratorAppointedSchema = z.object({ viewer: affectedViewerSchema }).strict();
+export type AdministratorAppointed = z.infer<typeof administratorAppointedSchema>;
+
+/** The Administrator authority withdrawn from a Viewer. */
+export const administratorWithdrawnSchema = z.object({ viewer: affectedViewerSchema }).strict();
+export type AdministratorWithdrawn = z.infer<typeof administratorWithdrawnSchema>;
+
+/** An Administrator setting a Viewer's role directly, with no Role Request involved. */
+export const roleChangedSchema = z
+  .object({ viewer: affectedViewerSchema, role: changedFrom(viewerRoleSchema) })
+  .strict();
+export type RoleChanged = z.infer<typeof roleChangedSchema>;
+
 /**
  * Only the fields the edit changed, each with what it was and what it became. A field
  * the edit left alone is absent, and so is one it named with the value already there.
@@ -96,6 +120,15 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
     type: z.literal("near_duplicate_overridden"),
     payload: nearDuplicateOverriddenSchema,
   }),
+  changeEventSchema.extend({
+    type: z.literal("administrator_appointed"),
+    payload: administratorAppointedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("administrator_withdrawn"),
+    payload: administratorWithdrawnSchema,
+  }),
+  changeEventSchema.extend({ type: z.literal("role_changed"), payload: roleChangedSchema }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
 

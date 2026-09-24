@@ -29,6 +29,7 @@ describe("logging in", () => {
         id: expect.any(String),
         email: viewer.email,
         role: viewer.role,
+        isAdministrator: viewer.isAdministrator ?? false,
       });
       expect(body.expiresInSeconds).toBeGreaterThan(0);
     },
@@ -130,6 +131,7 @@ describe("the end of the anonymous path", () => {
       id: expect.any(String),
       email: viewer.email,
       role: viewer.role,
+      isAdministrator: viewer.isAdministrator ?? false,
     });
   });
 

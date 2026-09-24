@@ -88,7 +88,12 @@ export function publicAuthRoutes({
     const body: LoginResponse = {
       accessToken: await signAccessToken(viewer.id, accessToken),
       expiresInSeconds: accessToken.lifetimeSeconds,
-      viewer: { id: viewer.id, email: viewer.email, role: viewer.role } satisfies Viewer,
+      viewer: {
+        id: viewer.id,
+        email: viewer.email,
+        role: viewer.role,
+        isAdministrator: viewer.isAdministrator,
+      } satisfies Viewer,
     };
     // Last, so that a response that never gets built leaves no cookie and no row.
     setRefreshCookie(res, await issueRefreshToken(database, viewer.id, refreshToken), refreshCookie);

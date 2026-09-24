@@ -18,6 +18,8 @@ export const viewerSchema = z
     id: z.uuid(),
     email: z.email(),
     role: viewerRoleSchema,
+    /** Held alongside `role` rather than instead of it (ADR-0015). */
+    isAdministrator: z.boolean(),
   })
   .strict();
 export type Viewer = z.infer<typeof viewerSchema>;
