@@ -1,4 +1,5 @@
 import type { QuestionListResponse } from "@iqb/shared";
+import { Link } from "@tanstack/react-router";
 import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowsePages } from "@/features/questions/browse-pages";
@@ -35,7 +36,12 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         )}
       </aside>
       <div className="flex min-w-0 flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Questions</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold">Questions</h1>
+          <Button asChild>
+            <Link to="/questions/new">Add a Question</Link>
+          </Button>
+        </div>
         <BrowseSearchBox
           // A new key resets the box to the address, after Back or Clear filters.
           key={String(search.keywords ?? "")}

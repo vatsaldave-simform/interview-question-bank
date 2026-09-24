@@ -6,6 +6,7 @@ import {
   type ListQuestionsRequest,
   type NearDuplicatesFound,
   type QuestionTag,
+  type UnknownTags,
   type Viewer,
 } from "@iqb/shared";
 import {
@@ -48,7 +49,10 @@ async function lookUpTagIds(
   const unknown = tags
     .map(({ category, tag }) => tagKey(category, tag))
     .filter((named) => !found.has(named));
-  if (unknown.length > 0) throw new InvalidRequestError("No such Tag.", { tags: unknown });
+  if (unknown.length > 0) {
+    const details: UnknownTags = { tags: unknown };
+    throw new InvalidRequestError("No such Tag.", details);
+  }
 
   return found;
 }

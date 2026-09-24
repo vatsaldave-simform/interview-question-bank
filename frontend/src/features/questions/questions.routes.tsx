@@ -1,6 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { BrowseScreen } from "@/features/questions/browse-screen";
+import { ContributeScreen } from "@/features/questions/contribute-screen";
 import { QuestionScreen } from "@/features/questions/question-screen";
 import { signedInRoute } from "@/platform/signed-in-route";
 
@@ -19,6 +20,23 @@ function Browse() {
   );
 }
 
+const contributeRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/questions/new",
+  component: Contribute,
+});
+
+function Contribute() {
+  const navigate = contributeRoute.useNavigate();
+  return (
+    <ContributeScreen
+      onAdded={(question) =>
+        void navigate({ to: "/questions/$questionId", params: { questionId: question.id } })
+      }
+    />
+  );
+}
+
 const questionRoute = createRoute({
   getParentRoute: () => signedInRoute,
   path: "/questions/$questionId",
@@ -30,4 +48,4 @@ function OneQuestion() {
   return <QuestionScreen questionId={questionId} />;
 }
 
-export const questionRoutes = [browseRoute, questionRoute];
+export const questionRoutes = [browseRoute, contributeRoute, questionRoute];

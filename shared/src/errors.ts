@@ -39,3 +39,12 @@ export const apiErrorSchema = z
   .strict();
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+/**
+ * Which fields a request was refused over, when the API's schema refused its body. This is
+ * the part of what `z.treeifyError` writes that a client reads; the rest is left out.
+ */
+export const refusedFieldsSchema = z.object({
+  properties: z.record(z.string(), z.object({ errors: z.array(z.string()) })),
+});
+export type RefusedFields = z.infer<typeof refusedFieldsSchema>;

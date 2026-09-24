@@ -310,6 +310,12 @@ The client shows the Questions the API sent and nothing else. It never hides a r
 because what a Viewer may see is the API's answer alone. An address the API would refuse, such as a
 misspelled Category, is refused on screen and never sent, so it cannot show the whole bank.
 
+Each Question has a page at `/questions/:id`, with its history: who changed what, and when.
+`/questions/new` adds one. The form is checked with the same schema the API uses before it is
+sent, and anything the API still refuses is shown against the field it names. The form is
+there for every Viewer, a Reader included. Whether they may add is the API's answer, so a
+Reader sees the API's refusal rather than a missing button.
+
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
 there is no session to recover, the signed-in shell if there is. The access token it gets
 back is held in memory and nowhere else (ADR-0008), so a reload starts that ask again —

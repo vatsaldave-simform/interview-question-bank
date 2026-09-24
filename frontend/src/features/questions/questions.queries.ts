@@ -4,9 +4,10 @@ import {
   questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
+  type AddQuestionRequest,
   type ListQuestionsRequest,
 } from "@iqb/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callApi } from "@/platform/api-client";
 import { stringifySearch } from "@/platform/search-params";
 
@@ -56,5 +57,14 @@ export function useQuestionHistory(id: string) {
         signal,
       }),
     select: (answer) => answer.events,
+  });
+}
+
+export function useAddQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: AddQuestionRequest) =>
+      callApi("/api/questions", questionResponseSchema, { method: "POST", body: request }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
   });
 }

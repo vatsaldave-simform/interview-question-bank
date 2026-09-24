@@ -1,10 +1,10 @@
-import type { CategoryName, CategoryWithTags } from "@iqb/shared";
+import type { CategoryName } from "@iqb/shared";
 import { tagsIn, type BrowseSearch } from "@/features/questions/browse.schema";
+import { CategoryTags } from "@/features/questions/category-tags";
 import { useCategories } from "@/features/questions/questions.queries";
 import { Alert, AlertDescription } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
-import { Checkbox } from "@/ui/shadcn/checkbox";
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/ui/shadcn/field";
+import { FieldGroup } from "@/ui/shadcn/field";
 
 type BrowseFiltersProps = {
   search: BrowseSearch;
@@ -42,48 +42,12 @@ export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
       {categories.data.map((category) => (
         <CategoryTags
           key={category.name}
+          idPrefix="filter"
           category={category}
           chosen={tagsIn(search, category.name)}
           onChange={(tags) => setTags(category.name, tags)}
         />
       ))}
     </FieldGroup>
-  );
-}
-
-type CategoryTagsProps = {
-  category: CategoryWithTags;
-  chosen: readonly string[];
-  onChange: (tags: string[]) => void;
-};
-
-function CategoryTags({ category, chosen, onChange }: CategoryTagsProps) {
-  return (
-    <FieldSet>
-      <FieldLegend variant="label">{category.displayName}</FieldLegend>
-      {/* The bulk bank puts dozens of Tags in one Category, and an unbounded list would push
-          the Questions off the screen. */}
-      <FieldGroup data-slot="checkbox-group" className="max-h-60 overflow-y-auto">
-        {category.tags.map((tag) => {
-          const id = `filter-${category.name}-${tag}`;
-          return (
-            <Field key={tag} orientation="horizontal">
-              <Checkbox
-                id={id}
-                checked={chosen.includes(tag)}
-                onCheckedChange={(checked) =>
-                  onChange(
-                    checked === true ? [...chosen, tag] : chosen.filter((one) => one !== tag),
-                  )
-                }
-              />
-              <FieldLabel htmlFor={id} className="font-normal">
-                {tag}
-              </FieldLabel>
-            </Field>
-          );
-        })}
-      </FieldGroup>
-    </FieldSet>
   );
 }
