@@ -290,12 +290,33 @@ later ticket tests at: the guarantee this project is built around, that a
 Client-restricted Question is indistinguishable from one that does not exist, is a
 property of an HTTP response and cannot be asserted below it.
 
+## The browser test
+
+One Playwright test checks that the client and the API are connected. It runs in Chromium, logs
+in as the seeded Author, filters the bank by a Tag and adds a Question. It checks nothing
+the HTTP suite does not already cover. It only shows that the two halves work together.
+
+```sh
+pnpm test:browser
+```
+
+That installs Chromium if it is missing. Then it starts a copy of the stack with compose, runs
+the test, and removes the copy, database and all. Docker has to be running. The copy is a
+separate compose project, `iqb-browser-test`, on port 3100 for the API and 5436 for the
+database. So it runs beside a stack you already have up and never writes to your development
+bank (ADR-0036). Set `BROWSER_TEST_PORT` or `BROWSER_TEST_DB_PORT` if those ports are taken.
+
+The first run builds the image and downloads Chromium, which takes a few minutes. After that,
+a run takes about twenty seconds, most of it spent migrating and seeding a fresh database.
+That is why `pnpm test` does not run it.
+
 ## The workspace
 
 ```
-shared/     zod schemas for every request and response shape (ADR-0010)
-backend/    the Express API (ADR-0001)
-frontend/   the Vite and React client
+shared/        zod schemas for every request and response shape (ADR-0010)
+backend/       the Express API (ADR-0001)
+frontend/      the Vite and React client
+browser-test/  one Playwright test of the two together (ADR-0036)
 ```
 
 Both ends infer their types from the schemas in `shared`, so a shape cannot get out of

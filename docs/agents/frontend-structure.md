@@ -92,8 +92,8 @@ component has no single contract the way an HTTP route does. A helper says it is
 
 No test runner is configured yet. The first ticket that needs one picks it.
 
-The browser test in #16 is not part of this package. It drives the API and the client running
-together, so it does not belong to either one.
+The browser test is not part of this package. It drives the API and the client running together,
+so it does not belong to either one. It lives in `browser-test/` at the root (ADR-0036).
 
 ## Comments
 

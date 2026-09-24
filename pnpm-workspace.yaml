@@ -2,6 +2,7 @@ packages:
   - shared
   - backend
   - frontend
+  - browser-test
 
 engineStrict: true
 
