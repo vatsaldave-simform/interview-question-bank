@@ -11,8 +11,6 @@ import {
   DialogTitle,
 } from "@/ui/shadcn/dialog";
 
-/** What the API judged a refused Question too close to, or null when that is not why it
- * was refused. */
 export function nearDuplicatesIn(reason: Error): NearDuplicate[] | null {
   if (!(reason instanceof ApiFailure) || reason.code !== "conflict") return null;
   const found = nearDuplicatesFoundSchema.safeParse(reason.details);
@@ -27,8 +25,8 @@ type NearDuplicateDialogProps = {
   onSubmitAnyway: () => void;
 };
 
-/** Only the Author can say a match is wrong, so the client offers the choice and never
- * makes it (ADR-0014). */
+/** Only the Author may overrule detection, so the client offers the choice and never makes
+ * it (ADR-0014). */
 export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
   const { message, nearDuplicates, onChangeIt, onSubmitAnyway } = props;
   return (
@@ -41,7 +39,7 @@ export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
         <ul className="flex flex-col gap-3">
           {nearDuplicates.map(({ questionId, text, similarity }) => (
             <li key={questionId} className="flex flex-col gap-0.5 text-sm">
-              {/* A new tab, so reading the match does not throw away the form. */}
+              {/* A new tab, so reading a Near-Duplicate does not throw away the form. */}
               <Link
                 to="/questions/$questionId"
                 params={{ questionId }}

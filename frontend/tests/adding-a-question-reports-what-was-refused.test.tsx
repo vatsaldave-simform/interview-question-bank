@@ -77,6 +77,30 @@ describe("adding a Question that is refused", () => {
     expect(screen.queryByText(/Too small/)).not.toBeInTheDocument();
   });
 
+  it("shows a Tag the API refused inside the list against the Tags", async () => {
+    // `z.treeifyError` files a refusal of one item under `items`, leaving `errors` empty.
+    aBankThatRefuses(() =>
+      refusesWith(400, "invalid_request", "The request is not valid.", {
+        errors: [],
+        properties: {
+          tags: {
+            errors: [],
+            items: [
+              { errors: [], properties: { category: { errors: ["Invalid option"] } } },
+            ],
+          },
+        },
+      }),
+    );
+    renderTheWholeClient("/questions/new");
+
+    await writeAQuestion();
+    await addIt();
+
+    expect(await screen.findByText("Choose the Tags from the lists.")).toBeVisible();
+    expect(screen.queryByText("The request is not valid.")).not.toBeInTheDocument();
+  });
+
   // Only the database knows which Tags exist, so a Tag removed since the list was read is
   // the one thing the form cannot catch itself (ADR-0024).
   it("names a Tag the API says does not exist, against the Tags", async () => {

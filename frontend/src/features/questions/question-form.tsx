@@ -30,8 +30,8 @@ type QuestionFormProps = {
   onSubmit: (draft: QuestionDraft) => void;
 };
 
-/** Holds the draft and shows the problems it is handed. Checking the draft and sending
- * it belong to the screen, because adding and editing check it against different schemas. */
+/** Checking and sending the draft belong to the screen, because adding and editing check it
+ * against different schemas. */
 export function QuestionForm(props: QuestionFormProps) {
   const { initial, problems, refusal, sending, submit, onSubmit } = props;
   const [draft, setDraft] = useState(initial);

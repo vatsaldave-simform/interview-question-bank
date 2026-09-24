@@ -27,7 +27,7 @@ function isDraftField(value: unknown): value is DraftField {
 }
 
 /** The fields a schema refused, each worded for the person who has to fix it. */
-export function problemsIn(issues: readonly { path: readonly PropertyKey[] }[]): DraftProblems {
+function problemsIn(issues: readonly { path: readonly PropertyKey[] }[]): DraftProblems {
   const problems: DraftProblems = {};
   for (const issue of issues) {
     const field = issue.path[0];
@@ -36,9 +36,19 @@ export function problemsIn(issues: readonly { path: readonly PropertyKey[] }[]):
   return problems;
 }
 
-/** Why a draft the API refused was refused: against the fields it named where it named
- * any, and as one message for the whole form where it did not. */
+/** Why a draft was refused: against the fields that were named where any were, and as
+ * one message for the whole form where none were. */
 export type DraftRefusal = { problems: DraftProblems; message: string | null };
+
+/** `whenNoField` is for a refusal that names nothing on the form, so the Viewer is never
+ * left pressing a button that silently does nothing. */
+export function checkRefused(
+  issues: readonly { path: readonly PropertyKey[] }[],
+  whenNoField: string,
+): DraftRefusal {
+  const problems = problemsIn(issues);
+  return { problems, message: Object.keys(problems).length === 0 ? whenNoField : null };
+}
 
 export function refusalOf(reason: Error): DraftRefusal {
   if (reason instanceof ApiFailure && reason.code === "invalid_request") {
@@ -51,7 +61,9 @@ export function refusalOf(reason: Error): DraftRefusal {
     if (refused.success) {
       const problems = problemsIn(
         Object.entries(refused.data.properties)
-          .filter(([, field]) => field.errors.length > 0)
+          .filter(
+            ([, field]) => field.errors.length > 0 || (field.items ?? []).some((item) => item),
+          )
           .map(([name]) => ({ path: [name] })),
       );
       if (Object.keys(problems).length > 0) return { problems, message: null };

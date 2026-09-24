@@ -9,7 +9,7 @@ import { useState } from "react";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
 import {
-  problemsIn,
+  checkRefused,
   refusalOf,
   type DraftProblems,
   type QuestionDraft,
@@ -18,8 +18,12 @@ import { useAddQuestion } from "@/features/questions/questions.queries";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
 
-/** A submission detection refused, kept as it was sent so the Author can send it again. */
-type HeldBack = { request: AddQuestionRequest; message: string; nearDuplicates: NearDuplicate[] };
+/** Kept as it was sent, so that confirming sends the same Question again. */
+type RefusedAsNearDuplicate = {
+  request: AddQuestionRequest;
+  message: string;
+  nearDuplicates: NearDuplicate[];
+};
 
 /** Checks the draft with the schema the API uses, so what it refuses here the API would
  * have refused too, and anything the API still refuses is shown in the same places. */
@@ -27,7 +31,8 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
   const add = useAddQuestion();
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
-  const [heldBack, setHeldBack] = useState<HeldBack | null>(null);
+  const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
+    useState<RefusedAsNearDuplicate | null>(null);
 
   function send(request: AddQuestionRequest): void {
     add.mutate(request, {
@@ -35,7 +40,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
       onError: (reason) => {
         const nearDuplicates = nearDuplicatesIn(reason);
         if (nearDuplicates !== null) {
-          setHeldBack({ request, message: reason.message, nearDuplicates });
+          setRefusedAsNearDuplicate({ request, message: reason.message, nearDuplicates });
           return;
         }
         const refused = refusalOf(reason);
@@ -49,19 +54,26 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
     // Provenance cannot be chosen on this form yet, and a Question typed in fresh is its
     // Author's own.
     const checked = addQuestionRequestSchema.safeParse({ ...draft, provenance: "original" });
-    setRefusal(null);
     if (!checked.success) {
-      setProblems(problemsIn(checked.error.issues));
+      // The message is for a field this form does not show, which only a page out of date
+      // can get wrong.
+      const refused = checkRefused(
+        checked.error.issues,
+        "This page could not check the Question. Reload it and try again.",
+      );
+      setProblems(refused.problems);
+      setRefusal(refused.message);
       return;
     }
 
     setProblems({});
+    setRefusal(null);
     send(checked.data);
   }
 
-  function submitAnyway(held: HeldBack): void {
-    setHeldBack(null);
-    send({ ...held.request, confirmedNotANearDuplicate: true });
+  function submitAnyway(refused: RefusedAsNearDuplicate): void {
+    setRefusedAsNearDuplicate(null);
+    send({ ...refused.request, confirmedNotANearDuplicate: true });
   }
 
   return (
@@ -85,12 +97,12 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
         submit={{ label: "Add the Question", sendingLabel: "Adding…" }}
         onSubmit={submit}
       />
-      {heldBack !== null && (
+      {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog
-          message={heldBack.message}
-          nearDuplicates={heldBack.nearDuplicates}
-          onChangeIt={() => setHeldBack(null)}
-          onSubmitAnyway={() => submitAnyway(heldBack)}
+          message={refusedAsNearDuplicate.message}
+          nearDuplicates={refusedAsNearDuplicate.nearDuplicates}
+          onChangeIt={() => setRefusedAsNearDuplicate(null)}
+          onSubmitAnyway={() => submitAnyway(refusedAsNearDuplicate)}
         />
       )}
     </div>

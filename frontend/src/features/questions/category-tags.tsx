@@ -10,7 +10,6 @@ type CategoryTagsProps = {
   onChange: (tags: string[]) => void;
 };
 
-/** One Category's Tags as checkboxes, several of which may be ticked at once. */
 export function CategoryTags({ idPrefix, category, chosen, onChange }: CategoryTagsProps) {
   return (
     <FieldSet>

@@ -10,8 +10,8 @@ afterEach(cleanup);
 // every navigation, and without this each routed test prints a "Not implemented" warning.
 window.scrollTo = () => {};
 
-// jsdom has no layout, so it has no ResizeObserver either. A checkbox inside a form keeps a
-// hidden input the size of itself so the form can read it, and measures itself with one.
+// jsdom has no ResizeObserver, and a checkbox inside a form measures itself with one to
+// size the hidden input the form reads.
 window.ResizeObserver = class {
   observe(): void {}
   unobserve(): void {}

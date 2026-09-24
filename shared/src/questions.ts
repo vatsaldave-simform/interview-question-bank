@@ -40,8 +40,8 @@ export const questionTagSchema = z
   .strict();
 export type QuestionTag = z.infer<typeof questionTagSchema>;
 
-/** What a request naming a Tag that does not exist carries in its error details: each
- * such Tag, written `category/tag`. Only the database knows which Tags exist (ADR-0024). */
+/** Each Tag a refused request named that does not exist, written `category/tag`, which
+ * only the database can tell (ADR-0024). */
 export const unknownTagsSchema = z.object({ tags: z.array(z.string()).min(1) }).strict();
 export type UnknownTags = z.infer<typeof unknownTagsSchema>;
 

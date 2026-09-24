@@ -4,7 +4,7 @@ import { useState } from "react";
 import { QuestionForm } from "@/features/questions/question-form";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import {
-  problemsIn,
+  checkRefused,
   refusalOf,
   type DraftProblems,
   type QuestionDraft,
@@ -60,21 +60,23 @@ function changesIn(draft: QuestionDraft, question: Question) {
 }
 
 function EditForm({ question, onSaved }: { question: Question; onSaved: () => void }) {
+  // Held from the moment the form opens, because the form holds that version too, and a
+  // newer one fetched meanwhile would make a field look changed that nobody touched.
+  const [opened] = useState(question);
   const edit = useEditQuestion(question.id);
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
 
   function submit(draft: QuestionDraft): void {
-    const checked = editQuestionRequestSchema.safeParse(changesIn(draft, question));
+    const checked = editQuestionRequestSchema.safeParse(changesIn(draft, opened));
     if (!checked.success) {
-      const found = problemsIn(checked.error.issues);
-      setProblems(found);
-      // The one refusal that names no field is the schema's own: an edit that names nothing.
-      setRefusal(
-        Object.keys(found).length === 0
-          ? "Nothing has changed. Change something before saving."
-          : null,
+      // The only refusal that names no field is of an edit that names nothing.
+      const refused = checkRefused(
+        checked.error.issues,
+        "Nothing has changed. Change something before saving.",
       );
+      setProblems(refused.problems);
+      setRefusal(refused.message);
       return;
     }
 
@@ -92,7 +94,7 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
 
   return (
     <QuestionForm
-      initial={{ text: question.text, answerNotes: question.answerNotes, tags: question.tags }}
+      initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
       problems={problems}
       refusal={refusal === null ? null : { title: "The Question was not saved", message: refusal }}
       sending={edit.isPending}

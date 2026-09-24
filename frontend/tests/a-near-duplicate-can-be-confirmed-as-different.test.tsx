@@ -35,8 +35,8 @@ const added = aQuestion({
 });
 
 /**
- * Refuses an addition as the API does when detection finds a match, unless it carries the
- * Author's word that the match is wrong, in which case it is added.
+ * Refuses an addition as the API does when detection finds a Near-Duplicate, unless it
+ * carries the Author's word that the Question is different, in which case it is added.
  */
 function aBankThatFindsAMatch(): FakeApi {
   return fakeBank(
@@ -77,7 +77,7 @@ async function addAQuestion(): Promise<void> {
 }
 
 describe("a Question the API judged a Near-Duplicate", () => {
-  it("shows each match, and how alike it is, in a dialog", async () => {
+  it("shows each Near-Duplicate, and how alike it is, in a dialog", async () => {
     aBankThatFindsAMatch();
     renderTheWholeClient("/questions/new");
 
@@ -87,11 +87,11 @@ describe("a Question the API judged a Near-Duplicate", () => {
     expect(
       within(dialog).getByText("This Question closely resembles one already in the bank."),
     ).toBeVisible();
-    const match = within(dialog).getByRole("link", {
+    const nearDuplicate = within(dialog).getByRole("link", {
       name: "How do you find a slow query in Postgres?",
     });
-    // A new tab, so reading the match does not throw away what is on the form.
-    expect(match).toHaveAttribute("target", "_blank");
+    // A new tab, so reading a Near-Duplicate does not throw away what is on the form.
+    expect(nearDuplicate).toHaveAttribute("target", "_blank");
     expect(within(dialog).getByText("62% alike")).toBeVisible();
   });
 

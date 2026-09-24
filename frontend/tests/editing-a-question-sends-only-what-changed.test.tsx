@@ -25,6 +25,9 @@ const original = aQuestion({
   tags: [{ category: "technology", tag: "typescript" }],
 });
 
+/** Changes the Question behind the client's back, as another Viewer saving would. */
+let editElsewhere: (changes: Partial<Question>) => void = () => {};
+
 /**
  * Holds one Question and changes it the way the API would: the fields an edit names are
  * replaced, and the history gains an event saying so.
@@ -32,6 +35,9 @@ const original = aQuestion({
 function aBankHoldingOneQuestion(): FakeApi {
   let current: Question = original;
   const events: ChangeEvent[] = [];
+  editElsewhere = (changes) => {
+    current = { ...current, ...changes };
+  };
   return fakeBank(
     (asked) => aPageOf([current], asked),
     async (request, asked) => {
@@ -136,5 +142,35 @@ describe("editing a Question", () => {
     expect(await screen.findByText("Write what a good answer looks like.")).toBeVisible();
     expect(screen.queryByText(/Nothing has changed/)).not.toBeInTheDocument();
     expect(await editsSent(api)).toEqual([]);
+  });
+
+  // The client asks for the Question again whenever the window regains focus, so what it
+  // holds can change while the form is open.
+  it("compares with the Question as it was opened, not as it was fetched again later", async () => {
+    const api = aBankHoldingOneQuestion();
+    await openTheEditForm();
+    await screen.findByLabelText("Question");
+
+    editElsewhere({ text: "Somebody else's better wording." });
+    window.dispatchEvent(new Event("visibilitychange"));
+    await vi.waitFor(() =>
+      expect(
+        api.sent.filter((request) => new URL(request.url).pathname.endsWith(original.id)),
+      ).toHaveLength(2),
+    );
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "senior" }));
+    await save();
+
+    await screen.findByRole("heading", { name: "Somebody else's better wording." });
+    // Only the Tags: sending the text too would put back the wording just replaced.
+    expect(await editsSent(api)).toEqual([
+      {
+        tags: [
+          { category: "technology", tag: "typescript" },
+          { category: "seniority", tag: "senior" },
+        ],
+      },
+    ]);
   });
 });
