@@ -7,3 +7,4 @@ backend/src/generated
 frontend/dist
 .git
 docs
+browser-test

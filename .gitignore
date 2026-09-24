@@ -7,3 +7,4 @@ dist/
 !.env.example
 !.env.test.example
 backend/src/generated/
+browser-test/test-results/
