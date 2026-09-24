@@ -6,6 +6,7 @@ import {
 import { Router } from "express";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireAdministrator } from "../auth/require-administrator.middleware.ts";
+import { permissionGrantRoutes } from "../permission-grants/permission-grants.routes.ts";
 import { findClientsGrantedTo } from "./clients.repository.ts";
 import { createClient } from "./clients.service.ts";
 import type { Database } from "../../platform/database.ts";
@@ -32,6 +33,8 @@ export function clientRoutes(database: Database): Router {
     const body: ClientResponse = { client };
     res.status(201).json(body);
   });
+
+  router.use("/:clientId/grants", permissionGrantRoutes(database));
 
   return router;
 }

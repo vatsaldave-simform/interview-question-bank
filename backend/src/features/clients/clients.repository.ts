@@ -13,6 +13,11 @@ export function findClientsGrantedTo(database: Database, viewerId: string): Prom
   });
 }
 
+/** For administrative acts only: a Viewer's own reads go through the Grant condition above. */
+export function findClientById(database: Database, id: string): Promise<Client | null> {
+  return database.client.findUnique({ where: { id }, select: publicFields });
+}
+
 export function insertClient(database: DatabaseOrTransaction, name: string): Promise<Client> {
   return database.client.create({ data: { name }, select: publicFields });
 }
