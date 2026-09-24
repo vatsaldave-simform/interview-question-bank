@@ -1,11 +1,12 @@
 import type { QuestionListResponse } from "@iqb/shared";
+import { Link } from "@tanstack/react-router";
 import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowsePages } from "@/features/questions/browse-pages";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { QuestionCard } from "@/features/questions/question-card";
 import { useQuestionList } from "@/features/questions/questions.queries";
-import { ApiFailure } from "@/platform/api-client";
+import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 
@@ -35,7 +36,12 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         )}
       </aside>
       <div className="flex min-w-0 flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Questions</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold">Questions</h1>
+          <Button asChild>
+            <Link to="/questions/new">Add a Question</Link>
+          </Button>
+        </div>
         <BrowseSearchBox
           // A new key resets the box to the address, after Back or Clear filters.
           key={String(search.keywords ?? "")}
@@ -97,12 +103,4 @@ function QuestionList({ page }: { page: QuestionListResponse }) {
       ))}
     </ul>
   );
-}
-
-/** Anything but an API refusal is an answer the shared schema refused, and the parser's
- * complaint about it means nothing to a Viewer. */
-function whatWentWrong(reason: Error): string {
-  return reason instanceof ApiFailure
-    ? reason.message
-    : "The bank answered, but not in a way this client understands.";
 }

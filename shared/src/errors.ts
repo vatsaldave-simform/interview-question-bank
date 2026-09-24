@@ -39,3 +39,12 @@ export const apiErrorSchema = z
   .strict();
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+/** The fields a refused body got wrong, read from what `z.treeifyError` writes, where a
+ * refusal inside a list is filed under `items` rather than `errors`. */
+export const refusedFieldsSchema = z.object({
+  properties: z.record(
+    z.string(),
+    z.object({ errors: z.array(z.string()), items: z.array(z.unknown()).optional() }),
+  ),
+});

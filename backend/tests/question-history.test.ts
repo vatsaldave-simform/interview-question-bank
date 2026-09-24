@@ -91,6 +91,18 @@ describe("the history of a Question", () => {
     expect(Date.parse(events[0]!.at)).toBeLessThanOrEqual(Date.parse(events[1]!.at));
   });
 
+  it("names who made each change by their email, which is all a person can read", async () => {
+    const id = await addOne();
+    await patchQuestion(api, id, { text: newText }, reviewerToken);
+
+    const events = await historyOf(id, authorToken);
+
+    expect(events.map((event) => event.viewerEmail)).toEqual([
+      "author@iqb.test",
+      "reviewer@iqb.test",
+    ]);
+  });
+
   it("says when each one happened, in a form a client can read", async () => {
     const before = new Date();
     const id = await addOne();

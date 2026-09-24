@@ -40,6 +40,11 @@ export const questionTagSchema = z
   .strict();
 export type QuestionTag = z.infer<typeof questionTagSchema>;
 
+/** Each Tag a refused request named that does not exist, written `category/tag`, which
+ * only the database can tell (ADR-0024). */
+export const unknownTagsSchema = z.object({ tags: z.array(z.string()).min(1) }).strict();
+export type UnknownTags = z.infer<typeof unknownTagsSchema>;
+
 /**
  * A Question as every response describes one. `clientId` is safe to send: a Viewer
  * reading this either holds the Grant for that Client or the Question is unrestricted.

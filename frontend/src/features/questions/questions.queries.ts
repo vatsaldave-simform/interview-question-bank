@@ -1,10 +1,14 @@
 import {
   categoryListResponseSchema,
   categoryNames,
+  questionHistoryResponseSchema,
   questionListResponseSchema,
+  questionResponseSchema,
+  type AddQuestionRequest,
+  type EditQuestionRequest,
   type ListQuestionsRequest,
 } from "@iqb/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callApi } from "@/platform/api-client";
 import { stringifySearch } from "@/platform/search-params";
 
@@ -34,5 +38,53 @@ export function useCategories() {
     select: (answer) => answer.categories,
     // Tags change when someone seeds new ones, not while a Viewer is browsing.
     staleTime: Infinity,
+  });
+}
+
+export function useQuestion(id: string) {
+  return useQuery({
+    queryKey: ["questions", "one", id],
+    queryFn: ({ signal }) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}`, questionResponseSchema, { signal }),
+    select: (answer) => answer.question,
+  });
+}
+
+export function useQuestionHistory(id: string) {
+  return useQuery({
+    queryKey: ["questions", "history", id],
+    queryFn: ({ signal }) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/history`, questionHistoryResponseSchema, {
+        signal,
+      }),
+    select: (answer) => answer.events,
+  });
+}
+
+export function useAddQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: AddQuestionRequest) =>
+      callApi("/api/questions", questionResponseSchema, { method: "POST", body: request }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
+  });
+}
+
+export function useEditQuestion(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: EditQuestionRequest) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}`, questionResponseSchema, {
+        method: "PATCH",
+        body: request,
+      }),
+    onSuccess: async (answer) => {
+      // The answer is the Question as it now is, so there is nothing to ask for again.
+      queryClient.setQueryData(["questions", "one", id], answer);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["questions", "history", id] }),
+        queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
+      ]);
+    },
   });
 }

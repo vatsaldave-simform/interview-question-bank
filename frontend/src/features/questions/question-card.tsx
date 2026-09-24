@@ -1,5 +1,6 @@
 import type { Question } from "@iqb/shared";
-import { Badge } from "@/ui/shadcn/badge";
+import { Link } from "@tanstack/react-router";
+import { QuestionTags } from "@/features/questions/question-tags";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
 export function QuestionCard({ question }: { question: Question }) {
@@ -7,23 +8,21 @@ export function QuestionCard({ question }: { question: Question }) {
     <article>
       <Card>
         <CardHeader>
-          <CardTitle className="leading-snug">{question.text}</CardTitle>
+          <CardTitle className="leading-snug">
+            <Link
+              to="/questions/$questionId"
+              params={{ questionId: question.id }}
+              className="hover:underline"
+            >
+              {question.text}
+            </Link>
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-muted-foreground text-sm whitespace-pre-line">
             {question.answerNotes}
           </p>
-          {question.tags.length > 0 && (
-            <ul className="flex flex-wrap gap-2" aria-label="Tags">
-              {question.tags.map(({ category, tag }) => (
-                <li key={`${category}:${tag}`}>
-                  <Badge variant="secondary" title={category}>
-                    {tag}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
+          <QuestionTags tags={question.tags} />
         </CardContent>
       </Card>
     </article>

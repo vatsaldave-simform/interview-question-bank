@@ -79,6 +79,14 @@ async function refusalFrom(response: Response): Promise<ApiFailure> {
   );
 }
 
+/** Anything but an API refusal is an answer the shared schema refused, and the parser's
+ * complaint about it means nothing to a Viewer. */
+export function whatWentWrong(reason: Error): string {
+  return reason instanceof ApiFailure
+    ? reason.message
+    : "The bank answered, but not in a way this client understands.";
+}
+
 async function send(path: string, sending: Sending): Promise<Response> {
   // Built before the try, so a mistake in here is never reported as the network being
   // down. The path stays relative: the client is served from the API's own origin.

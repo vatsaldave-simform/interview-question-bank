@@ -75,6 +75,9 @@ const changeEventSchema = z.object({
   /** Null for an event about a submission that stored no Question (ADR-0006). */
   questionId: z.uuid().nullable(),
   viewerId: z.uuid(),
+  /** Sent because the id is not something a person can read, and the email is the only
+   * name a Viewer has (ADR-0035). */
+  viewerEmail: z.email(),
   at: z.iso.datetime(),
 });
 
