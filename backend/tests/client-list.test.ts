@@ -2,7 +2,8 @@ import { clientListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { postClient } from "./helpers/clients.ts";
+import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 async function clientNamesListed(api: TestApi, token: string): Promise<string[]> {
@@ -41,13 +42,11 @@ describe("listing Clients", () => {
     expect(await clientNamesListed(api, readerToken)).toEqual([]);
   });
 
-  it("shows a Viewer holding two Permission Grants both Clients, by name", async () => {
+  it("shows a Viewer holding two Permission Grants both Clients, in name order", async () => {
     const author = await viewerByRole(api.database, "author");
-    const other = await api.database.client.findUniqueOrThrow({
-      where: { name: seedOtherClient.name },
-    });
+    const otherClientId = await clientIdNamed(api.database, seedOtherClient.name);
     await api.database.permissionGrant.create({
-      data: { viewerId: author.id, clientId: other.id },
+      data: { viewerId: author.id, clientId: otherClientId },
     });
     const authorToken = await logIn(api, seededViewer("author"));
 
@@ -59,14 +58,7 @@ describe("listing Clients", () => {
 
   it("leaves out a Client an Administrator just created but holds no Grant for", async () => {
     const administratorToken = await logIn(api, seededViewer("reviewer"));
-    const created = await api.request("/api/clients", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${administratorToken}`,
-      },
-      body: JSON.stringify({ name: "Harbour Logistics" }),
-    });
+    const created = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
     expect(created.status).toBe(201);
 
     expect(await clientNamesListed(api, administratorToken)).toEqual([seedOtherClient.name]);

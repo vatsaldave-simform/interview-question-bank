@@ -82,8 +82,7 @@ export const roleChangedSchema = z
   .strict();
 export type RoleChanged = z.infer<typeof roleChangedSchema>;
 
-/** An Administrator creating a Client. Nothing is granted with it: the creator still needs
- * a Permission Grant to see it (ADR-0015). */
+/** An Administrator creating a Client. */
 export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
 export type ClientCreated = z.infer<typeof clientCreatedSchema>;
 

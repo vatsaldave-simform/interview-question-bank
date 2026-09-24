@@ -12,7 +12,5 @@ export type CreateClientRequest = z.infer<typeof createClientRequestSchema>;
 export const clientResponseSchema = z.object({ client: clientSchema }).strict();
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
-/** Only the Clients the requesting Viewer holds a Permission Grant for, so a picker never
- * reveals that an engagement exists. */
 export const clientListResponseSchema = z.object({ clients: z.array(clientSchema) }).strict();
 export type ClientListResponse = z.infer<typeof clientListResponseSchema>;

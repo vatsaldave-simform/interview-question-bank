@@ -2,16 +2,9 @@ import { apiErrorSchema, clientResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient } from "../src/features/clients/clients.seed.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
+import { postClient } from "./helpers/clients.ts";
 import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
-
-function createClient(api: TestApi, body: unknown, token: string): Promise<Response> {
-  return api.request("/api/clients", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-}
 
 function clientCreatedEvents(api: TestApi) {
   return api.database.changeEvent.findMany({ where: { type: "client_created" } });
@@ -36,7 +29,7 @@ describe("creating a Client", () => {
   });
 
   it("creates a Client and answers with it", async () => {
-    const response = await createClient(api, { name: "Harbour Logistics" }, administratorToken);
+    const response = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
 
     expect(response.status).toBe(201);
     const { client } = clientResponseSchema.parse(await response.json());
@@ -46,7 +39,7 @@ describe("creating a Client", () => {
   });
 
   it("records the creation under the acting Administrator's name", async () => {
-    const response = await createClient(api, { name: "Harbour Logistics" }, administratorToken);
+    const response = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
     const { client } = clientResponseSchema.parse(await response.json());
 
     const events = await clientCreatedEvents(api);
@@ -57,7 +50,7 @@ describe("creating a Client", () => {
   });
 
   it("gives the creator no Permission Grant for it", async () => {
-    const response = await createClient(api, { name: "Harbour Logistics" }, administratorToken);
+    const response = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
     const { client } = clientResponseSchema.parse(await response.json());
 
     const grants = await api.database.permissionGrant.count({ where: { clientId: client.id } });
@@ -65,14 +58,14 @@ describe("creating a Client", () => {
   });
 
   it("trims the name before storing it", async () => {
-    const response = await createClient(api, { name: "  Harbour Logistics  " }, administratorToken);
+    const response = await postClient(api, { name: "  Harbour Logistics  " }, administratorToken);
 
     const { client } = clientResponseSchema.parse(await response.json());
     expect(client.name).toBe("Harbour Logistics");
   });
 
   it("refuses a Viewer who is not an Administrator, and creates nothing", async () => {
-    const response = await createClient(api, { name: "Harbour Logistics" }, authorToken);
+    const response = await postClient(api, { name: "Harbour Logistics" }, authorToken);
 
     expect(response.status).toBe(403);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
@@ -81,7 +74,7 @@ describe("creating a Client", () => {
   });
 
   it("refuses a name another Client already has, and records nothing", async () => {
-    const response = await createClient(api, { name: seedClient.name }, administratorToken);
+    const response = await postClient(api, { name: seedClient.name }, administratorToken);
 
     expect(response.status).toBe(409);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("conflict");
@@ -94,7 +87,7 @@ describe("creating a Client", () => {
     ["a name over 200 characters", { name: "x".repeat(201) }],
     ["a field it does not know", { name: "Harbour Logistics", colour: "blue" }],
   ])("refuses %s", async (_, body) => {
-    const response = await createClient(api, body, administratorToken);
+    const response = await postClient(api, body, administratorToken);
 
     expect(response.status).toBe(400);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
