@@ -24,6 +24,11 @@ export const viewerSchema = z
   .strict();
 export type Viewer = z.infer<typeof viewerSchema>;
 
+/** A Viewer named in something about them, the way ADR-0035 names one: an id is not
+ * something a person can read. */
+export const namedViewerSchema = z.object({ id: z.uuid(), email: z.email() }).strict();
+export type NamedViewer = z.infer<typeof namedViewerSchema>;
+
 /**
  * Credentials. The email is lower-cased here rather than at the call site, so the
  * address a Viewer types is matched the same way wherever it arrives from.

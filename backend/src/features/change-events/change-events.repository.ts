@@ -4,6 +4,8 @@ import {
   clientCreatedSchema,
   nearDuplicateOverriddenSchema,
   nearDuplicateRefusedSchema,
+  permissionGrantIssuedSchema,
+  permissionGrantRevokedSchema,
   questionAddedSchema,
   questionEditedSchema,
   roleChangedSchema,
@@ -13,6 +15,8 @@ import {
   type NearDuplicateOverridden,
   type NearDuplicateRefused,
   type ChangeEventType,
+  type PermissionGrantIssued,
+  type PermissionGrantRevoked,
   type QuestionAdded,
   type QuestionEdited,
   type RoleChanged,
@@ -72,6 +76,18 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: ClientCreated;
+    }
+  | {
+      type: "permission_grant_issued";
+      questionId: null;
+      viewerId: string;
+      payload: PermissionGrantIssued;
+    }
+  | {
+      type: "permission_grant_revoked";
+      questionId: null;
+      viewerId: string;
+      payload: PermissionGrantRevoked;
     };
 
 /**
@@ -129,6 +145,8 @@ export type ChangeEventFromDb = {
   | { type: "administrator_withdrawn"; payload: AdministratorWithdrawn }
   | { type: "role_changed"; payload: RoleChanged }
   | { type: "client_created"; payload: ClientCreated }
+  | { type: "permission_grant_issued"; payload: PermissionGrantIssued }
+  | { type: "permission_grant_revoked"; payload: PermissionGrantRevoked }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -170,5 +188,17 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
       return { ...happened, type: row.type, payload: roleChangedSchema.parse(row.payload) };
     case "client_created":
       return { ...happened, type: row.type, payload: clientCreatedSchema.parse(row.payload) };
+    case "permission_grant_issued":
+      return {
+        ...happened,
+        type: row.type,
+        payload: permissionGrantIssuedSchema.parse(row.payload),
+      };
+    case "permission_grant_revoked":
+      return {
+        ...happened,
+        type: row.type,
+        payload: permissionGrantRevokedSchema.parse(row.payload),
+      };
   }
 }

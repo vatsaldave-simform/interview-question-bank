@@ -77,6 +77,10 @@ function whatHappened(event: ChangeEvent): string {
       return "changed a Viewer's role";
     case "client_created":
       return "created a Client";
+    case "permission_grant_issued":
+      return "issued a Permission Grant";
+    case "permission_grant_revoked":
+      return "revoked a Permission Grant";
   }
 }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { viewerRoleSchema } from "./auth.js";
+import { namedViewerSchema, viewerRoleSchema } from "./auth.js";
 import { clientSchema } from "./clients.js";
+import { permissionGrantSchema } from "./permission-grants.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
 /**
@@ -15,6 +16,8 @@ export const changeEventTypes = [
   "administrator_withdrawn",
   "role_changed",
   "client_created",
+  "permission_grant_issued",
+  "permission_grant_revoked",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -62,29 +65,34 @@ function changedFrom<T extends z.ZodTypeAny>(value: T) {
   return z.object({ before: value, after: value }).strict();
 }
 
-/** The Viewer an administrative event is about, named the way ADR-0035 names one:
- * an id is not something a person can read. */
-const affectedViewerSchema = z.object({ id: z.uuid(), email: z.email() }).strict();
-
 /** An Administrator appointing another Viewer. The event's own `viewerId` is who did
  * it, which is not always the Viewer this payload names (ADR-0015 permits appointing
  * oneself, and self and target are then the same Viewer). */
-export const administratorAppointedSchema = z.object({ viewer: affectedViewerSchema }).strict();
+export const administratorAppointedSchema = z.object({ viewer: namedViewerSchema }).strict();
 export type AdministratorAppointed = z.infer<typeof administratorAppointedSchema>;
 
 /** The Administrator authority withdrawn from a Viewer. */
-export const administratorWithdrawnSchema = z.object({ viewer: affectedViewerSchema }).strict();
+export const administratorWithdrawnSchema = z.object({ viewer: namedViewerSchema }).strict();
 export type AdministratorWithdrawn = z.infer<typeof administratorWithdrawnSchema>;
 
 /** An Administrator setting a Viewer's role directly, with no Role Request involved. */
 export const roleChangedSchema = z
-  .object({ viewer: affectedViewerSchema, role: changedFrom(viewerRoleSchema) })
+  .object({ viewer: namedViewerSchema, role: changedFrom(viewerRoleSchema) })
   .strict();
 export type RoleChanged = z.infer<typeof roleChangedSchema>;
 
 /** An Administrator creating a Client. */
 export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
 export type ClientCreated = z.infer<typeof clientCreatedSchema>;
+
+/** An Administrator issuing a Permission Grant. The Viewer it names may be the one who
+ * issued it (ADR-0015). */
+export const permissionGrantIssuedSchema = z.object({ grant: permissionGrantSchema }).strict();
+export type PermissionGrantIssued = z.infer<typeof permissionGrantIssuedSchema>;
+
+/** A revoked Grant's row is gone, so this is the only record that it was ever held. */
+export const permissionGrantRevokedSchema = z.object({ grant: permissionGrantSchema }).strict();
+export type PermissionGrantRevoked = z.infer<typeof permissionGrantRevokedSchema>;
 
 /**
  * Only the fields the edit changed, each with what it was and what it became. A field
@@ -136,6 +144,14 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
   }),
   changeEventSchema.extend({ type: z.literal("role_changed"), payload: roleChangedSchema }),
   changeEventSchema.extend({ type: z.literal("client_created"), payload: clientCreatedSchema }),
+  changeEventSchema.extend({
+    type: z.literal("permission_grant_issued"),
+    payload: permissionGrantIssuedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("permission_grant_revoked"),
+    payload: permissionGrantRevokedSchema,
+  }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
 
