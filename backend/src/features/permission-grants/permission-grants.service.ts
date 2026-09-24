@@ -25,10 +25,8 @@ async function clientNamed(database: Database, id: string): Promise<Client> {
   return client;
 }
 
-/**
- * An Administrator may issue a Grant to themselves (ADR-0015). What keeps that honest is
- * the Change Event, which names them as the one who issued it.
- */
+/** An Administrator may issue a Grant to themselves, kept honest by the Change Event
+ * naming them as the one who issued it (ADR-0015). */
 export async function issuePermissionGrant(
   database: Database,
   actingViewer: Viewer,

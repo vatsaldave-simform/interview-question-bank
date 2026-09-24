@@ -85,8 +85,7 @@ export type RoleChanged = z.infer<typeof roleChangedSchema>;
 export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
 export type ClientCreated = z.infer<typeof clientCreatedSchema>;
 
-/** An Administrator issuing a Permission Grant. The Viewer it names may be the one who
- * issued it (ADR-0015). */
+/** The Viewer this names may be the one who issued it (ADR-0015). */
 export const permissionGrantIssuedSchema = z.object({ grant: permissionGrantSchema }).strict();
 export type PermissionGrantIssued = z.infer<typeof permissionGrantIssuedSchema>;
 

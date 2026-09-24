@@ -1,8 +1,8 @@
-import { apiErrorSchema, clientListResponseSchema, questionListResponseSchema } from "@iqb/shared";
+import { apiErrorSchema, questionListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
-import { deleteGrant } from "./helpers/clients.ts";
+import { clientNamesListed, deleteGrant, unknownId } from "./helpers/clients.ts";
 import {
   clientIdNamed,
   getQuestion,
@@ -13,8 +13,6 @@ import {
   viewerByRole,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
-
-const unknownId = "c0000000-0000-4000-8000-00000000ffff";
 
 function grantRevokedEvents(api: TestApi) {
   return api.database.changeEvent.findMany({ where: { type: "permission_grant_revoked" } });
@@ -119,10 +117,8 @@ describe("revoking a Permission Grant", () => {
   });
 });
 
-/**
- * Revocation takes effect on the very next request, on the access token the Viewer
- * already holds. Nothing is cached between requests, so nothing has to be cleared.
- */
+/** Each Viewer keeps the access token they held before the revoke, because a fresh login
+ * would prove nothing about the very next request. */
 describe("the next request after a Grant is revoked", () => {
   let api: TestApi;
   let administratorToken: string;
@@ -146,13 +142,6 @@ describe("the next request after a Grant is revoked", () => {
     return questionListResponseSchema.parse(await response.json()).questions.map(({ id }) => id);
   }
 
-  async function clientNamesListed(token: string): Promise<string[]> {
-    const response = await api.request("/api/clients", {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    return clientListResponseSchema.parse(await response.json()).clients.map(({ name }) => name);
-  }
-
   it("cannot reach that Client's Questions, on the token the Viewer already held", async () => {
     const reader = await viewerByRole(api.database, "reader");
     const readerToken = await logIn(api, seededViewer("reader"));
@@ -167,7 +156,7 @@ describe("the next request after a Grant is revoked", () => {
       await statusAndBody(await getQuestion(api, unknownQuestionId, readerToken)),
     );
     expect(await questionIdsListed(readerToken)).not.toContain(restricted);
-    expect(await clientNamesListed(readerToken)).toEqual([]);
+    expect(await clientNamesListed(api, readerToken)).toEqual([]);
   });
 
   it("answers an Author's own Question under that Client as one that does not exist", async () => {
@@ -187,14 +176,13 @@ describe("the next request after a Grant is revoked", () => {
   });
 
   it("leaves the Viewer's other Grants working", async () => {
-    // The Reviewer holds the second Client's Grant, and the first one is issued to them
-    // here so that revoking it leaves one behind.
+    // Issued here, so that revoking it leaves the Reviewer's Grant for the second Client.
     const reviewer = await viewerByRole(api.database, "reviewer");
     await api.database.permissionGrant.create({ data: { viewerId: reviewer.id, clientId } });
 
     await deleteGrant(api, clientId, reviewer.id, administratorToken);
 
-    expect(await clientNamesListed(administratorToken)).toEqual([seedOtherClient.name]);
+    expect(await clientNamesListed(api, administratorToken)).toEqual([seedOtherClient.name]);
     const ids = await questionIdsListed(administratorToken);
     expect(ids).toContain(seededQuestionIds.aboutTheOtherClientsBooking);
     expect(ids).not.toContain(restricted);

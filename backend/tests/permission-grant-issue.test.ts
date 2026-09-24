@@ -6,11 +6,9 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
-import { getGrants, postGrant } from "./helpers/clients.ts";
+import { deleteGrant, getGrants, postGrant, unknownId } from "./helpers/clients.ts";
 import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
-
-const unknownId = "c0000000-0000-4000-8000-00000000ffff";
 
 function grantIssuedEvents(api: TestApi) {
   return api.database.changeEvent.findMany({ where: { type: "permission_grant_issued" } });
@@ -20,7 +18,7 @@ describe("issuing a Permission Grant", () => {
   let api: TestApi;
   let administratorToken: string;
   let authorToken: string;
-  /** The Reader holds no Grant for it, so issuing them one is new. */
+  // The Reader holds no Grant for it, so issuing them one is new.
   let otherClientId: string;
 
   beforeAll(async () => {
@@ -87,7 +85,6 @@ describe("issuing a Permission Grant", () => {
     expect(response.status).toBe(201);
     const events = await grantIssuedEvents(api);
     expect(events).toHaveLength(1);
-    // Issuer and holder are the same Viewer, and both are on the record.
     expect(events[0]?.viewerId).toBe(administrator.id);
     expect(events[0]?.payload).toEqual({
       grant: {
@@ -195,8 +192,10 @@ describe("listing the Grants held against a Client", () => {
   });
 
   it("answers a Client no one holds a Grant for with an empty list", async () => {
+    // The Reviewer is the only one holding a Grant for the second Client.
     const clientId = await clientIdNamed(api.database, seedOtherClient.name);
-    await api.database.permissionGrant.deleteMany({ where: { clientId } });
+    const reviewer = await viewerByRole(api.database, "reviewer");
+    expect((await deleteGrant(api, clientId, reviewer.id, administratorToken)).status).toBe(204);
 
     const response = await getGrants(api, clientId, administratorToken);
 

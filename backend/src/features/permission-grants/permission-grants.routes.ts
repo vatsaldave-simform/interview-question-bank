@@ -17,29 +17,33 @@ import { InvalidRequestError } from "../../platform/errors.ts";
 
 const idSchema = z.uuid();
 
-function idNamed(req: Request, param: "clientId" | "viewerId", what: string): string {
-  const id = idSchema.safeParse(req.params[param]);
-  if (!id.success) throw new InvalidRequestError(`Not a valid ${what} id.`);
+function clientIdNamed(req: Request): string {
+  const id = idSchema.safeParse(req.params["clientId"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Client id.");
   return id.data;
 }
 
-/**
- * Mounted under a Client, so it has to be given the Client's id from the path above it.
- * The Administrator check sits on the router, because every route here is theirs alone.
- */
+function viewerIdNamed(req: Request): string {
+  const id = idSchema.safeParse(req.params["viewerId"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Viewer id.");
+  return id.data;
+}
+
 export function permissionGrantRoutes(database: Database): Router {
+  // The Client's id is in the path this router is mounted under, not in its own.
   const router = Router({ mergeParams: true });
+  // The check sits on the router, because every route here is Administrator-only.
   router.use(requireAdministrator());
 
   router.get("/", async (req, res) => {
-    const grants = await listPermissionGrants(database, idNamed(req, "clientId", "Client"));
+    const grants = await listPermissionGrants(database, clientIdNamed(req));
 
     const body: PermissionGrantListResponse = { grants };
     res.json(body);
   });
 
   router.post("/", async (req, res) => {
-    const clientId = idNamed(req, "clientId", "Client");
+    const clientId = clientIdNamed(req);
     const request = issuePermissionGrantRequestSchema.parse(req.body);
 
     const grant = await issuePermissionGrant(
@@ -53,9 +57,11 @@ export function permissionGrantRoutes(database: Database): Router {
     res.status(201).json(body);
   });
 
+  // A Viewer who does not exist answers 404 here, not 400 as in issuing, because this
+  // path names the Grant and there is no such Grant.
   router.delete("/:viewerId", async (req, res) => {
-    const clientId = idNamed(req, "clientId", "Client");
-    const viewerId = idNamed(req, "viewerId", "Viewer");
+    const clientId = clientIdNamed(req);
+    const viewerId = viewerIdNamed(req);
 
     await revokePermissionGrant(database, authenticatedViewer(req), clientId, viewerId);
 
