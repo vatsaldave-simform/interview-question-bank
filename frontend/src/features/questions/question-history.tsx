@@ -64,10 +64,17 @@ function whatHappened(event: ChangeEvent): string {
       const { nearDuplicates } = event.payload;
       return `confirmed this Question is different from ${nearDuplicatesWording(nearDuplicates)}`;
     }
-    // Never in a Question's history, since it names no Question; here so that a new kind
-    // of event is a type error rather than a blank line.
+    // None of these three ever names a Question, so none ever reaches a Question's
+    // history; they are here so that a new kind of event is a type error rather than a
+    // blank line (ADR-0015).
     case "near_duplicate_refused":
       return "tried to add a Question that was refused as a Near-Duplicate";
+    case "administrator_appointed":
+      return "appointed an Administrator";
+    case "administrator_withdrawn":
+      return "withdrew an Administrator's authority";
+    case "role_changed":
+      return "changed a Viewer's role";
   }
 }
 

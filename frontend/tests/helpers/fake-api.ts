@@ -62,6 +62,7 @@ export const aSignedInAuthor = {
     id: "7c3b4a1e-0000-4000-8000-000000000001",
     email: "author@iqb.test",
     role: "author" as const,
+    isAdministrator: false,
   },
 };
 

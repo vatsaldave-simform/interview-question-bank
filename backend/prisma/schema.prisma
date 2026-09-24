@@ -12,7 +12,7 @@ datasource db {
 
 /// What a Viewer may do with Questions. Administrator is deliberately absent: it is an
 /// authority held beside one of these rather than a fourth value replacing one
-/// (ADR-0015), and it arrives with the administration tickets.
+/// (ADR-0015).
 enum ViewerRole {
   reader
   author
@@ -29,6 +29,9 @@ model Viewer {
   /// the database: no response, no log line.
   passwordHash String
   role         ViewerRole
+  /// The Administrator authority, held beside `role` rather than as a fourth value of it
+  /// (ADR-0015). Confers no access to Questions.
+  isAdministrator Boolean @default(false)
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
@@ -202,6 +205,9 @@ enum ChangeEventType {
   question_edited
   near_duplicate_refused
   near_duplicate_overridden
+  administrator_appointed
+  administrator_withdrawn
+  role_changed
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

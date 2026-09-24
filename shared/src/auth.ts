@@ -18,6 +18,8 @@ export const viewerSchema = z
     id: z.uuid(),
     email: z.email(),
     role: viewerRoleSchema,
+    /** Held alongside `role` rather than instead of it (ADR-0015). */
+    isAdministrator: z.boolean(),
   })
   .strict();
 export type Viewer = z.infer<typeof viewerSchema>;
@@ -62,3 +64,12 @@ export type RefreshResponse = LoginResponse;
 /** Who the current access token authenticates. The client asks this after a reload. */
 export const currentViewerResponseSchema = z.object({ viewer: viewerSchema }).strict();
 export type CurrentViewerResponse = z.infer<typeof currentViewerResponseSchema>;
+
+/** An Administrator setting a Viewer's role directly, with no Role Request involved. */
+export const changeRoleRequestSchema = z.object({ role: viewerRoleSchema }).strict();
+export type ChangeRoleRequest = z.infer<typeof changeRoleRequestSchema>;
+
+/** What an administrative act against one Viewer answers with: that Viewer as they are
+ * now. */
+export const viewerResponseSchema = z.object({ viewer: viewerSchema }).strict();
+export type ViewerResponse = z.infer<typeof viewerResponseSchema>;

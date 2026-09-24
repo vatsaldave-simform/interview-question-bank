@@ -1,20 +1,22 @@
 import {
+  administratorAppointedSchema,
+  administratorWithdrawnSchema,
   nearDuplicateOverriddenSchema,
   nearDuplicateRefusedSchema,
   questionAddedSchema,
   questionEditedSchema,
+  roleChangedSchema,
+  type AdministratorAppointed,
+  type AdministratorWithdrawn,
   type NearDuplicateOverridden,
   type NearDuplicateRefused,
   type ChangeEventType,
   type QuestionAdded,
   type QuestionEdited,
+  type RoleChanged,
 } from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.ts";
-import type { Database } from "../../platform/database.ts";
-
-/** The transaction the change itself is running in, so that an event and the change it
- * describes cannot happen without each other. */
-export type DatabaseOrTransaction = Database | Prisma.TransactionClient;
+import type { DatabaseOrTransaction } from "../../platform/database.ts";
 
 /** The type and the payload travel together, so an edit's before and after cannot be
  * filed as an addition, and only a refused submission may name no Question (ADR-0006). */
@@ -43,6 +45,25 @@ export type NewChangeEvent =
       questionId: string;
       viewerId: string;
       payload: NearDuplicateOverridden;
+    }
+  | {
+      /** No Question is ever involved in an administrative act (ADR-0015). */
+      type: "administrator_appointed";
+      questionId: null;
+      viewerId: string;
+      payload: AdministratorAppointed;
+    }
+  | {
+      type: "administrator_withdrawn";
+      questionId: null;
+      viewerId: string;
+      payload: AdministratorWithdrawn;
+    }
+  | {
+      type: "role_changed";
+      questionId: null;
+      viewerId: string;
+      payload: RoleChanged;
     };
 
 /**
@@ -96,6 +117,9 @@ export type ChangeEventFromDb = {
   | { type: "question_edited"; payload: QuestionEdited }
   | { type: "near_duplicate_refused"; payload: NearDuplicateRefused }
   | { type: "near_duplicate_overridden"; payload: NearDuplicateOverridden }
+  | { type: "administrator_appointed"; payload: AdministratorAppointed }
+  | { type: "administrator_withdrawn"; payload: AdministratorWithdrawn }
+  | { type: "role_changed"; payload: RoleChanged }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -121,5 +145,19 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
         type: row.type,
         payload: nearDuplicateOverriddenSchema.parse(row.payload),
       };
+    case "administrator_appointed":
+      return {
+        ...happened,
+        type: row.type,
+        payload: administratorAppointedSchema.parse(row.payload),
+      };
+    case "administrator_withdrawn":
+      return {
+        ...happened,
+        type: row.type,
+        payload: administratorWithdrawnSchema.parse(row.payload),
+      };
+    case "role_changed":
+      return { ...happened, type: row.type, payload: roleChangedSchema.parse(row.payload) };
   }
 }

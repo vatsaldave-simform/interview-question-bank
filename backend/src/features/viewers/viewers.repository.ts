@@ -1,8 +1,8 @@
-import type { Viewer } from "@iqb/shared";
-import type { Database } from "../../platform/database.ts";
+import type { Viewer, ViewerRole } from "@iqb/shared";
+import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
 /** Everything a response or a permission check may see. Never the stored credential. */
-const publicFields = { id: true, email: true, role: true } as const;
+const publicFields = { id: true, email: true, role: true, isAdministrator: true } as const;
 
 export type ViewerWithCredential = Viewer & { passwordHash: string };
 
@@ -24,4 +24,26 @@ export function findViewerByEmail(
  */
 export function findViewerById(database: Database, id: string): Promise<Viewer | null> {
   return database.viewer.findUnique({ where: { id }, select: publicFields });
+}
+
+/** How many Viewers currently hold the Administrator authority, for the last-Administrator
+ * invariant (ADR-0015). Read inside the same transaction as the write it guards. */
+export function countAdministrators(database: DatabaseOrTransaction): Promise<number> {
+  return database.viewer.count({ where: { isAdministrator: true } });
+}
+
+export function setIsAdministrator(
+  database: DatabaseOrTransaction,
+  id: string,
+  isAdministrator: boolean,
+): Promise<Viewer> {
+  return database.viewer.update({ where: { id }, data: { isAdministrator }, select: publicFields });
+}
+
+export function setRole(
+  database: DatabaseOrTransaction,
+  id: string,
+  role: ViewerRole,
+): Promise<Viewer> {
+  return database.viewer.update({ where: { id }, data: { role }, select: publicFields });
 }
