@@ -292,9 +292,9 @@ property of an HTTP response and cannot be asserted below it.
 
 ## The browser test
 
-One Playwright test checks that the client and the API are connected. It runs in Chromium. It
-checks nothing the HTTP suite does not already cover. It only shows that the two halves work
-together.
+One Playwright test checks that the client and the API are connected. It runs in Chromium, logs
+in as the seeded Author, filters the bank by a Tag and adds a Question. It checks nothing
+the HTTP suite does not already cover. It only shows that the two halves work together.
 
 ```sh
 pnpm test:browser
