@@ -24,3 +24,16 @@ export function findPermissionGrantsForClient(
     select: publicFields,
   });
 }
+
+/** Deletes the row rather than marking it: every Question read checks whether the row is
+ * there, and the Change Event is what remembers it was (spec #20). */
+export function deletePermissionGrant(
+  database: DatabaseOrTransaction,
+  clientId: string,
+  viewerId: string,
+): Promise<PermissionGrant> {
+  return database.permissionGrant.delete({
+    where: { viewerId_clientId: { viewerId, clientId } },
+    select: publicFields,
+  });
+}

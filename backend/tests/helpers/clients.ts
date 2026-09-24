@@ -26,3 +26,15 @@ export function getGrants(api: TestApi, clientId: string, token: string): Promis
     headers: { authorization: `Bearer ${token}` },
   });
 }
+
+export function deleteGrant(
+  api: TestApi,
+  clientId: string,
+  viewerId: string,
+  token: string,
+): Promise<Response> {
+  return api.request(`/api/clients/${clientId}/grants/${viewerId}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${token}` },
+  });
+}

@@ -1,9 +1,19 @@
-import type { Client, PermissionGrant, PermissionGrantIssued, Viewer } from "@iqb/shared";
+import type {
+  Client,
+  PermissionGrant,
+  PermissionGrantIssued,
+  PermissionGrantRevoked,
+  Viewer,
+} from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import { insertChangeEvent } from "../change-events/change-events.repository.ts";
 import { findClientById } from "../clients/clients.repository.ts";
 import { findViewerById } from "../viewers/viewers.repository.ts";
-import { findPermissionGrantsForClient, insertPermissionGrant } from "./permission-grants.repository.ts";
+import {
+  deletePermissionGrant,
+  findPermissionGrantsForClient,
+  insertPermissionGrant,
+} from "./permission-grants.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { ConflictError, InvalidRequestError, NotFoundError } from "../../platform/errors.ts";
 
@@ -57,4 +67,32 @@ export async function listPermissionGrants(
 ): Promise<PermissionGrant[]> {
   const client = await clientNamed(database, clientId);
   return findPermissionGrantsForClient(database, client.id);
+}
+
+/** Takes effect on the Viewer's next request with no more work, because no read keeps a
+ * copy of who holds which Grant. */
+export async function revokePermissionGrant(
+  database: Database,
+  actingViewer: Viewer,
+  clientId: string,
+  viewerId: string,
+): Promise<void> {
+  try {
+    await database.$transaction(async (transaction) => {
+      const grant = await deletePermissionGrant(transaction, clientId, viewerId);
+      const payload: PermissionGrantRevoked = { grant };
+      await insertChangeEvent(transaction, {
+        type: "permission_grant_revoked",
+        questionId: null,
+        viewerId: actingViewer.id,
+        payload,
+      });
+    });
+  } catch (error) {
+    // The delete itself says the Grant was not there, so two racing revokes record one event.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new NotFoundError();
+    }
+    throw error;
+  }
 }

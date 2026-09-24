@@ -2,7 +2,7 @@ import { clientListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
-import { postClient } from "./helpers/clients.ts";
+import { deleteGrant, postClient } from "./helpers/clients.ts";
 import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
@@ -34,9 +34,11 @@ describe("listing Clients", () => {
   });
 
   it("shows a Viewer holding no Permission Grant an empty list", async () => {
-    // Removed directly, because revoking a Grant has no endpoint yet (#24).
     const reader = await viewerByRole(api.database, "reader");
-    await api.database.permissionGrant.deleteMany({ where: { viewerId: reader.id } });
+    const clientId = await clientIdNamed(api.database, seedClient.name);
+    const administratorToken = await logIn(api, seededViewer("reviewer"));
+    const revoked = await deleteGrant(api, clientId, reader.id, administratorToken);
+    expect(revoked.status).toBe(204);
     const readerToken = await logIn(api, seededViewer("reader"));
 
     expect(await clientNamesListed(api, readerToken)).toEqual([]);
