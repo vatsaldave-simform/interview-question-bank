@@ -16,11 +16,7 @@ import {
   type RoleChanged,
 } from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.ts";
-import type { Database } from "../../platform/database.ts";
-
-/** The transaction the change itself is running in, so that an event and the change it
- * describes cannot happen without each other. */
-export type DatabaseOrTransaction = Database | Prisma.TransactionClient;
+import type { DatabaseOrTransaction } from "../../platform/database.ts";
 
 /** The type and the payload travel together, so an edit's before and after cannot be
  * filed as an addition, and only a refused submission may name no Question (ADR-0006). */
