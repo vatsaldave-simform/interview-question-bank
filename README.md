@@ -312,7 +312,9 @@ misspelled Category, is refused on screen and never sent, so it cannot show the 
 
 Each Question has a page at `/questions/:id`, with its history: who changed what, and when.
 `/questions/new` adds one. The form is checked with the same schema the API uses before it is
-sent, and anything the API still refuses is shown against the field it names. The form is
+sent, and anything the API still refuses is shown against the field it names. When the API
+finds Near-Duplicates, they are listed in a dialog, and the Author can go back and change the
+Question or say it is different and add it anyway. The form is
 there for every Viewer, a Reader included. Whether they may add is the API's answer, so a
 Reader sees the API's refusal rather than a missing button.
 
