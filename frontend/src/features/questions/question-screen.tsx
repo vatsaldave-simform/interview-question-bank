@@ -1,5 +1,6 @@
 import type { PublicationState, Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { ApiFailure, whatWentWrong } from "@/platform/api-client";
@@ -31,7 +32,10 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
       ) : question.isError ? (
         <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
       ) : (
-        <QuestionInFull question={question.data} />
+        <>
+          <QuestionInFull question={question.data} />
+          <QuestionHistory questionId={questionId} />
+        </>
       )}
     </div>
   );

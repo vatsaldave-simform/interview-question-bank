@@ -1,6 +1,7 @@
 import {
   categoryListResponseSchema,
   categoryNames,
+  questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
   type ListQuestionsRequest,
@@ -44,5 +45,16 @@ export function useQuestion(id: string) {
     queryFn: ({ signal }) =>
       callApi(`/api/questions/${encodeURIComponent(id)}`, questionResponseSchema, { signal }),
     select: (answer) => answer.question,
+  });
+}
+
+export function useQuestionHistory(id: string) {
+  return useQuery({
+    queryKey: ["questions", "history", id],
+    queryFn: ({ signal }) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/history`, questionHistoryResponseSchema, {
+        signal,
+      }),
+    select: (answer) => answer.events,
   });
 }
