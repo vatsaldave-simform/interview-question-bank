@@ -2,6 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { BrowseScreen } from "@/features/questions/browse-screen";
 import { ContributeScreen } from "@/features/questions/contribute-screen";
+import { EditScreen } from "@/features/questions/edit-screen";
 import { QuestionScreen } from "@/features/questions/question-screen";
 import { signedInRoute } from "@/platform/signed-in-route";
 
@@ -48,4 +49,21 @@ function OneQuestion() {
   return <QuestionScreen questionId={questionId} />;
 }
 
-export const questionRoutes = [browseRoute, contributeRoute, questionRoute];
+const editRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/questions/$questionId/edit",
+  component: Edit,
+});
+
+function Edit() {
+  const { questionId } = editRoute.useParams();
+  const navigate = editRoute.useNavigate();
+  return (
+    <EditScreen
+      questionId={questionId}
+      onSaved={() => void navigate({ to: "/questions/$questionId", params: { questionId } })}
+    />
+  );
+}
+
+export const questionRoutes = [browseRoute, contributeRoute, questionRoute, editRoute];

@@ -314,9 +314,10 @@ Each Question has a page at `/questions/:id`, with its history: who changed what
 `/questions/new` adds one. The form is checked with the same schema the API uses before it is
 sent, and anything the API still refuses is shown against the field it names. When the API
 finds Near-Duplicates, they are listed in a dialog, and the Author can go back and change the
-Question or say it is different and add it anyway. The form is
-there for every Viewer, a Reader included. Whether they may add is the API's answer, so a
-Reader sees the API's refusal rather than a missing button.
+Question or say it is different and add it anyway. `/questions/:id/edit` edits one, and
+sends only the fields that changed. Both forms are there for every Viewer, a Reader
+included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
+API's refusal rather than a missing button.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
 there is no session to recover, the signed-in shell if there is. The access token it gets

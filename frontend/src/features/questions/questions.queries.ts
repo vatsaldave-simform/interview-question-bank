@@ -5,6 +5,7 @@ import {
   questionListResponseSchema,
   questionResponseSchema,
   type AddQuestionRequest,
+  type EditQuestionRequest,
   type ListQuestionsRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,5 +67,24 @@ export function useAddQuestion() {
     mutationFn: (request: AddQuestionRequest) =>
       callApi("/api/questions", questionResponseSchema, { method: "POST", body: request }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
+  });
+}
+
+export function useEditQuestion(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: EditQuestionRequest) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}`, questionResponseSchema, {
+        method: "PATCH",
+        body: request,
+      }),
+    onSuccess: async (answer) => {
+      // The answer is the Question as it now is, so there is nothing to ask for again.
+      queryClient.setQueryData(["questions", "one", id], answer);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["questions", "history", id] }),
+        queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
+      ]);
+    },
   });
 }
