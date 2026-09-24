@@ -2,6 +2,7 @@ import {
   categoryListResponseSchema,
   categoryNames,
   questionListResponseSchema,
+  questionResponseSchema,
   type ListQuestionsRequest,
 } from "@iqb/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -34,5 +35,14 @@ export function useCategories() {
     select: (answer) => answer.categories,
     // Tags change when someone seeds new ones, not while a Viewer is browsing.
     staleTime: Infinity,
+  });
+}
+
+export function useQuestion(id: string) {
+  return useQuery({
+    queryKey: ["questions", "one", id],
+    queryFn: ({ signal }) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}`, questionResponseSchema, { signal }),
+    select: (answer) => answer.question,
   });
 }

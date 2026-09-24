@@ -5,7 +5,7 @@ import { BrowsePages } from "@/features/questions/browse-pages";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { QuestionCard } from "@/features/questions/question-card";
 import { useQuestionList } from "@/features/questions/questions.queries";
-import { ApiFailure } from "@/platform/api-client";
+import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 
@@ -97,12 +97,4 @@ function QuestionList({ page }: { page: QuestionListResponse }) {
       ))}
     </ul>
   );
-}
-
-/** Anything but an API refusal is an answer the shared schema refused, and the parser's
- * complaint about it means nothing to a Viewer. */
-function whatWentWrong(reason: Error): string {
-  return reason instanceof ApiFailure
-    ? reason.message
-    : "The bank answered, but not in a way this client understands.";
 }

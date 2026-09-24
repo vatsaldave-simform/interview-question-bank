@@ -14,13 +14,24 @@ export function aPageOf(questions: Question[], asked: URL): Response {
   });
 }
 
+/** How a test answers any other path. `undefined` leaves it to the usual answer. */
+type AnswerTheRest = (
+  request: Request,
+  asked: URL,
+) => Response | Promise<Response> | undefined;
+
 /**
  * A fake API for a signed-in test: the list answers as the test says, and every other
  * path answers the way the bank would, so a test names only the part it is about.
  */
-export function fakeBank(answerTheList: AnswerTheList): FakeApi {
+export function fakeBank(
+  answerTheList: AnswerTheList,
+  answerTheRest: AnswerTheRest = () => undefined,
+): FakeApi {
   return fakeApi((request) => {
     const asked = new URL(request.url);
+    const answered = answerTheRest(request, asked);
+    if (answered !== undefined) return answered;
     if (asked.pathname === "/api/questions") return answerTheList(asked);
     if (asked.pathname === "/api/categories") return answersWith(theCategories);
     if (asked.pathname === "/api/auth/logout") return new Response(null, { status: 204 });
