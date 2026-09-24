@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { viewerRoleSchema } from "./auth.js";
+import { clientSchema } from "./clients.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
 /**
@@ -13,6 +14,7 @@ export const changeEventTypes = [
   "administrator_appointed",
   "administrator_withdrawn",
   "role_changed",
+  "client_created",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -80,6 +82,10 @@ export const roleChangedSchema = z
   .strict();
 export type RoleChanged = z.infer<typeof roleChangedSchema>;
 
+/** An Administrator creating a Client. */
+export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
+export type ClientCreated = z.infer<typeof clientCreatedSchema>;
+
 /**
  * Only the fields the edit changed, each with what it was and what it became. A field
  * the edit left alone is absent, and so is one it named with the value already there.
@@ -129,6 +135,7 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
     payload: administratorWithdrawnSchema,
   }),
   changeEventSchema.extend({ type: z.literal("role_changed"), payload: roleChangedSchema }),
+  changeEventSchema.extend({ type: z.literal("client_created"), payload: clientCreatedSchema }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
 
