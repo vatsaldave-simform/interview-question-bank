@@ -18,6 +18,7 @@ import {
   setRefreshCookie,
   type RefreshCookieConfig,
 } from "./refresh-cookie.ts";
+import { revokeRefreshTokensOfViewer } from "./refresh-token.repository.ts";
 import {
   issueRefreshToken,
   revokeRefreshTokenFamilyOf,
@@ -151,7 +152,11 @@ export function publicAuthRoutes({
     const passwordHash = await hashPassword(request.password);
     const viewerId = await database.$transaction(async (transaction) => {
       const spentFor = await spendPasswordToken(transaction, request.token);
-      if (spentFor !== null) await setPasswordHash(transaction, spentFor, passwordHash);
+      if (spentFor === null) return null;
+      await setPasswordHash(transaction, spentFor, passwordHash);
+      // Whoever reset a password because someone else got in must not leave that
+      // someone signed in.
+      await revokeRefreshTokensOfViewer(transaction, spentFor);
       return spentFor;
     });
     if (viewerId === null) throw deadLink();

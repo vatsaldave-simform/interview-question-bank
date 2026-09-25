@@ -1,5 +1,9 @@
 import type { DatabaseOrTransaction } from "../../platform/database.ts";
-import { insertPasswordToken, spendPasswordTokenByHash } from "./password-token.repository.ts";
+import {
+  endUnusedPasswordTokensOf,
+  insertPasswordToken,
+  spendPasswordTokenByHash,
+} from "./password-token.repository.ts";
 import { hashRandomToken, mintRandomToken } from "./random-token.ts";
 
 export type PasswordTokenConfig = { lifetimeSeconds: number };
@@ -13,6 +17,7 @@ export async function issuePasswordToken(
 ): Promise<IssuedPasswordToken> {
   const token = mintRandomToken();
   const expiresAt = new Date(Date.now() + lifetimeSeconds * 1_000);
+  await endUnusedPasswordTokensOf(database, viewerId);
   await insertPasswordToken(database, { viewerId, tokenHash: hashRandomToken(token), expiresAt });
   return { token, expiresAt };
 }
