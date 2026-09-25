@@ -3,9 +3,13 @@ import { PrismaClient, type Prisma } from "../generated/prisma/client.ts";
 
 export type Database = PrismaClient;
 
+/** A row lock taken outside a transaction is let go at once, so a locking read asks for
+ * this rather than `DatabaseOrTransaction`. */
+export type Transaction = Prisma.TransactionClient;
+
 /** The transaction a write is running in, so that a row and the Change Event that
  * describes it cannot happen without each other. */
-export type DatabaseOrTransaction = Database | Prisma.TransactionClient;
+export type DatabaseOrTransaction = Database | Transaction;
 
 export type DatabaseOptions = {
   /**
