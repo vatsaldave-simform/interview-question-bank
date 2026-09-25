@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { findRefreshTokenByHash } from "../src/features/auth/refresh-token.repository.ts";
+import { hashRandomToken } from "../src/features/auth/random-token.ts";
 import {
-  hashRefreshToken,
   issueRefreshToken,
   revokeRefreshTokenFamilyOf,
   rotateRefreshToken,
@@ -56,7 +56,7 @@ describe("rotating a refresh token", () => {
     const rows = await database.refreshToken.findMany();
     expect(rows).toHaveLength(1);
     expect(JSON.stringify(rows)).not.toContain(issued.token);
-    expect(await findRefreshTokenByHash(database, hashRefreshToken(issued.token))).not.toBeNull();
+    expect(await findRefreshTokenByHash(database, hashRandomToken(issued.token))).not.toBeNull();
   });
 
   it("issues a different token every time", async () => {

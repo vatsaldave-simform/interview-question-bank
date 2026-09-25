@@ -37,6 +37,7 @@ model Viewer {
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
   refreshTokens    RefreshToken[]
+  passwordTokens   PasswordToken[]
   permissionGrants PermissionGrant[]
   questions        Question[]
   changeEvents     ChangeEvent[]
@@ -68,6 +69,26 @@ model RefreshToken {
   @@index([familyId])
   @@index([viewerId])
   @@map("refresh_tokens")
+}
+
+/// A single-use, time-limited token that lets a Viewer set their password, held beside the
+/// refresh tokens for the same reason: using it up is a fact that has to survive a restart
+/// (ADR-0008). Named for passwords rather than for the first one, because a reset issues
+/// the same kind (#20).
+model PasswordToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  viewerId  String    @db.Uuid
+  viewer    Viewer    @relation(fields: [viewerId], references: [id])
+  /// The SHA-256 of the token, which exists in the clear only in the link that was mailed
+  /// (ADR-0022).
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  /// When it was used. It never works again after this.
+  spentAt   DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([viewerId])
+  @@map("password_tokens")
 }
 
 /// Whether a Question is awaiting a Reviewer, in the bank, or refused. A column and not
