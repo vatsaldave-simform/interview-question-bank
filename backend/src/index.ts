@@ -3,6 +3,7 @@ import { createApp } from "./app.ts";
 import { loadEnvFile, readEnv } from "./platform/env.ts";
 import { createDatabase } from "./platform/database.ts";
 import { createLogger, setRootLogger } from "./platform/logger.ts";
+import { createSmtpMailer } from "./platform/mail.ts";
 import { startServer } from "./platform/server.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
@@ -27,6 +28,15 @@ const server = await startServer({
     },
     refreshToken: { lifetimeSeconds: env.REFRESH_TOKEN_LIFETIME_SECONDS },
     refreshCookie: { secure: env.REFRESH_COOKIE_SECURE },
+    mailer: createSmtpMailer({
+      url: env.MAIL_URL,
+      from: env.MAIL_FROM,
+      requireTls: env.MAIL_REQUIRE_TLS,
+    }),
+    setPasswordLink: {
+      appUrl: env.APP_URL,
+      lifetimeSeconds: env.SET_PASSWORD_LINK_LIFETIME_SECONDS,
+    },
     trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),

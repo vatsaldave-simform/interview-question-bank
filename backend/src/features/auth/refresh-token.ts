@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import type { Database } from "../../platform/database.ts";
 import {
   findRefreshTokenByHash,
@@ -8,10 +8,8 @@ import {
   spendRefreshToken,
   type StoredRefreshToken,
 } from "./refresh-token.repository.ts";
+import { hashRandomToken, mintRandomToken } from "./random-token.ts";
 import { log } from "../../platform/logger.ts";
-
-/** Long enough that the token needs no structure of its own to verify (ADR-0022). */
-const tokenBytes = 32;
 
 /** Read from the environment once at startup, as the access token's is. */
 export type RefreshTokenConfig = {
@@ -29,21 +27,11 @@ export type RotationResult =
   | { rotated: true; viewerId: string; refreshToken: IssuedRefreshToken }
   | { rotated: false; reason: RotationRefusal };
 
-/** The token a caller holds; it is in their cookie and nowhere else in the clear. */
-export function mintRefreshToken(): string {
-  return randomBytes(tokenBytes).toString("base64url");
-}
-
-/** SHA-256 rather than argon2id, and why that is not a mistake: ADR-0022. */
-export function hashRefreshToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
 function findPresented(
   database: Database,
   presented: string,
 ): Promise<StoredRefreshToken | null> {
-  return findRefreshTokenByHash(database, hashRefreshToken(presented));
+  return findRefreshTokenByHash(database, hashRandomToken(presented));
 }
 
 async function issueInto(
@@ -52,12 +40,12 @@ async function issueInto(
   viewerId: string,
   { lifetimeSeconds }: RefreshTokenConfig,
 ): Promise<IssuedRefreshToken> {
-  const token = mintRefreshToken();
+  const token = mintRandomToken();
   const expiresAt = new Date(Date.now() + lifetimeSeconds * 1_000);
   await insertRefreshToken(database, {
     familyId,
     viewerId,
-    tokenHash: hashRefreshToken(token),
+    tokenHash: hashRandomToken(token),
     expiresAt,
   });
   return { token, expiresAt };

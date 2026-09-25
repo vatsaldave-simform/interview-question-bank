@@ -5,6 +5,15 @@ name: interview-question-bank
 x-database-url: &database-url
   postgresql://${POSTGRES_USER:-iqb}:${POSTGRES_PASSWORD:-iqb}@db:5432/${POSTGRES_DB:-iqb}
 
+# Inside compose the API reaches Mailpit as the host `mail`. Mailpit offers no TLS, so
+# the API is told not to insist on it here and nowhere else (ADR-0037). Mailed links
+# point at the port compose serves the bank on, not at `.env`'s APP_URL, which is Vite's.
+x-mail: &mail
+  MAIL_URL: smtp://mail:1025
+  MAIL_FROM: ${MAIL_FROM:-Interview Question Bank <bank@iqb.test>}
+  MAIL_REQUIRE_TLS: "false"
+  APP_URL: http://localhost:${PORT:-3000}
+
 services:
   db:
     image: postgres:16-alpine
@@ -62,6 +71,15 @@ services:
       timeout: 3s
       retries: 15
 
+  # Catches every mail the API sends, so nothing local ever reaches a real inbox. Its
+  # inbox is a web page on MAIL_WEB_PORT. The API does not wait for it: nothing is sent
+  # until an Administrator creates a Viewer, and the browser test never does.
+  mail:
+    image: axllent/mailpit:v1.31.2
+    ports:
+      - "${MAIL_SMTP_PORT:-1025}:1025"
+      - "${MAIL_WEB_PORT:-8025}:8025"
+
   # Migrations run here rather than in the API's own start-up, so the API never runs the
   # Prisma CLI (ADR-0012). `docker compose up` still needs no manual step: this service
   # runs to completion first and the API waits for it.
@@ -101,6 +119,7 @@ services:
       DATABASE_URL: *database-url
       # Read only because the seed validates the whole environment on the way in.
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-local-development-access-token-secret}
+      <<: *mail
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -126,6 +145,7 @@ services:
       LOGIN_RATE_LIMIT_WINDOW_SECONDS: ${LOGIN_RATE_LIMIT_WINDOW_SECONDS:-900}
       # Compose publishes the port straight to the host: no proxy, so no hops to trust.
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      <<: *mail
     ports:
       - "${PORT:-3000}:3000"
     depends_on:

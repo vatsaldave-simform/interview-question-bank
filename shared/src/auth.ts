@@ -76,6 +76,15 @@ export const createViewerRequestSchema = z
   .strict();
 export type CreateViewerRequest = z.infer<typeof createViewerRequestSchema>;
 
+/**
+ * At least 15 characters, the NIST SP 800-63B-4 minimum for a password that is the only
+ * factor, and at most 128, so the hasher is never handed a huge input.
+ */
+export const setPasswordRequestSchema = z
+  .object({ token: z.string().min(1), password: z.string().min(15).max(128) })
+  .strict();
+export type SetPasswordRequest = z.infer<typeof setPasswordRequestSchema>;
+
 /** What an administrative act against one Viewer answers with: that Viewer as they are
  * now. */
 export const viewerResponseSchema = z.object({ viewer: viewerSchema }).strict();

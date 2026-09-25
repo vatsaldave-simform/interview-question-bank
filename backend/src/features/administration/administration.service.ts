@@ -7,6 +7,7 @@ import type {
   ViewerRole,
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
+import { issuePasswordToken } from "../auth/password-token.ts";
 import { insertChangeEvent } from "../change-events/change-events.repository.ts";
 import {
   countAdministrators,
@@ -15,8 +16,13 @@ import {
   setIsAdministrator,
   setRole,
 } from "../viewers/viewers.repository.ts";
+import { setPasswordMessage, type SetPasswordLinkConfig } from "./set-password-mail.ts";
 import type { Database } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
+import { log } from "../../platform/logger.ts";
+import type { Mailer } from "../../platform/mail.ts";
+
+export type SetPasswordMailDependencies = { mailer: Mailer; settings: SetPasswordLinkConfig };
 
 async function targetNamed(database: Database, id: string): Promise<Viewer> {
   const target = await findViewerById(database, id);
@@ -112,24 +118,38 @@ export async function changeRole(
   });
 }
 
+/**
+ * The mail is sent last, inside the transaction, so a send that fails leaves no Viewer
+ * behind and the Administrator can simply try again instead of meeting a 409.
+ */
 export async function createViewer(
   database: Database,
+  { mailer, settings }: SetPasswordMailDependencies,
   actingViewer: Viewer,
   email: string,
   role: ViewerRole,
 ): Promise<Viewer> {
   try {
-    return await database.$transaction(async (transaction) => {
-      const created = await insertViewer(transaction, email, role);
-      const payload: ViewerCreated = { viewer: affectedViewer(created), role: created.role };
-      await insertChangeEvent(transaction, {
-        type: "viewer_created",
-        questionId: null,
-        viewerId: actingViewer.id,
-        payload,
-      });
-      return created;
-    });
+    const created = await database.$transaction(
+      async (transaction) => {
+        const inserted = await insertViewer(transaction, email, role);
+        const payload: ViewerCreated = { viewer: affectedViewer(inserted), role: inserted.role };
+        await insertChangeEvent(transaction, {
+          type: "viewer_created",
+          questionId: null,
+          viewerId: actingViewer.id,
+          payload,
+        });
+        const issued = await issuePasswordToken(transaction, inserted.id, settings);
+        await mailer.send(setPasswordMessage(inserted.email, issued, settings.appUrl));
+        return inserted;
+      },
+      // Past Prisma's five seconds, which a slow but working mail server can take; a send
+      // that outlasts even this rolls back after the mail has gone, and its link never works.
+      { timeout: 20_000 },
+    );
+    log().info({ viewerId: created.id }, "set-password link mailed");
+    return created;
   } catch (error) {
     // Caught from the unique index rather than checked first, so two requests racing for
     // one address cannot both pass the check.

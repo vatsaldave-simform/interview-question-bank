@@ -49,6 +49,15 @@ export function setRole(
   return database.viewer.update({ where: { id }, data: { role }, select: publicFields });
 }
 
+/** Takes a hash, never a password, so nothing written here can be the credential itself. */
+export async function setPasswordHash(
+  database: DatabaseOrTransaction,
+  id: string,
+  passwordHash: string,
+): Promise<void> {
+  await database.viewer.update({ where: { id }, data: { passwordHash }, select: { id: true } });
+}
+
 export function insertViewer(
   database: DatabaseOrTransaction,
   email: string,

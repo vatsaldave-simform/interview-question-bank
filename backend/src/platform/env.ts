@@ -51,6 +51,22 @@ const envSchema = z.object({
    * because there one origin serves both (ADR-0012).
    */
   FRONTEND_DIR: z.string().min(1).optional(),
+  /** Required, so a deploy with no mail set up fails at startup rather than at the first
+   * Viewer created. */
+  MAIL_URL: z.url({ protocol: /^smtps?$/ }),
+  /** Brevo refuses to send from an address it has not verified. */
+  MAIL_FROM: z.string().min(1),
+  /** True everywhere but a laptop, where Mailpit has no TLS to upgrade to (ADR-0037). */
+  MAIL_REQUIRE_TLS: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+  /** Not the API's own address in development, where Vite serves the client on another
+   * port. */
+  APP_URL: z.url({ protocol: /^https?$/ }),
+  /** Three days by default, to survive a weekend, and configurable so the suite can watch
+   * a link expire. */
+  SET_PASSWORD_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(259_200),
 });
 
 export type Env = z.infer<typeof envSchema>;

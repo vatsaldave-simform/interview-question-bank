@@ -37,6 +37,7 @@ model Viewer {
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
   refreshTokens    RefreshToken[]
+  passwordTokens   PasswordToken[]
   permissionGrants PermissionGrant[]
   questions        Question[]
   changeEvents     ChangeEvent[]
@@ -68,6 +69,22 @@ model RefreshToken {
   @@index([familyId])
   @@index([viewerId])
   @@map("refresh_tokens")
+}
+
+/// Beside the refresh tokens, because a used token has to stay used across a restart
+/// (ADR-0008), and named for passwords because reset will issue the same kind (#20).
+model PasswordToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  viewerId  String    @db.Uuid
+  viewer    Viewer    @relation(fields: [viewerId], references: [id])
+  /// The SHA-256 of the token, so a copy of this table holds no link that works (ADR-0022).
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  spentAt   DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([viewerId])
+  @@map("password_tokens")
 }
 
 /// Whether a Question is awaiting a Reviewer, in the bank, or refused. A column and not

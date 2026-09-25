@@ -32,6 +32,9 @@ curl localhost:3000/ready    # {"status":"ready","checks":{"database":"up"}}
 get the container restarted. `/ready` reports whether the database answers, and is the
 one to send traffic on.
 
+Mail the API sends locally never reaches a real inbox. It goes to Mailpit, the `mail`
+compose service, and you can read it at `http://localhost:8025`.
+
 ## Signing in
 
 There is no registration endpoint — an Administrator creates Viewers (ADR-0016) — so an
@@ -63,8 +66,8 @@ is never locked out of their own account
 (ADR-0021). Behind a proxy, `TRUST_PROXY_HOPS` has to match how many there are, or the
 limit keys on the proxy rather than on the caller.
 
-Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh` and
-`POST /api/auth/logout` sits behind the sign-in check, including paths that do not
+Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh`,
+`POST /api/auth/logout` and `POST /api/auth/set-password` sits behind the sign-in check, including paths that do not
 exist: a caller who is not signed in is told 401 everywhere alike, so nobody can map out
 the API by probing for which paths answer 404. Access tokens are short-lived and
 belong in memory, never in storage (ADR-0008); `ACCESS_TOKEN_LIFETIME_SECONDS` sets how
@@ -85,6 +88,25 @@ curl -s -c jar -o /dev/null localhost:3000/api/auth/login \
 
 curl -s -b jar -c jar -X POST localhost:3000/api/auth/refresh | jq -r .accessToken
 curl -s -b jar -X POST -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/logout  # 204
+```
+
+Anyone else is created by an Administrator, and the seeded Reviewer is one. A created
+Viewer has no password. They are mailed a link that works once and lasts three days
+(`SET_PASSWORD_LINK_LIFETIME_SECONDS`), and they choose their own password with it,
+15 to 128 characters. Locally the mail lands in Mailpit at `http://localhost:8025`:
+
+```sh
+ADMIN=$(curl -s localhost:3000/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"reviewer@iqb.test","password":"reviewer-password"}' | jq -r .accessToken)
+
+curl -s localhost:3000/api/viewers -H "authorization: Bearer $ADMIN" \
+  -H 'content-type: application/json' -d '{"email":"new@iqb.test","role":"author"}'
+
+# The token is everything after "#token=" in the link Mailpit shows.
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/set-password \
+  -H 'content-type: application/json' \
+  -d '{"token":"<token>","password":"a long password of my own"}'   # 204
 ```
 
 ## A bank big enough to time a query against
@@ -401,7 +423,20 @@ there is no in-platform way to run the seed. Point `DATABASE_URL` at Neon from y
 machine and run `pnpm db:seed` there. It is safe to run twice and leaves an existing
 Viewer untouched, so it can be re-run without resetting a password someone changed.
 
-`ACCESS_TOKEN_SECRET` is the one secret Render holds that is not in the table above:
+**Mail goes out through Brevo.** Render's free tier blocks the usual SMTP ports, so the
+bank uses Brevo's relay on port 2525, which its free plan allows (ADR-0037). Set two
+values on the Render service, which `render.yaml` leaves out of git:
+
+| Variable | Value |
+| --- | --- |
+| `MAIL_URL` | `smtp://<login>:<SMTP key>@smtp-relay.brevo.com:2525`, from Brevo's SMTP & API page |
+| `MAIL_FROM` | A sender address Brevo has verified |
+
+Leave `MAIL_REQUIRE_TLS` unset. It defaults to true, so the SMTP key is never sent over a
+connection that was not encrypted. Render documents which ports it blocks but not which
+it allows, so after the first deploy, create a Viewer and check the mail arrives.
+
+`ACCESS_TOKEN_SECRET` is the one secret Render holds that is in neither table above:
 `render.yaml` asks the platform to generate it, so it is never in git and never typed by
 anyone. Rotating it in the dashboard signs everyone out, which is the point of tokens
 being short-lived rather than sessions being long.
