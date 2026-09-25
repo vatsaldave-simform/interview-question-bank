@@ -26,8 +26,8 @@ model Viewer {
   /// Lower-cased on the way in, so an address matches however it was typed.
   email        String     @unique
   /// The output of the password hasher, algorithm and parameters included. Never leaves
-  /// the database: no response, no log line. Null for a Viewer an Administrator created
-  /// who has not set a password yet, and nobody can log in as them until they do.
+  /// the database: no response, no log line.
+  // Null until the Viewer sets a password, and login refuses them until then.
   passwordHash String?
   role         ViewerRole
   /// The Administrator authority, held beside `role` rather than as a fourth value of it
