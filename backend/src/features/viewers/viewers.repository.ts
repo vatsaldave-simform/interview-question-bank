@@ -1,5 +1,5 @@
 import type { Viewer, ViewerRole } from "@iqb/shared";
-import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
+import type { Database, DatabaseOrTransaction, Transaction } from "../../platform/database.ts";
 
 /** Everything a response or a permission check may see. Never the stored credential. */
 const publicFields = {
@@ -29,7 +29,10 @@ export function findViewerByEmail(
  * change to a Viewer takes effect on their next request instead of when their token
  * happens to expire.
  */
-export function findViewerById(database: Database, id: string): Promise<Viewer | null> {
+export function findViewerById(
+  database: DatabaseOrTransaction,
+  id: string,
+): Promise<Viewer | null> {
   return database.viewer.findUnique({ where: { id }, select: publicFields });
 }
 
@@ -42,6 +45,20 @@ export function countOtherActiveAdministrators(
   return database.viewer.count({
     where: { isAdministrator: true, isDeactivated: false, id: { not: exceptViewerId } },
   });
+}
+
+/** One statement ordered by `id`, and no stronger than `NO KEY UPDATE`, so it deadlocks
+ * neither with another like it nor with a Change Event naming one of these rows (ADR-0039). */
+export async function lockViewerAndActiveAdministrators(
+  transaction: Transaction,
+  viewerId: string,
+): Promise<void> {
+  await transaction.$queryRaw`
+    SELECT id FROM viewers
+     WHERE id = ${viewerId}::uuid OR ("isAdministrator" AND NOT "isDeactivated")
+     ORDER BY id
+       FOR NO KEY UPDATE
+  `;
 }
 
 export function setIsAdministrator(
