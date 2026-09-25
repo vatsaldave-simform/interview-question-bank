@@ -10,8 +10,8 @@ const nobody = "nobody.here@iqb.test";
 const newColleague = "new.colleague@iqb.test";
 
 /** As an Administrator does it, so the Viewer has no password yet. The mail that sends is
- * forgotten, so a test reads only what a reset sends. */
-async function createViewerWithNoPassword(api: TestApi): Promise<void> {
+ * forgotten, so a test reads only what a reset sends, and its token is handed back. */
+async function createViewerWithNoPassword(api: TestApi): Promise<string> {
   // The seeded Reviewer is the only Administrator (viewers.seed.ts).
   const administratorToken = await logIn(api, seededViewer("reviewer"));
   const response = await api.request("/api/viewers", {
@@ -20,7 +20,9 @@ async function createViewerWithNoPassword(api: TestApi): Promise<void> {
     body: JSON.stringify({ email: newColleague, role: "reader" }),
   });
   expect(response.status).toBe(201);
+  const token = tokenMailedTo(api, newColleague);
   api.forgetMail();
+  return token;
 }
 
 /** Deactivates the seeded Reader, whose address is then the Deactivated one. */
@@ -66,6 +68,20 @@ async function waitUntilHandled(api: TestApi, count: number): Promise<void> {
   }
 }
 
+function heldBack(lines: LogLine[]): LogLine[] {
+  return lines.filter((line) => line.msg === "password reset mail held back");
+}
+
+/** How many requests are queued behind another's lock on a Viewer, so a race test knows
+ * they all got there. */
+function waitingForTheLock(api: TestApi): () => Promise<number> {
+  return async () => {
+    const [row] = await api.database.$queryRaw<{ waiting: number }[]>`
+      SELECT count(*)::int AS waiting FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`;
+    return row?.waiting ?? 0;
+  };
+}
+
 /** Asks for a reset and waits for the work behind it. */
 async function askForReset(api: TestApi, email: string): Promise<Response> {
   const before = handledSoFar(api.logLines());
@@ -105,21 +121,6 @@ describe("asking for a password reset", () => {
     expect(new Set(seen).size).toBe(1);
   });
 
-  it("mails an active Viewer and one with no password yet, and nobody else", async () => {
-    await createViewerWithNoPassword(api);
-    const deactivated = await deactivateTheReader(api);
-
-    await askForReset(api, nobody);
-    await askForReset(api, deactivated);
-    await askForReset(api, seededViewer("author").email);
-    await askForReset(api, newColleague);
-
-    expect(api.sentMail().map((mail) => mail.to)).toEqual([
-      seededViewer("author").email,
-      newColleague,
-    ]);
-  });
-
   it("answers before the mail has gone", async () => {
     const releaseMail = api.holdNextMail();
 
@@ -154,22 +155,62 @@ describe("asking for a password reset", () => {
     expect((await postSetPassword(api, token)).status).toBe(401);
   });
 
-  it("stops the first mail's link working once a second is asked for", async () => {
+  it("sends one mail for two requests inside the window, and answers both the same", async () => {
     const email = seededViewer("author").email;
-    await askForReset(api, email);
-    const first = tokenMailedTo(api, email);
-    await askForReset(api, email);
 
-    expect((await postSetPassword(api, first)).status).toBe(401);
-    expect((await postSetPassword(api, tokenMailedTo(api, email))).status).toBe(204);
+    const first = await askForReset(api, email);
+    const second = await askForReset(api, email);
+
+    expect(api.sentMail().map((mail) => mail.to)).toEqual([email]);
+    expect(await statusAndBody(second)).toBe(await statusAndBody(first));
   });
 
-  it("lets a Viewer with no password yet replace their first link", async () => {
-    await createViewerWithNoPassword(api);
+  it("logs a held-back mail by the Viewer's id and not their address", async () => {
+    const email = seededViewer("author").email;
+    await askForReset(api, email);
+    await askForReset(api, email);
+
+    const lines = heldBack(api.logLines());
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ viewerId: (await viewerByRole(api.database, "author")).id });
+    expect(JSON.stringify(lines[0])).not.toContain(email);
+  });
+
+  it("sends one mail for several requests at the same moment", async () => {
+    const email = seededViewer("author").email;
+    // The first send is kept waiting inside its transaction, so the others arrive before
+    // its link is there to be seen.
+    const releaseMail = api.holdNextMail();
+
+    const answers = await Promise.all(
+      Array.from({ length: 4 }, () => postPasswordReset(api, { email })),
+    );
+    await readUntil(waitingForTheLock(api), (waiting) => waiting === 3);
+    expect(await waitingForTheLock(api)()).toBe(3);
+    releaseMail();
+    await waitUntilHandled(api, 4);
+
+    expect(api.sentMail()).toHaveLength(1);
+    expect(heldBack(api.logLines())).toHaveLength(3);
+    expect(new Set(await Promise.all(answers.map(statusAndBody))).size).toBe(1);
+  });
+
+  it("leaves the link already mailed working when it holds a mail back", async () => {
+    const email = seededViewer("author").email;
+    await askForReset(api, email);
+    const mailed = tokenMailedTo(api, email);
+    await askForReset(api, email);
+
+    expect((await postSetPassword(api, mailed)).status).toBe(204);
+  });
+
+  it("sends a new Viewer no second mail, and leaves their first link working", async () => {
+    const firstLink = await createViewerWithNoPassword(api);
+
     await askForReset(api, newColleague);
 
-    expect((await postSetPassword(api, tokenMailedTo(api, newColleague))).status).toBe(204);
-    expect((await postLogin(api, { email: newColleague, password: newPassword })).status).toBe(200);
+    expect(api.sentMail()).toEqual([]);
+    expect((await postSetPassword(api, firstLink)).status).toBe(204);
   });
 
   it("answers the same when the mail fails to send, logs it, and keeps working", async () => {
@@ -195,6 +236,73 @@ describe("asking for a password reset", () => {
 
     expect(response.status).toBe(400);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
+  });
+});
+
+const shortWindowSeconds = 1;
+
+const waitOutTheWindow = () =>
+  new Promise((resolve) => setTimeout(resolve, shortWindowSeconds * 1_000 + 100));
+
+describe("asking for a reset again once the window has passed", () => {
+  let api: TestApi;
+
+  beforeAll(async () => {
+    api = await startTestApi({ passwordResetLink: { mailWindowSeconds: shortWindowSeconds } });
+  });
+  beforeEach(async () => {
+    await seedTheBank(api.database);
+    api.forgetMail();
+    api.forgetLogs();
+  });
+  afterAll(async () => {
+    await api.stop();
+  });
+
+  it("sends a mail again", async () => {
+    const email = seededViewer("author").email;
+    await askForReset(api, email);
+    await waitOutTheWindow();
+
+    await askForReset(api, email);
+
+    expect(api.sentMail().map((mail) => mail.to)).toEqual([email, email]);
+  });
+
+  it("mails an active Viewer and one with no password yet, and nobody else", async () => {
+    await createViewerWithNoPassword(api);
+    const deactivated = await deactivateTheReader(api);
+    await waitOutTheWindow();
+
+    await askForReset(api, nobody);
+    await askForReset(api, deactivated);
+    await askForReset(api, seededViewer("author").email);
+    await askForReset(api, newColleague);
+
+    expect(api.sentMail().map((mail) => mail.to)).toEqual([
+      seededViewer("author").email,
+      newColleague,
+    ]);
+  });
+
+  it("stops the first mail's link working once a second is asked for", async () => {
+    const email = seededViewer("author").email;
+    await askForReset(api, email);
+    const first = tokenMailedTo(api, email);
+    await waitOutTheWindow();
+    await askForReset(api, email);
+
+    expect((await postSetPassword(api, first)).status).toBe(401);
+    expect((await postSetPassword(api, tokenMailedTo(api, email))).status).toBe(204);
+  });
+
+  it("lets a Viewer with no password yet replace their first link", async () => {
+    await createViewerWithNoPassword(api);
+    await waitOutTheWindow();
+    await askForReset(api, newColleague);
+
+    expect((await postSetPassword(api, tokenMailedTo(api, newColleague))).status).toBe(204);
+    expect((await postLogin(api, { email: newColleague, password: newPassword })).status).toBe(200);
   });
 });
 

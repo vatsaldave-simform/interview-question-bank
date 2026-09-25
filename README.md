@@ -113,7 +113,9 @@ A Viewer who forgot their password asks for a reset with their address. The answ
 202, whether or not the address has an account (ADR-0038). If it belongs to a Viewer who is
 not Deactivated, they are mailed a link like the one above. It works once, lasts an hour
 (`PASSWORD_RESET_LINK_LIFETIME_SECONDS`) and goes to the same set-password endpoint. Setting a
-password ends every session the Viewer had.
+password ends every session the Viewer had. A Viewer sent any link in the last five minutes
+(`PASSWORD_RESET_MAIL_WINDOW_SECONDS`) is not mailed again, and the answer is still 202
+(ADR-0040).
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/password-reset \

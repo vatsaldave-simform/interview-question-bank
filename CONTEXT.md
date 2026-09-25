@@ -75,6 +75,11 @@ A Viewer who can no longer log in, but who remains the Author of everything they
 their name on every Change Event. No Viewer is ever deleted.
 _Avoid_: disabled, suspended, removed, archived
 
+**Password Link**:
+A mailed link that lets a Viewer set their own password, sent when an Administrator creates them
+and when they ask for a reset. It works once, and a newer one ends it.
+_Avoid_: reset token, set-password token, reset link, magic link
+
 **Role Request**:
 A Viewer's request to hold a different role, granted or denied by an Administrator with a reason
 the requester can read. A Viewer holds at most one open Role Request.
