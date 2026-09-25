@@ -27,7 +27,6 @@ export type AppDependencies = {
   refreshCookie: RefreshCookieConfig;
   /** Passed in like the database, so the suite can read what would have been sent. */
   mailer: Mailer;
-  /** Where a new Viewer's link points, and how long it works. */
   setPasswordLink: SetPasswordLinkConfig;
   /** Proxies in front of the API, which is what makes `req.ip` the caller (ADR-0021). */
   trustProxyHops?: number;
@@ -79,7 +78,7 @@ export function createApp({
       authRateLimit,
       refreshToken,
       refreshCookie,
-      setPasswordLink: { mailer, link: setPasswordLink },
+      setPasswordMail: { mailer, settings: setPasswordLink },
     }),
   );
 

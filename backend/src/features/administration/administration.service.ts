@@ -16,14 +16,13 @@ import {
   setIsAdministrator,
   setRole,
 } from "../viewers/viewers.repository.ts";
-import { setPasswordMail, type SetPasswordLinkConfig } from "./set-password-mail.ts";
+import { setPasswordMessage, type SetPasswordLinkConfig } from "./set-password-mail.ts";
 import type { Database } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 import type { Mailer } from "../../platform/mail.ts";
 
-/** What creating a Viewer needs beyond the database: a way to send them their link. */
-export type SetPasswordLinkSender = { mailer: Mailer; link: SetPasswordLinkConfig };
+export type SetPasswordMailDependencies = { mailer: Mailer; settings: SetPasswordLinkConfig };
 
 async function targetNamed(database: Database, id: string): Promise<Viewer> {
   const target = await findViewerById(database, id);
@@ -125,7 +124,7 @@ export async function changeRole(
  */
 export async function createViewer(
   database: Database,
-  { mailer, link }: SetPasswordLinkSender,
+  { mailer, settings }: SetPasswordMailDependencies,
   actingViewer: Viewer,
   email: string,
   role: ViewerRole,
@@ -141,12 +140,12 @@ export async function createViewer(
           viewerId: actingViewer.id,
           payload,
         });
-        const issued = await issuePasswordToken(transaction, inserted.id, link);
-        await mailer.send(setPasswordMail(inserted.email, issued, link.appUrl));
+        const issued = await issuePasswordToken(transaction, inserted.id, settings);
+        await mailer.send(setPasswordMessage(inserted.email, issued, settings.appUrl));
         return inserted;
       },
-      // Past Prisma's five seconds, because the mail server gets that long to answer
-      // each step of the send (platform/mail.ts).
+      // Past Prisma's five seconds, which a slow but working mail server can take; a send
+      // that outlasts even this rolls back after the mail has gone, and its link never works.
       { timeout: 20_000 },
     );
     log().info({ viewerId: created.id }, "set-password link mailed");

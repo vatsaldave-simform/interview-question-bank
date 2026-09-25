@@ -32,7 +32,7 @@ export type TestApi = {
   /** Every statement the API has sent, for a test proving something never reached the
    * database. Empty unless `recordSql` was asked for. */
   statements: () => string[];
-  /** Every mail the API has sent since the last `forgetMail()`, oldest first. None of it
+  /** Every mail the API has sent since the last `forgetMail()`, oldest first, none of which
    * left the process. */
   sentMail: () => MailMessage[];
   forgetMail: () => void;

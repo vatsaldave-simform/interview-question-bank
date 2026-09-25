@@ -9,7 +9,7 @@ import {
 import { categoryRoutes } from "./features/categories/categories.routes.ts";
 import { questionRoutes } from "./features/questions/questions.routes.ts";
 import { administrationRoutes } from "./features/administration/administration.routes.ts";
-import type { SetPasswordLinkSender } from "./features/administration/administration.service.ts";
+import type { SetPasswordMailDependencies } from "./features/administration/administration.service.ts";
 import { clientRoutes } from "./features/clients/clients.routes.ts";
 
 /**
@@ -28,9 +28,9 @@ import { clientRoutes } from "./features/clients/clients.routes.ts";
  * probing for which paths answer 404.
  */
 export function apiRoutes(
-  dependencies: PublicAuthDependencies & { setPasswordLink: SetPasswordLinkSender },
+  dependencies: PublicAuthDependencies & { setPasswordMail: SetPasswordMailDependencies },
 ): Router {
-  const { database, accessToken, setPasswordLink } = dependencies;
+  const { database, accessToken, setPasswordMail } = dependencies;
   const router = Router();
 
   router.use("/auth", publicAuthRoutes(dependencies));
@@ -40,7 +40,7 @@ export function apiRoutes(
   router.use("/auth", authenticatedAuthRoutes());
   router.use("/questions", questionRoutes(database));
   router.use("/categories", categoryRoutes(database));
-  router.use("/viewers", administrationRoutes(database, setPasswordLink));
+  router.use("/viewers", administrationRoutes(database, setPasswordMail));
   router.use("/clients", clientRoutes(database));
   router.use(notFoundHandler);
   return router;

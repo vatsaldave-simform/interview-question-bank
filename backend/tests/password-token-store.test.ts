@@ -7,9 +7,8 @@ import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 const anHour = { lifetimeSeconds: 3_600 };
 
-/** The rules a set-password link lives by, held to the two functions that issue and spend
- * one. The HTTP tests follow a real link; these pin down the edges that are slow or racy
- * to reach that way. */
+/** Held to the two functions rather than to HTTP, because a race and an expiry are slow
+ * or unreliable to reach by following a real link. */
 describe("the password token store", () => {
   let database: Database;
   let viewerId: string;

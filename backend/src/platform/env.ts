@@ -51,30 +51,21 @@ const envSchema = z.object({
    * because there one origin serves both (ADR-0012).
    */
   FRONTEND_DIR: z.string().min(1).optional(),
-  /**
-   * Where outbound mail goes, credentials included, so it is a secret. Required, so a
-   * deploy with no mail set up fails here rather than at the first Viewer created.
-   */
+  /** Required, so a deploy with no mail set up fails at startup rather than at the first
+   * Viewer created. */
   MAIL_URL: z.url({ protocol: /^smtps?$/ }),
-  /** The sender every message names; the provider refuses one it has not verified. */
+  /** Brevo refuses to send from an address it has not verified. */
   MAIL_FROM: z.string().min(1),
-  /**
-   * Whether an smtp:// connection must upgrade to TLS before anything is sent. True
-   * everywhere but a laptop, where Mailpit offers no TLS to upgrade to.
-   */
+  /** True everywhere but a laptop, where Mailpit has no TLS to upgrade to (ADR-0037). */
   MAIL_REQUIRE_TLS: z
     .enum(["true", "false"])
     .default("true")
     .transform((value) => value === "true"),
-  /**
-   * The address people open the bank at, which is what a mailed link points to. Not the
-   * API's own address in development, where Vite serves the client on another port.
-   */
+  /** Not the API's own address in development, where Vite serves the client on another
+   * port. */
   APP_URL: z.url({ protocol: /^https?$/ }),
-  /**
-   * How long a new Viewer's set-password link works. Long enough to survive a weekend,
-   * and configurable so the suite can watch one expire.
-   */
+  /** Three days by default, to survive a weekend, and configurable so the suite can watch
+   * a link expire. */
   SET_PASSWORD_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(259_200),
 });
 

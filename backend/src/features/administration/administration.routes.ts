@@ -12,7 +12,7 @@ import {
   changeRole,
   createViewer,
   withdrawAdministrator,
-  type SetPasswordLinkSender,
+  type SetPasswordMailDependencies,
 } from "./administration.service.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
@@ -33,7 +33,7 @@ function viewerIdNamed(req: Request): string {
  */
 export function administrationRoutes(
   database: Database,
-  setPasswordLink: SetPasswordLinkSender,
+  setPasswordMail: SetPasswordMailDependencies,
 ): Router {
   const router = Router();
   router.use(requireAdministrator());
@@ -43,7 +43,7 @@ export function administrationRoutes(
 
     const viewer = await createViewer(
       database,
-      setPasswordLink,
+      setPasswordMail,
       authenticatedViewer(req),
       request.email,
       request.role,

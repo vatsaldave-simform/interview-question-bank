@@ -46,10 +46,8 @@ export type PublicAuthDependencies = AuthDependencies & {
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
 const badCredentials = () => new UnauthenticatedError("Those credentials are not valid.");
 
-/**
- * One answer for a link that is unknown, expired or used. A 401, because the token is the
- * credential here, which also keeps it apart from a 400 about the password.
- */
+/** A 401, because the token is the credential here, which also keeps a dead link apart
+ * from a 400 about the password. */
 const deadLink = () =>
   new UnauthenticatedError("This link is not valid. It may have expired or been used already.");
 
@@ -141,8 +139,8 @@ export function publicAuthRoutes({
     res.json(body);
   });
 
-  // Where a mailed link leads. The body is checked before the token is looked at, so a
-  // password that is refused does not use the link up.
+  // The body is checked before the token is looked at, so a password that is refused
+  // does not use the link up.
   router.post("/set-password", limitRequests(authRateLimit), async (req, res) => {
     const request = setPasswordRequestSchema.parse(req.body);
 

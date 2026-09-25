@@ -10,7 +10,6 @@ export type SmtpMailerConfig = {
   /** An smtp:// or smtps:// URL with the credentials in it: a provider when deployed,
    * Mailpit locally (ADR-0037). */
   url: string;
-  /** The sender every message names. The provider refuses one it has not verified. */
   from: string;
   /** Off only for a local server with no TLS, because without it someone in the middle
    * can remove the server's offer to upgrade and read the password as it is sent. */

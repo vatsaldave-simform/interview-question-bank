@@ -13,11 +13,8 @@ export async function insertPasswordToken(
   await database.passwordToken.create({ data: token, select: { id: true } });
 }
 
-/**
- * Marks a live token used and answers whose it was, in one statement. Two requests
- * arriving with the same token race here, and the database decides which one gets the
- * answer, rather than a read-then-write that would let both through.
- */
+/** One statement, so that of two requests racing with one token the database lets exactly
+ * one through, where a read-then-write would let both. */
 export async function spendPasswordTokenByHash(
   database: DatabaseOrTransaction,
   tokenHash: string,
