@@ -5,6 +5,7 @@ import type { AccessTokenConfig } from "./features/auth/access-token.ts";
 import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.ts";
 import type { RefreshTokenConfig } from "./features/auth/refresh-token.ts";
 import type { Database } from "./platform/database.ts";
+import type { Mailer } from "./platform/mail.ts";
 import type { RateLimitConfig } from "./platform/http/rate-limit.middleware.ts";
 import { frontendRoutes } from "./platform/http/frontend.routes.ts";
 import { errorHandler, notFoundHandler } from "./platform/http/error-handler.middleware.ts";
@@ -23,6 +24,8 @@ export type AppDependencies = {
   refreshToken: RefreshTokenConfig;
   /** Whether the cookie carrying it is marked Secure. */
   refreshCookie: RefreshCookieConfig;
+  /** Passed in like the database, so the suite can read what would have been sent. */
+  mailer: Mailer;
   /** Proxies in front of the API, which is what makes `req.ip` the caller (ADR-0021). */
   trustProxyHops?: number;
   /**

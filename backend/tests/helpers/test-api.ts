@@ -6,8 +6,10 @@ import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie
 import type { RefreshTokenConfig } from "../../src/features/auth/refresh-token.ts";
 import type { RateLimitConfig } from "../../src/platform/http/rate-limit.middleware.ts";
 import { createLogger } from "../../src/platform/logger.ts";
+import type { MailMessage } from "../../src/platform/mail.ts";
 import { startServer, type RunningServer } from "../../src/platform/server.ts";
 import { testAccessTokenSecret } from "./auth.ts";
+import { createRecordingMailer } from "./recording-mailer.ts";
 import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./test-database.ts";
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
@@ -28,6 +30,12 @@ export type TestApi = {
   /** Every statement the API has sent, for a test proving something never reached the
    * database. Empty unless `recordSql` was asked for. */
   statements: () => string[];
+  /** Every mail the API has sent since the last `forgetMail()`, oldest first. None of it
+   * left the process. */
+  sentMail: () => MailMessage[];
+  forgetMail: () => void;
+  /** The API's next send fails, as it would with the mail server down. */
+  failNextMail: () => void;
   truncate: () => Promise<void>;
   stop: () => Promise<void>;
 };
@@ -69,6 +77,7 @@ export async function startTestApi(
 
   const recorded = options.recordSql ? createSqlLoggingDatabase() : null;
   const database = recorded?.database ?? createTestDatabase(options.applicationName);
+  const mailer = createRecordingMailer();
   const app = createApp({
     logger,
     database,
@@ -90,6 +99,7 @@ export async function startTestApi(
     // The suite speaks http, and a Secure cookie would never come back over it; the
     // test that asserts the attribute is set asks for it explicitly.
     refreshCookie: { secure: false, ...options.refreshCookie },
+    mailer,
     ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });
@@ -103,6 +113,9 @@ export async function startTestApi(
     forgetLogs: () => {
       lines.length = 0;
     },
+    sentMail: mailer.sent,
+    forgetMail: mailer.forget,
+    failNextMail: mailer.failNextSend,
     truncate: () => truncateAll(database),
     stop: async () => {
       await server.stop();

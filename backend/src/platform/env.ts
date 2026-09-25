@@ -51,6 +51,21 @@ const envSchema = z.object({
    * because there one origin serves both (ADR-0012).
    */
   FRONTEND_DIR: z.string().min(1).optional(),
+  /**
+   * Where outbound mail goes, credentials included, so it is a secret. Required, so a
+   * deploy with no mail set up fails here rather than at the first Viewer created.
+   */
+  MAIL_URL: z.url({ protocol: /^smtps?$/ }),
+  /** The sender every message names; the provider refuses one it has not verified. */
+  MAIL_FROM: z.string().min(1),
+  /**
+   * Whether an smtp:// connection must upgrade to TLS before anything is sent. True
+   * everywhere but a laptop, where Mailpit offers no TLS to upgrade to.
+   */
+  MAIL_REQUIRE_TLS: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

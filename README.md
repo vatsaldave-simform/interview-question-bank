@@ -32,6 +32,9 @@ curl localhost:3000/ready    # {"status":"ready","checks":{"database":"up"}}
 get the container restarted. `/ready` reports whether the database answers, and is the
 one to send traffic on.
 
+Mail the API sends locally never reaches a real inbox. It goes to Mailpit, the `mail`
+compose service, and you can read it at `http://localhost:8025`.
+
 ## Signing in
 
 There is no registration endpoint — an Administrator creates Viewers (ADR-0016) — so an
@@ -401,7 +404,20 @@ there is no in-platform way to run the seed. Point `DATABASE_URL` at Neon from y
 machine and run `pnpm db:seed` there. It is safe to run twice and leaves an existing
 Viewer untouched, so it can be re-run without resetting a password someone changed.
 
-`ACCESS_TOKEN_SECRET` is the one secret Render holds that is not in the table above:
+**Mail goes out through Brevo.** Render's free tier blocks the usual SMTP ports, so the
+bank uses Brevo's relay on port 2525, which its free plan allows (ADR-0037). Set two
+values on the Render service, which `render.yaml` leaves out of git:
+
+| Variable | Value |
+| --- | --- |
+| `MAIL_URL` | `smtp://<login>:<SMTP key>@smtp-relay.brevo.com:2525`, from Brevo's SMTP & API page |
+| `MAIL_FROM` | A sender address Brevo has verified |
+
+Leave `MAIL_REQUIRE_TLS` unset. It defaults to true, so the SMTP key is never sent over a
+connection that was not encrypted. Render documents which ports it blocks but not which
+it allows, so after the first deploy, create a Viewer and check the mail arrives.
+
+`ACCESS_TOKEN_SECRET` is the one secret Render holds that is in neither table above:
 `render.yaml` asks the platform to generate it, so it is never in git and never typed by
 anyone. Rotating it in the dashboard signs everyone out, which is the point of tokens
 being short-lived rather than sessions being long.

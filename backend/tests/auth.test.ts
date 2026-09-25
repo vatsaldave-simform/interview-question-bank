@@ -275,6 +275,8 @@ describe("the token settings the environment supplies", () => {
   const environment = {
     DATABASE_URL: "postgresql://iqb:iqb@localhost:5432/iqb",
     ACCESS_TOKEN_SECRET: "a-secret-long-enough-to-be-worth-having",
+    MAIL_URL: "smtp://localhost:1025",
+    MAIL_FROM: "bank@iqb.test",
   };
 
   it("refuses to start with no secret to sign with", () => {

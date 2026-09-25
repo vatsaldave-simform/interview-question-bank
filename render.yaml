@@ -51,6 +51,14 @@ services:
       # allowance between every caller or lets a caller invent an address (ADR-0021).
       - key: TRUST_PROXY_HOPS
         value: 1
+      # Brevo's SMTP relay on port 2525, because Render's free tier blocks outbound 25,
+      # 465 and 587 (ADR-0037). The URL holds the SMTP key, so it stays out of git like
+      # DATABASE_URL: smtp://<login>:<smtp key>@smtp-relay.brevo.com:2525
+      - key: MAIL_URL
+        sync: false
+      # A sender Brevo has verified; it refuses any other.
+      - key: MAIL_FROM
+        sync: false
 
     # PORT is set by Render itself, and the API reads it from the environment.
     # FRONTEND_DIR is set in the image, because it is a fact about the image's layout
