@@ -1,5 +1,6 @@
 import {
   loginRequestSchema,
+  passwordResetRequestSchema,
   setPasswordRequestSchema,
   type CurrentViewerResponse,
   type LoginResponse,
@@ -11,6 +12,8 @@ import { signAccessToken } from "./access-token.ts";
 import { authenticatedViewer } from "./authenticated-viewer.ts";
 import type { AuthDependencies } from "./auth.middleware.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
+import type { PasswordMailDependencies } from "./password-link.ts";
+import { mailPasswordResetLink } from "./password-reset.service.ts";
 import { spendPasswordToken } from "./password-token.ts";
 import {
   clearRefreshCookie,
@@ -18,6 +21,7 @@ import {
   setRefreshCookie,
   type RefreshCookieConfig,
 } from "./refresh-cookie.ts";
+import { revokeRefreshTokensOfViewer } from "./refresh-token.repository.ts";
 import {
   issueRefreshToken,
   revokeRefreshTokenFamilyOf,
@@ -41,6 +45,7 @@ export type PublicAuthDependencies = AuthDependencies & {
   authRateLimit: RateLimitConfig;
   refreshToken: RefreshTokenConfig;
   refreshCookie: RefreshCookieConfig;
+  passwordResetMail: PasswordMailDependencies;
 };
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
@@ -73,6 +78,7 @@ export function publicAuthRoutes({
   authRateLimit,
   refreshToken,
   refreshCookie,
+  passwordResetMail,
 }: PublicAuthDependencies): Router {
   const router = Router();
 
@@ -151,13 +157,26 @@ export function publicAuthRoutes({
     const passwordHash = await hashPassword(request.password);
     const viewerId = await database.$transaction(async (transaction) => {
       const spentFor = await spendPasswordToken(transaction, request.token);
-      if (spentFor !== null) await setPasswordHash(transaction, spentFor, passwordHash);
+      if (spentFor === null) return null;
+      await setPasswordHash(transaction, spentFor, passwordHash);
+      // Whoever reset a password because someone else got in must not leave that
+      // someone signed in.
+      await revokeRefreshTokensOfViewer(transaction, spentFor);
       return spentFor;
     });
     if (viewerId === null) throw deadLink();
 
     log().info({ viewerId }, "password set");
     res.status(204).end();
+  });
+
+  const resetLimit = limitRequests(authRateLimit, { countSuccesses: true });
+  // Answers before it looks the address up, so the time it takes says nothing (ADR-0038).
+  router.post("/password-reset", resetLimit, (req, res) => {
+    const { email } = passwordResetRequestSchema.parse(req.body);
+
+    res.status(202).end();
+    void mailPasswordResetLink(database, passwordResetMail, email);
   });
 
   // Answers the same whatever it was given, so it is safe to call twice and says

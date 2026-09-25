@@ -7,17 +7,27 @@ export type RecordingMailer = Mailer & {
   forget: () => void;
   /** The next send throws, as an unreachable mail server would. */
   failNextSend: () => void;
+  /** The next send waits until the function handed back is called, as a slow mail server
+   * would keep it waiting. */
+  holdNextSend: () => () => void;
 };
 
 export function createRecordingMailer(): RecordingMailer {
   const sent: MailMessage[] = [];
   let failNext = false;
+  let held: Promise<void> | null = null;
 
   return {
     send: async (message) => {
+      if (held !== null) {
+        const waitFor = held;
+        held = null;
+        await waitFor;
+      }
       if (failNext) {
         failNext = false;
-        throw new Error("The recording mailer was told to fail this send.");
+        // Naming the recipient, as a mail server's refusal often does.
+        throw new Error(`The recording mailer was told to refuse ${message.to}.`);
       }
       sent.push(message);
     },
@@ -25,9 +35,17 @@ export function createRecordingMailer(): RecordingMailer {
     forget: () => {
       sent.length = 0;
       failNext = false;
+      held = null;
     },
     failNextSend: () => {
       failNext = true;
+    },
+    holdNextSend: () => {
+      let release = () => {};
+      held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return release;
     },
   };
 }

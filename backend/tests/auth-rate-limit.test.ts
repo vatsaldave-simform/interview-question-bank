@@ -31,6 +31,14 @@ function guess(api: TestApi, headers: Record<string, string> = {}): Promise<Resp
   return postLogin(api, { email: seededViewer("author").email, password: "no" }, headers);
 }
 
+function followDeadLink(api: TestApi): Promise<Response> {
+  return api.request("/api/auth/set-password", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: "not a token anyone issued", password: "a long enough password" }),
+  });
+}
+
 async function spendTheAllowance(api: TestApi, headers: Record<string, string> = {}): Promise<void> {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     expect((await guess(api, headers)).status).toBe(401);
@@ -145,13 +153,6 @@ describe("the endpoints the limit covers", () => {
 });
 
 describe("the set-password endpoint", () => {
-  const followDeadLink = (api: TestApi): Promise<Response> =>
-    api.request("/api/auth/set-password", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: "not a token anyone issued", password: "a long enough password" }),
-    });
-
   // Unauthenticated like login, so without a limit a caller could guess at tokens, or
   // spend the hasher, as fast as the API would answer (ADR-0021).
   it("refuses a burst of dead links with the error contract's body", async () => {
@@ -193,5 +194,51 @@ describe("which caller the allowance belongs to", () => {
     await spendTheAllowance(api, from("203.0.113.1"));
 
     expect((await guess(api, from("198.51.100.7"))).status).toBe(429);
+  });
+});
+
+describe("the password reset request", () => {
+  const askForReset = (api: TestApi): Promise<Response> =>
+    api.request("/api/auth/password-reset", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: seededViewer("author").email }),
+    });
+
+  // It answers 202 to everything, so a limit that counted only failures could never be
+  // reached, and a caller could have a Viewer mailed without end.
+  it("refuses a burst of requests for a real address with the error contract's body", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      expect((await askForReset(api)).status).toBe(202);
+    }
+
+    const response = await askForReset(api);
+
+    expect(response.status).toBe(429);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("rate_limited");
+  });
+
+  it("keeps its allowance apart from login's", async () => {
+    const api = await limitedApi();
+    await spendTheAllowance(api);
+
+    expect((await askForReset(api)).status).toBe(202);
+  });
+
+  it("keeps its allowance apart from set-password's", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      expect((await followDeadLink(api)).status).toBe(401);
+    }
+
+    expect((await askForReset(api)).status).toBe(202);
+  });
+
+  it("does not spend login's allowance", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) await askForReset(api);
+
+    expect((await guess(api)).status).toBe(401);
   });
 });

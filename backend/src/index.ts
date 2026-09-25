@@ -37,6 +37,10 @@ const server = await startServer({
       appUrl: env.APP_URL,
       lifetimeSeconds: env.SET_PASSWORD_LINK_LIFETIME_SECONDS,
     },
+    passwordResetLink: {
+      appUrl: env.APP_URL,
+      lifetimeSeconds: env.PASSWORD_RESET_LINK_LIFETIME_SECONDS,
+    },
     trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),

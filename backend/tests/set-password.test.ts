@@ -1,6 +1,8 @@
 import { apiErrorSchema, loginResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { issuePasswordToken } from "../src/features/auth/password-token.ts";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
+import { refreshCookieHeader, refreshCookieValue } from "./helpers/cookies.ts";
 import { seedTheBank } from "./helpers/question-bank.ts";
 import { tokenMailedTo } from "./helpers/set-password-link.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
@@ -102,6 +104,27 @@ describe("setting a password from the mailed link", () => {
     expect(short.status).toBe(400);
     expect(apiErrorSchema.parse(await short.json()).error.code).toBe("invalid_request");
     expect((await postSetPassword(api, { token, password: chosenPassword })).status).toBe(204);
+  });
+
+  it("ends every session a Viewer already has, and their old password stops working", async () => {
+    const viewer = seededViewer("author");
+    const login = await postLogin(api, { email: viewer.email, password: viewer.password });
+    const { id } = await api.database.viewer.findUniqueOrThrow({
+      where: { email: viewer.email },
+      select: { id: true },
+    });
+    // Issued directly, as the reset request does for a Viewer who already has a password.
+    const { token } = await issuePasswordToken(api.database, id, { lifetimeSeconds: 3_600 });
+
+    expect((await postSetPassword(api, { token, password: chosenPassword })).status).toBe(204);
+
+    const refresh = await api.request("/api/auth/refresh", {
+      method: "POST",
+      headers: refreshCookieHeader(refreshCookieValue(login)),
+    });
+    expect(refresh.status).toBe(401);
+    expect((await postLogin(api, { email: viewer.email, password: viewer.password })).status).toBe(401);
+    expect((await postLogin(api, { email: viewer.email, password: chosenPassword })).status).toBe(200);
   });
 
   it.each([

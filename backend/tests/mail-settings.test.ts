@@ -60,4 +60,12 @@ describe("the mail settings the environment supplies", () => {
         .SET_PASSWORD_LINK_LIFETIME_SECONDS,
     ).toBe(1);
   });
+
+  it("gives a reset link one hour unless told otherwise", () => {
+    expect(readEnv(environment).PASSWORD_RESET_LINK_LIFETIME_SECONDS).toBe(3_600);
+    expect(
+      readEnv({ ...environment, PASSWORD_RESET_LINK_LIFETIME_SECONDS: "1" })
+        .PASSWORD_RESET_LINK_LIFETIME_SECONDS,
+    ).toBe(1);
+  });
 });

@@ -12,6 +12,15 @@ const anHour = { lifetimeSeconds: 3_600 };
 describe("the password token store", () => {
   let database: Database;
   let viewerId: string;
+  let otherViewerId: string;
+
+  const idOf = async (role: "author" | "reader"): Promise<string> => {
+    const viewer = await database.viewer.findUniqueOrThrow({
+      where: { email: seededViewer(role).email },
+      select: { id: true },
+    });
+    return viewer.id;
+  };
 
   beforeAll(() => {
     database = createTestDatabase();
@@ -19,11 +28,8 @@ describe("the password token store", () => {
   beforeEach(async () => {
     await truncateAll(database);
     await seedViewerAccounts(database);
-    const viewer = await database.viewer.findUniqueOrThrow({
-      where: { email: seededViewer("author").email },
-      select: { id: true },
-    });
-    viewerId = viewer.id;
+    viewerId = await idOf("author");
+    otherViewerId = await idOf("reader");
   });
   afterAll(async () => {
     await database.$disconnect();
@@ -63,6 +69,55 @@ describe("the password token store", () => {
 
     expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 3_600_000);
     expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 3_600_000);
+  });
+
+  it("refuses a Viewer's older token once a newer one is issued", async () => {
+    const { token: older } = await issuePasswordToken(database, viewerId, anHour);
+    const { token: newer } = await issuePasswordToken(database, viewerId, anHour);
+
+    expect(await spendPasswordToken(database, older)).toBeNull();
+    expect(await spendPasswordToken(database, newer)).toBe(viewerId);
+  });
+
+  it("lets only one of two tokens issued at the same moment be spent", async () => {
+    // Each is issued inside a transaction the other cannot see into yet, so neither ends
+    // the other and both are left working, as two reset requests racing would leave them.
+    let letFirstCommit = () => {};
+    const firstMayCommit = new Promise<void>((resolve) => {
+      letFirstCommit = resolve;
+    });
+    let firstIssued = () => {};
+    const firstHasIssued = new Promise<void>((resolve) => {
+      firstIssued = resolve;
+    });
+    const firstCommitted = database.$transaction(async (transaction) => {
+      const issued = await issuePasswordToken(transaction, viewerId, anHour);
+      firstIssued();
+      await firstMayCommit;
+      return issued;
+    });
+    await firstHasIssued;
+    const second = await database.$transaction((transaction) =>
+      issuePasswordToken(transaction, viewerId, anHour),
+    );
+    letFirstCommit();
+    const first = await firstCommitted;
+
+    const spent = [
+      await spendPasswordToken(database, first.token),
+      await spendPasswordToken(database, second.token),
+    ];
+
+    expect(spent.filter((result) => result === viewerId)).toHaveLength(1);
+  });
+
+  it("leaves another Viewer's token alone", async () => {
+    const { token: theirs } = await issuePasswordToken(database, otherViewerId, anHour);
+    const { token: mine } = await issuePasswordToken(database, viewerId, anHour);
+
+    await spendPasswordToken(database, mine);
+
+    expect(await spendPasswordToken(database, theirs)).toBe(otherViewerId);
   });
 
   it("lets only one of two spends at the same moment succeed", async () => {

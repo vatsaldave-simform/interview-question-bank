@@ -43,6 +43,15 @@ caller guess at tokens, and make the password hasher run on every guess, as fast
 answered. It carries its own limiter and so its own allowance, and only failures count: a dead
 link spends it, and setting a password does not.
 
+**The password reset request joined the limit in #28, and it counts every request.** It is
+unauthenticated like the others. But it answers 202 to every well-formed request, whether or not
+the address has an account (ADR-0038), so it never fails, and a limit that counted only failures
+could never be reached. Unlimited, it would let a caller have a Viewer mailed without end. So this
+one route counts successes too. That does not bring back the office problem above: nobody asks
+for a reset every morning, and a shared address that asks often enough to be refused can wait
+out the window. It has its own allowance, like every other route, and the same
+`LOGIN_RATE_LIMIT_` values.
+
 ## Consequences
 
 The window and the threshold are environment configuration, so the suite sets them low rather than

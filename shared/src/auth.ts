@@ -88,6 +88,10 @@ export const setPasswordRequestSchema = z
   .strict();
 export type SetPasswordRequest = z.infer<typeof setPasswordRequestSchema>;
 
+/** Answered the same whether or not the address has an account (ADR-0016). */
+export const passwordResetRequestSchema = z.object({ email: emailAddressSchema }).strict();
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+
 /** What an administrative act against one Viewer answers with: that Viewer as they are
  * now. */
 export const viewerResponseSchema = z.object({ viewer: viewerSchema }).strict();
