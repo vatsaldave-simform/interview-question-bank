@@ -102,7 +102,6 @@ export const viewerCreatedSchema = z
   .strict();
 export type ViewerCreated = z.infer<typeof viewerCreatedSchema>;
 
-/** An Administrator Deactivating a Viewer, who may be the Administrator themselves. */
 export const viewerDeactivatedSchema = z.object({ viewer: namedViewerSchema }).strict();
 export type ViewerDeactivated = z.infer<typeof viewerDeactivatedSchema>;
 

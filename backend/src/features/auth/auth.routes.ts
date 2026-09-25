@@ -129,7 +129,8 @@ export function publicAuthRoutes({
     // Read rather than trusted from the rotation, so a Viewer changed since they last
     // refreshed takes effect now instead of when their family happens to end.
     const viewer = await findViewerById(database, rotation.viewerId);
-    // Revoking at Deactivation misses the token of a login that was already past its check.
+    // A login that began just before a Deactivation can issue its token just after it,
+    // so the revoking done at Deactivation misses that token.
     if (!viewer || viewer.isDeactivated) refuseSession(res, refreshCookie);
 
     setRefreshCookie(res, rotation.refreshToken, refreshCookie);

@@ -21,7 +21,7 @@ import {
   setRole,
 } from "../viewers/viewers.repository.ts";
 import { setPasswordMessage, type SetPasswordLinkConfig } from "./set-password-mail.ts";
-import type { Database } from "../../platform/database.ts";
+import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 import type { Mailer } from "../../platform/mail.ts";
@@ -38,6 +38,19 @@ async function targetNamed(database: Database, id: string): Promise<Viewer> {
  * Change Event names it (ADR-0035). */
 function affectedViewer(viewer: Viewer) {
   return { id: viewer.id, email: viewer.email };
+}
+
+/** Called inside the transaction of the write it guards, so the count and the write see
+ * the same rows. */
+async function refuseLastActiveAdministrator(
+  transaction: DatabaseOrTransaction,
+  target: Viewer,
+  refusal: string,
+): Promise<void> {
+  if (!target.isAdministrator) return;
+  if ((await countOtherActiveAdministrators(transaction, target.id)) === 0) {
+    throw new ConflictError(refusal);
+  }
 }
 
 /**
@@ -78,9 +91,11 @@ export async function withdrawAdministrator(
   if (!target.isAdministrator) return target;
 
   return database.$transaction(async (transaction) => {
-    if ((await countOtherActiveAdministrators(transaction, target.id)) === 0) {
-      throw new ConflictError("The last Administrator's authority cannot be withdrawn.");
-    }
+    await refuseLastActiveAdministrator(
+      transaction,
+      target,
+      "The last Administrator's authority cannot be withdrawn.",
+    );
 
     const withdrawn = await setIsAdministrator(transaction, target.id, false);
     const payload: AdministratorWithdrawn = { viewer: affectedViewer(withdrawn) };
@@ -121,10 +136,8 @@ export async function changeRole(
   });
 }
 
-/**
- * Their refresh tokens are revoked in the same transaction, so no session survives on
- * rotation. The last active Administrator is refused, as withdrawing is (ADR-0015).
- */
+/** Their refresh tokens are revoked in the same transaction, so no session survives on
+ * rotation (ADR-0017). */
 export async function deactivateViewer(
   database: Database,
   actingViewer: Viewer,
@@ -134,12 +147,11 @@ export async function deactivateViewer(
   if (target.isDeactivated) return target;
 
   return database.$transaction(async (transaction) => {
-    if (
-      target.isAdministrator &&
-      (await countOtherActiveAdministrators(transaction, target.id)) === 0
-    ) {
-      throw new ConflictError("The last active Administrator cannot be Deactivated.");
-    }
+    await refuseLastActiveAdministrator(
+      transaction,
+      target,
+      "The last active Administrator cannot be Deactivated.",
+    );
 
     const deactivated = await setIsDeactivated(transaction, target.id, true);
     await revokeRefreshTokensOfViewer(transaction, target.id);
@@ -154,7 +166,7 @@ export async function deactivateViewer(
   });
 }
 
-/** Their Permission Grants were never touched, so they come back with the same access
+/** Nothing here restores Permission Grants, because Deactivating never removed them
  * (ADR-0017). */
 export async function reactivateViewer(
   database: Database,

@@ -52,7 +52,6 @@ function postSetPassword(api: TestApi, token: string): Promise<Response> {
   });
 }
 
-/** The events an administrative act left, most recent first. */
 function administrativeEvents(api: TestApi) {
   return api.database.changeEvent.findMany({
     where: { questionId: null },
@@ -104,8 +103,11 @@ describe("Deactivating and reactivating a Viewer", () => {
     });
   });
 
-  it("refuses a route naming a Viewer who does not exist", async () => {
-    const response = await deactivate(api, "b0000000-0000-4000-8000-00000000ffff", administratorToken);
+  it.each([
+    ["deactivating", deactivate],
+    ["reactivating", reactivate],
+  ])("refuses %s a Viewer who does not exist", async (_act, act) => {
+    const response = await act(api, "b0000000-0000-4000-8000-00000000ffff", administratorToken);
 
     expect(response.status).toBe(404);
   });
@@ -230,6 +232,18 @@ describe("Deactivating and reactivating a Viewer", () => {
       expect(event?.type).toBe("viewer_reactivated");
       expect(event?.viewerId).toBe(administratorId);
       expect(event?.payload).toEqual({ viewer: { id: authorId, email: seededViewer("author").email } });
+    });
+
+    it("records nothing the second time", async () => {
+      await deactivate(api, authorId, administratorToken);
+      await reactivate(api, authorId, administratorToken);
+      const before = await administrativeEvents(api);
+
+      const response = await reactivate(api, authorId, administratorToken);
+
+      expect(response.status).toBe(200);
+      expect(viewerResponseSchema.parse(await response.json()).viewer.isDeactivated).toBe(false);
+      expect(await administrativeEvents(api)).toEqual(before);
     });
 
     it("records nothing for a Viewer who was never Deactivated", async () => {
