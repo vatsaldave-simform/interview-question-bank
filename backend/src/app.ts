@@ -2,7 +2,10 @@ import express, { type Express } from "express";
 import type { Logger } from "pino";
 import cookieParser from "cookie-parser";
 import type { AccessTokenConfig } from "./features/auth/access-token.ts";
-import type { PasswordLinkConfig } from "./features/auth/password-link.ts";
+import type {
+  PasswordLinkConfig,
+  PasswordResetLinkConfig,
+} from "./features/auth/password-link.ts";
 import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.ts";
 import type { RefreshTokenConfig } from "./features/auth/refresh-token.ts";
 import type { Database } from "./platform/database.ts";
@@ -28,7 +31,7 @@ export type AppDependencies = {
   /** Passed in like the database, so the suite can read what would have been sent. */
   mailer: Mailer;
   setPasswordLink: PasswordLinkConfig;
-  passwordResetLink: PasswordLinkConfig;
+  passwordResetLink: PasswordResetLinkConfig;
   /** Proxies in front of the API, which is what makes `req.ip` the caller (ADR-0021). */
   trustProxyHops?: number;
   /**

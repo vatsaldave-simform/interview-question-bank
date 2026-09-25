@@ -68,4 +68,18 @@ describe("the mail settings the environment supplies", () => {
         .PASSWORD_RESET_LINK_LIFETIME_SECONDS,
     ).toBe(1);
   });
+
+  it("holds back a second reset mail for five minutes unless told otherwise", () => {
+    expect(readEnv(environment).PASSWORD_RESET_MAIL_WINDOW_SECONDS).toBe(300);
+    expect(
+      readEnv({ ...environment, PASSWORD_RESET_MAIL_WINDOW_SECONDS: "1" })
+        .PASSWORD_RESET_MAIL_WINDOW_SECONDS,
+    ).toBe(1);
+  });
+
+  it("refuses a reset mail window of nothing", () => {
+    expect(() => readEnv({ ...environment, PASSWORD_RESET_MAIL_WINDOW_SECONDS: "0" })).toThrow(
+      /PASSWORD_RESET_MAIL_WINDOW_SECONDS/,
+    );
+  });
 });

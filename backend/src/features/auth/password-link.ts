@@ -6,6 +6,11 @@ export type PasswordLinkConfig = PasswordTokenConfig & { appUrl: string };
 
 export type PasswordMailDependencies = { mailer: Mailer; settings: PasswordLinkConfig };
 
+/** A reset only, because creating a Viewer always sends their first link. */
+export type PasswordResetLinkConfig = PasswordLinkConfig & { mailWindowSeconds: number };
+
+export type PasswordResetMailDependencies = { mailer: Mailer; settings: PasswordResetLinkConfig };
+
 export function passwordLinkUrl(appUrl: string, token: string): string {
   const link = new URL("/set-password", appUrl);
   // After the `#`, which a browser never sends to a server, so opening the link keeps

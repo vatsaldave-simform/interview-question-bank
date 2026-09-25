@@ -1,5 +1,5 @@
 import { passwordResetMessage } from "./password-reset-mail.ts";
-import type { PasswordMailDependencies } from "./password-link.ts";
+import type { PasswordResetMailDependencies } from "./password-link.ts";
 import { issuePasswordToken } from "./password-token.ts";
 import { findViewerByEmail } from "../viewers/viewers.repository.ts";
 import type { Database } from "../../platform/database.ts";
@@ -20,7 +20,7 @@ function kindOfFailure(error: unknown): Record<string, unknown> {
  */
 export async function mailPasswordResetLink(
   database: Database,
-  { mailer, settings }: PasswordMailDependencies,
+  { mailer, settings }: PasswordResetMailDependencies,
   email: string,
 ): Promise<void> {
   let viewerId: string | undefined;

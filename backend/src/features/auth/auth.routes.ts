@@ -12,7 +12,7 @@ import { signAccessToken } from "./access-token.ts";
 import { authenticatedViewer } from "./authenticated-viewer.ts";
 import type { AuthDependencies } from "./auth.middleware.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
-import type { PasswordMailDependencies } from "./password-link.ts";
+import type { PasswordResetMailDependencies } from "./password-link.ts";
 import { mailPasswordResetLink } from "./password-reset.service.ts";
 import { spendPasswordToken } from "./password-token.ts";
 import {
@@ -45,7 +45,7 @@ export type PublicAuthDependencies = AuthDependencies & {
   authRateLimit: RateLimitConfig;
   refreshToken: RefreshTokenConfig;
   refreshCookie: RefreshCookieConfig;
-  passwordResetMail: PasswordMailDependencies;
+  passwordResetMail: PasswordResetMailDependencies;
 };
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
