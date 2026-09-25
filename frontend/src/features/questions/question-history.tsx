@@ -81,6 +81,8 @@ function whatHappened(event: ChangeEvent): string {
       return "issued a Permission Grant";
     case "permission_grant_revoked":
       return "revoked a Permission Grant";
+    case "viewer_created":
+      return "created a Viewer";
   }
 }
 

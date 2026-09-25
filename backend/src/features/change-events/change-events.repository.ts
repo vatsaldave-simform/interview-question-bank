@@ -9,6 +9,7 @@ import {
   questionAddedSchema,
   questionEditedSchema,
   roleChangedSchema,
+  viewerCreatedSchema,
   type AdministratorAppointed,
   type AdministratorWithdrawn,
   type ClientCreated,
@@ -20,6 +21,7 @@ import {
   type QuestionAdded,
   type QuestionEdited,
   type RoleChanged,
+  type ViewerCreated,
 } from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.ts";
 import type { DatabaseOrTransaction } from "../../platform/database.ts";
@@ -88,6 +90,12 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: PermissionGrantRevoked;
+    }
+  | {
+      type: "viewer_created";
+      questionId: null;
+      viewerId: string;
+      payload: ViewerCreated;
     };
 
 /**
@@ -147,6 +155,7 @@ export type ChangeEventFromDb = {
   | { type: "client_created"; payload: ClientCreated }
   | { type: "permission_grant_issued"; payload: PermissionGrantIssued }
   | { type: "permission_grant_revoked"; payload: PermissionGrantRevoked }
+  | { type: "viewer_created"; payload: ViewerCreated }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -200,5 +209,7 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
         type: row.type,
         payload: permissionGrantRevokedSchema.parse(row.payload),
       };
+    case "viewer_created":
+      return { ...happened, type: row.type, payload: viewerCreatedSchema.parse(row.payload) };
   }
 }

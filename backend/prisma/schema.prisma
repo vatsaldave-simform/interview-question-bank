@@ -212,6 +212,7 @@ enum ChangeEventType {
   client_created
   permission_grant_issued
   permission_grant_revoked
+  viewer_created
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and
