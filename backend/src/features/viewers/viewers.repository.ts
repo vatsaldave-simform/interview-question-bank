@@ -4,7 +4,8 @@ import type { Database, DatabaseOrTransaction } from "../../platform/database.ts
 /** Everything a response or a permission check may see. Never the stored credential. */
 const publicFields = { id: true, email: true, role: true, isAdministrator: true } as const;
 
-export type ViewerWithCredential = Viewer & { passwordHash: string };
+/** Null until the Viewer sets a password, so every reader has to say what that means. */
+export type ViewerWithCredential = Viewer & { passwordHash: string | null };
 
 /** The one place the stored credential is read, so it is easy to see that it is one. */
 export function findViewerByEmail(
@@ -46,4 +47,12 @@ export function setRole(
   role: ViewerRole,
 ): Promise<Viewer> {
   return database.viewer.update({ where: { id }, data: { role }, select: publicFields });
+}
+
+export function insertViewer(
+  database: DatabaseOrTransaction,
+  email: string,
+  role: ViewerRole,
+): Promise<Viewer> {
+  return database.viewer.create({ data: { email, role }, select: publicFields });
 }

@@ -1,9 +1,18 @@
-import { changeRoleRequestSchema, type ViewerResponse } from "@iqb/shared";
+import {
+  changeRoleRequestSchema,
+  createViewerRequestSchema,
+  type ViewerResponse,
+} from "@iqb/shared";
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireAdministrator } from "../auth/require-administrator.middleware.ts";
-import { appointAdministrator, changeRole, withdrawAdministrator } from "./administration.service.ts";
+import {
+  appointAdministrator,
+  changeRole,
+  createViewer,
+  withdrawAdministrator,
+} from "./administration.service.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
 
@@ -24,6 +33,20 @@ function viewerIdNamed(req: Request): string {
 export function administrationRoutes(database: Database): Router {
   const router = Router();
   router.use(requireAdministrator());
+
+  router.post("/", async (req, res) => {
+    const request = createViewerRequestSchema.parse(req.body);
+
+    const viewer = await createViewer(
+      database,
+      authenticatedViewer(req),
+      request.email,
+      request.role,
+    );
+
+    const body: ViewerResponse = { viewer };
+    res.status(201).json(body);
+  });
 
   router.post("/:id/administrator", async (req, res) => {
     const id = viewerIdNamed(req);

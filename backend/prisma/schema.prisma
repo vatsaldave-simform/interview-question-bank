@@ -27,7 +27,8 @@ model Viewer {
   email        String     @unique
   /// The output of the password hasher, algorithm and parameters included. Never leaves
   /// the database: no response, no log line.
-  passwordHash String
+  // Null until the Viewer sets a password, and login refuses them until then.
+  passwordHash String?
   role         ViewerRole
   /// The Administrator authority, held beside `role` rather than as a fourth value of it
   /// (ADR-0015). Confers no access to Questions.
@@ -211,6 +212,7 @@ enum ChangeEventType {
   client_created
   permission_grant_issued
   permission_grant_revoked
+  viewer_created
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

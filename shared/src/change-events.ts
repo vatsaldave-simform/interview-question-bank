@@ -18,6 +18,7 @@ export const changeEventTypes = [
   "client_created",
   "permission_grant_issued",
   "permission_grant_revoked",
+  "viewer_created",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -93,6 +94,12 @@ export type PermissionGrantIssued = z.infer<typeof permissionGrantIssuedSchema>;
 export const permissionGrantRevokedSchema = z.object({ grant: permissionGrantSchema }).strict();
 export type PermissionGrantRevoked = z.infer<typeof permissionGrantRevokedSchema>;
 
+/** An Administrator creating a Viewer, with the role they were given. */
+export const viewerCreatedSchema = z
+  .object({ viewer: namedViewerSchema, role: viewerRoleSchema })
+  .strict();
+export type ViewerCreated = z.infer<typeof viewerCreatedSchema>;
+
 /**
  * Only the fields the edit changed, each with what it was and what it became. A field
  * the edit left alone is absent, and so is one it named with the value already there.
@@ -151,6 +158,7 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
     type: z.literal("permission_grant_revoked"),
     payload: permissionGrantRevokedSchema,
   }),
+  changeEventSchema.extend({ type: z.literal("viewer_created"), payload: viewerCreatedSchema }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
 

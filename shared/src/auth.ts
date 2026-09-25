@@ -30,18 +30,13 @@ export const namedViewerSchema = z.object({ id: z.uuid(), email: z.email() }).st
 export type NamedViewer = z.infer<typeof namedViewerSchema>;
 
 /**
- * Credentials. The email is lower-cased here rather than at the call site, so the
- * address a Viewer types is matched the same way wherever it arrives from.
+ * Lower-cased here rather than at the call site, so an address is stored and matched the
+ * same way wherever it arrives from.
  */
+const emailAddressSchema = z.string().trim().toLowerCase().pipe(z.email());
+
 export const loginRequestSchema = z
-  .object({
-    email: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .pipe(z.email()),
-    password: z.string().min(1),
-  })
+  .object({ email: emailAddressSchema, password: z.string().min(1) })
   .strict();
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
@@ -73,6 +68,13 @@ export type CurrentViewerResponse = z.infer<typeof currentViewerResponseSchema>;
 /** An Administrator setting a Viewer's role directly, with no Role Request involved. */
 export const changeRoleRequestSchema = z.object({ role: viewerRoleSchema }).strict();
 export type ChangeRoleRequest = z.infer<typeof changeRoleRequestSchema>;
+
+/** No password and no Administrator authority: the Viewer sets the first themselves, and
+ * the second is only ever given by appointing them (ADR-0015, ADR-0016). */
+export const createViewerRequestSchema = z
+  .object({ email: emailAddressSchema, role: viewerRoleSchema })
+  .strict();
+export type CreateViewerRequest = z.infer<typeof createViewerRequestSchema>;
 
 /** What an administrative act against one Viewer answers with: that Viewer as they are
  * now. */

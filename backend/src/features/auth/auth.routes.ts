@@ -72,7 +72,9 @@ export function publicAuthRoutes({
     const credentials = loginRequestSchema.parse(req.body);
 
     const viewer = await findViewerByEmail(database, credentials.email);
-    if (!viewer) {
+    // A Viewer with no password yet is refused like an address with no account, so login
+    // does not tell a caller which accounts are still waiting to be set up.
+    if (!viewer || viewer.passwordHash === null) {
       // Hash the presented password and throw the result away. Hashing costs what
       // verifying costs, so an address with no account takes as long to refuse as a
       // wrong password does; without this the response time alone would tell a caller
