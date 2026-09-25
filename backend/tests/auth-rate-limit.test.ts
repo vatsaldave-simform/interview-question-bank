@@ -195,3 +195,40 @@ describe("which caller the allowance belongs to", () => {
     expect((await guess(api, from("198.51.100.7"))).status).toBe(429);
   });
 });
+
+describe("the password reset request", () => {
+  const askForReset = (api: TestApi): Promise<Response> =>
+    api.request("/api/auth/password-reset", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: seededViewer("author").email }),
+    });
+
+  // It answers 202 to everything, so a limit that counted only failures could never be
+  // reached, and a caller could have a Viewer mailed without end.
+  it("refuses a burst of requests for a real address with the error contract's body", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      expect((await askForReset(api)).status).toBe(202);
+    }
+
+    const response = await askForReset(api);
+
+    expect(response.status).toBe(429);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("rate_limited");
+  });
+
+  it("keeps its allowance apart from login's", async () => {
+    const api = await limitedApi();
+    await spendTheAllowance(api);
+
+    expect((await askForReset(api)).status).toBe(202);
+  });
+
+  it("does not spend login's allowance", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) await askForReset(api);
+
+    expect((await guess(api)).status).toBe(401);
+  });
+});

@@ -173,8 +173,10 @@ export function publicAuthRoutes({
   });
 
   // Answers before it looks the address up, so neither the answer nor the time it takes
-  // says whether the address has an account (ADR-0038).
-  router.post("/password-reset", limitRequests(authRateLimit), (req, res) => {
+  // says whether the address has an account (ADR-0038). Every request counts, because
+  // every one succeeds (ADR-0021).
+  const resetLimit = limitRequests(authRateLimit, { countSuccesses: true });
+  router.post("/password-reset", resetLimit, (req, res) => {
     const { email } = passwordResetRequestSchema.parse(req.body);
 
     res.status(202).end();
