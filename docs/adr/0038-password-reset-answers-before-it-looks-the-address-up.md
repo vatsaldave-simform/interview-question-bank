@@ -17,7 +17,13 @@ well formed, and that says nothing about any account.
 
 **The work after the response catches its own errors.** Nothing is waiting on it. An error it
 let go would be an unhandled rejection, and `index.ts` ends the process on one. So it logs a
-failed send as an error and stops there.
+failed send as an error and stops there. The log line names the Viewer and the kind of error,
+but not the error's message, because a mail server's refusal often names the recipient.
+
+**At most one of a Viewer's links can be used.** Asking for a reset ends the Viewer's older
+unused links. Two requests at the same moment cannot see each other's new link, so both may be
+left working. Using either one ends the other, so a mail left in an inbox can never change a
+password after it has been set.
 
 **Who is sent a link:** a Viewer who exists and is not Deactivated, whether or not they have set a
 password yet. #26 left resending a new Viewer's first link to this endpoint.
@@ -45,6 +51,17 @@ the caller's side, a lost mail and an address with no account look the same, and
 The Viewer asks again.
 
 A send still in progress when the process stops is lost. The Viewer asks again.
+
+The token is issued and the mail sent inside one transaction, as `createViewer` does, so a send
+that fails leaves the older link working. The cost is that the transaction stays open while
+SMTP runs. An older link used during that time waits, then is refused. A send that works but
+outlasts the transaction mails a link that never works. A burst of requests with a slow mail
+server holds a database connection each. Sending after the commit would avoid all three, but a
+failed send would then end the older link with nothing to replace it.
+
+The Viewer is looked up before the transaction starts. A Viewer Deactivated in between can still
+be issued a link. Spending it is refused while they stay Deactivated, so it matters only if they
+are reactivated before the link expires.
 
 The suite cannot wait on the response to know the work is done. The service writes a
 `password reset request handled` line when it finishes, however it went, and the tests wait on

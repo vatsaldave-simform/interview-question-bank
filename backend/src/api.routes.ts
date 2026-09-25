@@ -9,7 +9,7 @@ import {
 import { categoryRoutes } from "./features/categories/categories.routes.ts";
 import { questionRoutes } from "./features/questions/questions.routes.ts";
 import { administrationRoutes } from "./features/administration/administration.routes.ts";
-import type { SetPasswordMailDependencies } from "./features/administration/administration.service.ts";
+import type { PasswordMailDependencies } from "./features/auth/password-link.ts";
 import { clientRoutes } from "./features/clients/clients.routes.ts";
 
 /**
@@ -28,7 +28,7 @@ import { clientRoutes } from "./features/clients/clients.routes.ts";
  * probing for which paths answer 404.
  */
 export function apiRoutes(
-  dependencies: PublicAuthDependencies & { setPasswordMail: SetPasswordMailDependencies },
+  dependencies: PublicAuthDependencies & { setPasswordMail: PasswordMailDependencies },
 ): Router {
   const { database, accessToken, setPasswordMail } = dependencies;
   const router = Router();

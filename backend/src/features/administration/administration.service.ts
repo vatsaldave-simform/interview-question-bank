@@ -20,13 +20,11 @@ import {
   setIsDeactivated,
   setRole,
 } from "../viewers/viewers.repository.ts";
-import { setPasswordMessage, type SetPasswordLinkConfig } from "./set-password-mail.ts";
+import { setPasswordMessage } from "./set-password-mail.ts";
+import type { PasswordMailDependencies } from "../auth/password-link.ts";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
-import type { Mailer } from "../../platform/mail.ts";
-
-export type SetPasswordMailDependencies = { mailer: Mailer; settings: SetPasswordLinkConfig };
 
 async function targetNamed(database: Database, id: string): Promise<Viewer> {
   const target = await findViewerById(database, id);
@@ -195,7 +193,7 @@ export async function reactivateViewer(
  */
 export async function createViewer(
   database: Database,
-  { mailer, settings }: SetPasswordMailDependencies,
+  { mailer, settings }: PasswordMailDependencies,
   actingViewer: Viewer,
   email: string,
   role: ViewerRole,

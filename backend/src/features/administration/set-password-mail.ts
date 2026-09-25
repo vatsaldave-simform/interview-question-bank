@@ -1,8 +1,6 @@
-import { passwordLinkUrl, type PasswordLinkConfig } from "../auth/password-link.ts";
+import { passwordLinkUrl } from "../auth/password-link.ts";
 import type { IssuedPasswordToken } from "../auth/password-token.ts";
 import type { MailMessage } from "../../platform/mail.ts";
-
-export type SetPasswordLinkConfig = PasswordLinkConfig;
 
 export function setPasswordMessage(
   to: string,

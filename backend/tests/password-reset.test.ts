@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
 import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { tokenMailedTo } from "./helpers/set-password-link.ts";
-import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
+import { startTestApi, statusAndBody, type LogLine, type TestApi } from "./helpers/test-api.ts";
 import { readUntil } from "./helpers/wait.ts";
 
 const nobody = "nobody.here@iqb.test";
@@ -53,20 +53,22 @@ function postPasswordReset(api: TestApi, body: unknown): Promise<Response> {
   });
 }
 
+function handledSoFar(lines: LogLine[]): number {
+  return lines.filter((line) => line.msg === "password reset request handled").length;
+}
+
 /** The work goes on after the response, so a test waits on the line that says it is done
  * before it looks at what was mailed. */
 async function waitUntilHandled(api: TestApi, count: number): Promise<void> {
-  const handled = (lines: ReturnType<TestApi["logLines"]>) =>
-    lines.filter((line) => line.msg === "password reset request handled").length;
-  const lines = await readUntil(api.logLines, (current) => handled(current) >= count);
-  if (handled(lines) < count) throw new Error(`Only ${handled(lines)} of ${count} were handled.`);
+  const lines = await readUntil(api.logLines, (current) => handledSoFar(current) >= count);
+  if (handledSoFar(lines) < count) {
+    throw new Error(`Only ${handledSoFar(lines)} of ${count} were handled.`);
+  }
 }
 
 /** Asks for a reset and waits for the work behind it. */
 async function askForReset(api: TestApi, email: string): Promise<Response> {
-  const before = api
-    .logLines()
-    .filter((line) => line.msg === "password reset request handled").length;
+  const before = handledSoFar(api.logLines());
   const response = await postPasswordReset(api, { email });
   await waitUntilHandled(api, before + 1);
   return response;
@@ -177,7 +179,9 @@ describe("asking for a password reset", () => {
     const failed = await askForReset(api, email);
 
     expect(await statusAndBody(failed)).toBe(await statusAndBody(await askForReset(api, nobody)));
-    expect(api.logLines().some((line) => line.msg === "password reset link not mailed")).toBe(true);
+    const failure = api.logLines().find((line) => line.msg === "password reset link not mailed");
+    expect(failure).toMatchObject({ viewerId: (await viewerByRole(api.database, "author")).id });
+    expect(JSON.stringify(failure)).not.toContain(email);
     await askForReset(api, email);
     expect(api.sentMail().map((mail) => mail.to)).toEqual([email]);
   });

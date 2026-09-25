@@ -113,8 +113,7 @@ describe("setting a password from the mailed link", () => {
       where: { email: viewer.email },
       select: { id: true },
     });
-    // Issued directly, as the reset request will issue one for a Viewer who already has a
-    // password.
+    // Issued directly, as the reset request does for a Viewer who already has a password.
     const { token } = await issuePasswordToken(api.database, id, { lifetimeSeconds: 3_600 });
 
     expect((await postSetPassword(api, { token, password: chosenPassword })).status).toBe(204);

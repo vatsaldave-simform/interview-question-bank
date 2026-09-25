@@ -14,13 +14,15 @@ export type RateLimitConfig = {
  */
 export function limitRequests(
   { windowSeconds, maxAttempts }: RateLimitConfig,
-  { countSuccesses = false }: { countSuccesses?: boolean } = {},
+  {
+    // Off by default, so a Viewer signing in over and over is never locked out of their
+    // own account by having succeeded; on only for a route that never fails (ADR-0021).
+    countSuccesses = false,
+  }: { countSuccesses?: boolean } = {},
 ): RequestHandler {
   return rateLimit({
     windowMs: windowSeconds * 1_000,
     limit: maxAttempts,
-    // Only failures count, so a Viewer signing in over and over is never locked out of
-    // their own account by having succeeded (ADR-0021).
     skipSuccessfulRequests: !countSuccesses,
     // The standard headers and no others, so a client that means well can back off on
     // what they say rather than on a 429 it did not see coming.

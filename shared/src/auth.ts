@@ -88,8 +88,7 @@ export const setPasswordRequestSchema = z
   .strict();
 export type SetPasswordRequest = z.infer<typeof setPasswordRequestSchema>;
 
-/** An address and nothing else, answered the same whether or not it has an account
- * (ADR-0016). */
+/** Answered the same whether or not the address has an account (ADR-0016). */
 export const passwordResetRequestSchema = z.object({ email: emailAddressSchema }).strict();
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
 

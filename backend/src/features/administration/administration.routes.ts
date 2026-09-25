@@ -14,8 +14,8 @@ import {
   deactivateViewer,
   reactivateViewer,
   withdrawAdministrator,
-  type SetPasswordMailDependencies,
 } from "./administration.service.ts";
+import type { PasswordMailDependencies } from "../auth/password-link.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
 
@@ -35,7 +35,7 @@ function viewerIdNamed(req: Request): string {
  */
 export function administrationRoutes(
   database: Database,
-  setPasswordMail: SetPasswordMailDependencies,
+  setPasswordMail: PasswordMailDependencies,
 ): Router {
   const router = Router();
   router.use(requireAdministrator());

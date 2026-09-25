@@ -12,10 +12,8 @@ import { signAccessToken } from "./access-token.ts";
 import { authenticatedViewer } from "./authenticated-viewer.ts";
 import type { AuthDependencies } from "./auth.middleware.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
-import {
-  mailPasswordResetLink,
-  type PasswordResetMailDependencies,
-} from "./password-reset.service.ts";
+import type { PasswordMailDependencies } from "./password-link.ts";
+import { mailPasswordResetLink } from "./password-reset.service.ts";
 import { spendPasswordToken } from "./password-token.ts";
 import {
   clearRefreshCookie,
@@ -47,7 +45,7 @@ export type PublicAuthDependencies = AuthDependencies & {
   authRateLimit: RateLimitConfig;
   refreshToken: RefreshTokenConfig;
   refreshCookie: RefreshCookieConfig;
-  passwordResetMail: PasswordResetMailDependencies;
+  passwordResetMail: PasswordMailDependencies;
 };
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
@@ -172,10 +170,8 @@ export function publicAuthRoutes({
     res.status(204).end();
   });
 
-  // Answers before it looks the address up, so neither the answer nor the time it takes
-  // says whether the address has an account (ADR-0038). Every request counts, because
-  // every one succeeds (ADR-0021).
   const resetLimit = limitRequests(authRateLimit, { countSuccesses: true });
+  // Answers before it looks the address up, so the time it takes says nothing (ADR-0038).
   router.post("/password-reset", resetLimit, (req, res) => {
     const { email } = passwordResetRequestSchema.parse(req.body);
 

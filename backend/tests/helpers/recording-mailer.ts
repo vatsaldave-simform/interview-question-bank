@@ -26,7 +26,8 @@ export function createRecordingMailer(): RecordingMailer {
       }
       if (failNext) {
         failNext = false;
-        throw new Error("The recording mailer was told to fail this send.");
+        // Naming the recipient, as a mail server's refusal often does.
+        throw new Error(`The recording mailer was told to refuse ${message.to}.`);
       }
       sent.push(message);
     },
