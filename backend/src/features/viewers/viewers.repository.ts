@@ -33,10 +33,15 @@ export function findViewerById(database: Database, id: string): Promise<Viewer |
   return database.viewer.findUnique({ where: { id }, select: publicFields });
 }
 
-/** How many Viewers currently hold the Administrator authority, for the last-Administrator
- * invariant (ADR-0015). Read inside the same transaction as the write it guards. */
-export function countAdministrators(database: DatabaseOrTransaction): Promise<number> {
-  return database.viewer.count({ where: { isAdministrator: true } });
+/** Deactivated Administrators are not counted, because they cannot log in to appoint a
+ * replacement (ADR-0015). Read inside the same transaction as the write it guards. */
+export function countOtherActiveAdministrators(
+  database: DatabaseOrTransaction,
+  id: string,
+): Promise<number> {
+  return database.viewer.count({
+    where: { isAdministrator: true, isDeactivated: false, id: { not: id } },
+  });
 }
 
 export function setIsAdministrator(
