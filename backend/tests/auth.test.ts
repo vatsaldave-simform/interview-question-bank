@@ -30,6 +30,7 @@ describe("logging in", () => {
         email: viewer.email,
         role: viewer.role,
         isAdministrator: viewer.isAdministrator ?? false,
+        isDeactivated: false,
       });
       expect(body.expiresInSeconds).toBeGreaterThan(0);
     },
@@ -143,6 +144,7 @@ describe("the end of the anonymous path", () => {
       email: viewer.email,
       role: viewer.role,
       isAdministrator: viewer.isAdministrator ?? false,
+      isDeactivated: false,
     });
   });
 

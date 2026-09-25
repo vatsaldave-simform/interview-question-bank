@@ -106,6 +106,7 @@ export function publicAuthRoutes({
         email: viewer.email,
         role: viewer.role,
         isAdministrator: viewer.isAdministrator,
+        isDeactivated: viewer.isDeactivated,
       } satisfies Viewer,
     };
     // Last, so that a response that never gets built leaves no cookie and no row.

@@ -12,6 +12,7 @@ const aLogin = {
     email: "author@iqb.test",
     role: "author" as const,
     isAdministrator: false,
+    isDeactivated: false,
   },
 };
 

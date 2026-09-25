@@ -63,6 +63,7 @@ export const aSignedInAuthor = {
     email: "author@iqb.test",
     role: "author" as const,
     isAdministrator: false,
+    isDeactivated: false,
   },
 };
 

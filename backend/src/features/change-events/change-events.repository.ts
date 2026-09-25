@@ -10,6 +10,8 @@ import {
   questionEditedSchema,
   roleChangedSchema,
   viewerCreatedSchema,
+  viewerDeactivatedSchema,
+  viewerReactivatedSchema,
   type AdministratorAppointed,
   type AdministratorWithdrawn,
   type ClientCreated,
@@ -22,6 +24,8 @@ import {
   type QuestionEdited,
   type RoleChanged,
   type ViewerCreated,
+  type ViewerDeactivated,
+  type ViewerReactivated,
 } from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.ts";
 import type { DatabaseOrTransaction } from "../../platform/database.ts";
@@ -96,6 +100,18 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: ViewerCreated;
+    }
+  | {
+      type: "viewer_deactivated";
+      questionId: null;
+      viewerId: string;
+      payload: ViewerDeactivated;
+    }
+  | {
+      type: "viewer_reactivated";
+      questionId: null;
+      viewerId: string;
+      payload: ViewerReactivated;
     };
 
 /**
@@ -156,6 +172,8 @@ export type ChangeEventFromDb = {
   | { type: "permission_grant_issued"; payload: PermissionGrantIssued }
   | { type: "permission_grant_revoked"; payload: PermissionGrantRevoked }
   | { type: "viewer_created"; payload: ViewerCreated }
+  | { type: "viewer_deactivated"; payload: ViewerDeactivated }
+  | { type: "viewer_reactivated"; payload: ViewerReactivated }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -211,5 +229,17 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
       };
     case "viewer_created":
       return { ...happened, type: row.type, payload: viewerCreatedSchema.parse(row.payload) };
+    case "viewer_deactivated":
+      return {
+        ...happened,
+        type: row.type,
+        payload: viewerDeactivatedSchema.parse(row.payload),
+      };
+    case "viewer_reactivated":
+      return {
+        ...happened,
+        type: row.type,
+        payload: viewerReactivatedSchema.parse(row.payload),
+      };
   }
 }

@@ -20,6 +20,9 @@ export const viewerSchema = z
     role: viewerRoleSchema,
     /** Held alongside `role` rather than instead of it (ADR-0015). */
     isAdministrator: z.boolean(),
+    /** Always false in a login, refresh or `/me` answer, since a Deactivated Viewer gets
+     * none of those; only an administrative act answers with a true one. */
+    isDeactivated: z.boolean(),
   })
   .strict();
 export type Viewer = z.infer<typeof viewerSchema>;

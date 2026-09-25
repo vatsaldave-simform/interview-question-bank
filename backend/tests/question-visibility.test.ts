@@ -71,7 +71,7 @@ describe("fetching a Question through the shared query function", () => {
         role: "reviewer",
         permissionGrants: { create: { clientId: other.id } },
       },
-      select: { id: true, email: true, role: true, isAdministrator: true },
+      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
     });
 
     const found = await findVisibleQuestionById(database, stranger, publishedAndRestricted);
@@ -158,7 +158,7 @@ describe("fetching a Question through the shared query function", () => {
         role: "reviewer",
         permissionGrants: { create: { clientId } },
       },
-      select: { id: true, email: true, role: true, isAdministrator: true },
+      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
     });
 
     const found = await findVisibleQuestionById(database, permitted, pendingAndRestricted);
