@@ -83,9 +83,9 @@ export function publicAuthRoutes({
     const credentials = loginRequestSchema.parse(req.body);
 
     const viewer = await findViewerByEmail(database, credentials.email);
-    // A Viewer with no password yet is refused like an address with no account, so login
-    // does not tell a caller which accounts are still waiting to be set up.
-    if (!viewer || viewer.passwordHash === null) {
+    // A Viewer with no password yet, or a Deactivated one, is refused like an address with
+    // no account, so login does not tell a caller which accounts are waiting or Deactivated.
+    if (!viewer || viewer.passwordHash === null || viewer.isDeactivated) {
       // Hash the presented password and throw the result away. Hashing costs what
       // verifying costs, so an address with no account takes as long to refuse as a
       // wrong password does; without this the response time alone would tell a caller
@@ -129,7 +129,8 @@ export function publicAuthRoutes({
     // Read rather than trusted from the rotation, so a Viewer changed since they last
     // refreshed takes effect now instead of when their family happens to end.
     const viewer = await findViewerById(database, rotation.viewerId);
-    if (!viewer) refuseSession(res, refreshCookie);
+    // Revoking at Deactivation misses the token of a login that was already past its check.
+    if (!viewer || viewer.isDeactivated) refuseSession(res, refreshCookie);
 
     setRefreshCookie(res, rotation.refreshToken, refreshCookie);
     const body: RefreshResponse = {

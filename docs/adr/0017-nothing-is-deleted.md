@@ -11,9 +11,11 @@ precisely so that provenance is never lost.
 So neither is deletable. A Viewer is **Deactivated** instead: they cannot log in, their refresh
 token family is revoked immediately so that an open session dies when its short-lived access token
 expires rather than surviving on rotation (ADR-0008), and they remain the Author of everything they
-wrote. Their Permission Grants stay attached, because a Grant is a separate fact from whether
-someone may log in, and reactivation should restore what was there rather than leave access to be
-reconstructed from memory. An Administrator who wants those Grants gone revokes them explicitly.
+wrote. The sign-in check goes further and refuses them on their very next request, because it reads
+the Viewer on every request anyway, the way a revoked Grant takes effect at once. Their Permission
+Grants stay attached, because a Grant is a separate fact from whether someone may log in, and
+reactivation should restore what was there rather than leave access to be reconstructed from
+memory. An Administrator who wants those Grants gone revokes them explicitly.
 
 ## Consequences
 

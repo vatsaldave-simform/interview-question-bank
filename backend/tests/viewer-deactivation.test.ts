@@ -1,8 +1,15 @@
-import { apiErrorSchema, viewerResponseSchema } from "@iqb/shared";
+import {
+  apiErrorSchema,
+  questionHistoryResponseSchema,
+  questionResponseSchema,
+  viewerResponseSchema,
+} from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
+import { clientNamesListed } from "./helpers/clients.ts";
 import { refreshCookieHeader, refreshCookieValue } from "./helpers/cookies.ts";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { addAQuestion, getQuestion, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { tokenMailedTo } from "./helpers/set-password-link.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 function deactivate(api: TestApi, targetId: string, token: string): Promise<Response> {
@@ -35,6 +42,14 @@ function withdraw(api: TestApi, targetId: string, token: string): Promise<Respon
 
 function refresh(api: TestApi, token: string): Promise<Response> {
   return api.request("/api/auth/refresh", { method: "POST", headers: refreshCookieHeader(token) });
+}
+
+function postSetPassword(api: TestApi, token: string): Promise<Response> {
+  return api.request("/api/auth/set-password", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token, password: "a long password of my own" }),
+  });
 }
 
 /** The events an administrative act left, most recent first. */
@@ -225,5 +240,112 @@ describe("Deactivating and reactivating a Viewer", () => {
       expect(response.status).toBe(200);
       expect(await administrativeEvents(api)).toEqual(before);
     });
+  });
+
+  describe("a Deactivated Viewer cannot get back in", () => {
+    it("refuses their login with the right password, as it refuses a wrong one", async () => {
+      await deactivate(api, authorId, administratorToken);
+      const wrong = await postLogin(api, {
+        email: seededViewer("author").email,
+        password: "not the password",
+      });
+
+      const response = await postLogin(api, {
+        email: seededViewer("author").email,
+        password: seededViewer("author").password,
+      });
+
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual(await wrong.json());
+    });
+
+    it("refuses an access token issued before the Deactivation on the next request", async () => {
+      const authorToken = await logIn(api, seededViewer("author"));
+
+      await deactivate(api, authorId, administratorToken);
+      const response = await api.request("/api/auth/me", {
+        headers: { authorization: `Bearer ${authorToken}` },
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("refuses a refresh token the revocation missed, as a login racing it would leave", async () => {
+      const login = await postLogin(api, {
+        email: seededViewer("author").email,
+        password: seededViewer("author").password,
+      });
+      // Set directly, so the token stays unrevoked the way a login finishing just after
+      // the Deactivation leaves it.
+      await api.database.viewer.update({ where: { id: authorId }, data: { isDeactivated: true } });
+
+      const response = await refresh(api, refreshCookieValue(login));
+
+      expect(response.status).toBe(401);
+    });
+
+    it("refuses their unused set-password link as a dead one, and it works once reactivated", async () => {
+      const created = await api.request("/api/viewers", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${administratorToken}`,
+        },
+        body: JSON.stringify({ email: "new.colleague@iqb.test", role: "author" }),
+      });
+      const { viewer } = viewerResponseSchema.parse(await created.json());
+      const token = tokenMailedTo(api, viewer.email);
+      await deactivate(api, viewer.id, administratorToken);
+
+      const refused = await postSetPassword(api, token);
+
+      expect(refused.status).toBe(401);
+      expect(apiErrorSchema.parse(await refused.json()).error.message).toBe(
+        "This link is not valid. It may have expired or been used already.",
+      );
+
+      await reactivate(api, viewer.id, administratorToken);
+      expect((await postSetPassword(api, token)).status).toBe(204);
+    });
+  });
+
+  it("leaves a Deactivated Viewer the Author of their Questions, and named on their Change Events", async () => {
+    const authorToken = await logIn(api, seededViewer("author"));
+    const questionId = await addAQuestion(api, {}, authorToken);
+
+    await deactivate(api, authorId, administratorToken);
+
+    // The Reviewer may read a Pending Question, so the Administrator can look at this one.
+    const question = await getQuestion(api, questionId, administratorToken);
+    expect(questionResponseSchema.parse(await question.json()).question.authorId).toBe(authorId);
+    const history = await api.request(`/api/questions/${questionId}/history`, {
+      headers: { authorization: `Bearer ${administratorToken}` },
+    });
+    const { events } = questionHistoryResponseSchema.parse(await history.json());
+    expect(events.map(({ type, viewerEmail }) => ({ type, viewerEmail }))).toEqual([
+      { type: "question_added", viewerEmail: seededViewer("author").email },
+    ]);
+  });
+
+  it("gives a reactivated Viewer the same Clients, with no Grant issued again", async () => {
+    const clientsBefore = await clientNamesListed(api, await logIn(api, seededViewer("author")));
+    const grantsBefore = await api.database.permissionGrant.findMany({
+      where: { viewerId: authorId },
+      orderBy: { id: "asc" },
+    });
+    expect(clientsBefore).not.toEqual([]);
+
+    await deactivate(api, authorId, administratorToken);
+    await reactivate(api, authorId, administratorToken);
+
+    const clientsAfter = await clientNamesListed(api, await logIn(api, seededViewer("author")));
+    expect(clientsAfter).toEqual(clientsBefore);
+    const grantsAfter = await api.database.permissionGrant.findMany({
+      where: { viewerId: authorId },
+      orderBy: { id: "asc" },
+    });
+    expect(grantsAfter).toEqual(grantsBefore);
+    const issued = await api.database.changeEvent.count({ where: { type: "permission_grant_issued" } });
+    expect(issued).toBe(0);
   });
 });
