@@ -3,12 +3,15 @@ import type {
   AdministratorWithdrawn,
   RoleChanged,
   Viewer,
+  ViewerCreated,
   ViewerRole,
 } from "@iqb/shared";
+import { Prisma } from "../../generated/prisma/client.ts";
 import { insertChangeEvent } from "../change-events/change-events.repository.ts";
 import {
   countAdministrators,
   findViewerById,
+  insertViewer,
   setIsAdministrator,
   setRole,
 } from "../viewers/viewers.repository.ts";
@@ -107,4 +110,32 @@ export async function changeRole(
     });
     return changed;
   });
+}
+
+export async function createViewer(
+  database: Database,
+  actingViewer: Viewer,
+  email: string,
+  role: ViewerRole,
+): Promise<Viewer> {
+  try {
+    return await database.$transaction(async (transaction) => {
+      const created = await insertViewer(transaction, email, role);
+      const payload: ViewerCreated = { viewer: affectedViewer(created), role: created.role };
+      await insertChangeEvent(transaction, {
+        type: "viewer_created",
+        questionId: null,
+        viewerId: actingViewer.id,
+        payload,
+      });
+      return created;
+    });
+  } catch (error) {
+    // Caught from the unique index rather than checked first, so two requests racing for
+    // one address cannot both pass the check.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new ConflictError("A Viewer with that email address already exists.");
+    }
+    throw error;
+  }
 }

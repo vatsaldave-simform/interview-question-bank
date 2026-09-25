@@ -48,3 +48,11 @@ export function setRole(
 ): Promise<Viewer> {
   return database.viewer.update({ where: { id }, data: { role }, select: publicFields });
 }
+
+export function insertViewer(
+  database: DatabaseOrTransaction,
+  email: string,
+  role: ViewerRole,
+): Promise<Viewer> {
+  return database.viewer.create({ data: { email, role }, select: publicFields });
+}
