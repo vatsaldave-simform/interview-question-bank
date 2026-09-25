@@ -4,20 +4,24 @@ import type {
   RoleChanged,
   Viewer,
   ViewerCreated,
+  ViewerDeactivated,
+  ViewerReactivated,
   ViewerRole,
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import { issuePasswordToken } from "../auth/password-token.ts";
+import { revokeRefreshTokensOfViewer } from "../auth/refresh-token.repository.ts";
 import { insertChangeEvent } from "../change-events/change-events.repository.ts";
 import {
-  countAdministrators,
+  countOtherActiveAdministrators,
   findViewerById,
   insertViewer,
   setIsAdministrator,
+  setIsDeactivated,
   setRole,
 } from "../viewers/viewers.repository.ts";
 import { setPasswordMessage, type SetPasswordLinkConfig } from "./set-password-mail.ts";
-import type { Database } from "../../platform/database.ts";
+import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 import type { Mailer } from "../../platform/mail.ts";
@@ -34,6 +38,19 @@ async function targetNamed(database: Database, id: string): Promise<Viewer> {
  * Change Event names it (ADR-0035). */
 function affectedViewer(viewer: Viewer) {
   return { id: viewer.id, email: viewer.email };
+}
+
+/** Called inside the transaction of the write it guards, so the count and the write see
+ * the same rows. */
+async function refuseLastActiveAdministrator(
+  transaction: DatabaseOrTransaction,
+  target: Viewer,
+  refusal: string,
+): Promise<void> {
+  if (!target.isAdministrator) return;
+  if ((await countOtherActiveAdministrators(transaction, target.id)) === 0) {
+    throw new ConflictError(refusal);
+  }
 }
 
 /**
@@ -62,8 +79,8 @@ export async function appointAdministrator(
 }
 
 /**
- * Refused when the target is the only remaining Administrator: the system can never be
- * left with nobody who can appoint a replacement (ADR-0015).
+ * Refused when no other active Administrator would remain: the system can never be left
+ * with nobody who can appoint a replacement (ADR-0015).
  */
 export async function withdrawAdministrator(
   database: Database,
@@ -74,10 +91,11 @@ export async function withdrawAdministrator(
   if (!target.isAdministrator) return target;
 
   return database.$transaction(async (transaction) => {
-    const remaining = await countAdministrators(transaction);
-    if (remaining <= 1) {
-      throw new ConflictError("The last Administrator's authority cannot be withdrawn.");
-    }
+    await refuseLastActiveAdministrator(
+      transaction,
+      target,
+      "The last Administrator's authority cannot be withdrawn.",
+    );
 
     const withdrawn = await setIsAdministrator(transaction, target.id, false);
     const payload: AdministratorWithdrawn = { viewer: affectedViewer(withdrawn) };
@@ -115,6 +133,59 @@ export async function changeRole(
       payload,
     });
     return changed;
+  });
+}
+
+/** Their refresh tokens are revoked in the same transaction, so no session survives on
+ * rotation (ADR-0017). */
+export async function deactivateViewer(
+  database: Database,
+  actingViewer: Viewer,
+  targetId: string,
+): Promise<Viewer> {
+  const target = await targetNamed(database, targetId);
+  if (target.isDeactivated) return target;
+
+  return database.$transaction(async (transaction) => {
+    await refuseLastActiveAdministrator(
+      transaction,
+      target,
+      "The last active Administrator cannot be Deactivated.",
+    );
+
+    const deactivated = await setIsDeactivated(transaction, target.id, true);
+    await revokeRefreshTokensOfViewer(transaction, target.id);
+    const payload: ViewerDeactivated = { viewer: affectedViewer(deactivated) };
+    await insertChangeEvent(transaction, {
+      type: "viewer_deactivated",
+      questionId: null,
+      viewerId: actingViewer.id,
+      payload,
+    });
+    return deactivated;
+  });
+}
+
+/** Nothing here restores Permission Grants, because Deactivating never removed them
+ * (ADR-0017). */
+export async function reactivateViewer(
+  database: Database,
+  actingViewer: Viewer,
+  targetId: string,
+): Promise<Viewer> {
+  const target = await targetNamed(database, targetId);
+  if (!target.isDeactivated) return target;
+
+  return database.$transaction(async (transaction) => {
+    const reactivated = await setIsDeactivated(transaction, target.id, false);
+    const payload: ViewerReactivated = { viewer: affectedViewer(reactivated) };
+    await insertChangeEvent(transaction, {
+      type: "viewer_reactivated",
+      questionId: null,
+      viewerId: actingViewer.id,
+      payload,
+    });
+    return reactivated;
   });
 }
 

@@ -11,6 +11,8 @@ import {
   appointAdministrator,
   changeRole,
   createViewer,
+  deactivateViewer,
+  reactivateViewer,
   withdrawAdministrator,
   type SetPasswordMailDependencies,
 } from "./administration.service.ts";
@@ -77,6 +79,26 @@ export function administrationRoutes(
     const request = changeRoleRequestSchema.parse(req.body);
 
     const viewer = await changeRole(database, authenticatedViewer(req), id, request.role);
+
+    const body: ViewerResponse = { viewer };
+    res.json(body);
+  });
+
+  // The last-Administrator rule is enforced inside, as for withdrawing (ADR-0015).
+  router.post("/:id/deactivation", async (req, res) => {
+    const id = viewerIdNamed(req);
+
+    const viewer = await deactivateViewer(database, authenticatedViewer(req), id);
+
+    const body: ViewerResponse = { viewer };
+    res.json(body);
+  });
+
+  // Reactivation is the only DELETE a Viewer has: no Viewer is ever deleted (ADR-0017).
+  router.delete("/:id/deactivation", async (req, res) => {
+    const id = viewerIdNamed(req);
+
+    const viewer = await reactivateViewer(database, authenticatedViewer(req), id);
 
     const body: ViewerResponse = { viewer };
     res.json(body);

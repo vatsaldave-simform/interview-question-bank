@@ -144,7 +144,7 @@ export async function clientIdNamed(database: Database, name: string): Promise<s
 export function viewerByRole(database: Database, role: ViewerRole): Promise<Viewer> {
   return database.viewer.findUniqueOrThrow({
     where: { email: seededViewer(role).email },
-    select: { id: true, email: true, role: true, isAdministrator: true },
+    select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
   });
 }
 

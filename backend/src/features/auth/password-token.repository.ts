@@ -21,7 +21,8 @@ export async function spendPasswordTokenByHash(
 ): Promise<string | null> {
   const now = new Date();
   const [spent] = await database.passwordToken.updateManyAndReturn({
-    where: { tokenHash, spentAt: null, expiresAt: { gt: now } },
+    // A Deactivated Viewer's token is left unspent, so it works again once they are reactivated.
+    where: { tokenHash, spentAt: null, expiresAt: { gt: now }, viewer: { isDeactivated: false } },
     data: { spentAt: now },
     select: { viewerId: true },
   });

@@ -2,7 +2,13 @@ import type { Viewer, ViewerRole } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
 /** Everything a response or a permission check may see. Never the stored credential. */
-const publicFields = { id: true, email: true, role: true, isAdministrator: true } as const;
+const publicFields = {
+  id: true,
+  email: true,
+  role: true,
+  isAdministrator: true,
+  isDeactivated: true,
+} as const;
 
 /** Null until the Viewer sets a password, so every reader has to say what that means. */
 export type ViewerWithCredential = Viewer & { passwordHash: string | null };
@@ -27,10 +33,15 @@ export function findViewerById(database: Database, id: string): Promise<Viewer |
   return database.viewer.findUnique({ where: { id }, select: publicFields });
 }
 
-/** How many Viewers currently hold the Administrator authority, for the last-Administrator
- * invariant (ADR-0015). Read inside the same transaction as the write it guards. */
-export function countAdministrators(database: DatabaseOrTransaction): Promise<number> {
-  return database.viewer.count({ where: { isAdministrator: true } });
+/** Deactivated Administrators are not counted, because they cannot log in to appoint a
+ * replacement (ADR-0015). */
+export function countOtherActiveAdministrators(
+  database: DatabaseOrTransaction,
+  exceptViewerId: string,
+): Promise<number> {
+  return database.viewer.count({
+    where: { isAdministrator: true, isDeactivated: false, id: { not: exceptViewerId } },
+  });
 }
 
 export function setIsAdministrator(
@@ -39,6 +50,14 @@ export function setIsAdministrator(
   isAdministrator: boolean,
 ): Promise<Viewer> {
   return database.viewer.update({ where: { id }, data: { isAdministrator }, select: publicFields });
+}
+
+export function setIsDeactivated(
+  database: DatabaseOrTransaction,
+  id: string,
+  isDeactivated: boolean,
+): Promise<Viewer> {
+  return database.viewer.update({ where: { id }, data: { isDeactivated }, select: publicFields });
 }
 
 export function setRole(

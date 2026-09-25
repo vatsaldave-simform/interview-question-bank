@@ -12,6 +12,7 @@ const aReader = {
   email: "reader@iqb.test",
   role: "reader" as const,
   isAdministrator: false,
+  isDeactivated: false,
 };
 
 beforeEach(() => {

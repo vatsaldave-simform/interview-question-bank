@@ -11,7 +11,9 @@ const bearer = /^Bearer (?<token>\S+)$/;
  * One refusal, whatever went wrong. The reason is logged rather than answered: an
  * operator can tell an expired token from a forged one, and a caller cannot.
  */
-function refusal(reason: RefusalReason | "absent" | "unknown_viewer"): UnauthenticatedError {
+function refusal(
+  reason: RefusalReason | "absent" | "unknown_viewer" | "deactivated_viewer",
+): UnauthenticatedError {
   log().debug({ reason }, "authentication refused");
   return new UnauthenticatedError();
 }
@@ -49,6 +51,9 @@ export function requireAuthenticatedViewer({
 
     const viewer = await findViewerById(database, verified.claims.viewerId);
     if (!viewer) throw refusal("unknown_viewer");
+    // Here and not only at login, so a Deactivation ends an open session on its next
+    // request rather than when its access token expires (ADR-0017).
+    if (viewer.isDeactivated) throw refusal("deactivated_viewer");
 
     req.viewer = viewer;
     next();

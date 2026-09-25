@@ -48,6 +48,7 @@ describe("creating a Viewer", () => {
       email: "new.colleague@iqb.test",
       role: "author",
       isAdministrator: false,
+      isDeactivated: false,
     });
     const stored = await api.database.viewer.findUniqueOrThrow({ where: { id: viewer.id } });
     expect(stored.role).toBe("author");

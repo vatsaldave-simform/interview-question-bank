@@ -1,4 +1,4 @@
-import type { Database } from "../../platform/database.ts";
+import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
 /** Everything rotation needs to judge a presented token, and never the stored hash. */
 const judgeableFields = {
@@ -62,6 +62,17 @@ export async function spendRefreshToken(database: Database, id: string): Promise
 export async function revokeRefreshTokenFamily(database: Database, familyId: string): Promise<void> {
   await database.refreshToken.updateMany({
     where: { familyId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
+/** Every family the Viewer holds, so no session of theirs survives on rotation (ADR-0017). */
+export async function revokeRefreshTokensOfViewer(
+  database: DatabaseOrTransaction,
+  viewerId: string,
+): Promise<void> {
+  await database.refreshToken.updateMany({
+    where: { viewerId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
 }

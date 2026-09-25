@@ -33,6 +33,9 @@ model Viewer {
   /// The Administrator authority, held beside `role` rather than as a fourth value of it
   /// (ADR-0015). Confers no access to Questions.
   isAdministrator Boolean @default(false)
+  /// Refused at login and at every request, but never deleted: they stay the Author of
+  /// what they wrote and keep their name on every Change Event (ADR-0017).
+  isDeactivated   Boolean @default(false)
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
@@ -230,6 +233,8 @@ enum ChangeEventType {
   permission_grant_issued
   permission_grant_revoked
   viewer_created
+  viewer_deactivated
+  viewer_reactivated
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and
