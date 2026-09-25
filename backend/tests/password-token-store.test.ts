@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { issuePasswordToken, spendPasswordToken } from "../src/features/auth/password-token.ts";
 import {
-  lockPasswordTokensOf,
+  lockPasswordResetsOf,
   wasPasswordTokenIssuedSince,
 } from "../src/features/auth/password-token.repository.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
@@ -171,18 +171,18 @@ describe("the password token store", () => {
     });
     const order: string[] = [];
     const first = database.$transaction(async (transaction) => {
-      await lockPasswordTokensOf(transaction, viewerId);
+      await lockPasswordResetsOf(transaction, viewerId);
       firstLocked();
       await firstMayCommit;
       order.push("first ended");
     });
     await firstHasLocked;
     const second = database.$transaction(async (transaction) => {
-      await lockPasswordTokensOf(transaction, viewerId);
+      await lockPasswordResetsOf(transaction, viewerId);
       order.push("second locked");
     });
     const otherViewer = database.$transaction((transaction) =>
-      lockPasswordTokensOf(transaction, otherViewerId),
+      lockPasswordResetsOf(transaction, otherViewerId),
     );
 
     await otherViewer;

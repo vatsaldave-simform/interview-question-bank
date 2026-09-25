@@ -17,7 +17,7 @@ export async function insertPasswordToken(
  * Held until the transaction ends, and taken on the Viewer's id rather than their row, so
  * it holds up only another reset for them while a mail is sent (ADR-0040).
  */
-export async function lockPasswordTokensOf(
+export async function lockPasswordResetsOf(
   transaction: Transaction,
   viewerId: string,
 ): Promise<void> {

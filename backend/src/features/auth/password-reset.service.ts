@@ -1,7 +1,7 @@
 import { passwordResetMessage } from "./password-reset-mail.ts";
 import type { PasswordResetMailDependencies } from "./password-link.ts";
 import { issuePasswordToken } from "./password-token.ts";
-import { lockPasswordTokensOf, wasPasswordTokenIssuedSince } from "./password-token.repository.ts";
+import { lockPasswordResetsOf, wasPasswordTokenIssuedSince } from "./password-token.repository.ts";
 import { findViewerByEmail } from "../viewers/viewers.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { log } from "../../platform/logger.ts";
@@ -34,7 +34,7 @@ export async function mailPasswordResetLink(
     const mailed = await database.$transaction(
       async (transaction) => {
         // Before the check, so a request at the same moment waits and then sees this link.
-        await lockPasswordTokensOf(transaction, viewer.id);
+        await lockPasswordResetsOf(transaction, viewer.id);
         const windowStart = new Date(Date.now() - settings.mailWindowSeconds * 1_000);
         // Any link counts, a new Viewer's first one too (ADR-0040).
         if (await wasPasswordTokenIssuedSince(transaction, viewer.id, windowStart)) return false;

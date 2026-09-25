@@ -9,7 +9,9 @@ export type PasswordMailDependencies = { mailer: Mailer; settings: PasswordLinkC
 /** A reset only, because creating a Viewer always sends their first link. */
 export type PasswordResetLinkConfig = PasswordLinkConfig & { mailWindowSeconds: number };
 
-export type PasswordResetMailDependencies = { mailer: Mailer; settings: PasswordResetLinkConfig };
+export type PasswordResetMailDependencies = PasswordMailDependencies & {
+  settings: PasswordResetLinkConfig;
+};
 
 export function passwordLinkUrl(appUrl: string, token: string): string {
   const link = new URL("/set-password", appUrl);

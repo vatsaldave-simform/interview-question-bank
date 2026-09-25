@@ -113,7 +113,8 @@ export async function startTestApi(
     // Three days, as the environment's default is; the file that expires a link asks for
     // a second of it instead.
     setPasswordLink: { appUrl: testAppUrl, lifetimeSeconds: 259_200, ...options.setPasswordLink },
-    // An hour and five minutes, as the environment's defaults are.
+    // A link that works for an hour, and five minutes between mails, as the environment's
+    // defaults are.
     passwordResetLink: {
       appUrl: testAppUrl,
       lifetimeSeconds: 3_600,

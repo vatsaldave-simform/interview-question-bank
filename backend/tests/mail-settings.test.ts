@@ -77,7 +77,7 @@ describe("the mail settings the environment supplies", () => {
     ).toBe(1);
   });
 
-  it("refuses a reset mail window of nothing", () => {
+  it("refuses a reset mail window of zero seconds", () => {
     expect(() => readEnv({ ...environment, PASSWORD_RESET_MAIL_WINDOW_SECONDS: "0" })).toThrow(
       /PASSWORD_RESET_MAIL_WINDOW_SECONDS/,
     );
