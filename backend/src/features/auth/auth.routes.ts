@@ -1,5 +1,6 @@
 import {
   loginRequestSchema,
+  passwordResetRequestSchema,
   setPasswordRequestSchema,
   type CurrentViewerResponse,
   type LoginResponse,
@@ -11,6 +12,10 @@ import { signAccessToken } from "./access-token.ts";
 import { authenticatedViewer } from "./authenticated-viewer.ts";
 import type { AuthDependencies } from "./auth.middleware.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
+import {
+  mailPasswordResetLink,
+  type PasswordResetMailDependencies,
+} from "./password-reset.service.ts";
 import { spendPasswordToken } from "./password-token.ts";
 import {
   clearRefreshCookie,
@@ -42,6 +47,7 @@ export type PublicAuthDependencies = AuthDependencies & {
   authRateLimit: RateLimitConfig;
   refreshToken: RefreshTokenConfig;
   refreshCookie: RefreshCookieConfig;
+  passwordResetMail: PasswordResetMailDependencies;
 };
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
@@ -74,6 +80,7 @@ export function publicAuthRoutes({
   authRateLimit,
   refreshToken,
   refreshCookie,
+  passwordResetMail,
 }: PublicAuthDependencies): Router {
   const router = Router();
 
@@ -163,6 +170,15 @@ export function publicAuthRoutes({
 
     log().info({ viewerId }, "password set");
     res.status(204).end();
+  });
+
+  // Answers before it looks the address up, so neither the answer nor the time it takes
+  // says whether the address has an account (ADR-0038).
+  router.post("/password-reset", limitRequests(authRateLimit), (req, res) => {
+    const { email } = passwordResetRequestSchema.parse(req.body);
+
+    res.status(202).end();
+    void mailPasswordResetLink(database, passwordResetMail, email);
   });
 
   // Answers the same whatever it was given, so it is safe to call twice and says

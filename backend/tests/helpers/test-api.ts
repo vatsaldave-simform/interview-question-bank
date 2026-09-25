@@ -38,6 +38,8 @@ export type TestApi = {
   forgetMail: () => void;
   /** The API's next send fails, as it would with the mail server down. */
   failNextMail: () => void;
+  /** The API's next send waits until the function handed back is called. */
+  holdNextMail: () => () => void;
   truncate: () => Promise<void>;
   stop: () => Promise<void>;
 };
@@ -59,6 +61,8 @@ export async function startTestApi(
     refreshToken?: Partial<RefreshTokenConfig>;
     /** Overrides for the set-password link's lifetime, for a test that expires one. */
     setPasswordLink?: Partial<PasswordTokenConfig>;
+    /** Overrides for the reset link's lifetime, for a test that expires one. */
+    passwordResetLink?: Partial<PasswordTokenConfig>;
     /** Overrides for the cookie, for the test that asserts it is marked Secure. */
     refreshCookie?: Partial<RefreshCookieConfig>;
     /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
@@ -107,6 +111,8 @@ export async function startTestApi(
     // Three days, as the environment's default is; the file that expires a link asks for
     // a second of it instead.
     setPasswordLink: { appUrl: testAppUrl, lifetimeSeconds: 259_200, ...options.setPasswordLink },
+    // An hour, as the environment's default is.
+    passwordResetLink: { appUrl: testAppUrl, lifetimeSeconds: 3_600, ...options.passwordResetLink },
     ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });
@@ -123,6 +129,7 @@ export async function startTestApi(
     sentMail: mailer.sent,
     forgetMail: mailer.forget,
     failNextMail: mailer.failNextSend,
+    holdNextMail: mailer.holdNextSend,
     truncate: () => truncateAll(database),
     stop: async () => {
       await server.stop();

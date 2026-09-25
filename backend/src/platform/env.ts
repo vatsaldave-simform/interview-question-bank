@@ -67,6 +67,9 @@ const envSchema = z.object({
   /** Three days by default, to survive a weekend, and configurable so the suite can watch
    * a link expire. */
   SET_PASSWORD_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(259_200),
+  /** An hour by default: whoever asked is at the screen now, and the mail sits in an inbox
+   * after they are done. */
+  PASSWORD_RESET_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(3_600),
 });
 
 export type Env = z.infer<typeof envSchema>;
