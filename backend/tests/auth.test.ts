@@ -277,6 +277,7 @@ describe("the token settings the environment supplies", () => {
     ACCESS_TOKEN_SECRET: "a-secret-long-enough-to-be-worth-having",
     MAIL_URL: "smtp://localhost:1025",
     MAIL_FROM: "bank@iqb.test",
+    APP_URL: "http://localhost:5173",
   };
 
   it("refuses to start with no secret to sign with", () => {

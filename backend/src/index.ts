@@ -33,6 +33,10 @@ const server = await startServer({
       from: env.MAIL_FROM,
       requireTls: env.MAIL_REQUIRE_TLS,
     }),
+    setPasswordLink: {
+      appUrl: env.APP_URL,
+      lifetimeSeconds: env.SET_PASSWORD_LINK_LIFETIME_SECONDS,
+    },
     trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),
   }),

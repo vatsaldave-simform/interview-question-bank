@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import type { Logger } from "pino";
 import cookieParser from "cookie-parser";
+import type { SetPasswordLinkConfig } from "./features/administration/set-password-mail.ts";
 import type { AccessTokenConfig } from "./features/auth/access-token.ts";
 import type { RefreshCookieConfig } from "./features/auth/refresh-cookie.ts";
 import type { RefreshTokenConfig } from "./features/auth/refresh-token.ts";
@@ -26,6 +27,8 @@ export type AppDependencies = {
   refreshCookie: RefreshCookieConfig;
   /** Passed in like the database, so the suite can read what would have been sent. */
   mailer: Mailer;
+  /** Where a new Viewer's link points, and how long it works. */
+  setPasswordLink: SetPasswordLinkConfig;
   /** Proxies in front of the API, which is what makes `req.ip` the caller (ADR-0021). */
   trustProxyHops?: number;
   /**
@@ -47,6 +50,8 @@ export function createApp({
   authRateLimit,
   refreshToken,
   refreshCookie,
+  mailer,
+  setPasswordLink,
   trustProxyHops = 0,
   frontendDir,
 }: AppDependencies): Express {
@@ -68,7 +73,14 @@ export function createApp({
   app.use(healthRoutes(database));
   app.use(
     "/api",
-    apiRoutes({ database, accessToken, authRateLimit, refreshToken, refreshCookie }),
+    apiRoutes({
+      database,
+      accessToken,
+      authRateLimit,
+      refreshToken,
+      refreshCookie,
+      setPasswordLink: { mailer, link: setPasswordLink },
+    }),
   );
 
   // Last, and only ever behind the routes above, so the fallback cannot answer for

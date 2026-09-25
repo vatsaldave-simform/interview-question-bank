@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { createApp } from "../../src/app.ts";
 import type { AccessTokenConfig } from "../../src/features/auth/access-token.ts";
+import type { PasswordTokenConfig } from "../../src/features/auth/password-token.ts";
 import type { Database } from "../../src/platform/database.ts";
 import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie.ts";
 import type { RefreshTokenConfig } from "../../src/features/auth/refresh-token.ts";
@@ -10,6 +11,7 @@ import type { MailMessage } from "../../src/platform/mail.ts";
 import { startServer, type RunningServer } from "../../src/platform/server.ts";
 import { testAccessTokenSecret } from "./auth.ts";
 import { createRecordingMailer } from "./recording-mailer.ts";
+import { testAppUrl } from "./set-password-link.ts";
 import { createSqlLoggingDatabase, createTestDatabase, truncateAll } from "./test-database.ts";
 
 export type LogLine = Record<string, unknown> & { requestId?: string; msg?: string };
@@ -55,6 +57,8 @@ export async function startTestApi(
     authRateLimit?: Partial<RateLimitConfig>;
     /** Overrides for the refresh token's lifetime, for a test that expires one. */
     refreshToken?: Partial<RefreshTokenConfig>;
+    /** Overrides for the set-password link's lifetime, for a test that expires one. */
+    setPasswordLink?: Partial<PasswordTokenConfig>;
     /** Overrides for the cookie, for the test that asserts it is marked Secure. */
     refreshCookie?: Partial<RefreshCookieConfig>;
     /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
@@ -100,6 +104,9 @@ export async function startTestApi(
     // test that asserts the attribute is set asks for it explicitly.
     refreshCookie: { secure: false, ...options.refreshCookie },
     mailer,
+    // Three days, as the environment's default is; the file that expires a link asks for
+    // a second of it instead.
+    setPasswordLink: { appUrl: testAppUrl, lifetimeSeconds: 259_200, ...options.setPasswordLink },
     ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });

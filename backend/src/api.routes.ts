@@ -9,6 +9,7 @@ import {
 import { categoryRoutes } from "./features/categories/categories.routes.ts";
 import { questionRoutes } from "./features/questions/questions.routes.ts";
 import { administrationRoutes } from "./features/administration/administration.routes.ts";
+import type { SetPasswordLinkSender } from "./features/administration/administration.service.ts";
 import { clientRoutes } from "./features/clients/clients.routes.ts";
 
 /**
@@ -26,8 +27,10 @@ import { clientRoutes } from "./features/clients/clients.routes.ts";
  * signed in is told 401 for every /api path alike, so nobody can map out the API by
  * probing for which paths answer 404.
  */
-export function apiRoutes(dependencies: PublicAuthDependencies): Router {
-  const { database, accessToken } = dependencies;
+export function apiRoutes(
+  dependencies: PublicAuthDependencies & { setPasswordLink: SetPasswordLinkSender },
+): Router {
+  const { database, accessToken, setPasswordLink } = dependencies;
   const router = Router();
 
   router.use("/auth", publicAuthRoutes(dependencies));
@@ -37,7 +40,7 @@ export function apiRoutes(dependencies: PublicAuthDependencies): Router {
   router.use("/auth", authenticatedAuthRoutes());
   router.use("/questions", questionRoutes(database));
   router.use("/categories", categoryRoutes(database));
-  router.use("/viewers", administrationRoutes(database));
+  router.use("/viewers", administrationRoutes(database, setPasswordLink));
   router.use("/clients", clientRoutes(database));
   router.use(notFoundHandler);
   return router;

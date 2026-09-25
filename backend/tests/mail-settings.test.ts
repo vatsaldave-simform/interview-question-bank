@@ -9,6 +9,7 @@ describe("the mail settings the environment supplies", () => {
     ACCESS_TOKEN_SECRET: "a-secret-long-enough-to-be-worth-having",
     MAIL_URL: "smtp://login:smtp-key@smtp-relay.example.test:2525",
     MAIL_FROM: "bank@iqb.test",
+    APP_URL: "http://localhost:5173",
   };
 
   it("refuses to start with nowhere to send mail", () => {
@@ -43,5 +44,20 @@ describe("the mail settings the environment supplies", () => {
 
   it("refuses a TLS setting that is neither true nor false", () => {
     expect(() => readEnv({ ...environment, MAIL_REQUIRE_TLS: "no" })).toThrow(/MAIL_REQUIRE_TLS/);
+  });
+
+  it("refuses to start with nowhere for a mailed link to point", () => {
+    const { APP_URL: _, ...withoutAppUrl } = environment;
+
+    expect(() => readEnv(withoutAppUrl)).toThrow(/APP_URL/);
+    expect(() => readEnv({ ...environment, APP_URL: "javascript:alert(1)" })).toThrow(/APP_URL/);
+  });
+
+  it("gives a set-password link three days unless told otherwise", () => {
+    expect(readEnv(environment).SET_PASSWORD_LINK_LIFETIME_SECONDS).toBe(259_200);
+    expect(
+      readEnv({ ...environment, SET_PASSWORD_LINK_LIFETIME_SECONDS: "1" })
+        .SET_PASSWORD_LINK_LIFETIME_SECONDS,
+    ).toBe(1);
   });
 });

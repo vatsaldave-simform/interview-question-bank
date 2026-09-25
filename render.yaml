@@ -59,6 +59,9 @@ services:
       # A sender Brevo has verified; it refuses any other.
       - key: MAIL_FROM
         sync: false
+      # Where a mailed set-password link points: this service, which serves the client.
+      - key: APP_URL
+        value: https://interview-question-bank.onrender.com
 
     # PORT is set by Render itself, and the API reads it from the environment.
     # FRONTEND_DIR is set in the image, because it is a fact about the image's layout

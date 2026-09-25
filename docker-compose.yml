@@ -6,11 +6,13 @@ x-database-url: &database-url
   postgresql://${POSTGRES_USER:-iqb}:${POSTGRES_PASSWORD:-iqb}@db:5432/${POSTGRES_DB:-iqb}
 
 # Inside compose the API reaches Mailpit as the host `mail`. Mailpit offers no TLS, so
-# the API is told not to insist on it here and nowhere else (ADR-0037).
+# the API is told not to insist on it here and nowhere else (ADR-0037). Mailed links
+# point at the port compose serves the bank on, not at `.env`'s APP_URL, which is Vite's.
 x-mail: &mail
   MAIL_URL: smtp://mail:1025
   MAIL_FROM: ${MAIL_FROM:-Interview Question Bank <bank@iqb.test>}
   MAIL_REQUIRE_TLS: "false"
+  APP_URL: http://localhost:${PORT:-3000}
 
 services:
   db:

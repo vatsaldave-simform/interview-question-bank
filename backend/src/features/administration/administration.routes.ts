@@ -12,6 +12,7 @@ import {
   changeRole,
   createViewer,
   withdrawAdministrator,
+  type SetPasswordLinkSender,
 } from "./administration.service.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
@@ -30,7 +31,10 @@ function viewerIdNamed(req: Request): string {
  * Every route here is Administrator-only (ADR-0015): the check sits on the router, not
  * on each route, because nothing under it needs a Question looked up first.
  */
-export function administrationRoutes(database: Database): Router {
+export function administrationRoutes(
+  database: Database,
+  setPasswordLink: SetPasswordLinkSender,
+): Router {
   const router = Router();
   router.use(requireAdministrator());
 
@@ -39,6 +43,7 @@ export function administrationRoutes(database: Database): Router {
 
     const viewer = await createViewer(
       database,
+      setPasswordLink,
       authenticatedViewer(req),
       request.email,
       request.role,

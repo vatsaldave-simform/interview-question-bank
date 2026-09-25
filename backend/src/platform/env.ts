@@ -66,6 +66,16 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("true")
     .transform((value) => value === "true"),
+  /**
+   * The address people open the bank at, which is what a mailed link points to. Not the
+   * API's own address in development, where Vite serves the client on another port.
+   */
+  APP_URL: z.url({ protocol: /^https?$/ }),
+  /**
+   * How long a new Viewer's set-password link works. Long enough to survive a weekend,
+   * and configurable so the suite can watch one expire.
+   */
+  SET_PASSWORD_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(259_200),
 });
 
 export type Env = z.infer<typeof envSchema>;
