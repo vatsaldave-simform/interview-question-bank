@@ -1,5 +1,6 @@
 import {
   loginRequestSchema,
+  setPasswordRequestSchema,
   type CurrentViewerResponse,
   type LoginResponse,
   type RefreshResponse,
@@ -10,6 +11,7 @@ import { signAccessToken } from "./access-token.ts";
 import { authenticatedViewer } from "./authenticated-viewer.ts";
 import type { AuthDependencies } from "./auth.middleware.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
+import { spendPasswordToken } from "./password-token.ts";
 import {
   clearRefreshCookie,
   presentedRefreshToken,
@@ -22,7 +24,11 @@ import {
   rotateRefreshToken,
   type RefreshTokenConfig,
 } from "./refresh-token.ts";
-import { findViewerByEmail, findViewerById } from "../viewers/viewers.repository.ts";
+import {
+  findViewerByEmail,
+  findViewerById,
+  setPasswordHash,
+} from "../viewers/viewers.repository.ts";
 import { UnauthenticatedError } from "../../platform/errors.ts";
 import {
   limitRequests,
@@ -39,6 +45,13 @@ export type PublicAuthDependencies = AuthDependencies & {
 
 /** The credentials were wrong. Which half was wrong is never said, nor logged. */
 const badCredentials = () => new UnauthenticatedError("Those credentials are not valid.");
+
+/**
+ * One answer for a link that is unknown, expired or used. A 401, because the token is the
+ * credential here, which also keeps it apart from a 400 about the password.
+ */
+const deadLink = () =>
+  new UnauthenticatedError("This link is not valid. It may have expired or been used already.");
 
 /** A refusal a caller cannot learn anything from: there is no session, whichever way. */
 const noSession = () => new UnauthenticatedError("There is no session to refresh.");
@@ -126,6 +139,24 @@ export function publicAuthRoutes({
       viewer,
     };
     res.json(body);
+  });
+
+  // Where a mailed link leads. The body is checked before the token is looked at, so a
+  // password that is refused does not use the link up.
+  router.post("/set-password", limitRequests(authRateLimit), async (req, res) => {
+    const request = setPasswordRequestSchema.parse(req.body);
+
+    // Before the transaction, so a slow hash never holds it open.
+    const passwordHash = await hashPassword(request.password);
+    const viewerId = await database.$transaction(async (transaction) => {
+      const spentFor = await spendPasswordToken(transaction, request.token);
+      if (spentFor !== null) await setPasswordHash(transaction, spentFor, passwordHash);
+      return spentFor;
+    });
+    if (viewerId === null) throw deadLink();
+
+    log().info({ viewerId }, "password set");
+    res.status(204).end();
   });
 
   // Answers the same whatever it was given, so it is safe to call twice and says

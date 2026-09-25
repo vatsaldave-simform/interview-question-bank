@@ -144,6 +144,36 @@ describe("the endpoints the limit covers", () => {
   });
 });
 
+describe("the set-password endpoint", () => {
+  const followDeadLink = (api: TestApi): Promise<Response> =>
+    api.request("/api/auth/set-password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: "not a token anyone issued", password: "a long enough password" }),
+    });
+
+  // Unauthenticated like login, so without a limit a caller could guess at tokens, or
+  // spend the hasher, as fast as the API would answer (ADR-0021).
+  it("refuses a burst of dead links with the error contract's body", async () => {
+    const api = await limitedApi();
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      expect((await followDeadLink(api)).status).toBe(401);
+    }
+
+    const response = await followDeadLink(api);
+
+    expect(response.status).toBe(429);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("rate_limited");
+  });
+
+  it("keeps its allowance apart from login's", async () => {
+    const api = await limitedApi();
+    await spendTheAllowance(api);
+
+    expect((await followDeadLink(api)).status).toBe(401);
+  });
+});
+
 describe("which caller the allowance belongs to", () => {
   const from = (address: string): Record<string, string> => ({ "x-forwarded-for": address });
 

@@ -66,8 +66,8 @@ is never locked out of their own account
 (ADR-0021). Behind a proxy, `TRUST_PROXY_HOPS` has to match how many there are, or the
 limit keys on the proxy rather than on the caller.
 
-Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh` and
-`POST /api/auth/logout` sits behind the sign-in check, including paths that do not
+Every `/api` path except `POST /api/auth/login`, `POST /api/auth/refresh`,
+`POST /api/auth/logout` and `POST /api/auth/set-password` sits behind the sign-in check, including paths that do not
 exist: a caller who is not signed in is told 401 everywhere alike, so nobody can map out
 the API by probing for which paths answer 404. Access tokens are short-lived and
 belong in memory, never in storage (ADR-0008); `ACCESS_TOKEN_LIFETIME_SECONDS` sets how
@@ -88,6 +88,25 @@ curl -s -c jar -o /dev/null localhost:3000/api/auth/login \
 
 curl -s -b jar -c jar -X POST localhost:3000/api/auth/refresh | jq -r .accessToken
 curl -s -b jar -X POST -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/logout  # 204
+```
+
+Anyone else is created by an Administrator, and the seeded Reviewer is one. A created
+Viewer has no password. They are mailed a link that works once and lasts three days
+(`SET_PASSWORD_LINK_LIFETIME_SECONDS`), and they choose their own password with it,
+15 to 128 characters. Locally the mail lands in Mailpit at `http://localhost:8025`:
+
+```sh
+ADMIN=$(curl -s localhost:3000/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"reviewer@iqb.test","password":"reviewer-password"}' | jq -r .accessToken)
+
+curl -s localhost:3000/api/viewers -H "authorization: Bearer $ADMIN" \
+  -H 'content-type: application/json' -d '{"email":"new@iqb.test","role":"author"}'
+
+# The token is everything after "#token=" in the link Mailpit shows.
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/set-password \
+  -H 'content-type: application/json' \
+  -d '{"token":"<token>","password":"a long password of my own"}'   # 204
 ```
 
 ## A bank big enough to time a query against

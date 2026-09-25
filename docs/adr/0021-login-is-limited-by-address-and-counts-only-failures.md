@@ -37,6 +37,12 @@ already hold. The environment variables keep their `LOGIN_RATE_LIMIT_` names, be
 renaming what a deployment already sets is a change to the deployment, not to this
 decision.
 
+**Set-password joined the limit in #26, on the same terms.** Whoever follows a mailed link has
+no access token either, so the endpoint is unauthenticated like login. Unlimited, it would let a
+caller guess at tokens, and make the password hasher run on every guess, as fast as the API
+answered. It carries its own limiter and so its own allowance, and only failures count: a dead
+link spends it, and setting a password does not.
+
 ## Consequences
 
 The window and the threshold are environment configuration, so the suite sets them low rather than
