@@ -1,7 +1,10 @@
 import type { RoleChanged, Viewer } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  appointAdministrator,
+  changeRole,
   deactivateViewer,
+  reactivateViewer,
   withdrawAdministrator,
 } from "../src/features/administration/administration.service.ts";
 import { insertChangeEvent } from "../src/features/change-events/change-events.repository.ts";
@@ -106,6 +109,57 @@ describe("two administrative acts at the same moment", () => {
         expect(deactivated).toMatchObject({ id: reader.id, isDeactivated: true });
       }
       expect(await database.changeEvent.count({ where: { type: "viewer_deactivated" } })).toBe(1);
+    }
+  });
+
+  it("records one Change Event when the same Viewer is appointed twice", async () => {
+    for (let round = 0; round < rounds; round++) {
+      const { a, b, reader } = await twoAdministratorsAndAReader();
+
+      const results = await Promise.all([
+        appointAdministrator(database, a, reader.id),
+        appointAdministrator(database, b, reader.id),
+      ]);
+
+      for (const appointed of results) {
+        expect(appointed).toMatchObject({ id: reader.id, isAdministrator: true });
+      }
+      expect(
+        await database.changeEvent.count({ where: { type: "administrator_appointed" } }),
+      ).toBe(1);
+    }
+  });
+
+  it("records one Change Event when the same Viewer is given the same role twice", async () => {
+    for (let round = 0; round < rounds; round++) {
+      const { a, b, reader } = await twoAdministratorsAndAReader();
+
+      const results = await Promise.all([
+        changeRole(database, a, reader.id, "author"),
+        changeRole(database, b, reader.id, "author"),
+      ]);
+
+      for (const changed of results) {
+        expect(changed).toMatchObject({ id: reader.id, role: "author" });
+      }
+      expect(await database.changeEvent.count({ where: { type: "role_changed" } })).toBe(1);
+    }
+  });
+
+  it("records one Change Event when the same Viewer is reactivated twice", async () => {
+    for (let round = 0; round < rounds; round++) {
+      const { a, b, reader } = await twoAdministratorsAndAReader();
+      await database.viewer.update({ where: { id: reader.id }, data: { isDeactivated: true } });
+
+      const results = await Promise.all([
+        reactivateViewer(database, a, reader.id),
+        reactivateViewer(database, b, reader.id),
+      ]);
+
+      for (const reactivated of results) {
+        expect(reactivated).toMatchObject({ id: reader.id, isDeactivated: false });
+      }
+      expect(await database.changeEvent.count({ where: { type: "viewer_reactivated" } })).toBe(1);
     }
   });
 

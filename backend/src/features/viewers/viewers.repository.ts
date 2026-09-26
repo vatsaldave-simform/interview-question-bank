@@ -61,6 +61,14 @@ export async function lockViewerAndActiveAdministrators(
   `;
 }
 
+/** No stronger than `NO KEY UPDATE`, so it does not deadlock with a Change Event naming
+ * this row (ADR-0039). */
+export async function lockViewer(transaction: Transaction, viewerId: string): Promise<void> {
+  await transaction.$queryRaw`
+    SELECT id FROM viewers WHERE id = ${viewerId}::uuid FOR NO KEY UPDATE
+  `;
+}
+
 export function setIsAdministrator(
   database: DatabaseOrTransaction,
   id: string,

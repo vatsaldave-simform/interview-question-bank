@@ -42,12 +42,17 @@ bigger change for two admin acts that are rare.
 
 Withdrawing an Administrator and Deactivating a Viewer each wait for any other one still
 running, even one that has nothing to do with it. Both are rare, and each transaction is a
-handful of short statements. Nothing else waits on these locks: a login, a new Question and a
-Change Event can still point at any of the locked rows.
+handful of short statements. Apart from the three acts in the next paragraph, nothing else waits
+on these locks: a login, a new Question and a Change Event can still point at any of the locked
+rows.
 
-`appointAdministrator`, `changeRole` and `reactivateViewer` still read the target before their
-transaction. Two of them racing on one Viewer can record a Change Event twice. They cannot break
-the last-Administrator rule, so they are left as they are.
+Appointing, changing a role and reactivating cannot break the last-Administrator rule, but the
+same gap let two of them on one Viewer record a Change Event twice (#90). So they too read the
+target after a `NO KEY UPDATE` lock, inside their transaction. They lock only the target's row.
+None of them removes an Administrator, so they have no count to guard. They wait for another act
+on the same Viewer, and for a withdrawal or Deactivation while that Viewer is an active
+Administrator. They cannot deadlock with either: each holds one row, and the Change Event it then
+writes takes only the light share lock that `NO KEY UPDATE` does not wait on.
 
 The acting Viewer's own authority is still checked before the transaction. So a request from B
 may go ahead a moment after B lost the authority. The lock still leaves one active
