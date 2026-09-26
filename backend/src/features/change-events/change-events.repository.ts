@@ -9,6 +9,8 @@ import {
   questionAddedSchema,
   questionEditedSchema,
   roleChangedSchema,
+  roleRequestDeniedSchema,
+  roleRequestGrantedSchema,
   viewerCreatedSchema,
   viewerDeactivatedSchema,
   viewerReactivatedSchema,
@@ -23,6 +25,8 @@ import {
   type QuestionAdded,
   type QuestionEdited,
   type RoleChanged,
+  type RoleRequestDenied,
+  type RoleRequestGranted,
   type ViewerCreated,
   type ViewerDeactivated,
   type ViewerReactivated,
@@ -112,6 +116,18 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: ViewerReactivated;
+    }
+  | {
+      type: "role_request_granted";
+      questionId: null;
+      viewerId: string;
+      payload: RoleRequestGranted;
+    }
+  | {
+      type: "role_request_denied";
+      questionId: null;
+      viewerId: string;
+      payload: RoleRequestDenied;
     };
 
 /**
@@ -174,6 +190,8 @@ export type ChangeEventFromDb = {
   | { type: "viewer_created"; payload: ViewerCreated }
   | { type: "viewer_deactivated"; payload: ViewerDeactivated }
   | { type: "viewer_reactivated"; payload: ViewerReactivated }
+  | { type: "role_request_granted"; payload: RoleRequestGranted }
+  | { type: "role_request_denied"; payload: RoleRequestDenied }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -240,6 +258,18 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
         ...happened,
         type: row.type,
         payload: viewerReactivatedSchema.parse(row.payload),
+      };
+    case "role_request_granted":
+      return {
+        ...happened,
+        type: row.type,
+        payload: roleRequestGrantedSchema.parse(row.payload),
+      };
+    case "role_request_denied":
+      return {
+        ...happened,
+        type: row.type,
+        payload: roleRequestDeniedSchema.parse(row.payload),
       };
   }
 }

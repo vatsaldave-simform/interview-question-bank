@@ -265,6 +265,8 @@ enum ChangeEventType {
   viewer_created
   viewer_deactivated
   viewer_reactivated
+  role_request_granted
+  role_request_denied
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

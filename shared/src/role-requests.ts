@@ -35,3 +35,13 @@ export const roleRequestListResponseSchema = z
   .object({ roleRequests: z.array(roleRequestSchema) })
   .strict();
 export type RoleRequestListResponse = z.infer<typeof roleRequestListResponseSchema>;
+
+/** Trimmed before it is measured, so whitespace alone is no reason. */
+const reasonSchema = z.string().trim().min(1).max(2_000);
+
+/** A denial has to say why, so the requester can act on it; a grant may. */
+export const decideRoleRequestRequestSchema = z.discriminatedUnion("outcome", [
+  z.object({ outcome: z.literal("granted"), reason: reasonSchema.optional() }).strict(),
+  z.object({ outcome: z.literal("denied"), reason: reasonSchema }).strict(),
+]);
+export type DecideRoleRequestRequest = z.infer<typeof decideRoleRequestRequestSchema>;

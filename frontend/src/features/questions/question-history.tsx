@@ -87,6 +87,10 @@ function whatHappened(event: ChangeEvent): string {
       return "Deactivated a Viewer";
     case "viewer_reactivated":
       return "reactivated a Viewer";
+    case "role_request_granted":
+      return "granted a Role Request";
+    case "role_request_denied":
+      return "denied a Role Request";
   }
 }
 
