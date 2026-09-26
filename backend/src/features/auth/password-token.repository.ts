@@ -1,4 +1,4 @@
-import type { DatabaseOrTransaction } from "../../platform/database.ts";
+import type { DatabaseOrTransaction, Transaction } from "../../platform/database.ts";
 
 export type NewPasswordToken = {
   viewerId: string;
@@ -11,6 +11,31 @@ export async function insertPasswordToken(
   token: NewPasswordToken,
 ): Promise<void> {
   await database.passwordToken.create({ data: token, select: { id: true } });
+}
+
+/**
+ * Held until the transaction ends, and taken on the Viewer's id rather than their row, so
+ * it holds up only another reset for them while a mail is sent (ADR-0040).
+ */
+export async function lockPasswordResetsOf(
+  transaction: Transaction,
+  viewerId: string,
+): Promise<void> {
+  await transaction.$executeRaw`
+    SELECT pg_advisory_xact_lock(hashtextextended(${viewerId}::text, 0))`;
+}
+
+/** Spent tokens count too, so a link used a moment ago still holds back the next mail. */
+export async function wasPasswordTokenIssuedSince(
+  database: DatabaseOrTransaction,
+  viewerId: string,
+  since: Date,
+): Promise<boolean> {
+  const issued = await database.passwordToken.findFirst({
+    where: { viewerId, createdAt: { gte: since } },
+    select: { id: true },
+  });
+  return issued !== null;
 }
 
 /** Marked spent rather than deleted, so a Viewer has at most one link that works. */

@@ -1,6 +1,7 @@
 import { passwordResetMessage } from "./password-reset-mail.ts";
-import type { PasswordMailDependencies } from "./password-link.ts";
+import type { PasswordResetMailDependencies } from "./password-link.ts";
 import { issuePasswordToken } from "./password-token.ts";
+import { lockPasswordResetsOf, wasPasswordTokenIssuedSince } from "./password-token.repository.ts";
 import { findViewerByEmail } from "../viewers/viewers.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { log } from "../../platform/logger.ts";
@@ -20,7 +21,7 @@ function kindOfFailure(error: unknown): Record<string, unknown> {
  */
 export async function mailPasswordResetLink(
   database: Database,
-  { mailer, settings }: PasswordMailDependencies,
+  { mailer, settings }: PasswordResetMailDependencies,
   email: string,
 ): Promise<void> {
   let viewerId: string | undefined;
@@ -30,15 +31,24 @@ export async function mailPasswordResetLink(
     if (viewer === null || viewer.isDeactivated) return;
     viewerId = viewer.id;
 
-    await database.$transaction(
+    const mailed = await database.$transaction(
       async (transaction) => {
+        // Before the check, so a request at the same moment waits and then sees this link.
+        await lockPasswordResetsOf(transaction, viewer.id);
+        const windowStart = new Date(Date.now() - settings.mailWindowSeconds * 1_000);
+        // Any link counts, a new Viewer's first one too (ADR-0040).
+        if (await wasPasswordTokenIssuedSince(transaction, viewer.id, windowStart)) return false;
         const issued = await issuePasswordToken(transaction, viewer.id, settings);
         // Last, so a send that fails leaves no token behind and no older link ended.
         await mailer.send(passwordResetMessage(viewer.email, issued, settings.appUrl));
+        return true;
       },
       { timeout: 20_000 },
     );
-    log().info({ viewerId: viewer.id }, "password reset link mailed");
+    log().info(
+      { viewerId: viewer.id },
+      mailed ? "password reset link mailed" : "password reset mail held back",
+    );
   } catch (error) {
     log().error({ viewerId, ...kindOfFailure(error) }, "password reset link not mailed");
   } finally {

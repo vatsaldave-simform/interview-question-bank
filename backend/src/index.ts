@@ -40,6 +40,7 @@ const server = await startServer({
     passwordResetLink: {
       appUrl: env.APP_URL,
       lifetimeSeconds: env.PASSWORD_RESET_LINK_LIFETIME_SECONDS,
+      mailWindowSeconds: env.PASSWORD_RESET_MAIL_WINDOW_SECONDS,
     },
     trustProxyHops: env.TRUST_PROXY_HOPS,
     ...(env.FRONTEND_DIR === undefined ? {} : { frontendDir: env.FRONTEND_DIR }),

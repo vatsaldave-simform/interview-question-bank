@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 import { createApp } from "../../src/app.ts";
 import type { AccessTokenConfig } from "../../src/features/auth/access-token.ts";
+import type { PasswordResetLinkConfig } from "../../src/features/auth/password-link.ts";
 import type { PasswordTokenConfig } from "../../src/features/auth/password-token.ts";
 import type { Database } from "../../src/platform/database.ts";
 import type { RefreshCookieConfig } from "../../src/features/auth/refresh-cookie.ts";
@@ -61,8 +62,9 @@ export async function startTestApi(
     refreshToken?: Partial<RefreshTokenConfig>;
     /** Overrides for the set-password link's lifetime, for a test that expires one. */
     setPasswordLink?: Partial<PasswordTokenConfig>;
-    /** Overrides for the reset link's lifetime, for a test that expires one. */
-    passwordResetLink?: Partial<PasswordTokenConfig>;
+    /** Overrides for the reset link's lifetime and the wait between reset mails, for a
+     * test that waits either one out. */
+    passwordResetLink?: Partial<Omit<PasswordResetLinkConfig, "appUrl">>;
     /** Overrides for the cookie, for the test that asserts it is marked Secure. */
     refreshCookie?: Partial<RefreshCookieConfig>;
     /** Proxies to trust, for a test that presents an X-Forwarded-For of its own. */
@@ -111,8 +113,14 @@ export async function startTestApi(
     // Three days, as the environment's default is; the file that expires a link asks for
     // a second of it instead.
     setPasswordLink: { appUrl: testAppUrl, lifetimeSeconds: 259_200, ...options.setPasswordLink },
-    // An hour, as the environment's default is.
-    passwordResetLink: { appUrl: testAppUrl, lifetimeSeconds: 3_600, ...options.passwordResetLink },
+    // A link that works for an hour, and five minutes between mails, as the environment's
+    // defaults are.
+    passwordResetLink: {
+      appUrl: testAppUrl,
+      lifetimeSeconds: 3_600,
+      mailWindowSeconds: 300,
+      ...options.passwordResetLink,
+    },
     ...(options.trustProxyHops === undefined ? {} : { trustProxyHops: options.trustProxyHops }),
     ...(options.frontendDir === undefined ? {} : { frontendDir: options.frontendDir }),
   });

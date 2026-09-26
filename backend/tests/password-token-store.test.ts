@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { issuePasswordToken, spendPasswordToken } from "../src/features/auth/password-token.ts";
+import {
+  lockPasswordResetsOf,
+  wasPasswordTokenIssuedSince,
+} from "../src/features/auth/password-token.repository.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { seededViewer } from "./helpers/auth.ts";
@@ -130,5 +134,63 @@ describe("the password token store", () => {
 
     expect(results.filter((result) => result === viewerId)).toHaveLength(1);
     expect(results.filter((result) => result === null)).toHaveLength(1);
+  });
+
+  it("says whether a Viewer was issued a token since a given moment", async () => {
+    const beforeIssuing = new Date(Date.now() - 1_000);
+    await issuePasswordToken(database, viewerId, anHour);
+    const afterIssuing = new Date(Date.now() + 1_000);
+
+    expect(await wasPasswordTokenIssuedSince(database, viewerId, beforeIssuing)).toBe(true);
+    expect(await wasPasswordTokenIssuedSince(database, viewerId, afterIssuing)).toBe(false);
+  });
+
+  it("counts a token that has been spent", async () => {
+    const since = new Date(Date.now() - 1_000);
+    const { token } = await issuePasswordToken(database, viewerId, anHour);
+    await spendPasswordToken(database, token);
+
+    expect(await wasPasswordTokenIssuedSince(database, viewerId, since)).toBe(true);
+  });
+
+  it("does not count another Viewer's token", async () => {
+    const since = new Date(Date.now() - 1_000);
+    await issuePasswordToken(database, otherViewerId, anHour);
+
+    expect(await wasPasswordTokenIssuedSince(database, viewerId, since)).toBe(false);
+  });
+
+  it("makes a second transaction locking the same Viewer wait for the first to end", async () => {
+    let letFirstCommit = () => {};
+    const firstMayCommit = new Promise<void>((resolve) => {
+      letFirstCommit = resolve;
+    });
+    let firstLocked = () => {};
+    const firstHasLocked = new Promise<void>((resolve) => {
+      firstLocked = resolve;
+    });
+    const order: string[] = [];
+    const first = database.$transaction(async (transaction) => {
+      await lockPasswordResetsOf(transaction, viewerId);
+      firstLocked();
+      await firstMayCommit;
+      order.push("first ended");
+    });
+    await firstHasLocked;
+    const second = database.$transaction(async (transaction) => {
+      await lockPasswordResetsOf(transaction, viewerId);
+      order.push("second locked");
+    });
+    const otherViewer = database.$transaction((transaction) =>
+      lockPasswordResetsOf(transaction, otherViewerId),
+    );
+
+    await otherViewer;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(order).toEqual([]);
+    letFirstCommit();
+    await Promise.all([first, second]);
+
+    expect(order).toEqual(["first ended", "second locked"]);
   });
 });

@@ -70,6 +70,9 @@ const envSchema = z.object({
   /** An hour by default: whoever asked is at the screen now, and the mail sits in an inbox
    * after they are done. */
   PASSWORD_RESET_LINK_LIFETIME_SECONDS: z.coerce.number().int().positive().default(3_600),
+  /** Five minutes by default: long enough to stop one inbox being flooded, short enough
+   * that a Viewer whose mail was lost can soon ask again (ADR-0040). */
+  PASSWORD_RESET_MAIL_WINDOW_SECONDS: z.coerce.number().int().positive().default(300),
 });
 
 export type Env = z.infer<typeof envSchema>;

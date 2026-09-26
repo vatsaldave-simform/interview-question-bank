@@ -67,7 +67,7 @@ The suite cannot wait on the response to know the work is done. The service writ
 `password reset request handled` line when it finishes, however it went, and the tests wait on
 that line.
 
-The rate limit is per caller address (ADR-0021). So a caller can have one real Viewer mailed as
-often as that limit lets them, and each mail counts against the mail provider's 300 a day
-(ADR-0037). A cap on how often one address is mailed would stop that without changing the answer.
-It is not built yet.
+The rate limit is per caller address (ADR-0021). On its own, that would let a caller have one
+real Viewer mailed as often as the limit allows, and each mail counts against the mail
+provider's 300 a day (ADR-0037). So one Viewer is also sent at most one reset mail per window,
+without changing the answer (ADR-0040).
