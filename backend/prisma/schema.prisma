@@ -4,6 +4,8 @@ generator client {
   output              = "../src/generated/prisma"
   moduleFormat        = "esm"
   importFileExtension = "ts"
+  // For the one-open-Role-Request rule, which is a partial unique index (ADR-0041).
+  previewFeatures     = ["partialIndexes"]
 }
 
 datasource db {
@@ -42,6 +44,7 @@ model Viewer {
   refreshTokens    RefreshToken[]
   passwordTokens   PasswordToken[]
   permissionGrants PermissionGrant[]
+  roleRequests     RoleRequest[]
   questions        Question[]
   changeEvents     ChangeEvent[]
 
@@ -88,6 +91,33 @@ model PasswordToken {
 
   @@index([viewerId])
   @@map("password_tokens")
+}
+
+/// Whether a Role Request is waiting on an Administrator, or which way they decided it.
+enum RoleRequestState {
+  open
+  granted
+  denied
+}
+
+/// A Viewer's request to hold a different role. Kept once decided, so the requester can
+/// read the reason, and never deleted (ADR-0017).
+model RoleRequest {
+  id        String           @id @default(uuid()) @db.Uuid
+  viewerId  String           @db.Uuid
+  viewer    Viewer           @relation(fields: [viewerId], references: [id])
+  role      ViewerRole
+  state     RoleRequestState @default(open)
+  /// Null until decided, and after a grant that gave none; a denial always carries one.
+  reason    String?
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  decidedAt DateTime?        @db.Timestamptz(3)
+
+  // At most one open Role Request per Viewer, held by the database rather than checked
+  // first, so two requests at once cannot both get in (ADR-0041).
+  @@unique([viewerId], where: { state: "open" }, map: "role_requests_one_open_per_viewer")
+  @@index([viewerId, createdAt])
+  @@map("role_requests")
 }
 
 /// Whether a Question is awaiting a Reviewer, in the bank, or refused. A column and not
