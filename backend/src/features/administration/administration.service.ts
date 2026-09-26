@@ -16,6 +16,7 @@ import {
   countOtherActiveAdministrators,
   findViewerById,
   insertViewer,
+  lockViewer,
   lockViewerAndActiveAdministrators,
   setIsAdministrator,
   setIsDeactivated,
@@ -36,6 +37,16 @@ async function targetNamed(database: DatabaseOrTransaction, id: string): Promise
 /** Read after the lock, so the "already done?" check sees what a racing request just
  * committed (ADR-0039). */
 async function lockedTarget(transaction: Transaction, id: string): Promise<Viewer> {
+  await lockViewer(transaction, id);
+  return targetNamed(transaction, id);
+}
+
+/** As `lockedTarget`, and also locks every active Administrator, for the acts that must
+ * not remove the last one (ADR-0039). */
+async function lockedTargetAndAdministrators(
+  transaction: Transaction,
+  id: string,
+): Promise<Viewer> {
   await lockViewerAndActiveAdministrators(transaction, id);
   return targetNamed(transaction, id);
 }
@@ -46,8 +57,8 @@ function affectedViewer(viewer: Viewer) {
   return { id: viewer.id, email: viewer.email };
 }
 
-/** Called after `lockedTarget` in the transaction of the write it guards, so no other
- * request can remove an Administrator between the count and the write (ADR-0039). */
+/** Called after `lockedTargetAndAdministrators` in the transaction of the write it guards,
+ * so no other request can remove an Administrator between the count and the write (ADR-0039). */
 async function refuseLastActiveAdministrator(
   transaction: DatabaseOrTransaction,
   target: Viewer,
@@ -68,10 +79,10 @@ export async function appointAdministrator(
   actingViewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
-  const target = await targetNamed(database, targetId);
-  if (target.isAdministrator) return target;
-
   return database.$transaction(async (transaction) => {
+    const target = await lockedTarget(transaction, targetId);
+    if (target.isAdministrator) return target;
+
     const appointed = await setIsAdministrator(transaction, target.id, true);
     const payload: AdministratorAppointed = { viewer: affectedViewer(appointed) };
     await insertChangeEvent(transaction, {
@@ -94,7 +105,7 @@ export async function withdrawAdministrator(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockedTargetAndAdministrators(transaction, targetId);
     if (!target.isAdministrator) return target;
 
     await refuseLastActiveAdministrator(
@@ -123,10 +134,10 @@ export async function changeRole(
   targetId: string,
   role: ViewerRole,
 ): Promise<Viewer> {
-  const target = await targetNamed(database, targetId);
-  if (target.role === role) return target;
-
   return database.$transaction(async (transaction) => {
+    const target = await lockedTarget(transaction, targetId);
+    if (target.role === role) return target;
+
     const changed = await setRole(transaction, target.id, role);
     const payload: RoleChanged = {
       viewer: affectedViewer(changed),
@@ -150,7 +161,7 @@ export async function deactivateViewer(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockedTargetAndAdministrators(transaction, targetId);
     if (target.isDeactivated) return target;
 
     await refuseLastActiveAdministrator(
@@ -179,10 +190,10 @@ export async function reactivateViewer(
   actingViewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
-  const target = await targetNamed(database, targetId);
-  if (!target.isDeactivated) return target;
-
   return database.$transaction(async (transaction) => {
+    const target = await lockedTarget(transaction, targetId);
+    if (!target.isDeactivated) return target;
+
     const reactivated = await setIsDeactivated(transaction, target.id, false);
     const payload: ViewerReactivated = { viewer: affectedViewer(reactivated) };
     await insertChangeEvent(transaction, {
