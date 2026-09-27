@@ -21,6 +21,11 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
           Interview Question Bank
         </Link>
         {/* Hiding these links keeps nobody out: the API refuses their lists anyway. */}
+        {viewer.role !== "reader" && (
+          <Link to="/questions/own" className="text-sm hover:underline">
+            Your Questions
+          </Link>
+        )}
         {viewer.role === "reviewer" && (
           <Link to="/review" className="text-sm hover:underline">
             Review queue

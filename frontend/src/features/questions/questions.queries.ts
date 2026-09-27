@@ -41,6 +41,14 @@ export function useReviewQueue(offset: number) {
   });
 }
 
+export function useOwnQuestions(offset: number) {
+  const path = `/api/questions/own${stringifySearch({ limit: questionPageSize, offset })}`;
+  return useQuery({
+    queryKey: ["questions", "own", offset],
+    queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
+  });
+}
+
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],

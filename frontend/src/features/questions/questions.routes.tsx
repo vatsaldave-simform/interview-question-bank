@@ -3,6 +3,7 @@ import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { BrowseScreen } from "@/features/questions/browse-screen";
 import { ContributeScreen } from "@/features/questions/contribute-screen";
 import { EditScreen } from "@/features/questions/edit-screen";
+import { OwnQuestionsScreen } from "@/features/questions/own-questions-screen";
 import { pageSearchSchema } from "@/features/questions/question-pages.schema";
 import { QuestionScreen } from "@/features/questions/question-screen";
 import { ReviewScreen } from "@/features/questions/review-screen";
@@ -86,4 +87,29 @@ function Review() {
   );
 }
 
-export const questionRoutes = [browseRoute, contributeRoute, questionRoute, editRoute, reviewRoute];
+const ownQuestionsRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/questions/own",
+  validateSearch: pageSearchSchema,
+  component: OwnQuestions,
+});
+
+function OwnQuestions() {
+  const { offset = 0 } = ownQuestionsRoute.useSearch();
+  const navigate = ownQuestionsRoute.useNavigate();
+  return (
+    <OwnQuestionsScreen
+      offset={offset}
+      onMove={(next) => void navigate({ search: { offset: next === 0 ? undefined : next } })}
+    />
+  );
+}
+
+export const questionRoutes = [
+  browseRoute,
+  contributeRoute,
+  ownQuestionsRoute,
+  questionRoute,
+  editRoute,
+  reviewRoute,
+];
