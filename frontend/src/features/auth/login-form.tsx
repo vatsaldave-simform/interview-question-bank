@@ -1,5 +1,6 @@
 import { loginRequestSchema, type LoginRequest } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
+import { focusFirstProblem, problemsIn, type FieldProblems } from "@/features/auth/field-problems";
 import { signIn } from "@/features/auth/sign-in";
 import { ApiFailure } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
@@ -7,41 +8,14 @@ import { Button } from "@/ui/shadcn/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/shadcn/field";
 import { Input } from "@/ui/shadcn/input";
 
-const loginFields = ["email", "password"] as const satisfies readonly (keyof LoginRequest)[];
-
-type FieldProblems = Partial<Record<keyof LoginRequest, string>>;
-
-// zod words its refusals for whoever is reading a stack trace, and "Too small: expected
-// string to have >=1 characters" is not a sentence to put in front of anyone.
 const problemWording: Record<keyof LoginRequest, string> = {
   email: "Enter an email address, like author@iqb.test.",
   password: "Enter your password.",
 };
 
-function isLoginField(value: unknown): value is keyof LoginRequest {
-  return loginFields.some((field) => field === value);
-}
-
-function problemsIn(issues: readonly { path: PropertyKey[] }[]): FieldProblems {
-  const problems: FieldProblems = {};
-  for (const issue of issues) {
-    const field = issue.path[0];
-    if (isLoginField(field)) problems[field] = problemWording[field];
-  }
-  return problems;
-}
-
-/** Someone reading the screen through a screen reader is otherwise told something is
- * wrong and left to find it. */
-function focusFirstProblem(form: HTMLFormElement, problems: FieldProblems): void {
-  const first = loginFields.find((field) => problems[field] !== undefined);
-  const control = first === undefined ? null : form.elements.namedItem(first);
-  if (control instanceof HTMLInputElement) control.focus();
-}
-
 /** Credentials in, a session out, and whatever the API refused shown in its own words. */
 export function LoginForm() {
-  const [problems, setProblems] = useState<FieldProblems>({});
+  const [problems, setProblems] = useState<FieldProblems<keyof LoginRequest>>({});
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -58,7 +32,7 @@ export function LoginForm() {
 
     setRefusal(null);
     if (!checked.success) {
-      const found = problemsIn(checked.error.issues);
+      const found = problemsIn(problemWording, checked.error.issues);
       setProblems(found);
       focusFirstProblem(form, found);
       return;
