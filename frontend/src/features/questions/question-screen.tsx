@@ -7,6 +7,7 @@ import {
   ResubmitButton,
   type ActRefused,
 } from "@/features/questions/publication-acts";
+import { provenanceWording } from "@/features/questions/provenance-wording";
 import { publicationStateWording } from "@/features/questions/publication-state-wording";
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
@@ -68,7 +69,30 @@ function QuestionInFull({ question }: { question: Question }) {
         <p className="whitespace-pre-line">{question.answerNotes}</p>
       </section>
       <QuestionTags tags={question.tags} />
+      <WhereItCameFrom question={question} />
     </article>
+  );
+}
+
+function WhereItCameFrom({ question }: { question: Question }) {
+  const { name, meaning } = provenanceWording[question.provenance];
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="where-it-came-from">
+      <h2 id="where-it-came-from" className="font-medium">
+        Where it came from
+      </h2>
+      <p>
+        {name}. {meaning}
+      </p>
+      {question.provenance === "adapted" &&
+        (question.source === null ? (
+          <p className="text-muted-foreground">Its Author named no Source.</p>
+        ) : (
+          <p>
+            Source: <cite>{question.source}</cite>
+          </p>
+        ))}
+    </section>
   );
 }
 
