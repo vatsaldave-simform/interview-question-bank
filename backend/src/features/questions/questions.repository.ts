@@ -502,26 +502,38 @@ export async function updateVisibleQuestion(
   });
 }
 
+/** Named by the act rather than by the state it ends in, because Rejecting and returning
+ * both end in Rejected and each writes its own Change Event. */
+export type PublicationMove =
+  | { act: "publish" }
+  | { act: "reject"; reason: string }
+  | { act: "resubmit" }
+  | { act: "return"; reason: string };
+
 /** Each names the state it starts from, so the same act twice finds nothing to move the
  * second time. */
-export type PublicationMove =
-  | { from: "pending"; to: "published" }
-  | { from: "pending"; to: "rejected"; reason: string }
-  | { from: "rejected"; to: "pending" };
+const statesFor: Record<
+  PublicationMove["act"],
+  { from: PublicationState; to: PublicationState }
+> = {
+  publish: { from: "pending", to: "published" },
+  reject: { from: "pending", to: "rejected" },
+  resubmit: { from: "rejected", to: "pending" },
+  // Rejected, so it waits for its Author rather than in the Reviewer's queue (ADR-0013).
+  return: { from: "published", to: "rejected" },
+};
 
 function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
-  switch (move.to) {
-    case "published":
-      return { type: "question_published", questionId, viewerId: viewer.id, payload: {} };
-    case "rejected":
-      return {
-        type: "question_rejected",
-        questionId,
-        viewerId: viewer.id,
-        payload: { reason: move.reason },
-      };
-    case "pending":
-      return { type: "question_resubmitted", questionId, viewerId: viewer.id, payload: {} };
+  const happened = { questionId, viewerId: viewer.id };
+  switch (move.act) {
+    case "publish":
+      return { ...happened, type: "question_published", payload: {} };
+    case "reject":
+      return { ...happened, type: "question_rejected", payload: { reason: move.reason } };
+    case "resubmit":
+      return { ...happened, type: "question_resubmitted", payload: {} };
+    case "return":
+      return { ...happened, type: "question_returned", payload: { reason: move.reason } };
   }
 }
 
@@ -533,10 +545,11 @@ export async function moveVisibleQuestion(
   id: string,
   move: PublicationMove,
 ): Promise<QuestionFromDb | null> {
+  const { from, to } = statesFor[move.act];
   return database.$transaction(async (transaction) => {
     const { count } = await transaction.question.updateMany({
-      where: { AND: [{ id }, visibleQuestions(viewer), { publicationState: move.from }] },
-      data: { publicationState: move.to, reason: move.to === "rejected" ? move.reason : null },
+      where: { AND: [{ id }, visibleQuestions(viewer), { publicationState: from }] },
+      data: { publicationState: to, reason: "reason" in move ? move.reason : null },
     });
     if (count === 0) return null;
 

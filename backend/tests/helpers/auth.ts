@@ -35,10 +35,20 @@ export async function logIn(api: TestApi, viewer: SeedViewer): Promise<string> {
 
 /** Every seeded Viewer holds a Permission Grant, so a Viewer holding none is written
  * straight to the database rather than created over HTTP by an Administrator. */
-export async function logInHoldingNoGrant(api: TestApi, role: ViewerRole): Promise<string> {
+export function logInHoldingNoGrant(api: TestApi, role: ViewerRole): Promise<string> {
+  return logInHoldingGrantsFor(api, role, []);
+}
+
+/** A new Viewer holding exactly the Grants named, for a test that needs a Grant no seeded
+ * Viewer of that role holds. */
+export async function logInHoldingGrantsFor(
+  api: TestApi,
+  role: ViewerRole,
+  clientIds: readonly string[],
+): Promise<string> {
   const credentials = {
-    email: `no-grant-${role}-${crypto.randomUUID()}@iqb.test`,
-    password: `no-grant-${role}-password`,
+    email: `${role}-${crypto.randomUUID()}@iqb.test`,
+    password: `${role}-password`,
     role,
   };
   await api.database.viewer.create({
@@ -46,6 +56,7 @@ export async function logInHoldingNoGrant(api: TestApi, role: ViewerRole): Promi
       email: credentials.email,
       role,
       passwordHash: await hashPassword(credentials.password),
+      permissionGrants: { create: clientIds.map((clientId) => ({ clientId })) },
     },
   });
   return logIn(api, credentials);

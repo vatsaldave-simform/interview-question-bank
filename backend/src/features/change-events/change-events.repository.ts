@@ -11,6 +11,7 @@ import {
   questionPublishedSchema,
   questionRejectedSchema,
   questionResubmittedSchema,
+  questionReturnedSchema,
   roleChangedSchema,
   roleRequestDeniedSchema,
   roleRequestGrantedSchema,
@@ -30,6 +31,7 @@ import {
   type QuestionPublished,
   type QuestionRejected,
   type QuestionResubmitted,
+  type QuestionReturned,
   type RoleChanged,
   type RoleRequestDenied,
   type RoleRequestGranted,
@@ -152,6 +154,12 @@ export type NewChangeEvent =
       questionId: string;
       viewerId: string;
       payload: QuestionResubmitted;
+    }
+  | {
+      type: "question_returned";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionReturned;
     };
 
 /**
@@ -219,6 +227,7 @@ export type ChangeEventFromDb = {
   | { type: "question_published"; payload: QuestionPublished }
   | { type: "question_rejected"; payload: QuestionRejected }
   | { type: "question_resubmitted"; payload: QuestionResubmitted }
+  | { type: "question_returned"; payload: QuestionReturned }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -312,5 +321,7 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
         type: row.type,
         payload: questionResubmittedSchema.parse(row.payload),
       };
+    case "question_returned":
+      return { ...happened, type: row.type, payload: questionReturnedSchema.parse(row.payload) };
   }
 }

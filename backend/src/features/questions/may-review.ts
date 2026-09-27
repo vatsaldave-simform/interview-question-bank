@@ -6,6 +6,10 @@ export function mayPublish(viewer: Viewer): boolean {
   return viewer.role === "reviewer";
 }
 
+/** Whoever may put a Question in the bank may take it out again, its Author included when
+ * they are a Reviewer. */
+export const mayReturn = mayPublish;
+
 /** The Viewers who may edit it, because an Author Rejecting their own is withdrawing it
  * (ADR-0013). */
 export function mayReject(viewer: Viewer, question: { authorId: string }): boolean {

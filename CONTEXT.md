@@ -57,7 +57,8 @@ Question by Rejecting it, and resubmit their own Rejected one.
 
 **Reviewer**:
 A Viewer who may edit any Question that is Visible to them, and who alone Publishes a Question,
-Rejects another Viewer's, or removes its Client restriction.
+Rejects another Viewer's, returns a Published one to its Author, or removes its Client
+restriction. A returned Question is Rejected, with the reason it was returned.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
@@ -109,6 +110,6 @@ _Avoid_: duplicate, similar question, match
 
 **Change Event**:
 An append-only record of something that happened to the bank — a Question submitted, edited,
-Published, Rejected or resubmitted, or a submission refused as a Near-Duplicate — carrying who
-did it and when.
+Published, Rejected, returned or resubmitted, or a submission refused as a Near-Duplicate —
+carrying who did it and when.
 _Avoid_: audit log, history entry, revision, version

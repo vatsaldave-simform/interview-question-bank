@@ -4,6 +4,7 @@ import {
   listQuestionsRequestSchema,
   questionPageRequestSchema,
   rejectQuestionRequestSchema,
+  returnQuestionRequestSchema,
   type ChangeEvent,
   type Question,
   type QuestionHistoryResponse,
@@ -21,6 +22,7 @@ import {
   publishQuestion,
   rejectQuestion,
   resubmitQuestion,
+  returnQuestion,
 } from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
@@ -159,6 +161,16 @@ export function questionRoutes(database: Database): Router {
     const id = questionIdNamed(req);
 
     const question = await resubmitQuestion(database, authenticatedViewer(req), id);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/return", async (req, res) => {
+    const id = questionIdNamed(req);
+    const { reason } = returnQuestionRequestSchema.parse(req.body);
+
+    const question = await returnQuestion(database, authenticatedViewer(req), id, reason);
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.json(body);

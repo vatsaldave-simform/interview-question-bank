@@ -21,11 +21,17 @@ Reviewer, or hold the edit beside the published row — row versions, which ADR-
 rejected in favour of the event log. The backstop for a bad edit is that log, which names who
 changed what, and the Reviewer's standing authority to edit any Visible Question back.
 
-Publication is not terminal. A Reviewer may return a Published Question to Pending with a reason,
-which is the only non-destructive way to correct one in a system that has neither delete nor
-unpublish — most sharply a Question restricted to the wrong Client (ADR-0018), where returning it
-stops the exposure at once. The Author corrects it and resubmits, and detection runs again at
+Publication is not terminal. A Reviewer may return a Published Question to its Author with a
+reason, which is the only non-destructive way to correct one in a system that has neither delete
+nor unpublish — most sharply a Question restricted to the wrong Client (ADR-0018), where returning
+it stops the exposure at once. The Author corrects it and resubmits, and detection runs again at
 republication (ADR-0014).
+
+A returned Question is Rejected, not Pending. Pending would put it straight back in the Reviewer's
+queue before its Author had fixed anything, and would need a hidden fourth state to stop that.
+Rejected already means what a returned Question needs: out of the bank, in its Author's own list
+with the reason, and back in the queue only once they resubmit. The Change Event says it was
+returned rather than rejected, so its history still shows it had been Published.
 
 ## Consequences
 

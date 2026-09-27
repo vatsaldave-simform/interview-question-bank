@@ -271,6 +271,7 @@ enum ChangeEventType {
   question_published
   question_rejected
   question_resubmitted
+  question_returned
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

@@ -23,6 +23,7 @@ export const changeEventTypes = [
   "question_published",
   "question_rejected",
   "question_resubmitted",
+  "question_returned",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -156,6 +157,11 @@ export type QuestionRejected = z.infer<typeof questionRejectedSchema>;
 export const questionResubmittedSchema = z.object({}).strict();
 export type QuestionResubmitted = z.infer<typeof questionResubmittedSchema>;
 
+/** A Reviewer taking a Published Question out of the bank and back to its Author. It is
+ * Rejected afterwards, and this type is what says it had been Published (ADR-0013). */
+export const questionReturnedSchema = z.object({ reason: z.string() }).strict();
+export type QuestionReturned = z.infer<typeof questionReturnedSchema>;
+
 /** What every Change Event says, whatever happened: which Question, which Viewer, when. */
 const changeEventSchema = z.object({
   id: z.uuid(),
@@ -229,6 +235,10 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
   changeEventSchema.extend({
     type: z.literal("question_resubmitted"),
     payload: questionResubmittedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_returned"),
+    payload: questionReturnedSchema,
   }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;

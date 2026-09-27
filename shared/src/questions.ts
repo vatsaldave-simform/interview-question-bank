@@ -113,6 +113,11 @@ export const rejectQuestionRequestSchema = z
   .strict();
 export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
 
+/** The same as Rejecting asks for, because a returned Question is Rejected and its Author
+ * reads the reason the same way (ADR-0013). */
+export const returnQuestionRequestSchema = rejectQuestionRequestSchema;
+export type ReturnQuestionRequest = RejectQuestionRequest;
+
 /**
  * How alike two Questions' text has to be before one counts as a Near-Duplicate of the
  * other, on the zero-to-one scale trigram similarity measures. Measured against the bank
