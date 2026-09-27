@@ -131,15 +131,60 @@ export async function findEventsAboutVisibleQuestion(
   return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
 }
 
+/** One page of a list: how many Questions, and how many to skip first. */
+export type QuestionPage = { limit: number; offset: number };
+
+/**
+ * The Pending Questions waiting on a Reviewer, the longest-waiting first. Built on
+ * `visibleQuestions` and only narrowed from it, so the queue is no way around a
+ * Permission Grant (ADR-0013).
+ */
+export async function findPendingQuestionsForReview(
+  database: Database,
+  viewer: Viewer,
+  { limit, offset }: QuestionPage,
+): Promise<QuestionFromDb[]> {
+  const questions = await database.question.findMany({
+    where: { AND: [visibleQuestions(viewer), { publicationState: "pending" }] },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: limit,
+    skip: offset,
+    select: questionFieldsToRead,
+  });
+  return questions.map(toQuestionFromDb);
+}
+
+/** The Viewer's own Questions that are not in the bank, newest first. Still built on
+ * `visibleQuestions`: an Author loses sight of their own Question under a Client they no
+ * longer hold a Grant for, exactly as the fetch does (ADR-0002). */
+export async function findOwnUnpublishedQuestions(
+  database: Database,
+  viewer: Viewer,
+  { limit, offset }: QuestionPage,
+): Promise<QuestionFromDb[]> {
+  const questions = await database.question.findMany({
+    where: {
+      AND: [
+        visibleQuestions(viewer),
+        { authorId: viewer.id },
+        { publicationState: { in: ["pending", "rejected"] } },
+      ],
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit,
+    skip: offset,
+    select: questionFieldsToRead,
+  });
+  return questions.map(toQuestionFromDb);
+}
+
 /** The Tag ids to filter by within one Category. Only the grouping reaches the query;
  * the Category is named so a caller cannot mix two of them into one condition. */
 export type TagsInCategory = { category: CategoryName; tagIds: readonly string[] };
 
-export type QuestionQuery = {
+export type QuestionQuery = QuestionPage & {
   /** One entry per Category named; none of them means the whole bank the Viewer sees. */
   tagsPerCategory: readonly TagsInCategory[];
-  limit: number;
-  offset: number;
 };
 
 /** Prisma sends this as its own `EXISTS` over `question_tags`, which is the shape
