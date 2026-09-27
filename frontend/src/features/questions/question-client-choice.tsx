@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useGrantedClients } from "@/features/clients/clients.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
@@ -9,9 +10,12 @@ type QuestionClientChoiceProps = {
   /** The chosen Client's id, or null for no restriction. */
   clientId: string | null;
   onChange: (clientId: string | null) => void;
+  /** Shown after the dropdown, and only when there is one. */
+  children?: ReactNode;
 };
 
-export function QuestionClientChoice({ clientId, onChange }: QuestionClientChoiceProps) {
+export function QuestionClientChoice(props: QuestionClientChoiceProps) {
+  const { clientId, onChange, children } = props;
   const clients = useGrantedClients();
   if (clients.isPending) {
     return (
@@ -20,14 +24,14 @@ export function QuestionClientChoice({ clientId, onChange }: QuestionClientChoic
       </p>
     );
   }
-  // Said out loud, because a choice that quietly went missing would let an Author add a
+  // Shown as an error, because a choice that quietly went missing would let an Author add a
   // Question they meant to restrict.
   if (clients.isError) {
     return (
       <Alert variant="destructive">
         <AlertTitle>Your Clients could not be loaded</AlertTitle>
         <AlertDescription className="flex flex-col items-start gap-3">
-          <p>You can still add the Question, but not restrict it to a Client yet.</p>
+          <p>Until they load, the Question cannot be restricted to a Client.</p>
           <p>{whatWentWrong(clients.error)}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void clients.refetch()}>
             Try again
@@ -55,6 +59,7 @@ export function QuestionClientChoice({ clientId, onChange }: QuestionClientChoic
           </NativeSelectOption>
         ))}
       </NativeSelect>
+      {children}
     </Field>
   );
 }

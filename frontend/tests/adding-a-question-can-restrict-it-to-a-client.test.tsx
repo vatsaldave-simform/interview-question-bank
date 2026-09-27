@@ -1,4 +1,4 @@
-import type { Client } from "@iqb/shared";
+import type { AddQuestionRequest, Client } from "@iqb/shared";
 import { screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -49,7 +49,7 @@ async function clientsSent(api: FakeApi): Promise<unknown[]> {
     (request) => request.method === "POST" && new URL(request.url).pathname === "/api/questions",
   );
   const bodies = await Promise.all(additions.map((request) => request.json()));
-  return bodies.map((body: { clientId?: string }) => body.clientId);
+  return bodies.map((body: AddQuestionRequest) => body.clientId);
 }
 
 async function writeAQuestion(): Promise<void> {
@@ -120,7 +120,7 @@ describe("restricting a new Question to a Client", () => {
 
     expect(await screen.findByText("Your Clients could not be loaded")).toBeVisible();
     expect(
-      screen.getByText("You can still add the Question, but not restrict it to a Client yet."),
+      screen.getByText("Until they load, the Question cannot be restricted to a Client."),
     ).toBeVisible();
 
     answer = () => answersWith({ clients: [acme] });
