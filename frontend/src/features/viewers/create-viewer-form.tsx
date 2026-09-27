@@ -3,9 +3,9 @@ import {
   refusedFieldsSchema,
   viewerRoles,
   type CreateViewerRequest,
-  type ViewerRole,
 } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
+import { roleWording } from "@/features/viewers/role-wording";
 import { useCreateViewer } from "@/features/viewers/viewers.queries";
 import { ApiFailure, whatWentWrong } from "@/platform/api-client";
 import { focusFirstProblem, problemsIn, type FieldProblems } from "@/platform/field-problems";
@@ -20,12 +20,6 @@ type Problems = FieldProblems<keyof CreateViewerRequest>;
 const problemWording: Record<keyof CreateViewerRequest, string> = {
   email: "Enter an email address, like author@iqb.test.",
   role: "Choose a role.",
-};
-
-const roleWording: Record<ViewerRole, string> = {
-  reader: "Reader",
-  author: "Author",
-  reviewer: "Reviewer",
 };
 
 function refusalOf(reason: Error): { problems: Problems; message: string | null } {
