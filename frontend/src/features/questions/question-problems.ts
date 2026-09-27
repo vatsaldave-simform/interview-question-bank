@@ -4,12 +4,15 @@ import { ApiFailure, whatWentWrong } from "@/platform/api-client";
 /** A Question as the form holds it while it is being written. */
 export type QuestionDraft = { text: string; answerNotes: string; tags: QuestionTag[] };
 
-type DraftField = keyof QuestionDraft;
+/** Provenance and Source are fields only the add form has, so the draft does not hold them. */
+type DraftField = keyof QuestionDraft | "provenance" | "source";
 
 export const draftFields = [
   "text",
   "answerNotes",
   "tags",
+  "provenance",
+  "source",
 ] as const satisfies readonly DraftField[];
 
 export type DraftProblems = Partial<Record<DraftField, string>>;
@@ -20,6 +23,8 @@ const problemWording: Record<DraftField, string> = {
   text: "Write the Question.",
   answerNotes: "Write what a good answer looks like.",
   tags: "Choose the Tags from the lists.",
+  provenance: "Choose where the Question came from.",
+  source: "Name the work it was adapted from.",
 };
 
 function isDraftField(value: unknown): value is DraftField {

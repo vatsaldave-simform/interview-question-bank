@@ -4,10 +4,13 @@ import {
   questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
+  ratingResponseSchema,
   type AddQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
   type PublishQuestionRequest,
+  type QuestionResponse,
+  type RateQuestionRequest,
   type RejectQuestionRequest,
   type ReturnQuestionRequest,
 } from "@iqb/shared";
@@ -133,5 +136,26 @@ export function useMoveQuestion(id: string) {
         predicate: ({ queryKey }) =>
           answer === undefined || queryKey[1] !== "one" || queryKey[2] !== id,
       }),
+  });
+}
+
+export function useRateQuestion(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: RateQuestionRequest) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/rating`, ratingResponseSchema, {
+        method: "PUT",
+        body: request,
+      }),
+    onSuccess: async ({ rating }) => {
+      // Only the summary changes, and a Rating writes no Change Event, so the history
+      // stays as it is (ADR-0043).
+      queryClient.setQueryData<QuestionResponse>(["questions", "one", id], (held) =>
+        held === undefined ? held : { question: { ...held.question, rating } },
+      );
+      await queryClient.invalidateQueries({ queryKey: ["questions", "list"] });
+    },
+    // A refusal can mean the Question was returned or hidden since the page loaded.
+    onError: () => queryClient.invalidateQueries({ queryKey: ["questions", "one", id] }),
   });
 }

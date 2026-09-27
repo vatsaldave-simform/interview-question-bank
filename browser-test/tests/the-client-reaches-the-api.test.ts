@@ -42,6 +42,7 @@ test("the client reaches the API", async ({ page }) => {
     .getByLabel("Answer Notes", { exact: true })
     .fill("That the client and the API connect.");
   await page.getByRole("checkbox", { name: "typescript", exact: true }).check();
+  await page.getByRole("radio", { name: "Original", exact: true }).check();
   await page.getByRole("button", { name: "Add the Question" }).click();
 
   await expect(page).toHaveURL(/\/questions\/[0-9a-f-]{36}$/);

@@ -1,17 +1,20 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import {
   PublishButton,
   ReasonAct,
   ResubmitButton,
   type ActRefused,
 } from "@/features/questions/publication-acts";
+import { provenanceWording } from "@/features/questions/provenance-wording";
 import { publicationStateWording } from "@/features/questions/publication-state-wording";
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
+import { RatingControl } from "@/features/questions/rating-control";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Badge } from "@/ui/shadcn/badge";
@@ -68,7 +71,40 @@ function QuestionInFull({ question }: { question: Question }) {
         <p className="whitespace-pre-line">{question.answerNotes}</p>
       </section>
       <QuestionTags tags={question.tags} />
+      {ratingIsShown(question) && (
+        <section className="flex flex-col gap-2" aria-labelledby="rating">
+          <h2 id="rating" className="font-medium">
+            Rating
+          </h2>
+          <AverageRating rating={question.rating} />
+          {/* Offered by the Publication State alone, like the acts above (ADR-0002). */}
+          {question.publicationState === "published" && <RatingControl question={question} />}
+        </section>
+      )}
+      <WhereItCameFrom question={question} />
     </article>
+  );
+}
+
+function WhereItCameFrom({ question }: { question: Question }) {
+  const { name, meaning } = provenanceWording[question.provenance];
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="where-it-came-from">
+      <h2 id="where-it-came-from" className="font-medium">
+        Where it came from
+      </h2>
+      <p>
+        {name}. {meaning}
+      </p>
+      {question.provenance === "adapted" &&
+        (question.source === null ? (
+          <p className="text-muted-foreground">Its Author named no Source.</p>
+        ) : (
+          <p>
+            Source: <cite>{question.source}</cite>
+          </p>
+        ))}
+    </section>
   );
 }
 

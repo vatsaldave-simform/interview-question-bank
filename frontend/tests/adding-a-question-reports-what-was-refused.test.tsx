@@ -36,6 +36,7 @@ async function writeAQuestion(): Promise<void> {
   const question = await screen.findByLabelText("Question");
   await userEvent.type(question, "How would you find a slow query?");
   await userEvent.type(screen.getByLabelText("Answer Notes"), "Look for EXPLAIN ANALYZE.");
+  await userEvent.click(screen.getByRole("radio", { name: "Original" }));
 }
 
 const addIt = () => userEvent.click(screen.getByRole("button", { name: "Add the Question" }));

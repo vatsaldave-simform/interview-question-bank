@@ -1,7 +1,10 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
+import { provenanceWording } from "@/features/questions/provenance-wording";
 import { QuestionTags } from "@/features/questions/question-tags";
+import { Badge } from "@/ui/shadcn/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
 type QuestionCardProps = {
@@ -29,6 +32,13 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
             {question.answerNotes}
           </p>
           <QuestionTags tags={question.tags} />
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Badge variant="outline">
+              <span className="sr-only">Where it came from: </span>
+              {provenanceWording[question.provenance].name}
+            </Badge>
+            {ratingIsShown(question) && <AverageRating rating={question.rating} />}
+          </div>
           {children}
         </CardContent>
       </Card>

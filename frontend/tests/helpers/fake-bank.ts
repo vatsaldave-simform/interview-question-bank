@@ -47,6 +47,19 @@ export function fakeBank(
   });
 }
 
+/** Serves each Question on its own page with an empty history, and all of them in the list. */
+export function aBankHolding(questions: Question[]): FakeApi {
+  return fakeBank(
+    (asked) => aPageOf(questions, asked),
+    (_request, asked) => {
+      const one = questions.find(({ id }) => asked.pathname === `/api/questions/${id}`);
+      if (one !== undefined) return answersWith({ question: one });
+      if (asked.pathname.endsWith("/history")) return answersWith({ events: [] });
+      return undefined;
+    },
+  );
+}
+
 /** The list requests the client sent, in order, as URLs a test can read. */
 export function listRequests(api: FakeApi): URL[] {
   return api.sent

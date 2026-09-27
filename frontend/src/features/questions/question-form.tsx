@@ -1,5 +1,5 @@
 import type { CategoryName } from "@iqb/shared";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CategoryTags } from "@/features/questions/category-tags";
 import {
   draftFields,
@@ -28,12 +28,14 @@ type QuestionFormProps = {
   sending: boolean;
   submit: { label: string; sendingLabel: string };
   onSubmit: (draft: QuestionDraft) => void;
+  /** Fields only one of the two forms has, shown after the ones they share. */
+  children?: ReactNode;
 };
 
 /** Checking and sending the draft belong to the screen, because adding and editing check it
  * against different schemas. */
 export function QuestionForm(props: QuestionFormProps) {
-  const { initial, problems, refusal, sending, submit, onSubmit } = props;
+  const { initial, problems, refusal, sending, submit, onSubmit, children } = props;
   const [draft, setDraft] = useState(initial);
   const form = useRef<HTMLFormElement>(null);
 
@@ -93,6 +95,7 @@ export function QuestionForm(props: QuestionFormProps) {
           problem={problems.tags}
           onChange={(tags) => setDraft({ ...draft, tags })}
         />
+        {children}
         <Button type="submit" disabled={sending} className="self-start">
           {sending ? submit.sendingLabel : submit.label}
         </Button>
