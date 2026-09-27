@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { CategoryName, Provenance, PublicationState } from "@iqb/shared";
+import type { CategoryName, Provenance } from "@iqb/shared";
 import type { Database } from "../../platform/database.ts";
 import { seedClient } from "../clients/clients.seed.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
@@ -109,6 +109,9 @@ type TagRow = { id: string; value: string };
  * A bank big enough to time a query against, kept off `pnpm db:seed` so that seed stays
  * short enough to read. It builds on that seed rather than beside it: the Categories,
  * the Author and the Client it hangs Questions from are that seed's rows.
+ *
+ * Every Question is Published, because that is what a Reader's query filters on. The
+ * small seed holds the Pending and Rejected ones.
  */
 export async function seedBulkBank(
   database: Database,
@@ -141,7 +144,7 @@ export async function seedBulkBank(
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
       clientId: isRestricted ? client.id : null,
-      publicationState: publicationStateFor(randomFor(seed, `${key}:state`)),
+      publicationState: "published" as const,
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),
     });
@@ -251,14 +254,6 @@ function answerNotesText(seed: string, key: string, words: readonly string[]): s
  * search is aimed at. */
 function pickFrame<Frame>(frames: readonly Frame[], random: number): Frame {
   return frames[Math.floor(random * frames.length)]!;
-}
-
-/** Mostly Published, so a filter has a bank to answer from, and enough of the other two
- * that the second check has something to keep out. */
-function publicationStateFor(random: number): PublicationState {
-  if (random < 0.8) return "published";
-  if (random < 0.94) return "pending";
-  return "rejected";
 }
 
 const bankStartsAt = Date.UTC(2024, 0, 1);
