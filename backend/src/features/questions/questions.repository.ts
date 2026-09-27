@@ -1,6 +1,7 @@
 import {
   categoryNameSchema,
   mostNearDuplicatesNamed,
+  type Client,
   nearDuplicateThreshold,
   type CategoryName,
   type NearDuplicate,
@@ -23,13 +24,14 @@ import {
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database, Transaction } from "../../platform/database.ts";
 
-/** A Question as the rest of the code sees one: its Tags carry names, not ids. */
+/** A Question as the rest of the code sees one: its Client and its Tags carry names, not
+ * ids alone. */
 export type QuestionFromDb = {
   id: string;
   text: string;
   answerNotes: string;
   authorId: string;
-  clientId: string | null;
+  client: Client | null;
   publicationState: PublicationState;
   reason: string | null;
   provenance: Provenance;
@@ -67,7 +69,7 @@ const questionFieldsToRead = {
   text: true,
   answerNotes: true,
   authorId: true,
-  clientId: true,
+  client: { select: { id: true, name: true } },
   publicationState: true,
   reason: true,
   provenance: true,
@@ -269,7 +271,9 @@ export function searchStatement(
        ORDER BY rank DESC, q.id DESC
        LIMIT ${limit} OFFSET ${offset}
     )
-    SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
+    SELECT q.id, q.text, q."answerNotes", q."authorId",
+           (SELECT json_build_object('id', cl.id, 'name', cl.name)
+              FROM clients cl WHERE cl.id = q."clientId") AS client,
            q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
       FROM matched
@@ -441,12 +445,12 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
-    if (added.clientId !== null) {
+    if (added.client !== null) {
       await insertChangeEvent(transaction, {
         type: "question_classified",
         questionId: added.id,
         viewerId: viewer.id,
-        payload: { clientId: { before: null, after: added.clientId } },
+        payload: { clientId: { before: null, after: added.client.id } },
       });
     }
 

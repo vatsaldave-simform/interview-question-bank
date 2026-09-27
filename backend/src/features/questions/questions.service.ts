@@ -395,8 +395,8 @@ export async function classifyQuestion(
   if (!mayClassify(viewer, question)) throw new ForbiddenError();
   await checkGrantedClient(database, viewer, clientId);
 
-  if (question.clientId === clientId) return question;
-  if (question.clientId !== null && !mayMoveToAnotherClient(viewer, question)) {
+  if (question.client?.id === clientId) return question;
+  if (question.client !== null && !mayMoveToAnotherClient(viewer, question)) {
     throw new ForbiddenError(
       "A Published Question cannot be moved to another Client. A Reviewer can return it to " +
         "you, and you can move it then.",
@@ -404,9 +404,9 @@ export async function classifyQuestion(
   }
 
   const change: RestrictionChange =
-    question.clientId === null
+    question.client === null
       ? { act: "classify", to: clientId }
-      : { act: "move", from: question.clientId, to: clientId };
+      : { act: "move", from: question.client.id, to: clientId };
   const changed = await changeVisibleRestriction(database, viewer, id, change);
   return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
 }
@@ -421,11 +421,11 @@ export async function declassifyQuestion(
   if (!mayDeclassify(viewer)) {
     throw new ForbiddenError("Only a Reviewer may remove a Client restriction.");
   }
-  if (question.clientId === null) {
+  if (question.client === null) {
     throw new ConflictError("This Question has no Client restriction to remove.");
   }
 
-  const change: RestrictionChange = { act: "declassify", from: question.clientId };
+  const change: RestrictionChange = { act: "declassify", from: question.client.id };
   const changed = await changeVisibleRestriction(database, viewer, id, change);
   return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
 }

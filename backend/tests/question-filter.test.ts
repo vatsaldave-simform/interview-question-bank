@@ -89,8 +89,8 @@ describe("filtering the bank by Category", () => {
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
     const seenByReader = await findVisibleQuestions(database, reader, query);
 
-    expect(seenByReviewer.every((question) => question.clientId !== restrictedTo)).toBe(true);
-    expect(seenByReader.some((question) => question.clientId === restrictedTo)).toBe(true);
+    expect(seenByReviewer.every((question) => question.client?.id !== restrictedTo)).toBe(true);
+    expect(seenByReader.some((question) => question.client?.id === restrictedTo)).toBe(true);
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {
@@ -105,12 +105,12 @@ describe("filtering the bank by Category", () => {
       ]),
     );
 
-    // The page, then its rows' Tags and their Categories, each looked up by id. Only
+    // The page, then its rows' Clients, Tags and Categories, each looked up by id. Only
     // the first carries a condition: a version that collected ids and paged them in a
     // second pass would show a second one, and that is the version this rules out.
-    expect(sqlLog.statements).toHaveLength(4);
-    const [page, ...loadingTags] = sqlLog.statements;
-    expect(loadingTags.every((sql) => !sql.includes("EXISTS"))).toBe(true);
+    expect(sqlLog.statements).toHaveLength(5);
+    const [page, ...loadedById] = sqlLog.statements;
+    expect(loadedById.every((sql) => !sql.includes("EXISTS"))).toBe(true);
     expect(page).toContain("LIMIT");
     expect(page).toContain("permission_grants");
     expect(page!.match(/EXISTS\(SELECT[^)]*"question_tags"/g)).toHaveLength(2);
