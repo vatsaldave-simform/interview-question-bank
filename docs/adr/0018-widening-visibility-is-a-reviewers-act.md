@@ -20,6 +20,10 @@ which makes it Rejected (ADR-0013), and the Author corrects it there. Returning 
 exposure immediately, which is a better first response to a misclassified Question than moving it
 and hoping.
 
+So the refusal has one exception, and it is that correction. While a Question is Pending or
+Rejected, its own Author may move it to another Client they hold a Grant for. Nobody else may, a
+Reviewer included, and nobody may move a Published one.
+
 ## Consequences
 
 An Author may narrow a Published Question's visibility but never widen it. Attaching a restriction

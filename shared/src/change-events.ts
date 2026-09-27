@@ -24,6 +24,8 @@ export const changeEventTypes = [
   "question_rejected",
   "question_resubmitted",
   "question_returned",
+  "question_classified",
+  "question_declassified",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -162,6 +164,18 @@ export type QuestionResubmitted = z.infer<typeof questionResubmittedSchema>;
 export const questionReturnedSchema = z.object({ reason: z.string() }).strict();
 export type QuestionReturned = z.infer<typeof questionReturnedSchema>;
 
+/** A Client restriction attached, or moved while the Question was out of the bank, in which
+ * case `before` names the Client it left (ADR-0018). */
+export const questionClassifiedSchema = z
+  .object({ clientId: changedFrom(z.uuid().nullable()) })
+  .strict();
+export type QuestionClassified = z.infer<typeof questionClassifiedSchema>;
+
+/** Its own type rather than an edit, because showing a Question to the whole bank is the
+ * riskiest write there is and a history should make it easy to find (ADR-0018). */
+export const questionDeclassifiedSchema = z.object({ clientId: z.uuid() }).strict();
+export type QuestionDeclassified = z.infer<typeof questionDeclassifiedSchema>;
+
 /** What every Change Event says, whatever happened: which Question, which Viewer, when. */
 const changeEventSchema = z.object({
   id: z.uuid(),
@@ -239,6 +253,14 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
   changeEventSchema.extend({
     type: z.literal("question_returned"),
     payload: questionReturnedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_classified"),
+    payload: questionClassifiedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_declassified"),
+    payload: questionDeclassifiedSchema,
   }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;

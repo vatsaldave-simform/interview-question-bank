@@ -7,6 +7,8 @@ import {
   permissionGrantIssuedSchema,
   permissionGrantRevokedSchema,
   questionAddedSchema,
+  questionClassifiedSchema,
+  questionDeclassifiedSchema,
   questionEditedSchema,
   questionPublishedSchema,
   questionRejectedSchema,
@@ -27,6 +29,8 @@ import {
   type PermissionGrantIssued,
   type PermissionGrantRevoked,
   type QuestionAdded,
+  type QuestionClassified,
+  type QuestionDeclassified,
   type QuestionEdited,
   type QuestionPublished,
   type QuestionRejected,
@@ -161,6 +165,18 @@ export type NewChangeEvent =
       questionId: string;
       viewerId: string;
       payload: QuestionReturned;
+    }
+  | {
+      type: "question_classified";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionClassified;
+    }
+  | {
+      type: "question_declassified";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionDeclassified;
     };
 
 /**
@@ -229,6 +245,8 @@ export type ChangeEventFromDb = {
   | { type: "question_rejected"; payload: QuestionRejected }
   | { type: "question_resubmitted"; payload: QuestionResubmitted }
   | { type: "question_returned"; payload: QuestionReturned }
+  | { type: "question_classified"; payload: QuestionClassified }
+  | { type: "question_declassified"; payload: QuestionDeclassified }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -324,5 +342,17 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
       };
     case "question_returned":
       return { ...happened, type: row.type, payload: questionReturnedSchema.parse(row.payload) };
+    case "question_classified":
+      return {
+        ...happened,
+        type: row.type,
+        payload: questionClassifiedSchema.parse(row.payload),
+      };
+    case "question_declassified":
+      return {
+        ...happened,
+        type: row.type,
+        payload: questionDeclassifiedSchema.parse(row.payload),
+      };
   }
 }
