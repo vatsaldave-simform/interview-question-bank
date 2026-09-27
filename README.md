@@ -286,6 +286,12 @@ is theirs to see, so two near-identical submissions do not both reach the bank. 
 Questions are left out, being in neither the bank nor the queue, and so is the Question
 being Published, which would match itself.
 
+An edit that changes a Published Question's text is checked the way a submission is,
+against Published Questions only, leaving out the Question being edited. That holds for a
+Reviewer editing too. Nothing else an edit changes is checked, and neither is an edit to a
+Pending Question, since Publishing it will check it. The override is the same
+`"confirmedNotANearDuplicate": true`, sent beside the fields being changed.
+
 **The threshold is 0.45**, on the zero-to-one scale `pg_trgm` measures similarity on.
 Trigram similarity ignores word order and punctuation, so it is measuring the words two
 Questions share. Measured against this bank and rewordings of it:
@@ -308,8 +314,8 @@ above are what to re-run.
 
 **Both outcomes leave a trace.** A refused submission is recorded as a Change Event naming
 no Question — nothing was stored — and carrying the whole attempt, which is why the history
-is an event log rather than versions of a row (ADR-0006). A refused publication names the
-Question, which stays Pending. An override is recorded against the Question in the same
+is an event log rather than versions of a row (ADR-0006). A refused publication or edit
+names the Question, which stays as it was. An override is recorded against the Question in the same
 transaction as the act it let through, so the two cannot exist apart.
 
 Both of those events name Near-Duplicates, which are Questions in their own right, so only
@@ -317,8 +323,8 @@ the Viewer an event names may read it. Somebody else reading the same Question's
 does not see the event at all — its presence alone would say a Question they cannot reach
 exists (ADR-0028).
 
-Detection runs at submission and at publication. It does not yet run on a text edit to a
-Published Question, which is the third moment it belongs at (ADR-0014).
+Detection runs at those three moments: submission, publication, and a text edit to a
+Published Question (ADR-0014).
 
 ## Running the tests
 

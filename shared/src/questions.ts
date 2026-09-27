@@ -100,11 +100,16 @@ export const editQuestionRequestSchema = z
     text: z.string().trim().min(1).optional(),
     answerNotes: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).optional(),
+    /** The editor's word that a match found on a Published Question's new text is wrong
+     * (ADR-0014). Optional rather than defaulted, so an edit's body stays only its changes,
+     * and it does not count as a change below. */
+    confirmedNotANearDuplicate: z.boolean().optional(),
   })
   .strict()
-  .refine((request) => Object.values(request).some((named) => named !== undefined), {
-    message: "An edit names at least one of text, answerNotes or tags.",
-  });
+  .refine(
+    ({ text, answerNotes, tags }) => [text, answerNotes, tags].some((named) => named !== undefined),
+    { message: "An edit names at least one of text, answerNotes or tags." },
+  );
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
 /** A body is optional, and one left out Publishes with no confirmation. */

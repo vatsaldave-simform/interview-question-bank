@@ -344,6 +344,19 @@ export function findNearDuplicates(
   return findNearDuplicatesAmong(database, viewer, text, { states: ["published"] });
 }
 
+/** What submission reaches, less the Question being edited, which would match itself
+ * (ADR-0014). */
+export function findNearDuplicatesForEdit(
+  database: Database,
+  viewer: Viewer,
+  question: { id: string; text: string },
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, question.text, {
+    states: ["published"],
+    excluding: question.id,
+  });
+}
+
 /** Pending ones too, because the queue is the publishing Reviewer's to see, and never the
  * Question being Published, which would match itself (ADR-0014). */
 export function findNearDuplicatesForPublication(
@@ -478,6 +491,7 @@ export async function updateVisibleQuestion(
   viewer: Viewer,
   id: string,
   edit: QuestionEdit,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb | null> {
   return database.$transaction(async (transaction) => {
     const visible: Prisma.QuestionWhereInput = { AND: [{ id }, visibleQuestions(viewer)] };
@@ -524,6 +538,14 @@ export async function updateVisibleQuestion(
         viewerId: viewer.id,
         payload: changed,
       });
+      if (overridden.length > 0) {
+        await insertChangeEvent(transaction, {
+          type: "near_duplicate_overridden",
+          questionId: id,
+          viewerId: viewer.id,
+          payload: { nearDuplicates: [...overridden] },
+        });
+      }
     }
     return after;
   });

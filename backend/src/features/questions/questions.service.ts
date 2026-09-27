@@ -14,6 +14,7 @@ import {
 } from "@iqb/shared";
 import {
   findNearDuplicates,
+  findNearDuplicatesForEdit,
   findNearDuplicatesForPublication,
   findTagsNamed,
   findVisibleQuestionById,
@@ -127,6 +128,9 @@ const refusedAsNearDuplicateFor = {
   publish:
     "This Question closely resembles one already in the bank or waiting to be reviewed. " +
     "Publish it again confirming it is genuinely different if that is wrong.",
+  edit:
+    "This text closely resembles a Question already in the bank. Save it again " +
+    "confirming it is genuinely different if that is wrong.",
 } as const;
 
 type RefusedAsNearDuplicate = {
@@ -191,6 +195,39 @@ export async function addQuestion(
 }
 
 /**
+ * Only new text on a Published Question is checked. Answer Notes and Tags are never
+ * compared (ADR-0004), and a Pending Question's text is checked when it is Published
+ * (ADR-0014).
+ */
+async function checkEditedText(
+  database: Database,
+  viewer: Viewer,
+  question: QuestionFromDb,
+  request: EditQuestionRequest,
+): Promise<NearDuplicate[]> {
+  const { text } = request;
+  if (question.publicationState !== "published" || text === undefined || text === question.text) {
+    return [];
+  }
+
+  return overrideOrRefuse(database, viewer, {
+    act: "edit",
+    questionId: question.id,
+    refused: {
+      attempted: {
+        text,
+        answerNotes: request.answerNotes ?? question.answerNotes,
+        provenance: question.provenance,
+        source: question.source,
+        tags: request.tags ?? question.tags,
+      },
+      nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
+    },
+    confirmed: request.confirmedNotANearDuplicate === true,
+  });
+}
+
+/**
  * The order here is the rule. The Question is looked up through the same function every
  * read goes through, so an id that is not Visible is answered as one that names nothing;
  * only then does the role rule run, and only then is its 403 honest (ADR-0002).
@@ -206,12 +243,19 @@ export async function editQuestion(
   if (!mayEdit(viewer, question)) throw new ForbiddenError();
 
   const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
+  const overridden = await checkEditedText(database, viewer, question, request);
 
-  const edited = await updateVisibleQuestion(database, viewer, id, {
-    ...(request.text === undefined ? {} : { text: request.text }),
-    ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
-    ...(tagIds === undefined ? {} : { tagIds }),
-  });
+  const edited = await updateVisibleQuestion(
+    database,
+    viewer,
+    id,
+    {
+      ...(request.text === undefined ? {} : { text: request.text }),
+      ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
+      ...(tagIds === undefined ? {} : { tagIds }),
+    },
+    overridden,
+  );
   // A Permission Grant can be revoked between the look-up and the write, and a write
   // that no longer reaches the Question answers as a missing one rather than raising.
   if (edited === null) throw new NotFoundError();

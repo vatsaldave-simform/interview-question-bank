@@ -46,6 +46,6 @@ thinking.
 
 A refused submission names no Question, so no history reaches it. It carries the same
 content, so any later surface that reads the log directly — an administration console — has
-to apply this rule rather than inherit it. A refused publication does name the Question it
-left Pending, so it is in that Question's history, and this rule keeps it to the Reviewer
+to apply this rule rather than inherit it. A refused publication or edit does name the Question it
+left as it was, so it is in that Question's history, and this rule keeps it to the Viewer
 it names (ADR-0014).
