@@ -2,9 +2,9 @@ import type { QuestionListResponse } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
-import { BrowsePages } from "@/features/questions/browse-pages";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
@@ -73,7 +73,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
           <QuestionList page={list.data} />
         )}
         {request !== null && (
-          <BrowsePages
+          <QuestionPages
             offset={request.offset}
             shown={list.data?.questions.length ?? null}
             onMove={(next) =>

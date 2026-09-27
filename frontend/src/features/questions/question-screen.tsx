@@ -1,20 +1,13 @@
-import type { PublicationState, Question } from "@iqb/shared";
+import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { publicationStateWording } from "@/features/questions/publication-state-wording";
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
+import { RejectionReason } from "@/features/questions/rejection-reason";
 import { Badge } from "@/ui/shadcn/badge";
 import { Button } from "@/ui/shadcn/button";
-
-const publicationStateWording: Record<PublicationState, { name: string; meaning: string }> = {
-  pending: {
-    name: "Pending",
-    meaning: "Awaiting a Reviewer. It is not in the bank until it is Published.",
-  },
-  published: { name: "Published", meaning: "In the bank." },
-  rejected: { name: "Rejected", meaning: "A Reviewer refused it." },
-};
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
@@ -58,6 +51,7 @@ function QuestionInFull({ question }: { question: Question }) {
         <Badge variant="outline">{state.name}</Badge>
         <span className="text-muted-foreground">{state.meaning}</span>
       </p>
+      {question.reason !== null && <RejectionReason reason={question.reason} />}
       <section className="flex flex-col gap-2" aria-labelledby="answer-notes">
         <h2 id="answer-notes" className="font-medium">
           Answer Notes

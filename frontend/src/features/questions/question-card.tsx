@@ -1,9 +1,15 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
-export function QuestionCard({ question }: { question: Question }) {
+type QuestionCardProps = {
+  question: Question;
+  children?: ReactNode;
+};
+
+export function QuestionCard({ question, children }: QuestionCardProps) {
   return (
     <article>
       <Card>
@@ -23,6 +29,7 @@ export function QuestionCard({ question }: { question: Question }) {
             {question.answerNotes}
           </p>
           <QuestionTags tags={question.tags} />
+          {children}
         </CardContent>
       </Card>
     </article>

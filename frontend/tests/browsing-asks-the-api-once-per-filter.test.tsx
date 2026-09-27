@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ListQuestionsRequest } from "@iqb/shared";
-import { browsePageSize } from "@/features/questions/browse.schema";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { useCategories, useQuestionList } from "@/features/questions/questions.queries";
 import { ApiFailure } from "@/platform/api-client";
 import { createQueryClient } from "@/platform/query-client";
@@ -23,11 +23,11 @@ function withAQueryClient() {
 
 /** A request as the checked address hands one over, with the page filled in. */
 function aRequest(changes: Partial<ListQuestionsRequest> = {}): ListQuestionsRequest {
-  return { keywords: undefined, limit: browsePageSize, offset: 0, ...changes };
+  return { keywords: undefined, limit: questionPageSize, offset: 0, ...changes };
 }
 
 function aPage(offset = 0) {
-  return { questions: [aQuestion()], limit: browsePageSize, offset };
+  return { questions: [aQuestion()], limit: questionPageSize, offset };
 }
 
 describe("the question list", () => {
@@ -49,7 +49,7 @@ describe("the question list", () => {
     expect(sent.searchParams.getAll("technology")).toEqual(["react", "node"]);
     expect(sent.searchParams.getAll("seniority")).toEqual(["senior"]);
     expect(sent.searchParams.get("keywords")).toBe("cache miss");
-    expect(sent.searchParams.get("limit")).toBe(String(browsePageSize));
+    expect(sent.searchParams.get("limit")).toBe(String(questionPageSize));
     expect(sent.searchParams.get("offset")).toBe("20");
     expect(result.current.data).toEqual(aPage(20));
   });
@@ -62,7 +62,7 @@ describe("the question list", () => {
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(api.asked[0]!.path).toBe(`/api/questions?limit=${browsePageSize}&offset=0`);
+    expect(api.asked[0]!.path).toBe(`/api/questions?limit=${questionPageSize}&offset=0`);
   });
 
   it("asks once for two filters that send the same request", async () => {

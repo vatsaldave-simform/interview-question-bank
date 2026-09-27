@@ -5,8 +5,7 @@ import {
   type ListQuestionsRequest,
 } from "@iqb/shared";
 import { z } from "zod";
-
-export const browsePageSize = 20;
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 
 /** What any one name in the address can hold: one value, or the same name repeated. */
 const addressValueSchema = z.union([z.string(), z.array(z.string())]).optional();
@@ -34,7 +33,7 @@ export type ListRequestFromAddress = { request: ListQuestionsRequest } | { probl
 /** Checks the address with the API's own schema, so a misspelled Category is refused
  * here rather than sent as a request for the whole bank (ADR-0024). */
 export function listRequestFor(search: BrowseSearch): ListRequestFromAddress {
-  const checked = listQuestionsRequestSchema.safeParse({ ...search, limit: browsePageSize });
+  const checked = listQuestionsRequestSchema.safeParse({ ...search, limit: questionPageSize });
   if (checked.success) return { request: checked.data };
 
   const [issue] = checked.error.issues;
