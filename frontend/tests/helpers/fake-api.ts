@@ -1,4 +1,4 @@
-import type { CategoryListResponse, Question } from "@iqb/shared";
+import type { CategoryListResponse, Question, Viewer } from "@iqb/shared";
 import { vi, type Mock } from "vitest";
 
 /** Only ever used to turn the client's relative path into something a `Request` will
@@ -66,6 +66,19 @@ export const aSignedInAuthor = {
     isDeactivated: false,
   },
 };
+
+/** A Viewer in the shape the API sends one, changed where a test says so. */
+export function aViewer(changes: Partial<Viewer> = {}): Viewer {
+  return { ...aSignedInAuthor.viewer, ...changes };
+}
+
+/** The signed-in Viewer for a test about administration. */
+export const anAdministrator = aViewer({
+  id: "7c3b4a1e-0000-4000-8000-000000000003",
+  email: "reviewer@iqb.test",
+  role: "reviewer",
+  isAdministrator: true,
+});
 
 /** A Question in the shape the API sends one, changed where a test says so. */
 export function aQuestion(changes: Partial<Question> = {}): Question {

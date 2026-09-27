@@ -1,14 +1,32 @@
-import { createRouter } from "@tanstack/react-router";
+import { createRoute, createRouter } from "@tanstack/react-router";
 import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
 import { questionRoutes } from "@/features/questions/questions.routes";
+import { ViewerList } from "@/features/viewers/viewer-list";
 import { rootRoute } from "@/platform/root-route";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { signedInRoute } from "@/platform/signed-in-route";
 
+/** Here and not in a feature, because the console is a view of several (ADR-0030), and with
+ * no check of its own, because the API refuses each list on it and the list says so. */
+const administrationRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/administration",
+  component: AdministrationConsole,
+});
+
+function AdministrationConsole() {
+  return (
+    <div className="flex flex-col gap-8">
+      <h1 className="text-xl font-medium">Administration</h1>
+      <ViewerList />
+    </div>
+  );
+}
+
 const routeTree = rootRoute.addChildren([
   ...authRoutes,
-  signedInRoute.addChildren([...questionRoutes]),
+  signedInRoute.addChildren([...questionRoutes, administrationRoute]),
 ]);
 
 /** One per page load, and one per test: the router holds where you are, so a shared

@@ -1,0 +1,56 @@
+import { ListNotLoaded } from "@/features/viewers/list-not-loaded";
+import { useViewerList } from "@/features/viewers/viewers.queries";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/ui/shadcn/table";
+
+export function ViewerList() {
+  const viewers = useViewerList();
+
+  return (
+    <section className="flex flex-col gap-3" aria-labelledby="viewers">
+      <h2 id="viewers" className="font-medium">
+        Viewers
+      </h2>
+      {viewers.isPending ? (
+        <p role="status" className="text-muted-foreground text-sm">
+          Loading the Viewers…
+        </p>
+      ) : viewers.isError ? (
+        <ListNotLoaded
+          what="Viewers"
+          reason={viewers.error}
+          onRetry={() => void viewers.refetch()}
+        />
+      ) : (
+        <Table aria-labelledby="viewers">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Administrator</TableHead>
+              <TableHead>Account</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {viewers.data.map((viewer) => (
+              <TableRow key={viewer.id}>
+                <TableCell>{viewer.email}</TableCell>
+                <TableCell className="capitalize">{viewer.role}</TableCell>
+                <TableCell>{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
+                <TableCell className={viewer.isDeactivated ? "text-muted-foreground" : ""}>
+                  {viewer.isDeactivated ? "Deactivated" : "Active"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </section>
+  );
+}
