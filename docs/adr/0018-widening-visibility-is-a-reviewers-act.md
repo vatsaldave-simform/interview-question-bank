@@ -24,6 +24,11 @@ So the refusal has one exception, and it is that correction. While a Question is
 Rejected, its own Author may move it to another Client they hold a Grant for. Nobody else may, a
 Reviewer included, and nobody may move a Published one.
 
+Attaching a restriction is its own Author's act too, and a Reviewer's only on their own Question.
+A Reviewer restricting someone else's Question to a Client its Author holds no Grant for would hide
+it from them just as a move would. And removing a restriction, then attaching another, would be a
+move in two steps.
+
 ## Consequences
 
 An Author may narrow a Published Question's visibility but never widen it. Attaching a restriction

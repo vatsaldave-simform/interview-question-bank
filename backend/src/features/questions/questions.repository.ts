@@ -20,6 +20,7 @@ import {
   type ChangeEventFromDb,
   type NewChangeEvent,
 } from "../change-events/change-events.repository.ts";
+import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database, Transaction } from "../../platform/database.ts";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
@@ -623,6 +624,84 @@ export async function moveVisibleQuestion(
       select: questionFieldsToRead,
     });
     return toQuestionFromDb(moved);
+  });
+}
+
+/** Named by the act, as `PublicationMove` is, because each act expects a different Client to
+ * be there and writes its own Change Event. */
+export type RestrictionChange =
+  | { act: "classify"; to: string }
+  | { act: "move"; from: string; to: string }
+  | { act: "declassify"; from: string };
+
+function restrictionEventFor(
+  change: RestrictionChange,
+  questionId: string,
+  viewer: Viewer,
+): NewChangeEvent {
+  const happened = { questionId, viewerId: viewer.id };
+  switch (change.act) {
+    case "classify":
+      return {
+        ...happened,
+        type: "question_classified",
+        payload: { clientId: { before: null, after: change.to } },
+      };
+    case "move":
+      return {
+        ...happened,
+        type: "question_classified",
+        payload: { clientId: { before: change.from, after: change.to } },
+      };
+    case "declassify":
+      return { ...happened, type: "question_declassified", payload: { clientId: change.from } };
+  }
+}
+
+/** What the row has to hold for the act to land, so of two acts at once only one does. */
+function expectedBefore(change: RestrictionChange): Prisma.QuestionWhereInput {
+  switch (change.act) {
+    case "classify":
+      return { clientId: null };
+    // A Question Published since the caller looked is no longer the Author's to move.
+    case "move":
+      return { clientId: change.from, publicationState: { not: "published" } };
+    case "declassify":
+      return { clientId: change.from };
+  }
+}
+
+/** Null when nothing changed, for the same reasons `moveVisibleQuestion` gives. */
+export async function changeVisibleRestriction(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  change: RestrictionChange,
+): Promise<QuestionFromDb | null> {
+  return database.$transaction(async (transaction) => {
+    // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
+    // restricted to a Client its Author no longer holds.
+    if (
+      change.act !== "declassify" &&
+      (await findClientGrantedTo(transaction, viewer.id, change.to)) === null
+    ) {
+      return null;
+    }
+
+    const { count } = await transaction.question.updateMany({
+      where: { AND: [{ id }, visibleQuestions(viewer), expectedBefore(change)] },
+      data: { clientId: change.act === "declassify" ? null : change.to },
+    });
+    if (count === 0) return null;
+
+    await insertChangeEvent(transaction, restrictionEventFor(change, id, viewer));
+
+    // By id, because a Permission Grant revoked since the write would hide the committed change.
+    const changed = await transaction.question.findUniqueOrThrow({
+      where: { id },
+      select: questionFieldsToRead,
+    });
+    return toQuestionFromDb(changed);
   });
 }
 

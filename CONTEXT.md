@@ -60,7 +60,8 @@ Pending or Rejected, but never remove a restriction.
 **Reviewer**:
 A Viewer who may edit any Question that is Visible to them, and who alone Publishes a Question,
 Rejects another Viewer's, returns a Published one to its Author, or removes its Client
-restriction. A returned Question is Rejected, with the reason it was returned.
+restriction. Like an Author, they restrict only their own. A returned Question is Rejected, with
+the reason it was returned.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
