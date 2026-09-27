@@ -32,7 +32,6 @@ export function useQuestionList(request: ListQuestionsRequest | null) {
   });
 }
 
-/** The Pending Questions Visible to this Reviewer, the one that has waited longest first. */
 export function useReviewQueue(offset: number) {
   const path = `/api/questions/pending${stringifySearch({ limit: questionPageSize, offset })}`;
   return useQuery({
