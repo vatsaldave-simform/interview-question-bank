@@ -1,6 +1,7 @@
 import {
   changeRoleRequestSchema,
   createViewerRequestSchema,
+  type ViewerListResponse,
   type ViewerResponse,
 } from "@iqb/shared";
 import { Router, type Request } from "express";
@@ -15,6 +16,7 @@ import {
   reactivateViewer,
   withdrawAdministrator,
 } from "./administration.service.ts";
+import { findEveryViewer } from "../viewers/viewers.repository.ts";
 import type { PasswordMailDependencies } from "../auth/password-link.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
@@ -39,6 +41,13 @@ export function administrationRoutes(
 ): Router {
   const router = Router();
   router.use(requireAdministrator());
+
+  router.get("/", async (_req, res) => {
+    const viewers = await findEveryViewer(database);
+
+    const body: ViewerListResponse = { viewers };
+    res.json(body);
+  });
 
   router.post("/", async (req, res) => {
     const request = createViewerRequestSchema.parse(req.body);
