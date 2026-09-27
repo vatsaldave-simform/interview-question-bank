@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { provenanceWording } from "@/features/questions/provenance-wording";
 import { QuestionTags } from "@/features/questions/question-tags";
+import { RatingSummary, ratingIsShown } from "@/features/questions/rating-summary";
 import { Badge } from "@/ui/shadcn/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
@@ -31,12 +32,13 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
             {question.answerNotes}
           </p>
           <QuestionTags tags={question.tags} />
-          <p className="text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <Badge variant="outline">
               <span className="sr-only">Where it came from: </span>
               {provenanceWording[question.provenance].name}
             </Badge>
-          </p>
+            {ratingIsShown(question) && <RatingSummary rating={question.rating} />}
+          </div>
           {children}
         </CardContent>
       </Card>

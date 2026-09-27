@@ -13,6 +13,7 @@ import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
+import { RatingSummary, ratingIsShown } from "@/features/questions/rating-summary";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Badge } from "@/ui/shadcn/badge";
@@ -69,6 +70,14 @@ function QuestionInFull({ question }: { question: Question }) {
         <p className="whitespace-pre-line">{question.answerNotes}</p>
       </section>
       <QuestionTags tags={question.tags} />
+      {ratingIsShown(question) && (
+        <section className="flex flex-col gap-2" aria-labelledby="rating">
+          <h2 id="rating" className="font-medium">
+            Rating
+          </h2>
+          <RatingSummary rating={question.rating} />
+        </section>
+      )}
       <WhereItCameFrom question={question} />
     </article>
   );
