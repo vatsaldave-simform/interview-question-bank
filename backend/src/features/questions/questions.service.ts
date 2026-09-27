@@ -15,13 +15,16 @@ import {
   findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
+  moveVisibleQuestion,
   recordRefusedSubmission,
   searchVisibleQuestions,
   updateVisibleQuestion,
+  type PublicationMove,
   type QuestionFromDb,
   type TagsInCategory,
 } from "./questions.repository.ts";
 import { mayEdit } from "./may-edit.ts";
+import { mayPublish, mayReject } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -181,4 +184,41 @@ export async function editQuestion(
   // that no longer reaches the Question answers as a missing one rather than raising.
   if (edited === null) throw new NotFoundError();
   return edited;
+}
+
+/** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
+ * role rule is a 403, and only then can the state be wrong, as a 409 (ADR-0002). */
+async function moveQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  move: PublicationMove,
+  mayMove: (viewer: Viewer, question: QuestionFromDb) => boolean,
+): Promise<QuestionFromDb> {
+  const question = await findVisibleQuestionById(database, viewer, id);
+  if (question === null) throw new NotFoundError();
+  if (!mayMove(viewer, question)) throw new ForbiddenError();
+
+  const moved = await moveVisibleQuestion(database, viewer, id, move);
+  if (moved !== null) return moved;
+  // Asked again because a Permission Grant revoked since the first look makes it a 404.
+  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
+  throw new ConflictError(`Only a ${move.from} Question can be ${move.to}.`);
+}
+
+export function publishQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+): Promise<QuestionFromDb> {
+  return moveQuestion(database, viewer, id, { from: "pending", to: "published" }, mayPublish);
+}
+
+export function rejectQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  reason: string,
+): Promise<QuestionFromDb> {
+  return moveQuestion(database, viewer, id, { from: "pending", to: "rejected", reason }, mayReject);
 }

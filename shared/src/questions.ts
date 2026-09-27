@@ -108,6 +108,13 @@ export const editQuestionRequestSchema = z
   });
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
+/** Trimmed before it is measured, so whitespace alone is no reason, and required, because
+ * the reason is what the Author reads to put the Question right (ADR-0013). */
+export const rejectQuestionRequestSchema = z
+  .object({ reason: z.string().trim().min(1).max(2_000) })
+  .strict();
+export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
+
 /**
  * How alike two Questions' text has to be before one counts as a Near-Duplicate of the
  * other, on the zero-to-one scale trigram similarity measures. Measured against the bank

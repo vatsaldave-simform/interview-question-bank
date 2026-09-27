@@ -1,7 +1,9 @@
 import {
+  questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
   type CategoryName,
+  type ChangeEvent,
   type Viewer,
   type ViewerRole,
 } from "@iqb/shared";
@@ -282,4 +284,32 @@ export function aQuestion(overrides: Record<string, unknown> = {}): Record<strin
     provenance: "original",
     ...overrides,
   };
+}
+
+/** What a Viewer may do to a Question's Publication State, each its own endpoint. */
+export type ReviewAct = "publish" | "reject" | "resubmit";
+
+/** A review request itself, for a test that wants to read the response it got. */
+export function postReviewAct(
+  api: TestApi,
+  id: string,
+  act: ReviewAct,
+  token: string,
+  body: unknown = {},
+): Promise<Response> {
+  return api.request(`/api/questions/${id}/${act}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+}
+
+/** A Question's history as the API answers with it, for a test whose subject is what was
+ * recorded rather than the reading. */
+export async function historyOf(api: TestApi, id: string, token: string): Promise<ChangeEvent[]> {
+  const response = await api.request(`/api/questions/${id}/history`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (response.status !== 200) throw new Error(`Reading ${id} failed with ${response.status}.`);
+  return questionHistoryResponseSchema.parse(await response.json()).events;
 }

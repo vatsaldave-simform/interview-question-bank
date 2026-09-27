@@ -18,6 +18,7 @@ import {
   insertChangeEvent,
   toChangeEventFromDb,
   type ChangeEventFromDb,
+  type NewChangeEvent,
 } from "../change-events/change-events.repository.ts";
 import type { Database } from "../../platform/database.ts";
 
@@ -498,6 +499,56 @@ export async function updateVisibleQuestion(
       });
     }
     return after;
+  });
+}
+
+/** One move between Publication States. Each says the state it starts from, so the same
+ * act twice finds nothing to move the second time. */
+export type PublicationMove =
+  | { from: "pending"; to: "published" }
+  | { from: "pending"; to: "rejected"; reason: string };
+
+/** The Change Event a move writes. */
+function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
+  switch (move.to) {
+    case "published":
+      return { type: "question_published", questionId, viewerId: viewer.id, payload: {} };
+    case "rejected":
+      return {
+        type: "question_rejected",
+        questionId,
+        viewerId: viewer.id,
+        payload: { reason: move.reason },
+      };
+  }
+}
+
+/**
+ * Null when nothing moved: the Question is not Visible, does not exist, or is no longer in
+ * the state the move starts from. The state is in the `where`, so of two moves at once
+ * only one finds the row, and only one Change Event is written.
+ */
+export async function moveVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  move: PublicationMove,
+): Promise<QuestionFromDb | null> {
+  return database.$transaction(async (transaction) => {
+    const { count } = await transaction.question.updateMany({
+      where: { AND: [{ id }, visibleQuestions(viewer), { publicationState: move.from }] },
+      data: { publicationState: move.to, reason: move.to === "rejected" ? move.reason : null },
+    });
+    if (count === 0) return null;
+
+    await insertChangeEvent(transaction, eventFor(move, id, viewer));
+
+    // By id, for the reason the edit reads back by id.
+    const moved = await transaction.question.findUniqueOrThrow({
+      where: { id },
+      select: questionFieldsToRead,
+    });
+    return toQuestionFromDb(moved);
   });
 }
 
