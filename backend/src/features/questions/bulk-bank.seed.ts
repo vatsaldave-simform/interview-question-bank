@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { CategoryName, Provenance } from "@iqb/shared";
+import type { CategoryName, Provenance, PublicationState } from "@iqb/shared";
 import type { Database } from "../../platform/database.ts";
 import { seedClient } from "../clients/clients.seed.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
@@ -109,9 +109,6 @@ type TagRow = { id: string; value: string };
  * A bank big enough to time a query against, kept off `pnpm db:seed` so that seed stays
  * short enough to read. It builds on that seed rather than beside it: the Categories,
  * the Author and the Client it hangs Questions from are that seed's rows.
- *
- * Every Question is Published, because that is what a Reader's query filters on. The
- * small seed holds the Pending and Rejected ones.
  */
 export async function seedBulkBank(
   database: Database,
@@ -144,7 +141,8 @@ export async function seedBulkBank(
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
       clientId: isRestricted ? client.id : null,
-      publicationState: "published" as const,
+      // What a Reader's query filters on, so the plans measure a Reader's bank (ADR-0029).
+      publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),
     });

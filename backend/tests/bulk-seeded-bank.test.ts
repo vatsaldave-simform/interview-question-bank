@@ -127,8 +127,7 @@ describe("the bulk bank", () => {
     expect(unrestricted).toBe(bulk.count - restricted);
   });
 
-  // What a Reader's query filters on, so a plan measured against the bank is a plan for
-  // the bank a Reader reads. The small seed holds the other states.
+  // The small seed holds the other states.
   it("writes only Published Questions", async () => {
     const states = await database.question.groupBy({
       by: ["publicationState"],
