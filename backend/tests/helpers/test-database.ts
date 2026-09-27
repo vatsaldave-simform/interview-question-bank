@@ -103,3 +103,15 @@ END $$;
 export async function truncateAll(database: Database): Promise<void> {
   await database.$executeRawUnsafe(truncateEverything);
 }
+
+/** Until some statement is waiting on a lock, for a race test that holds one act in place
+ * by hand and has to know the other has reached it. */
+export async function untilARowLockIsWaitedOn(database: Database): Promise<void> {
+  for (;;) {
+    const [row] = await database.$queryRaw<{ waiting: bigint }[]>`
+      SELECT count(*) AS waiting FROM pg_locks WHERE NOT granted
+    `;
+    if (Number(row?.waiting ?? 0) > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}

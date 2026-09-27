@@ -21,6 +21,8 @@ export const changeEventTypes = [
   "viewer_created",
   "viewer_deactivated",
   "viewer_reactivated",
+  "role_request_granted",
+  "role_request_denied",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -108,6 +110,27 @@ export type ViewerDeactivated = z.infer<typeof viewerDeactivatedSchema>;
 export const viewerReactivatedSchema = z.object({ viewer: namedViewerSchema }).strict();
 export type ViewerReactivated = z.infer<typeof viewerReactivatedSchema>;
 
+/** The one event a grant writes: the role is set here, with no `role_changed` beside it. */
+export const roleRequestGrantedSchema = z
+  .object({
+    roleRequestId: z.uuid(),
+    viewer: namedViewerSchema,
+    role: changedFrom(viewerRoleSchema),
+    reason: z.string().nullable(),
+  })
+  .strict();
+export type RoleRequestGranted = z.infer<typeof roleRequestGrantedSchema>;
+
+export const roleRequestDeniedSchema = z
+  .object({
+    roleRequestId: z.uuid(),
+    viewer: namedViewerSchema,
+    role: viewerRoleSchema,
+    reason: z.string(),
+  })
+  .strict();
+export type RoleRequestDenied = z.infer<typeof roleRequestDeniedSchema>;
+
 /**
  * Only the fields the edit changed, each with what it was and what it became. A field
  * the edit left alone is absent, and so is one it named with the value already there.
@@ -174,6 +197,14 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
   changeEventSchema.extend({
     type: z.literal("viewer_reactivated"),
     payload: viewerReactivatedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("role_request_granted"),
+    payload: roleRequestGrantedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("role_request_denied"),
+    payload: roleRequestDeniedSchema,
   }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;

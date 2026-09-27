@@ -5,3 +5,4 @@ export * from "./errors.js";
 export * from "./health.js";
 export * from "./permission-grants.js";
 export * from "./questions.js";
+export * from "./role-requests.js";

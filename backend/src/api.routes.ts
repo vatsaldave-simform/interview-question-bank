@@ -11,6 +11,7 @@ import { questionRoutes } from "./features/questions/questions.routes.ts";
 import { administrationRoutes } from "./features/administration/administration.routes.ts";
 import type { PasswordMailDependencies } from "./features/auth/password-link.ts";
 import { clientRoutes } from "./features/clients/clients.routes.ts";
+import { roleRequestRoutes } from "./features/role-requests/role-requests.routes.ts";
 
 /**
  * Every application route mounts here, under /api (ADR-0012). The health and readiness
@@ -42,6 +43,7 @@ export function apiRoutes(
   router.use("/categories", categoryRoutes(database));
   router.use("/viewers", administrationRoutes(database, setPasswordMail));
   router.use("/clients", clientRoutes(database));
+  router.use("/role-requests", roleRequestRoutes(database));
   router.use(notFoundHandler);
   return router;
 }
