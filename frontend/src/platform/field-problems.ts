@@ -32,9 +32,11 @@ export function focusFirstProblem(
   problems: FieldProblems<string>,
 ): void {
   const first = Array.from(form.elements).find(
-    (control) => control instanceof HTMLInputElement && problems[control.name] !== undefined,
+    (control) =>
+      (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) &&
+      problems[control.name] !== undefined,
   );
-  if (first instanceof HTMLInputElement) first.focus();
+  if (first instanceof HTMLElement) first.focus();
 }
 
 /** Why the API refused a form: on the fields it named, or as one message when it named

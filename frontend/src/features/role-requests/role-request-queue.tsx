@@ -1,3 +1,4 @@
+import { RoleRequestDecision } from "@/features/role-requests/role-request-decision";
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import {
@@ -38,6 +39,7 @@ export function RoleRequestQueue() {
               <TableHead>Viewer</TableHead>
               <TableHead>Asked for</TableHead>
               <TableHead>Asked on</TableHead>
+              <TableHead>Decision</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,6 +51,9 @@ export function RoleRequestQueue() {
                   <time dateTime={roleRequest.createdAt}>
                     {whenWording.format(new Date(roleRequest.createdAt))}
                   </time>
+                </TableCell>
+                <TableCell>
+                  <RoleRequestDecision roleRequestId={roleRequest.id} />
                 </TableCell>
               </TableRow>
             ))}
