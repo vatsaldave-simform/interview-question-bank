@@ -76,6 +76,12 @@ describe("submitting a Question that resembles one already in the bank", () => {
     return questionHistoryResponseSchema.parse(await response.json()).events;
   }
 
+  /** Sorted, because the two events an override writes can share a millisecond, and a
+   * random id settles that tie. */
+  function typesIn(events: readonly ChangeEvent[]): ChangeEventType[] {
+    return events.map((event) => event.type).sort();
+  }
+
   it("refuses the submission and names what it resembles", async () => {
     const response = await postQuestion(
       api,
@@ -195,14 +201,14 @@ describe("submitting a Question that resembles one already in the bank", () => {
 
     const events = await historyOf(stored.id);
 
-    expect(events.map((event) => event.type)).toEqual<ChangeEventType[]>([
-      "question_added",
+    expect(typesIn(events)).toEqual<ChangeEventType[]>([
       "near_duplicate_overridden",
+      "question_added",
     ]);
-    const overridden = events[1]!;
-    expect(overridden.viewerId).toBe(authorId);
-    expect(overridden.questionId).toBe(stored.id);
-    expect(overridden.payload).toMatchObject({
+    const overridden = events.find((event) => event.type === "near_duplicate_overridden");
+    expect(overridden?.viewerId).toBe(authorId);
+    expect(overridden?.questionId).toBe(stored.id);
+    expect(overridden?.payload).toMatchObject({
       nearDuplicates: [{ questionId: seededQuestionIds.aboutTypeScript }],
     });
   });
@@ -248,9 +254,9 @@ describe("submitting a Question that resembles one already in the bank", () => {
 
     const events = await historyOf(stored.id);
 
-    expect(events.map((event) => event.type)).toEqual<ChangeEventType[]>([
-      "question_added",
+    expect(typesIn(events)).toEqual<ChangeEventType[]>([
       "near_duplicate_overridden",
+      "question_added",
     ]);
   });
 
