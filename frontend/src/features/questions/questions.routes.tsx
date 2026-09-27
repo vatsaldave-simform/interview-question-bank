@@ -3,7 +3,9 @@ import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { BrowseScreen } from "@/features/questions/browse-screen";
 import { ContributeScreen } from "@/features/questions/contribute-screen";
 import { EditScreen } from "@/features/questions/edit-screen";
+import { pageSearchSchema } from "@/features/questions/question-pages.schema";
 import { QuestionScreen } from "@/features/questions/question-screen";
+import { ReviewScreen } from "@/features/questions/review-screen";
 import { signedInRoute } from "@/platform/signed-in-route";
 
 const browseRoute = createRoute({
@@ -66,4 +68,22 @@ function Edit() {
   );
 }
 
-export const questionRoutes = [browseRoute, contributeRoute, questionRoute, editRoute];
+const reviewRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/review",
+  validateSearch: pageSearchSchema,
+  component: Review,
+});
+
+function Review() {
+  const { offset = 0 } = reviewRoute.useSearch();
+  const navigate = reviewRoute.useNavigate();
+  return (
+    <ReviewScreen
+      offset={offset}
+      onMove={(next) => void navigate({ search: { offset: next === 0 ? undefined : next } })}
+    />
+  );
+}
+
+export const questionRoutes = [browseRoute, contributeRoute, questionRoute, editRoute, reviewRoute];

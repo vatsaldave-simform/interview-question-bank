@@ -1,5 +1,5 @@
 import type { Question, Viewer } from "@iqb/shared";
-import { browsePageSize } from "@/features/questions/browse.schema";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { currentSession, replaceSession } from "@/platform/session";
 import { aSignedInAuthor, answersWith, fakeApi, theCategories, type FakeApi } from "./fake-api";
 
@@ -9,7 +9,7 @@ type AnswerTheList = (asked: URL) => Response | Promise<Response>;
 export function aPageOf(questions: Question[], asked: URL): Response {
   return answersWith({
     questions,
-    limit: Number(asked.searchParams.get("limit") ?? browsePageSize),
+    limit: Number(asked.searchParams.get("limit") ?? questionPageSize),
     offset: Number(asked.searchParams.get("offset") ?? 0),
   });
 }

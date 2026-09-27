@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
-import { browsePageSize } from "@/features/questions/browse.schema";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
@@ -51,7 +51,7 @@ describe("filtering the bank", () => {
     );
     await waitFor(() =>
       expect(listRequests(api).at(-1)!.search).toBe(
-        `?technology=react&technology=node&seniority=senior&limit=${browsePageSize}&offset=0`,
+        `?technology=react&technology=node&seniority=senior&limit=${questionPageSize}&offset=0`,
       ),
     );
   });

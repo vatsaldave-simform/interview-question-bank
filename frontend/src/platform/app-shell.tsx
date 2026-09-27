@@ -20,7 +20,12 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
         <Link to="/" className="font-medium">
           Interview Question Bank
         </Link>
-        {/* Hiding the link keeps nobody out: the API refuses the console's lists anyway. */}
+        {/* Hiding these links keeps nobody out: the API refuses their lists anyway. */}
+        {viewer.role === "reviewer" && (
+          <Link to="/review" className="text-sm hover:underline">
+            Review queue
+          </Link>
+        )}
         {viewer.isAdministrator && (
           <Link to="/administration" className="text-sm hover:underline">
             Administration

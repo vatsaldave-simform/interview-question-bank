@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
-import { browsePageSize } from "@/features/questions/browse.schema";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
@@ -39,23 +39,23 @@ function aBankOf(size: number) {
 
 describe("paging through the bank", () => {
   it("moves to the next page, and the address says which page it is on", async () => {
-    const api = fakeBank(aBankOf(browsePageSize * 2 + 5));
+    const api = fakeBank(aBankOf(questionPageSize * 2 + 5));
     renderTheWholeClient("/?technology=react");
     await screen.findByText("Question number 1");
 
     await userEvent.click(screen.getByRole("button", { name: "Next page" }));
 
-    expect(await screen.findByText(`Question number ${browsePageSize + 1}`)).toBeVisible();
-    expect(window.location.search).toBe(`?technology=react&offset=${browsePageSize}`);
+    expect(await screen.findByText(`Question number ${questionPageSize + 1}`)).toBeVisible();
+    expect(window.location.search).toBe(`?technology=react&offset=${questionPageSize}`);
     const asked = listRequests(api).at(-1)!;
-    expect(asked.searchParams.get("offset")).toBe(String(browsePageSize));
+    expect(asked.searchParams.get("offset")).toBe(String(questionPageSize));
     expect(asked.searchParams.getAll("technology")).toEqual(["react"]);
   });
 
   it("moves back to the page before", async () => {
-    fakeBank(aBankOf(browsePageSize * 2 + 5));
-    renderTheWholeClient(`/?offset=${browsePageSize}`);
-    await screen.findByText(`Question number ${browsePageSize + 1}`);
+    fakeBank(aBankOf(questionPageSize * 2 + 5));
+    renderTheWholeClient(`/?offset=${questionPageSize}`);
+    await screen.findByText(`Question number ${questionPageSize + 1}`);
 
     await userEvent.click(screen.getByRole("button", { name: "Previous page" }));
 
@@ -63,7 +63,7 @@ describe("paging through the bank", () => {
   });
 
   it("offers no page before the first", async () => {
-    fakeBank(aBankOf(browsePageSize * 2));
+    fakeBank(aBankOf(questionPageSize * 2));
     renderTheWholeClient("/");
     await screen.findByText("Question number 1");
 
@@ -82,8 +82,8 @@ describe("paging through the bank", () => {
   });
 
   it("says there are no more when a full last page led to an empty one", async () => {
-    fakeBank(aBankOf(browsePageSize));
-    renderTheWholeClient(`/?offset=${browsePageSize}`);
+    fakeBank(aBankOf(questionPageSize));
+    renderTheWholeClient(`/?offset=${questionPageSize}`);
 
     expect(await screen.findByText("There are no more Questions.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled();

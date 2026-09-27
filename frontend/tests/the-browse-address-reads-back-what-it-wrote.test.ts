@@ -1,10 +1,7 @@
 import { maxKeywordsLength } from "@iqb/shared";
 import { describe, expect, it } from "vitest";
-import {
-  browsePageSize,
-  browseSearchSchema,
-  listRequestFor,
-} from "@/features/questions/browse.schema";
+import { browseSearchSchema, listRequestFor } from "@/features/questions/browse.schema";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 
 function requestFor(address: string) {
@@ -20,7 +17,7 @@ describe("the browse address", () => {
         technology: ["react", "node"],
         seniority: ["senior"],
         keywords: "cache",
-        limit: browsePageSize,
+        limit: questionPageSize,
         offset: 20,
       },
     });
@@ -43,24 +40,24 @@ describe("the browse address", () => {
     const search = { technology: ["react"], seniority: ["junior", "mid"], keywords: "what & why?" };
 
     expect(requestFor(stringifySearch(search))).toEqual({
-      request: { ...search, limit: browsePageSize, offset: 0 },
+      request: { ...search, limit: questionPageSize, offset: 0 },
     });
   });
 
   it("writes nothing at all when nothing is filtered", () => {
     expect(stringifySearch({ technology: [], keywords: undefined })).toBe("");
-    expect(requestFor("")).toEqual({ request: { limit: browsePageSize, offset: 0 } });
+    expect(requestFor("")).toEqual({ request: { limit: questionPageSize, offset: 0 } });
   });
 
   it("treats a blank search as no search, as the API does", () => {
     expect(requestFor("?keywords=%20%20")).toEqual({
-      request: { limit: browsePageSize, offset: 0 },
+      request: { limit: questionPageSize, offset: 0 },
     });
   });
 
   it("keeps an unknown Tag for the API to refuse, since only the database knows the Tags", () => {
     expect(requestFor("?technology=cobol")).toEqual({
-      request: { technology: ["cobol"], limit: browsePageSize, offset: 0 },
+      request: { technology: ["cobol"], limit: questionPageSize, offset: 0 },
     });
   });
 });

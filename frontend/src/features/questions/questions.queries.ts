@@ -9,6 +9,7 @@ import {
   type ListQuestionsRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { callApi } from "@/platform/api-client";
 import { stringifySearch } from "@/platform/search-params";
 
@@ -28,6 +29,15 @@ export function useQuestionList(request: ListQuestionsRequest | null) {
     queryKey: ["questions", "list", path],
     queryFn: ({ signal }) => callApi(path!, questionListResponseSchema, { signal }),
     enabled: path !== null,
+  });
+}
+
+/** The Pending Questions Visible to this Reviewer, the one that has waited longest first. */
+export function useReviewQueue(offset: number) {
+  const path = `/api/questions/pending${stringifySearch({ limit: questionPageSize, offset })}`;
+  return useQuery({
+    queryKey: ["questions", "pending", offset],
+    queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
   });
 }
 
