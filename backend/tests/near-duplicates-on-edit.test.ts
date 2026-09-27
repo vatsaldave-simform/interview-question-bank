@@ -109,7 +109,7 @@ describe("editing a Published Question's text into one that resembles another", 
     });
   });
 
-  it("never matches the Question being edited against itself", async () => {
+  it("never names the Question being edited as its own Near-Duplicate", async () => {
     const id = seededQuestionIds.aboutTypeScript;
 
     const response = await patchQuestion(api, id, { text: nearlyTheTypeScriptOne }, authorToken);

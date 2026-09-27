@@ -20,7 +20,7 @@ import {
   type ChangeEventFromDb,
   type NewChangeEvent,
 } from "../change-events/change-events.repository.ts";
-import type { Database } from "../../platform/database.ts";
+import type { Database, Transaction } from "../../platform/database.ts";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
 export type QuestionFromDb = {
@@ -308,8 +308,8 @@ export async function searchVisibleQuestions(
 /** Which Visible Questions one check compares against. */
 type NearDuplicateReach = { states: readonly PublicationState[]; excluding?: string };
 
-/** Closest first, and none below the threshold. Question text only, never Answer Notes
- * (ADR-0004), and never a Question that is not Visible (ADR-0007). */
+/** Closest first and none below the threshold, over Question text alone (ADR-0004) and
+ * Visible Questions alone (ADR-0007). */
 async function findNearDuplicatesAmong(
   database: Database,
   viewer: Viewer,
@@ -344,8 +344,8 @@ export function findNearDuplicates(
   return findNearDuplicatesAmong(database, viewer, text, { states: ["published"] });
 }
 
-/** What submission reaches, less the Question being edited, which would match itself
- * (ADR-0014). */
+/** The Questions a submission is checked against, without the one being edited, which
+ * would always be its own Near-Duplicate (ADR-0014). */
 export function findNearDuplicatesForEdit(
   database: Database,
   viewer: Viewer,
@@ -358,7 +358,7 @@ export function findNearDuplicatesForEdit(
 }
 
 /** Pending ones too, because the queue is the publishing Reviewer's to see, and never the
- * Question being Published, which would match itself (ADR-0014). */
+ * Question being Published, which would always be its own Near-Duplicate (ADR-0014). */
 export function findNearDuplicatesForPublication(
   database: Database,
   viewer: Viewer,
@@ -367,6 +367,23 @@ export function findNearDuplicatesForPublication(
   return findNearDuplicatesAmong(database, viewer, question.text, {
     states: ["published", "pending"],
     excluding: question.id,
+  });
+}
+
+/** A Transaction, not a Database, so the override is written with the act it let through
+ * or not at all. */
+async function recordOverride(
+  transaction: Transaction,
+  viewer: Viewer,
+  questionId: string,
+  overridden: readonly NearDuplicate[],
+): Promise<void> {
+  if (overridden.length === 0) return;
+  await insertChangeEvent(transaction, {
+    type: "near_duplicate_overridden",
+    questionId,
+    viewerId: viewer.id,
+    payload: { nearDuplicates: [...overridden] },
   });
 }
 
@@ -421,23 +438,13 @@ export async function insertQuestion(
       },
     });
 
-    if (overridden.length > 0) {
-      await insertChangeEvent(transaction, {
-        type: "near_duplicate_overridden",
-        questionId: added.id,
-        viewerId: viewer.id,
-        payload: { nearDuplicates: [...overridden] },
-      });
-    }
+    await recordOverride(transaction, viewer, added.id, overridden);
     return added;
   });
 }
 
-/**
- * The trace a refusal leaves. A refused submission names no Question because none was
- * stored, which is the case the log exists as a log for (ADR-0006); a refused publication
- * names the Question it left where it was.
- */
+/** A refused submission names no Question, since none was stored, which is the case the
+ * log exists as a log for (ADR-0006). */
 export async function recordRefusedAsNearDuplicate(
   database: Database,
   viewer: Viewer,
@@ -538,14 +545,7 @@ export async function updateVisibleQuestion(
         viewerId: viewer.id,
         payload: changed,
       });
-      if (overridden.length > 0) {
-        await insertChangeEvent(transaction, {
-          type: "near_duplicate_overridden",
-          questionId: id,
-          viewerId: viewer.id,
-          payload: { nearDuplicates: [...overridden] },
-        });
-      }
+      await recordOverride(transaction, viewer, id, overridden);
     }
     return after;
   });
@@ -604,14 +604,7 @@ export async function moveVisibleQuestion(
     if (count === 0) return null;
 
     await insertChangeEvent(transaction, eventFor(move, id, viewer));
-    if (overridden.length > 0) {
-      await insertChangeEvent(transaction, {
-        type: "near_duplicate_overridden",
-        questionId: id,
-        viewerId: viewer.id,
-        payload: { nearDuplicates: [...overridden] },
-      });
-    }
+    await recordOverride(transaction, viewer, id, overridden);
 
     // By id, because a Permission Grant revoked since the write would hide the committed move.
     const moved = await transaction.question.findUniqueOrThrow({

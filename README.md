@@ -260,8 +260,8 @@ the decision against the Author who made it:
 ```
 
 A Reviewer Publishing a Question gets the same check again, because something like it may
-have been Published while it waited. A match is a 409 in the same shape, and the Reviewer
-overrides it the same way, recorded against their name:
+have been Published while it waited. A Near-Duplicate found then is a 409 in the same shape,
+and the Reviewer overrides it the same way, recorded against their name:
 
 ```sh
 curl -s -X POST localhost:3000/api/questions/$ID/publish \
@@ -284,7 +284,7 @@ genuine duplicates on opposite sides of a visibility boundary.
 At publication the Reviewer is checked against Pending Questions as well, because the queue
 is theirs to see, so two near-identical submissions do not both reach the bank. Rejected
 Questions are left out, being in neither the bank nor the queue, and so is the Question
-being Published, which would match itself.
+being Published, which would always be its own Near-Duplicate.
 
 An edit that changes a Published Question's text is checked the way a submission is,
 against Published Questions only, leaving out the Question being edited. That holds for a
@@ -392,9 +392,9 @@ Each Question has a page at `/questions/:id`, with its history: who changed what
 sent, and anything the API still refuses is shown against the field it names. When the API
 finds Near-Duplicates, they are listed in a dialog, and the Author can go back and change the
 Question or say it is different and add it anyway. `/questions/:id/edit` edits one, and
-sends only the fields that changed. New text on a Published Question gets the same dialog,
-and saving it anyway sends the same edit again with the confirmation. Both forms are there for every Viewer, a Reader
-included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
+sends only the fields that changed. New text on a Published Question gets the same
+dialog, and saving it anyway sends the same edit again with the confirmation. Both forms
+are there for every Viewer, a Reader included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
 API's refusal rather than a missing button.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if

@@ -5,9 +5,9 @@ import {
   type EditQuestionRequest,
   type ListQuestionsRequest,
   type NearDuplicate,
-  type NearDuplicateRefused,
   type NearDuplicatesFound,
   type PublishQuestionRequest,
+  type QuestionAdded,
   type QuestionTag,
   type UnknownTags,
   type Viewer,
@@ -133,25 +133,24 @@ const refusedAsNearDuplicateFor = {
     "confirming it is genuinely different if that is wrong.",
 } as const;
 
-type RefusedAsNearDuplicate = {
+/** The text one act wrote, and what detection found beside it. */
+type CheckedText = {
   act: keyof typeof refusedAsNearDuplicateFor;
   /** Null when the act would have stored the Question, so there is none yet to name. */
   questionId: string | null;
-  refused: NearDuplicateRefused;
+  attempted: QuestionAdded;
+  nearDuplicates: NearDuplicate[];
   confirmed: boolean;
 };
 
-/** The Near-Duplicates a confirmation overrides, which is every one found. Without a
- * confirmation, any match is recorded and refused, and nothing else happens. */
 async function overrideOrRefuse(
   database: Database,
   viewer: Viewer,
-  { act, questionId, refused, confirmed }: RefusedAsNearDuplicate,
+  { act, questionId, attempted, nearDuplicates, confirmed }: CheckedText,
 ): Promise<NearDuplicate[]> {
-  const { nearDuplicates } = refused;
   if (nearDuplicates.length === 0 || confirmed) return nearDuplicates;
 
-  await recordRefusedAsNearDuplicate(database, viewer, questionId, refused);
+  await recordRefusedAsNearDuplicate(database, viewer, questionId, { attempted, nearDuplicates });
   const found: NearDuplicatesFound = { nearDuplicates };
   throw new ConflictError(refusedAsNearDuplicateFor[act], found);
 }
@@ -167,16 +166,14 @@ export async function addQuestion(
   const overridden = await overrideOrRefuse(database, viewer, {
     act: "add",
     questionId: null,
-    refused: {
-      attempted: {
-        text: request.text,
-        answerNotes: request.answerNotes,
-        provenance: request.provenance,
-        source: request.source ?? null,
-        tags: [...request.tags],
-      },
-      nearDuplicates: await findNearDuplicates(database, viewer, request.text),
+    attempted: {
+      text: request.text,
+      answerNotes: request.answerNotes,
+      provenance: request.provenance,
+      source: request.source ?? null,
+      tags: [...request.tags],
     },
+    nearDuplicates: await findNearDuplicates(database, viewer, request.text),
     confirmed: request.confirmedNotANearDuplicate,
   });
 
@@ -194,11 +191,22 @@ export async function addQuestion(
   );
 }
 
-/**
- * Only new text on a Published Question is checked. Answer Notes and Tags are never
- * compared (ADR-0004), and a Pending Question's text is checked when it is Published
- * (ADR-0014).
- */
+/** A stored Question as a refusal records it, with whatever the refused act was changing. */
+function attemptOn(
+  question: QuestionFromDb,
+  changes: Pick<EditQuestionRequest, "text" | "answerNotes" | "tags"> = {},
+): QuestionAdded {
+  return {
+    text: changes.text ?? question.text,
+    answerNotes: changes.answerNotes ?? question.answerNotes,
+    provenance: question.provenance,
+    source: question.source,
+    tags: changes.tags ?? question.tags,
+  };
+}
+
+/** Only new text on a Published Question, because a Pending one's text is checked when it is
+ * Published (ADR-0014). */
 async function checkEditedText(
   database: Database,
   viewer: Viewer,
@@ -213,16 +221,8 @@ async function checkEditedText(
   return overrideOrRefuse(database, viewer, {
     act: "edit",
     questionId: question.id,
-    refused: {
-      attempted: {
-        text,
-        answerNotes: request.answerNotes ?? question.answerNotes,
-        provenance: question.provenance,
-        source: question.source,
-        tags: request.tags ?? question.tags,
-      },
-      nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
-    },
+    attempted: attemptOn(question, request),
+    nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
     confirmed: request.confirmedNotANearDuplicate === true,
   });
 }
@@ -273,7 +273,6 @@ const refusedFor: Record<PublicationMove["act"], string> = {
 /** What an act overrides once detection has looked at the Question it is about. */
 type NearDuplicateCheck = (question: QuestionFromDb) => Promise<NearDuplicate[]>;
 
-/** Nothing to override, for every act detection does not run on. */
 const noNearDuplicateCheck: NearDuplicateCheck = async () => [];
 
 /** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
@@ -306,21 +305,13 @@ export function publishQuestion(
 ): Promise<QuestionFromDb> {
   return moveQuestion(database, viewer, id, { act: "publish" }, mayPublish, async (question) => {
     // A Question that is not Pending cannot be Published, and hearing that is more use
-    // than a list of matches for an act that would fail anyway.
+    // than a list of Near-Duplicates for an act that would fail anyway.
     if (question.publicationState !== "pending") return [];
     return overrideOrRefuse(database, viewer, {
       act: "publish",
       questionId: question.id,
-      refused: {
-        attempted: {
-          text: question.text,
-          answerNotes: question.answerNotes,
-          provenance: question.provenance,
-          source: question.source,
-          tags: question.tags,
-        },
-        nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
-      },
+      attempted: attemptOn(question),
+      nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
       confirmed: request.confirmedNotANearDuplicate,
     });
   });

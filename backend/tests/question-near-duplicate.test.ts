@@ -149,7 +149,7 @@ describe("submitting a Question that resembles one already in the bank", () => {
     const first = await postQuestion(api, aQuestion(), authorToken);
     expect(first.status).toBe(201);
 
-    // Withdrawn, so that Publishing the Reviewer's own Question does not match it.
+    // Withdrawn, so that Publishing the Reviewer's own Question does not find it.
     const withdrawn = questionResponseSchema.parse(await first.json()).question.id;
     await questionAnswered(
       await postReviewAct(api, withdrawn, "reject", authorToken, { reason: "Withdrawn." }),

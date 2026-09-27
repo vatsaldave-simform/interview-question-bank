@@ -100,9 +100,7 @@ export const editQuestionRequestSchema = z
     text: z.string().trim().min(1).optional(),
     answerNotes: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).optional(),
-    /** The editor's word that a match found on a Published Question's new text is wrong
-     * (ADR-0014). Optional rather than defaulted, so an edit's body stays only its changes,
-     * and it does not count as a change below. */
+    /** Optional rather than defaulted, so an edit's body holds only what it changes (ADR-0014). */
     confirmedNotANearDuplicate: z.boolean().optional(),
   })
   .strict()
@@ -112,10 +110,9 @@ export const editQuestionRequestSchema = z
   );
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
-/** A body is optional, and one left out Publishes with no confirmation. */
 export const publishQuestionRequestSchema = z
   .object({
-    /** The Reviewer's word that a match detection found at publication is wrong (ADR-0014). */
+    /** The Reviewer's word that a Near-Duplicate found at publication is wrong (ADR-0014). */
     confirmedNotANearDuplicate: z.boolean().default(false),
   })
   .strict();

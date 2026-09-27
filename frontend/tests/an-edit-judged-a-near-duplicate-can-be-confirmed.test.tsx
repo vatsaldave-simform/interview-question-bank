@@ -37,7 +37,7 @@ const original = aQuestion({
  * Refuses an edit as the API does when detection finds a Near-Duplicate in a Published
  * Question's new text, unless it carries the editor's word that it is different.
  */
-function aBankThatFindsAMatch(): FakeApi {
+function aBankThatFindsANearDuplicate(): FakeApi {
   let current: Question = original;
   return fakeBank(
     (asked) => aPageOf([current], asked),
@@ -81,7 +81,7 @@ async function rewriteTheText(): Promise<void> {
 
 describe("an edit the API judged a Near-Duplicate", () => {
   it("shows each Near-Duplicate in a dialog", async () => {
-    aBankThatFindsAMatch();
+    aBankThatFindsANearDuplicate();
 
     await rewriteTheText();
 
@@ -95,7 +95,7 @@ describe("an edit the API judged a Near-Duplicate", () => {
   });
 
   it("sends the same edit again with the editor's word, and shows the Question", async () => {
-    const api = aBankThatFindsAMatch();
+    const api = aBankThatFindsANearDuplicate();
 
     await rewriteTheText();
     await userEvent.click(await screen.findByRole("button", { name: "It is different, save it" }));
@@ -110,7 +110,7 @@ describe("an edit the API judged a Near-Duplicate", () => {
   });
 
   it("goes back to the form without sending anything, with the edit still there", async () => {
-    const api = aBankThatFindsAMatch();
+    const api = aBankThatFindsANearDuplicate();
 
     await rewriteTheText();
     await userEvent.click(await screen.findByRole("button", { name: "Change my Question" }));

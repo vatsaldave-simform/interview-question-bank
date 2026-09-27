@@ -67,8 +67,8 @@ describe("Publishing a Question that resembles one already in the bank or the qu
   }
 
   it("catches a Question that duplicates one Published while it waited", async () => {
-    // Both pass at submission: each one's match is only Pending, and the Author is checked
-    // against Published Questions alone.
+    // Both pass at submission: each resembles only a Pending Question, and the Author is
+    // checked against Published Questions alone.
     const waiting = await addAQuestion(api, {}, authorToken);
     const publishedMeanwhile = await addAQuestion(api, { text: nearlyTheCacheOne }, authorToken);
     // The Reviewer is told about the waiting one here, and Publishes anyway.
@@ -92,7 +92,7 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     expect(await nearDuplicatesNamed(response)).toEqual([waiting]);
   });
 
-  it("never matches the Question being Published against itself", async () => {
+  it("never names the Question being Published as its own Near-Duplicate", async () => {
     const id = await addAQuestion(api, {}, authorToken);
 
     const response = await postReviewAct(api, id, "publish", reviewerToken);
@@ -126,8 +126,8 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     expect((await questionAnswered(response)).publicationState).toBe("published");
   });
 
-  it("answers a Question that is not Pending with its state, not with matches", async () => {
-    // A Pending Question the Published one would match, had detection run.
+  it("answers a Question that is not Pending with its state, not with Near-Duplicates", async () => {
+    // A Pending Question the Published one resembles, which detection would have named.
     await addAQuestion(
       api,
       {
@@ -203,7 +203,7 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     });
   });
 
-  it("records no override when there was no match to overrule", async () => {
+  it("records no override when there was no Near-Duplicate to overrule", async () => {
     const id = await addAQuestion(api, {}, authorToken);
 
     await postReviewAct(api, id, "publish", reviewerToken, {
