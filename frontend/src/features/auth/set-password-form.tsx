@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { setPasswordFormSchema, type SetPasswordForm } from "@/features/auth/auth.schema";
-import { focusFirstProblem, problemsIn, type FieldProblems } from "@/features/auth/field-problems";
+import { focusFirstProblem, problemsIn, type FieldProblems } from "@/platform/field-problems";
 import { useSetPassword } from "@/features/auth/password-link.queries";
 import { ApiFailure, whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";

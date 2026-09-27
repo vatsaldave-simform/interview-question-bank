@@ -1,3 +1,4 @@
+import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import {
@@ -17,6 +18,7 @@ export function ViewerList() {
       <h2 id="viewers" className="font-medium">
         Viewers
       </h2>
+      <CreateViewerForm />
       {viewers.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Viewers…
