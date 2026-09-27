@@ -28,7 +28,7 @@ export class ApiFailure extends Error {
 }
 
 type Sending = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** Serialised as JSON. Left out for a request that carries nothing. */
   body?: unknown;
   signal?: AbortSignal;

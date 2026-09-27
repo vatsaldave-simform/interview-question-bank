@@ -13,6 +13,7 @@ import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
+import { RatingControl } from "@/features/questions/rating-control";
 import { RatingSummary, ratingIsShown } from "@/features/questions/rating-summary";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ActNotDone } from "@/ui/act-not-done";
@@ -76,6 +77,8 @@ function QuestionInFull({ question }: { question: Question }) {
             Rating
           </h2>
           <RatingSummary rating={question.rating} />
+          {/* Offered by the Publication State alone, like the acts above (ADR-0002). */}
+          {question.publicationState === "published" && <RatingControl question={question} />}
         </section>
       )}
       <WhereItCameFrom question={question} />
