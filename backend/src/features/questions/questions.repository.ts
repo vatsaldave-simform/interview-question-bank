@@ -502,14 +502,13 @@ export async function updateVisibleQuestion(
   });
 }
 
-/** One move between Publication States. Each says the state it starts from, so the same
- * act twice finds nothing to move the second time. */
+/** Each names the state it starts from, so the same act twice finds nothing to move the
+ * second time. */
 export type PublicationMove =
   | { from: "pending"; to: "published" }
   | { from: "pending"; to: "rejected"; reason: string }
   | { from: "rejected"; to: "pending" };
 
-/** The Change Event a move writes. */
 function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
   switch (move.to) {
     case "published":
@@ -526,11 +525,8 @@ function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): Ne
   }
 }
 
-/**
- * Null when nothing moved: the Question is not Visible, does not exist, or is no longer in
- * the state the move starts from. The state is in the `where`, so of two moves at once
- * only one finds the row, and only one Change Event is written.
- */
+/** Null when nothing moved, and the state is in the `where`, so of two moves at once only
+ * one finds the row and only one Change Event is written. */
 export async function moveVisibleQuestion(
   database: Database,
   viewer: Viewer,
@@ -546,7 +542,7 @@ export async function moveVisibleQuestion(
 
     await insertChangeEvent(transaction, eventFor(move, id, viewer));
 
-    // By id, for the reason the edit reads back by id.
+    // By id, because a Permission Grant revoked since the write would hide the committed move.
     const moved = await transaction.question.findUniqueOrThrow({
       where: { id },
       select: questionFieldsToRead,

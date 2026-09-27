@@ -4,6 +4,7 @@ import {
   questionResponseSchema,
   type CategoryName,
   type ChangeEvent,
+  type Question,
   type Viewer,
   type ViewerRole,
 } from "@iqb/shared";
@@ -18,7 +19,7 @@ import { seedQuestionBank } from "../../src/features/questions/questions.seed.ts
 import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../../src/platform/database.ts";
 import { seededViewer } from "./auth.ts";
-import type { TestApi } from "./test-api.ts";
+import { statusAndBody, type TestApi } from "./test-api.ts";
 import { truncateAll } from "./test-database.ts";
 
 /** An empty database filled with the fixtures, in the order the dependencies run. */
@@ -312,4 +313,15 @@ export async function historyOf(api: TestApi, id: string, token: string): Promis
   });
   if (response.status !== 200) throw new Error(`Reading ${id} failed with ${response.status}.`);
   return questionHistoryResponseSchema.parse(await response.json()).events;
+}
+
+/** The Question a response carries, failing loudly with the status and body otherwise. */
+export async function questionAnswered(response: Response): Promise<Question> {
+  if (response.status !== 200) throw new Error(`Answered ${await statusAndBody(response)}.`);
+  return questionResponseSchema.parse(await response.json()).question;
+}
+
+/** Each event as what happened and who did it, which is what most history tests compare. */
+export function whoDidWhat(events: readonly ChangeEvent[]): [string, string][] {
+  return events.map(({ type, viewerEmail }) => [type, viewerEmail]);
 }

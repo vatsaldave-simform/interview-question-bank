@@ -207,8 +207,7 @@ model Question {
   // silently declassify every Question restricted to it (ADR-0017).
   client           Client?          @relation(fields: [clientId], references: [id], onDelete: Restrict)
   publicationState PublicationState @default(pending)
-  /// Why it was last sent back, for its Author to read. Kept only until it is Published
-  /// or resubmitted; the Change Events keep every earlier one.
+  /// Cleared on Publish or resubmit; the Change Events keep every earlier one.
   reason           String?
   provenance       Provenance
   /// Named in the Author's own words, so free text rather than a link or a Tag.

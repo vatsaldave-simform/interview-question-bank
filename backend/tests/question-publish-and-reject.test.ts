@@ -1,4 +1,3 @@
-import { questionResponseSchema, type Question } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
@@ -8,10 +7,13 @@ import {
   historyOf,
   idsListed,
   postReviewAct,
+  questionAnswered,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
   unknownQuestionId,
+  whoDidWhat,
+  type ReviewAct,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
@@ -21,9 +23,10 @@ const {
   aboutDisagreeing: pendingAndUnrestricted,
   aboutTwoPlusTwo: rejectedAndUnrestricted,
   aboutTheClientsRendering: pendingForTheFirstClient,
+  aboutTheOtherClientsIntake: pendingForTheSecondClient,
 } = seededQuestionIds;
 
-const reason = { reason: "Say what a strong answer covers, not only a weak one." };
+const rejectBody = { reason: "Say what a strong answer covers, not only a weak one." };
 
 /**
  * Who may move a Pending Question into the bank or send it back, enforced by the API. The
@@ -54,18 +57,12 @@ describe("Publishing and Rejecting a Pending Question", () => {
     await api.stop();
   });
 
-  /** The Question an act answered with, failing loudly on anything but a 200. */
-  async function questionIn(response: Response): Promise<Question> {
-    expect(response.status, await statusAndBody(response.clone())).toBe(200);
-    return questionResponseSchema.parse(await response.json()).question;
-  }
-
   /** What the same act answers for an id that names nothing, to hold a refusal against. */
-  const unknownIdAnswer = async (act: "publish" | "reject", token: string) =>
-    statusAndBody(await postReviewAct(api, unknownQuestionId, act, token, reason));
+  const unknownIdAnswer = async (act: ReviewAct, token: string) =>
+    statusAndBody(await postReviewAct(api, unknownQuestionId, act, token, rejectBody));
 
   it("puts a Published Question in front of Readers", async () => {
-    const published = await questionIn(
+    const published = await questionAnswered(
       await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),
     );
 
@@ -78,8 +75,8 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("keeps a Rejected Question away from Readers, as if it were not there", async () => {
-    await questionIn(
-      await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, reason),
+    await questionAnswered(
+      await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, rejectBody),
     );
 
     const rejected = await getQuestion(api, pendingAndUnrestricted, readerToken);
@@ -91,27 +88,26 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("hands the Author the reason their Question was Rejected", async () => {
-    await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, reason);
+    await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, rejectBody);
 
-    const asTheAuthorSeesIt = await questionIn(
+    const asTheAuthorSeesIt = await questionAnswered(
       await getQuestion(api, pendingAndUnrestricted, authorToken),
     );
 
     expect(asTheAuthorSeesIt.publicationState).toBe("rejected");
-    expect(asTheAuthorSeesIt.reason).toBe(reason.reason);
+    expect(asTheAuthorSeesIt.reason).toBe(rejectBody.reason);
   });
 
-  it("lets a Reviewer Publish their own submission, recorded as the same Viewer doing both", async () => {
+  it("lets a Reviewer Publish their own Question, recorded as the same Viewer doing both", async () => {
     const theirOwn = await addAQuestion(
       api,
       { text: "Which production incident taught you the most, and what changed after it?" },
       reviewerToken,
     );
 
-    await questionIn(await postReviewAct(api, theirOwn, "publish", reviewerToken));
+    await questionAnswered(await postReviewAct(api, theirOwn, "publish", reviewerToken));
 
-    const events = await historyOf(api, theirOwn, reviewerToken);
-    expect(events.map(({ type, viewerEmail }) => [type, viewerEmail])).toEqual([
+    expect(whoDidWhat(await historyOf(api, theirOwn, reviewerToken))).toEqual([
       ["question_added", seededViewer("reviewer").email],
       ["question_published", seededViewer("reviewer").email],
     ]);
@@ -125,7 +121,13 @@ describe("Publishing and Rejecting a Pending Question", () => {
 
   it("answers a Reader Publishing or Rejecting a Pending Question as if it were not there", async () => {
     for (const act of ["publish", "reject"] as const) {
-      const response = await postReviewAct(api, pendingAndUnrestricted, act, readerToken, reason);
+      const response = await postReviewAct(
+        api,
+        pendingAndUnrestricted,
+        act,
+        readerToken,
+        rejectBody,
+      );
 
       expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, readerToken));
     }
@@ -133,7 +135,13 @@ describe("Publishing and Rejecting a Pending Question", () => {
 
   it("refuses a Reader Publishing or Rejecting a Question they can see", async () => {
     for (const act of ["publish", "reject"] as const) {
-      const response = await postReviewAct(api, publishedAndUnrestricted, act, readerToken, reason);
+      const response = await postReviewAct(
+        api,
+        publishedAndUnrestricted,
+        act,
+        readerToken,
+        rejectBody,
+      );
 
       expect(response.status).toBe(403);
     }
@@ -146,7 +154,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
         pendingForTheFirstClient,
         act,
         reviewerToken,
-        reason,
+        rejectBody,
       );
 
       expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, reviewerToken));
@@ -154,13 +162,12 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("lets an Author withdraw their own Pending Question by Rejecting it", async () => {
-    const withdrawn = await questionIn(
-      await postReviewAct(api, pendingAndUnrestricted, "reject", authorToken, reason),
+    const withdrawn = await questionAnswered(
+      await postReviewAct(api, pendingAndUnrestricted, "reject", authorToken, rejectBody),
     );
 
     expect(withdrawn.publicationState).toBe("rejected");
-    const events = await historyOf(api, pendingAndUnrestricted, authorToken);
-    expect(events.map(({ type, viewerEmail }) => [type, viewerEmail])).toEqual([
+    expect(whoDidWhat(await historyOf(api, pendingAndUnrestricted, authorToken))).toEqual([
       ["question_rejected", seededViewer("author").email],
     ]);
   });
@@ -173,7 +180,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
       pendingAndUnrestricted,
       "reject",
       otherAuthorToken,
-      reason,
+      rejectBody,
     );
 
     // They cannot see another Author's Pending Question at all, so not even a 403.
@@ -197,24 +204,34 @@ describe("Publishing and Rejecting a Pending Question", () => {
   it("refuses an act on a Question not in the state it starts from", async () => {
     const tries = [
       postReviewAct(api, publishedAndUnrestricted, "publish", reviewerToken),
-      postReviewAct(api, publishedAndUnrestricted, "reject", reviewerToken, reason),
+      postReviewAct(api, publishedAndUnrestricted, "reject", reviewerToken, rejectBody),
       // Resubmitting comes first; a Reviewer does not Publish over the Author's head.
       postReviewAct(api, rejectedAndUnrestricted, "publish", reviewerToken),
-      postReviewAct(api, rejectedAndUnrestricted, "reject", reviewerToken, reason),
+      postReviewAct(api, rejectedAndUnrestricted, "reject", reviewerToken, rejectBody),
+      // An Author withdraws only what is still waiting; a Published one is out of their hands.
+      postReviewAct(api, publishedAndUnrestricted, "reject", authorToken, rejectBody),
     ];
 
     for (const response of await Promise.all(tries)) expect(response.status).toBe(409);
   });
 
-  it("records each act as one Change Event naming who did it", async () => {
-    await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, reason);
+  it("records each act as one Change Event naming who did it and carrying its payload", async () => {
+    await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken);
+    await postReviewAct(api, pendingForTheSecondClient, "reject", reviewerToken, rejectBody);
 
-    const events = await historyOf(api, pendingAndUnrestricted, reviewerToken);
+    const whatWasRecorded = async (id: string) =>
+      (await historyOf(api, id, reviewerToken)).map(({ type, viewerEmail, payload }) => ({
+        type,
+        viewerEmail,
+        payload,
+      }));
 
-    expect(
-      events.map(({ type, viewerEmail, payload }) => ({ type, viewerEmail, payload })),
-    ).toEqual([
-      { type: "question_rejected", viewerEmail: seededViewer("reviewer").email, payload: reason },
+    const reviewer = seededViewer("reviewer").email;
+    expect(await whatWasRecorded(pendingAndUnrestricted)).toEqual([
+      { type: "question_published", viewerEmail: reviewer, payload: {} },
+    ]);
+    expect(await whatWasRecorded(pendingForTheSecondClient)).toEqual([
+      { type: "question_rejected", viewerEmail: reviewer, payload: rejectBody },
     ]);
   });
 

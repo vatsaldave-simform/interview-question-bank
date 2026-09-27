@@ -186,6 +186,13 @@ export async function editQuestion(
   return edited;
 }
 
+/** What a 409 says, by the state the act would have moved the Question to. */
+const refusedFor: Record<PublicationMove["to"], string> = {
+  published: "Only a Pending Question can be Published.",
+  rejected: "Only a Pending Question can be Rejected.",
+  pending: "Only a Rejected Question can be resubmitted.",
+};
+
 /** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
  * role rule is a 403, and only then can the state be wrong, as a 409 (ADR-0002). */
 async function moveQuestion(
@@ -203,7 +210,7 @@ async function moveQuestion(
   if (moved !== null) return moved;
   // Asked again because a Permission Grant revoked since the first look makes it a 404.
   if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  throw new ConflictError(`Only a ${move.from} Question can be ${move.to}.`);
+  throw new ConflictError(refusedFor[move.to]);
 }
 
 export function publishQuestion(

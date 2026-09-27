@@ -57,8 +57,7 @@ export const questionSchema = z
     authorId: z.uuid(),
     clientId: z.uuid().nullable(),
     publicationState: publicationStateSchema,
-    /** Why it was last sent back. Null for a Published Question, and for one nobody has
-     * sent back since it was last submitted. */
+    /** Why it was Rejected, and null again once it is resubmitted or Published. */
     reason: z.string().nullable(),
     provenance: provenanceSchema,
     source: z.string().nullable(),
@@ -108,8 +107,7 @@ export const editQuestionRequestSchema = z
   });
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
-/** Trimmed before it is measured, so whitespace alone is no reason, and required, because
- * the reason is what the Author reads to put the Question right (ADR-0013). */
+/** Required, because the reason is what the Author reads to put the Question right (ADR-0013). */
 export const rejectQuestionRequestSchema = z
   .object({ reason: z.string().trim().min(1).max(2_000) })
   .strict();

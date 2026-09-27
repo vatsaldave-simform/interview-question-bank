@@ -1,4 +1,3 @@
-import { questionResponseSchema, type Question } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
@@ -7,16 +6,21 @@ import {
   idsListed,
   patchQuestion,
   postReviewAct,
+  questionAnswered,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
   unknownQuestionId,
+  whoDidWhat,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
-/** The seeded Questions these are tried on, both written by the seeded Author. */
-const { aboutDisagreeing: pendingAndUnrestricted, aboutTwoPlusTwo: rejectedAndUnrestricted } =
-  seededQuestionIds;
+/** The seeded Questions these are tried on, all written by the seeded Author. */
+const {
+  aboutTypeScript: publishedAndUnrestricted,
+  aboutDisagreeing: pendingAndUnrestricted,
+  aboutTwoPlusTwo: rejectedAndUnrestricted,
+} = seededQuestionIds;
 
 const newText = "Tell me about a time you changed your mind in a design review. What did it?";
 
@@ -47,11 +51,6 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     await api.stop();
   });
 
-  async function questionIn(response: Response): Promise<Question> {
-    expect(response.status, await statusAndBody(response.clone())).toBe(200);
-    return questionResponseSchema.parse(await response.json()).question;
-  }
-
   const theQueue = async () =>
     idsListed(
       await api.request("/api/questions/pending", {
@@ -60,7 +59,7 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     );
 
   it("lets an Author edit their own Pending Question, which stays Pending", async () => {
-    const edited = await questionIn(
+    const edited = await questionAnswered(
       await patchQuestion(api, pendingAndUnrestricted, { text: newText }, authorToken),
     );
 
@@ -69,19 +68,21 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   });
 
   it("lets a Reviewer edit a Pending Question and then Publish what they wrote", async () => {
-    await questionIn(
+    await questionAnswered(
       await patchQuestion(api, pendingAndUnrestricted, { text: newText }, reviewerToken),
     );
-    await questionIn(await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken));
+    await questionAnswered(
+      await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),
+    );
 
-    const asAReaderSeesIt = await questionIn(
+    const asAReaderSeesIt = await questionAnswered(
       await getQuestion(api, pendingAndUnrestricted, readerToken),
     );
     expect(asAReaderSeesIt.text).toBe(newText);
   });
 
   it("leaves an edited Rejected Question Rejected, and out of the queue", async () => {
-    const edited = await questionIn(
+    const edited = await questionAnswered(
       await patchQuestion(api, rejectedAndUnrestricted, { text: newText }, authorToken),
     );
 
@@ -91,7 +92,7 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   });
 
   it("puts a resubmitted Question back in the queue with no reason on it", async () => {
-    const resubmitted = await questionIn(
+    const resubmitted = await questionAnswered(
       await postReviewAct(api, rejectedAndUnrestricted, "resubmit", authorToken),
     );
 
@@ -120,6 +121,15 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     expect(response.status).toBe(403);
   });
 
+  it("refuses a Reader resubmitting, and hides a Question they cannot see", async () => {
+    const hidden = await postReviewAct(api, rejectedAndUnrestricted, "resubmit", readerToken);
+    const seen = await postReviewAct(api, publishedAndUnrestricted, "resubmit", readerToken);
+
+    const nothing = await postReviewAct(api, unknownQuestionId, "resubmit", readerToken);
+    expect(await statusAndBody(hidden)).toBe(await statusAndBody(nothing));
+    expect(seen.status).toBe(403);
+  });
+
   it("refuses resubmitting a Question that is not Rejected", async () => {
     const response = await postReviewAct(api, pendingAndUnrestricted, "resubmit", authorToken);
 
@@ -133,7 +143,8 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     const events = await historyOf(api, rejectedAndUnrestricted, authorToken);
 
     const author = seededViewer("author").email;
-    expect(events.map(({ type, viewerEmail }) => [type, viewerEmail])).toEqual([
+    expect(events.at(-1)?.payload).toEqual({});
+    expect(whoDidWhat(events)).toEqual([
       ["question_edited", author],
       ["question_resubmitted", author],
     ]);
