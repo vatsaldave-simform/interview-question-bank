@@ -2,6 +2,7 @@ import {
   addQuestionRequestSchema,
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
+  questionPageRequestSchema,
   type ChangeEvent,
   type Question,
   type QuestionHistoryResponse,
@@ -15,8 +16,11 @@ import { requireRole } from "../auth/require-role.middleware.ts";
 import { addQuestion, editQuestion, listQuestions } from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
+  findOwnUnpublishedQuestions,
+  findPendingQuestionsForReview,
   findVisibleQuestionById,
   type QuestionFromDb,
+  type QuestionPage,
 } from "./questions.repository.ts";
 import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
 import { NotFoundError } from "../../platform/errors.ts";
@@ -35,6 +39,10 @@ function questionIdNamed(req: Request): string {
 /** The Question as the API answers with it: only the timestamp needs changing. */
 function toResponse(question: QuestionFromDb): Question {
   return { ...question, createdAt: question.createdAt.toISOString() };
+}
+
+function toListResponse(questions: QuestionFromDb[], page: QuestionPage): QuestionListResponse {
+  return { questions: questions.map(toResponse), limit: page.limit, offset: page.offset };
 }
 
 /** The Change Event as the API answers with it. The time is called what it is here: the
@@ -62,12 +70,26 @@ export function questionRoutes(database: Database): Router {
 
     const questions = await listQuestions(database, authenticatedViewer(req), request);
 
-    const body: QuestionListResponse = {
-      questions: questions.map(toResponse),
-      limit: request.limit,
-      offset: request.offset,
-    };
-    res.json(body);
+    res.json(toListResponse(questions, request));
+  });
+
+  // Both lists sit above `/:id`, which would otherwise read their names as ids.
+  router.get("/pending", requireRole("reviewer"), async (req, res) => {
+    const page = questionPageRequestSchema.parse(req.query);
+
+    const questions = await findPendingQuestionsForReview(database, authenticatedViewer(req), page);
+
+    res.json(toListResponse(questions, page));
+  });
+
+  // The roles that may add a Question: a Reader may add none, so they are refused rather
+  // than handed a list that is always empty.
+  router.get("/own", requireRole("author", "reviewer"), async (req, res) => {
+    const page = questionPageRequestSchema.parse(req.query);
+
+    const questions = await findOwnUnpublishedQuestions(database, authenticatedViewer(req), page);
+
+    res.json(toListResponse(questions, page));
   });
 
   router.get("/:id", async (req, res) => {

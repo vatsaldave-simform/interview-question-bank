@@ -1,4 +1,5 @@
-import { loginResponseSchema } from "@iqb/shared";
+import { loginResponseSchema, type ViewerRole } from "@iqb/shared";
+import { hashPassword } from "../../src/features/auth/password.ts";
 import { type SeedViewer } from "../../src/features/viewers/viewers.seed.ts";
 import type { TestApi } from "./test-api.ts";
 
@@ -30,4 +31,22 @@ export async function logIn(api: TestApi, viewer: SeedViewer): Promise<string> {
     throw new Error(`Logging in as ${viewer.email} failed with ${response.status}.`);
   }
   return loginResponseSchema.parse(await response.json()).accessToken;
+}
+
+/** Every seeded Viewer holds a Permission Grant, so a Viewer holding none is written
+ * straight to the database rather than created over HTTP by an Administrator. */
+export async function logInHoldingNoGrant(api: TestApi, role: ViewerRole): Promise<string> {
+  const credentials = {
+    email: `no-grant-${role}-${crypto.randomUUID()}@iqb.test`,
+    password: `no-grant-${role}-password`,
+    role,
+  };
+  await api.database.viewer.create({
+    data: {
+      email: credentials.email,
+      role,
+      passwordHash: await hashPassword(credentials.password),
+    },
+  });
+  return logIn(api, credentials);
 }

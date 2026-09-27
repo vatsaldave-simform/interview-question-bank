@@ -160,6 +160,21 @@ const tagValuesPerCategory = Object.fromEntries(
   categoryNames.map((name) => [name, tagValuesSchema.optional()]),
 ) as Record<CategoryName, z.ZodOptional<typeof tagValuesSchema>>;
 
+const pageFields = {
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(maxQuestionPageSize)
+    .default(defaultQuestionPageSize),
+  offset: z.coerce.number().int().min(0).default(0),
+};
+
+/** Strict, so a Tag or keywords sent to the Pending queue or an Author's own list are
+ * refused rather than quietly ignored. */
+export const questionPageRequestSchema = z.object(pageFields).strict();
+export type QuestionPageRequest = z.infer<typeof questionPageRequestSchema>;
+
 /**
  * The filter as a URL carries it: `?technology=typescript&technology=react&seniority=senior`,
  * with `&keywords=cache` to search as well. Repeats within one parameter are the OR and
@@ -177,13 +192,7 @@ export const listQuestionsRequestSchema = z
       .max(maxKeywordsLength)
       .optional()
       .transform((typed) => (typed === "" ? undefined : typed)),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(maxQuestionPageSize)
-      .default(defaultQuestionPageSize),
-    offset: z.coerce.number().int().min(0).default(0),
+    ...pageFields,
   })
   .strict();
 export type ListQuestionsRequest = z.infer<typeof listQuestionsRequestSchema>;

@@ -1,4 +1,10 @@
-import { questionResponseSchema, type CategoryName, type Viewer, type ViewerRole } from "@iqb/shared";
+import {
+  questionListResponseSchema,
+  questionResponseSchema,
+  type CategoryName,
+  type Viewer,
+  type ViewerRole,
+} from "@iqb/shared";
 import {
   bankVocabulary,
   seedBulkBank,
@@ -140,12 +146,44 @@ export async function clientIdNamed(database: Database, name: string): Promise<s
   return client.id;
 }
 
+const viewerFieldsToRead = {
+  id: true,
+  email: true,
+  role: true,
+  isAdministrator: true,
+  isDeactivated: true,
+} as const;
+
 /** The seeded Viewer of a role, in the shape the shared query function wants. */
 export function viewerByRole(database: Database, role: ViewerRole): Promise<Viewer> {
   return database.viewer.findUniqueOrThrow({
     where: { email: seededViewer(role).email },
-    select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
+    select: viewerFieldsToRead,
   });
+}
+
+/** A new Viewer holding exactly the Grants named, and no others. */
+export function aViewer(
+  database: Database,
+  role: ViewerRole,
+  grantedClientIds: readonly string[] = [],
+): Promise<Viewer> {
+  return database.viewer.create({
+    data: {
+      email: `${role}-${crypto.randomUUID()}@iqb.test`,
+      passwordHash: "not used by this test",
+      role,
+      permissionGrants: { create: grantedClientIds.map((clientId) => ({ clientId })) },
+    },
+    select: viewerFieldsToRead,
+  });
+}
+
+/** The ids of a list response, in the order it gave them. */
+export async function idsListed(response: Response): Promise<string[]> {
+  if (response.status !== 200) throw new Error(`The list answered ${response.status}.`);
+  const body = questionListResponseSchema.parse(await response.json());
+  return body.questions.map((question) => question.id);
 }
 
 /** Seeded Questions a test names by hand. The ids are fixed by `questions.seed.ts`. */
@@ -157,6 +195,10 @@ export const seededQuestionIds = {
   aboutTheClientsPipeline: "a0000000-0000-4000-8000-000000000002",
   /** Pending and unrestricted, so a Reader may not reach it and a Reviewer may. */
   aboutDisagreeing: "a0000000-0000-4000-8000-000000000003",
+  /** Rejected and unrestricted. */
+  aboutTwoPlusTwo: "a0000000-0000-4000-8000-000000000004",
+  /** Pending, and restricted to the first Client, whose Grant its Author holds. */
+  aboutTheClientsRendering: "a0000000-0000-4000-8000-000000000005",
   /** Published, and restricted to the second Client, so the Reviewer holds the Grant and
    * the Reader does not. The other way round from the pipeline one. */
   aboutTheOtherClientsBooking: "a0000000-0000-4000-8000-000000000006",
