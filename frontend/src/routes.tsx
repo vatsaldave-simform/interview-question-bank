@@ -9,6 +9,7 @@ import { RoleRequestQueue } from "@/features/role-requests/role-request-queue";
 import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerList } from "@/features/viewers/viewer-list";
 import { rootRoute } from "@/platform/root-route";
+import { useCurrentViewer } from "@/platform/current-viewer";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
@@ -41,6 +42,8 @@ const accountRoute = createRoute({
 });
 
 function AccountPage() {
+  // Asked on every visit, so the role shown here is the one held now.
+  useCurrentViewer();
   const session = useSession();
   // The shell renders nothing until there is a signed-in Viewer, so this is never shown.
   if (session.status !== "signed-in") return null;

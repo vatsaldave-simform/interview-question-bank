@@ -1,6 +1,6 @@
 import type { Question, Viewer } from "@iqb/shared";
 import { browsePageSize } from "@/features/questions/browse.schema";
-import { replaceSession } from "@/platform/session";
+import { currentSession, replaceSession } from "@/platform/session";
 import { aSignedInAuthor, answersWith, fakeApi, theCategories, type FakeApi } from "./fake-api";
 
 /** How a test answers the question list; `aPageOf` builds the usual answer. */
@@ -38,6 +38,11 @@ export function fakeBank(
     if (asked.pathname === "/api/clients/all") return answersWith({ clients: [] });
     if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: [] });
     if (asked.pathname === "/api/auth/logout") return new Response(null, { status: 204 });
+    if (asked.pathname === "/api/auth/me") {
+      const session = currentSession();
+      const viewer = session.status === "signed-in" ? session.viewer : aSignedInAuthor.viewer;
+      return answersWith({ viewer });
+    }
     return answersWith(aSignedInAuthor);
   });
 }

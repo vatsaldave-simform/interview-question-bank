@@ -27,6 +27,8 @@ const stateWording: Record<RoleRequestState, string> = {
 
 export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
   const mine = useMyRoleRequests();
+  // Here and not in the form, so a refusal stays on screen when the answer hides the form.
+  const raise = useRaiseRoleRequest();
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="my-role-request">
@@ -44,20 +46,35 @@ export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
           onRetry={() => void mine.refetch()}
         />
       ) : (
-        <>
-          {mine.data[0] === undefined ? (
-            <p className="text-muted-foreground text-sm">
-              You have not asked for a different role.
-            </p>
-          ) : (
-            <Latest roleRequest={mine.data[0]} />
-          )}
-          {/* The API refuses a second open one anyway; this only leaves out a form it would
-              refuse (ADR-0041). */}
-          {mine.data[0]?.state !== "open" && <RaiseRoleRequest heldRole={heldRole} />}
-        </>
+        <MineLoaded latest={mine.data[0]} heldRole={heldRole} raise={raise} />
+      )}
+      {raise.isError && (
+        <ActNotDone title="The Role Request was not sent." reason={whatWentWrong(raise.error)} />
       )}
     </section>
+  );
+}
+
+type Raise = ReturnType<typeof useRaiseRoleRequest>;
+
+type MineLoadedProps = {
+  /** The newest of the Viewer's Role Requests, if they have raised one. */
+  latest: RoleRequest | undefined;
+  heldRole: ViewerRole;
+  raise: Raise;
+};
+
+function MineLoaded({ latest, heldRole, raise }: MineLoadedProps) {
+  return (
+    <>
+      {latest === undefined ? (
+        <p className="text-muted-foreground text-sm">You have not asked for a different role.</p>
+      ) : (
+        <Latest roleRequest={latest} />
+      )}
+      {/* Hidden rather than offered, because the API refuses a second open one. */}
+      {latest?.state !== "open" && <RaiseRoleRequest heldRole={heldRole} raise={raise} />}
+    </>
   );
 }
 
@@ -79,42 +96,36 @@ function Latest({ roleRequest }: { roleRequest: RoleRequest }) {
   );
 }
 
-function RaiseRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
-  const raise = useRaiseRoleRequest();
+function RaiseRoleRequest({ heldRole, raise }: { heldRole: ViewerRole; raise: Raise }) {
   const others = viewerRoles.filter((role) => role !== heldRole);
   const [picked, setPicked] = useState<ViewerRole | null>(null);
   const role = picked ?? others[0];
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor="role-to-ask-for" className="text-sm">
-          Role to ask for
-        </label>
-        <NativeSelect
-          id="role-to-ask-for"
-          size="sm"
-          value={role}
-          onChange={(event) => setPicked(viewerRoleSchema.parse(event.target.value))}
-        >
-          {others.map((each) => (
-            <NativeSelectOption key={each} value={each}>
-              {roleWording[each]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={raise.isPending || role === undefined}
-          onClick={() => role !== undefined && raise.mutate({ role })}
-        >
-          Ask for this role
-        </Button>
-      </div>
-      {raise.isError && (
-        <ActNotDone title="The Role Request was not sent." reason={whatWentWrong(raise.error)} />
-      )}
+    <div className="flex flex-wrap items-center gap-2">
+      <label htmlFor="role-to-ask-for" className="text-sm">
+        Role to ask for
+      </label>
+      <NativeSelect
+        id="role-to-ask-for"
+        size="sm"
+        value={role}
+        onChange={(event) => setPicked(viewerRoleSchema.parse(event.target.value))}
+      >
+        {others.map((each) => (
+          <NativeSelectOption key={each} value={each}>
+            {roleWording[each]}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={raise.isPending || role === undefined}
+        onClick={() => role !== undefined && raise.mutate({ role })}
+      >
+        Ask for this role
+      </Button>
     </div>
   );
 }

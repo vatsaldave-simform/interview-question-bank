@@ -2,12 +2,11 @@ import {
   viewerListResponseSchema,
   viewerResponseSchema,
   type CreateViewerRequest,
-  type Viewer,
   type ViewerRole,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callApi } from "@/platform/api-client";
-import { currentSession, replaceSession } from "@/platform/session";
+import { followViewer } from "@/platform/session";
 
 export function useEveryViewer() {
   return useQuery({
@@ -26,8 +25,7 @@ export function useCreateViewer() {
   });
 }
 
-/** What an Administrator does to one Viewer from the console. */
-export type ViewerAct =
+type ViewerAct =
   | { act: "change-role"; role: ViewerRole }
   | { act: "appoint" }
   | { act: "withdraw" }
@@ -50,15 +48,6 @@ function requestFor(viewerId: string, act: ViewerAct) {
   }
 }
 
-/** So an Administrator who acts on themselves sees the change now, not when the session
- * next renews. */
-function followInSession(viewer: Viewer): void {
-  const session = currentSession();
-  if (session.status === "signed-in" && session.viewer.id === viewer.id) {
-    replaceSession({ ...session, viewer });
-  }
-}
-
 export function useActOnViewer(viewerId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -67,7 +56,7 @@ export function useActOnViewer(viewerId: string) {
       return callApi(path, viewerResponseSchema, sending);
     },
     onSuccess: ({ viewer }) => {
-      followInSession(viewer);
+      followViewer(viewer);
       return queryClient.invalidateQueries({ queryKey: ["viewers"] });
     },
   });

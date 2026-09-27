@@ -1,4 +1,4 @@
-import type { RoleRequest } from "@iqb/shared";
+import type { RoleRequest, ViewerRole } from "@iqb/shared";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,10 +29,16 @@ function aBankDeciding(
   open: RoleRequest[],
   refuse: (request: Request) => Response | undefined = () => undefined,
 ) {
+  // What the bank answers about the signed-in Administrator follows what it granted.
+  const rolesGranted = new Map<string, ViewerRole>();
   return fakeBank(
     (asked) => aPageOf([], asked),
     async (request, asked) => {
       if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: open });
+      if (asked.pathname === "/api/auth/me") {
+        const role = rolesGranted.get(anAdministrator.id) ?? anAdministrator.role;
+        return answersWith({ viewer: { ...anAdministrator, role } });
+      }
       const path = /^\/api\/role-requests\/([^/]+)\/decision$/.exec(asked.pathname);
       if (path === null) return undefined;
       const refused = refuse(request);
@@ -40,6 +46,9 @@ function aBankDeciding(
       const index = open.findIndex(({ id }) => id === path[1]);
       const decision = (await request.json()) as { outcome: "granted" | "denied"; reason?: string };
       const [decided] = open.splice(index, 1);
+      if (decided !== undefined && decision.outcome === "granted") {
+        rolesGranted.set(decided.viewer.id, decided.role);
+      }
       return answersWith({
         roleRequest: {
           ...decided,
@@ -115,20 +124,41 @@ describe("deciding a Role Request from the administration console", () => {
     expect(await sent!.json()).toEqual({ outcome: "denied", reason: "Not on a project yet." });
   });
 
-  it("reports the API's refusal of a decision on that Role Request alone", async () => {
-    aBankDeciding([fromReader, fromAuthor], (request) =>
-      request.url.includes(fromReader.id)
-        ? refusesWith(409, "conflict", "That Role Request has already been decided.")
-        : undefined,
-    );
+  it("asks again after a refusal, and keeps the refusal on screen", async () => {
+    const open = [fromReader, fromAuthor];
+    aBankDeciding(open, (request) => {
+      if (!request.url.includes(fromReader.id)) return undefined;
+      // Decided a moment ago by another Administrator.
+      open.splice(open.indexOf(fromReader), 1);
+      return refusesWith(409, "conflict", "That Role Request has already been decided.");
+    });
     renderTheWholeClient("/administration");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Grant" }));
 
-    const alert = within(await row.findByRole("alert"));
-    expect(alert.getByText("That was not done.")).toBeVisible();
+    const queue = within(screen.getByRole("region", { name: "Open Role Requests" }));
+    const alert = within(await queue.findByRole("alert"));
+    expect(alert.getByText("The Role Request from reader@iqb.test was not decided.")).toBeVisible();
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
-    expect((await rowFor("author@iqb.test")).queryByRole("alert")).not.toBeInTheDocument();
+    const table = within(queue.getByRole("table"));
+    await vi.waitFor(() => expect(table.queryByText("reader@iqb.test")).not.toBeInTheDocument());
+    expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
+  });
+
+  it("changes the header of an Administrator who grants their own Role Request", async () => {
+    const own = aRoleRequest({
+      viewer: { id: anAdministrator.id, email: anAdministrator.email },
+      role: "author",
+    });
+    aBankDeciding([own]);
+    renderTheWholeClient("/administration");
+
+    const header = within(await screen.findByRole("banner"));
+    expect(header.getByText("reviewer")).toBeVisible();
+    const row = await rowFor("reviewer@iqb.test");
+    await userEvent.click(row.getByRole("button", { name: "Grant" }));
+
+    expect(await header.findByText("author")).toBeVisible();
   });
 });

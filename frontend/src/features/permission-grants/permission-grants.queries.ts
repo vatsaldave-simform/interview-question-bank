@@ -15,8 +15,7 @@ export function useGrantsAgainst(clientId: string) {
   });
 }
 
-/** What an Administrator does to the Grants against one Client from the console. */
-export type GrantAct = { act: "issue" | "revoke"; viewerId: string };
+type GrantAct = { act: "issue" | "revoke"; viewerId: string };
 
 export function useActOnGrants(clientId: string) {
   const queryClient = useQueryClient();

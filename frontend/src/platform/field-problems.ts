@@ -41,7 +41,7 @@ export function focusFirstProblem(
 
 /** Why the API refused a form: on the fields it named, or as one message when it named
  * none of this form's. */
-export type FormRefusal<Field extends string> = {
+type FormRefusal<Field extends string> = {
   problems: FieldProblems<Field>;
   message: string | null;
 };

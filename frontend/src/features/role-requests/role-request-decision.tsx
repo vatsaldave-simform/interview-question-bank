@@ -7,7 +7,6 @@ import {
   refusalOf,
   type FieldProblems,
 } from "@/platform/field-problems";
-import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
 import { Field, FieldError, FieldLabel } from "@/ui/shadcn/field";
 import { Textarea } from "@/ui/shadcn/textarea";
@@ -18,20 +17,26 @@ const problemWording: Record<"reason", string> = {
   reason: "Say why, so they can act on it, in 2,000 characters or fewer.",
 };
 
-export function RoleRequestDecision({ roleRequestId }: { roleRequestId: string }) {
+type RoleRequestDecisionProps = {
+  roleRequestId: string;
+  /** Told the API's refusal, or null when a new decision starts. The queue shows it, because
+   * the queue is asked again after a refusal and this row may leave it. */
+  onRefusal: (message: string | null) => void;
+};
+
+export function RoleRequestDecision({ roleRequestId, onRefusal }: RoleRequestDecisionProps) {
   const decide = useDecideRoleRequest(roleRequestId);
   const [denying, setDenying] = useState(false);
   const [problems, setProblems] = useState<Problems>({});
-  const [refusal, setRefusal] = useState<string | null>(null);
   const reasonId = `deny-reason-${roleRequestId}`;
 
   function send(decision: DecideRoleRequestRequest, form?: HTMLFormElement): void {
-    setRefusal(null);
+    onRefusal(null);
     decide.mutate(decision, {
       onError: (reason) => {
         const refused = refusalOf(problemWording, reason);
         setProblems(refused.problems);
-        setRefusal(refused.message);
+        if (refused.message !== null) onRefusal(refused.message);
         if (form !== undefined) focusFirstProblem(form, refused.problems);
       },
     });
@@ -80,6 +85,7 @@ export function RoleRequestDecision({ roleRequestId }: { roleRequestId: string }
               onClick={() => {
                 setDenying(false);
                 setProblems({});
+                onRefusal(null);
               }}
             >
               Cancel
@@ -96,12 +102,16 @@ export function RoleRequestDecision({ roleRequestId }: { roleRequestId: string }
           >
             Grant
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setDenying(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={decide.isPending}
+            onClick={() => setDenying(true)}
+          >
             Deny
           </Button>
         </div>
       )}
-      {refusal !== null && <ActNotDone title="That was not done." reason={refusal} />}
     </div>
   );
 }
