@@ -44,7 +44,7 @@ const waiting = aQuestion({
  * Refuses a publication as the API does when detection finds a Near-Duplicate, unless it
  * carries the Reviewer's word that the Question is different, in which case it is Published.
  */
-function aBankThatFindsAMatch(): FakeApi {
+function aBankThatFindsANearDuplicate(): FakeApi {
   const pending: Question[] = [waiting];
   return fakeBank(
     (asked) => aPageOf([], asked),
@@ -79,8 +79,8 @@ async function publishFromTheQueue(): Promise<void> {
 }
 
 describe("a Near-Duplicate found at publication", () => {
-  it("is shown with the matches, each a link to the Question it names", async () => {
-    aBankThatFindsAMatch();
+  it("is shown with each Near-Duplicate as a link to the Question it names", async () => {
+    aBankThatFindsANearDuplicate();
 
     await publishFromTheQueue();
 
@@ -90,14 +90,15 @@ describe("a Near-Duplicate found at publication", () => {
         "This Question closely resembles one already in the bank or waiting to be reviewed.",
       ),
     ).toBeVisible();
-    const match = dialog.getByRole("link", { name: found.nearDuplicates[0]!.text });
-    expect(match).toHaveAttribute("href", `/questions/${found.nearDuplicates[0]!.questionId}`);
+    const [first] = found.nearDuplicates;
+    const nearDuplicate = dialog.getByRole("link", { name: first!.text });
+    expect(nearDuplicate).toHaveAttribute("href", `/questions/${first!.questionId}`);
     expect(dialog.getByText("62% alike")).toBeVisible();
     expect(screen.queryByText(`"${waiting.text}" was not Published.`)).not.toBeInTheDocument();
   });
 
   it("leaves the Question Pending, and sends nothing more, when the Reviewer says so", async () => {
-    const api = aBankThatFindsAMatch();
+    const api = aBankThatFindsANearDuplicate();
     await publishFromTheQueue();
 
     const dialog = within(await screen.findByRole("dialog"));
@@ -109,11 +110,11 @@ describe("a Near-Duplicate found at publication", () => {
   });
 
   it("publishes it with the Reviewer's word that it is different", async () => {
-    const api = aBankThatFindsAMatch();
+    const api = aBankThatFindsANearDuplicate();
     await publishFromTheQueue();
 
     const dialog = within(await screen.findByRole("dialog"));
-    await userEvent.click(dialog.getByRole("button", { name: "It is different, publish it" }));
+    await userEvent.click(dialog.getByRole("button", { name: "It is different, Publish it" }));
 
     expect(await screen.findByText("No Question is waiting for review.")).toBeVisible();
     const [first, again] = publicationsSent(api);

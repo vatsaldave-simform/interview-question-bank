@@ -48,15 +48,12 @@ export function ReasonForm(props: ReasonFormProps) {
       return;
     }
     setProblems({});
-    try {
-      await onSend(checked.data);
-    } catch (reason) {
-      if (!(reason instanceof Error)) throw reason;
+    await onSend(checked.data).catch((reason: Error) => {
       const refused = refusalOf(problemWording, reason);
       setProblems(refused.problems);
       if (refused.message !== null) onRefusal(refused.message);
       focusFirstProblem(form, refused.problems);
-    }
+    });
   }
 
   return (

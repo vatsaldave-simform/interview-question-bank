@@ -182,7 +182,7 @@ describe("the acts on the Question page", () => {
     const found: NearDuplicatesFound = {
       nearDuplicates: [{ questionId: published.id, text: published.text, similarity: 0.7 }],
     };
-    aBankHolding([pending], async (request) => {
+    const api = aBankHolding([pending], async (request) => {
       const sent = (await request.clone().json()) as { confirmedNotANearDuplicate?: boolean };
       return sent.confirmedNotANearDuplicate === false
         ? refusesWith(409, "conflict", "This Question closely resembles one.", found)
@@ -192,9 +192,12 @@ describe("the acts on the Question page", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Publish" }));
     const dialog = within(await screen.findByRole("dialog"));
-    await userEvent.click(dialog.getByRole("button", { name: "It is different, publish it" }));
+    expect(dialog.getByRole("link", { name: published.text })).toBeVisible();
+    await userEvent.click(dialog.getByRole("button", { name: "It is different, Publish it" }));
 
     expect(await screen.findByText("Published")).toBeVisible();
     expect(screen.getByRole("button", { name: "Return to its Author" })).toBeVisible();
+    const [, again] = actsSent(api, "/publish");
+    expect(await again!.json()).toEqual({ confirmedNotANearDuplicate: true });
   });
 });

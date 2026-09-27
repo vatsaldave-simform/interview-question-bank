@@ -3,6 +3,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
+import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
@@ -52,8 +53,9 @@ function aBankReviewing(
       if (path === null || request.method !== "POST") return undefined;
       const refused = refuse(request);
       if (refused !== undefined) return refused;
-      const index = pending.findIndex(({ id }) => id === path[1]);
-      const [moved] = pending.splice(index, 1);
+      const moved = pending.find(({ id }) => id === path[1]);
+      if (moved === undefined) throw new Error(`The queue does not hold ${path[1]}.`);
+      pending.splice(pending.indexOf(moved), 1);
       const sent = (await request.json()) as { reason?: string };
       return answersWith({
         question: {
@@ -128,6 +130,43 @@ describe("publishing from the review queue", () => {
     const alert = within(await screen.findByRole("alert"));
     expect(alert.getByText("Only a Reviewer may do that.")).toBeVisible();
     expect(card.getByText(waiting.text)).toBeVisible();
+  });
+});
+
+describe("a refusal shown above the queue", () => {
+  const refusedWith = () => refusesWith(403, "forbidden", "Only a Reviewer may do that.");
+
+  it("stays when another Question's reason box is cancelled", async () => {
+    aBankReviewing([waiting, alsoWaiting], refusedWith);
+    renderTheWholeClient("/review");
+
+    await userEvent.click((await cardFor(waiting.text)).getByRole("button", { name: "Publish" }));
+    await screen.findByText(`"${waiting.text}" was not Published.`);
+    const other = await cardFor(alsoWaiting.text);
+    await userEvent.click(other.getByRole("button", { name: "Reject" }));
+    await userEvent.click(other.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText(`"${waiting.text}" was not Published.`)).toBeVisible();
+  });
+
+  it("goes when the Reviewer moves to another page", async () => {
+    const aFullPage = Array.from({ length: questionPageSize }, (_, index) =>
+      aQuestion({
+        id: `a0000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        text: `Pending number ${index + 1}`,
+        publicationState: "pending",
+      }),
+    );
+    aBankReviewing(aFullPage, refusedWith);
+    renderTheWholeClient("/review");
+
+    const first = await cardFor("Pending number 1");
+    await userEvent.click(first.getByRole("button", { name: "Publish" }));
+    await screen.findByText(`"Pending number 1" was not Published.`);
+    await userEvent.click(screen.getByRole("button", { name: "Next page" }));
+
+    await vi.waitFor(() => expect(window.location.search).toBe(`?offset=${questionPageSize}`));
+    expect(screen.queryByText(`"Pending number 1" was not Published.`)).not.toBeInTheDocument();
   });
 });
 

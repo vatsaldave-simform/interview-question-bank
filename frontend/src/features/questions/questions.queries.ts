@@ -109,8 +109,7 @@ export function useEditQuestion(id: string) {
   });
 }
 
-/** The acts that move a Question from one Publication State to another, and what each sends. */
-export type QuestionMove =
+export type PublicationMove =
   | { act: "publish"; request: PublishQuestionRequest }
   | { act: "reject"; request: RejectQuestionRequest }
   | { act: "return"; request: ReturnQuestionRequest }
@@ -119,7 +118,7 @@ export type QuestionMove =
 export function useMoveQuestion(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (move: QuestionMove) =>
+    mutationFn: (move: PublicationMove) =>
       callApi(`/api/questions/${encodeURIComponent(id)}/${move.act}`, questionResponseSchema, {
         method: "POST",
         body: "request" in move ? move.request : undefined,
@@ -127,6 +126,12 @@ export function useMoveQuestion(id: string) {
     onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
     // After a refusal too, because a 409 means someone else moved it first, and every list
     // holding it is out of date either way.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["questions"] }),
+    onSettled: (answer) =>
+      queryClient.invalidateQueries({
+        queryKey: ["questions"],
+        // An answer is the Question as it now is, so it is not asked for again.
+        predicate: ({ queryKey }) =>
+          answer === undefined || queryKey[1] !== "one" || queryKey[2] !== id,
+      }),
   });
 }
