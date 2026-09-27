@@ -66,6 +66,8 @@ function whatHappened(event: ChangeEvent): string {
       return `Rejected this Question: ${event.payload.reason}`;
     case "question_resubmitted":
       return "resubmitted this Question";
+    case "question_returned":
+      return `returned this Question to its Author: ${event.payload.reason}`;
     case "near_duplicate_overridden": {
       const { nearDuplicates } = event.payload;
       return `confirmed this Question is different from ${nearDuplicatesWording(nearDuplicates)}`;
