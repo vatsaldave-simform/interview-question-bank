@@ -134,8 +134,8 @@ pnpm db:seed:bulk 10000 mine # ...from a seed value of your own
 ```
 
 Everything about the bank comes from that seed value rather than from chance: which Tags
-a Question carries, whether it is restricted to the first Client, its Publication State, when
-it was created. So the same value writes the same bank every time, and you can compare
+a Question carries, whether it is restricted to the first Client, when it was created. Every
+one of them is Published. So the same value writes the same bank every time, and you can compare
 one timing against another. Ask for fewer Questions and you get part of that same bank,
 not a squeezed copy of it.
 
@@ -194,18 +194,22 @@ pnpm db:seed:bulk                             # 10,000 Questions
 pnpm db:measure:plans ten-thousand-questions  # rewrites the committed capture
 ```
 
-At ten thousand Questions, **every plan uses an index, none reads the whole table, and
-nothing takes longer than 7.3ms**:
+At ten thousand Published Questions, **every plan uses an index, none reads the whole
+table, and nothing takes longer than 5.9ms**:
 
 | scenario | ms | pages | driven by |
 | --- | ---: | ---: | --- |
-| a broad keyword, no Category | 5.45 | 1,052 | the search vector index |
-| a narrow keyword, no Category | 2.21 | 556 | the search vector index |
-| two keywords, no Category | 1.45 | 264 | the search vector index |
-| a broad keyword and a common Tag | 5.69 | 1,076 | both |
-| a broad keyword and a rare Tag | 2.40 | 898 | `question_tags` |
-| a broad keyword and two Categories | 7.33 | 1,117 | both |
-| a broad keyword, a deep page | 7.26 | 1,052 | the search vector index |
+| a broad keyword, no Category | 4.76 | 1,052 | the search vector index |
+| a narrow keyword, no Category | 1.93 | 557 | the search vector index |
+| two keywords, no Category | 2.17 | 334 | the search vector index |
+| a broad keyword and a common Tag | 4.80 | 1,081 | both |
+| a broad keyword and a rare Tag | 1.79 | 898 | `question_tags` |
+| a broad keyword and two Categories | 5.85 | 1,122 | both |
+| a broad keyword, a deep page | 5.67 | 1,052 | the search vector index |
+
+The bulk bank is all Published, because that is what a Reader's query filters on. The
+Reader's Publication State check is still in every one of these statements; it just has
+nothing in the bulk bank to throw away, which is what a Reader's bank looks like.
 
 The planner chooses which index drives the query from how selective each half is, and
 dropping either one takes a strategy away. **No index was added in response**: the two the
@@ -213,29 +217,31 @@ query needs were already there, and the obvious candidate was built, measured an
 down. ADR-0029 has the numbers.
 
 A broad keyword does read every page of the questions table, through a bitmap heap scan
-rather than a sequential scan. That is not a missing index — a word carried by two
-Questions in five means reading two Questions in five.
+rather than a sequential scan. That is not a missing index — a word carried by half the
+bank means reading half the bank.
 
 **Where the limit-and-offset ceiling sits.** Not where ADR-0011 put it for the list. A
 filtered list can stop as soon as it has filled a page, and `OFFSET` takes that away: the
 last page of a long result cost 12x the first. The search can never stop early, because
 the order is relevance and relevance is only known once every match has been ranked. So
-the first page and a page two thousand rows in run the same scan of 3,884 rows and differ
+the first page and a page two thousand rows in run the same scan of 4,933 rows and differ
 only in the sort:
 
 ```
 first page:   Sort Method: top-N heapsort  Memory: 31kB
-offset 2000:  Sort Method: quicksort       Memory: 370kB
+offset 2000:  Sort Method: top-N heapsort  Memory: 436kB
 ```
 
-That is 1.3x, not 12x. **Why it was not paid for**: keyset pagination is the usual answer
+That is 1.2x, not 12x. **Why it was not paid for**: keyset pagination is the usual answer
 to a deep `OFFSET`, and it would buy nothing here. It replaces "skip 2,000 rows" with
 "start after this row", which needs an order an index can walk. `ts_rank` is computed per
 row, so there is no such index and no such cursor. The cost is the ranking, and every page
 pays it.
 
-Timings are from one machine and move by a few tenths of a millisecond between runs; the
-page counts do not, which is why they are the column to read. Everything here is local, by
+Timings are from one machine and move by a few tenths of a millisecond between runs. The
+page counts do not move between runs against one database, which is why they are the column
+to read. Against a freshly built bank, the two plans that drive from `question_tags` can
+land up to five pages either side. Everything here is local, by
 ADR-0012 — the deployment is never timed.
 
 ## Near-duplicate detection
