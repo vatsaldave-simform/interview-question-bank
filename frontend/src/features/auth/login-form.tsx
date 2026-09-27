@@ -1,6 +1,6 @@
 import { loginRequestSchema, type LoginRequest } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
-import { focusFirstProblem, problemsIn, type FieldProblems } from "@/features/auth/field-problems";
+import { focusFirstProblem, problemsIn, type FieldProblems } from "@/platform/field-problems";
 import { signIn } from "@/features/auth/sign-in";
 import { ApiFailure } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";

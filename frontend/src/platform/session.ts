@@ -41,6 +41,13 @@ export function useSession(): Session {
   return useSyncExternalStore(watch, currentSession, currentSession);
 }
 
+/** So a change to the signed-in Viewer shows now, not when the session next renews. */
+export function followViewer(viewer: Viewer): void {
+  if (session.status === "signed-in" && session.viewer.id === viewer.id) {
+    replaceSession({ ...session, viewer });
+  }
+}
+
 /** What the API client puts in the authorization header, and null when there is nothing
  * to put there. */
 export function accessToken(): string | null {

@@ -1,6 +1,6 @@
 import { passwordResetRequestSchema, type PasswordResetRequest } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
-import { focusFirstProblem, problemsIn, type FieldProblems } from "@/features/auth/field-problems";
+import { focusFirstProblem, problemsIn, type FieldProblems } from "@/platform/field-problems";
 import { useAskForPasswordLink } from "@/features/auth/password-link.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";

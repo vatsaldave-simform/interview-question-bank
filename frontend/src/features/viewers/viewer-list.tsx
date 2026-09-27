@@ -1,3 +1,5 @@
+import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
+import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import {
@@ -17,6 +19,7 @@ export function ViewerList() {
       <h2 id="viewers" className="font-medium">
         Viewers
       </h2>
+      <CreateViewerForm />
       {viewers.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Viewers…
@@ -35,6 +38,7 @@ export function ViewerList() {
               <TableHead>Role</TableHead>
               <TableHead>Administrator</TableHead>
               <TableHead>Account</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -45,6 +49,9 @@ export function ViewerList() {
                 <TableCell>{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
                 <TableCell className={viewer.isDeactivated ? "text-muted-foreground" : ""}>
                   {viewer.isDeactivated ? "Deactivated" : "Active"}
+                </TableCell>
+                <TableCell>
+                  <ViewerActs viewer={viewer} />
                 </TableCell>
               </TableRow>
             ))}
