@@ -3,6 +3,7 @@ import {
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
   questionPageRequestSchema,
+  rejectQuestionRequestSchema,
   type ChangeEvent,
   type Question,
   type QuestionHistoryResponse,
@@ -13,7 +14,14 @@ import { Router, type Request } from "express";
 import { z } from "zod";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireRole } from "../auth/require-role.middleware.ts";
-import { addQuestion, editQuestion, listQuestions } from "./questions.service.ts";
+import {
+  addQuestion,
+  editQuestion,
+  listQuestions,
+  publishQuestion,
+  rejectQuestion,
+  resubmitQuestion,
+} from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
   findOwnUnpublishedQuestions,
@@ -122,6 +130,35 @@ export function questionRoutes(database: Database): Router {
     const request = editQuestionRequestSchema.parse(req.body);
 
     const question = await editQuestion(database, authenticatedViewer(req), id, request);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  // No `requireRole` on any of these, for the reason the edit route has none.
+  router.post("/:id/publish", async (req, res) => {
+    const id = questionIdNamed(req);
+
+    const question = await publishQuestion(database, authenticatedViewer(req), id);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/reject", async (req, res) => {
+    const id = questionIdNamed(req);
+    const { reason } = rejectQuestionRequestSchema.parse(req.body);
+
+    const question = await rejectQuestion(database, authenticatedViewer(req), id, reason);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/resubmit", async (req, res) => {
+    const id = questionIdNamed(req);
+
+    const question = await resubmitQuestion(database, authenticatedViewer(req), id);
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.json(body);

@@ -57,6 +57,8 @@ export const questionSchema = z
     authorId: z.uuid(),
     clientId: z.uuid().nullable(),
     publicationState: publicationStateSchema,
+    /** Why it was Rejected, and null again once it is resubmitted or Published. */
+    reason: z.string().nullable(),
     provenance: provenanceSchema,
     source: z.string().nullable(),
     tags: z.array(questionTagSchema),
@@ -104,6 +106,12 @@ export const editQuestionRequestSchema = z
     message: "An edit names at least one of text, answerNotes or tags.",
   });
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
+
+/** Required, because the reason is what the Author reads to put the Question right (ADR-0013). */
+export const rejectQuestionRequestSchema = z
+  .object({ reason: z.string().trim().min(1).max(2_000) })
+  .strict();
+export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
 
 /**
  * How alike two Questions' text has to be before one counts as a Near-Duplicate of the

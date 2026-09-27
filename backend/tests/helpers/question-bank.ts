@@ -1,7 +1,10 @@
 import {
+  questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
   type CategoryName,
+  type ChangeEvent,
+  type Question,
   type Viewer,
   type ViewerRole,
 } from "@iqb/shared";
@@ -16,7 +19,7 @@ import { seedQuestionBank } from "../../src/features/questions/questions.seed.ts
 import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../../src/platform/database.ts";
 import { seededViewer } from "./auth.ts";
-import type { TestApi } from "./test-api.ts";
+import { statusAndBody, type TestApi } from "./test-api.ts";
 import { truncateAll } from "./test-database.ts";
 
 /** An empty database filled with the fixtures, in the order the dependencies run. */
@@ -282,4 +285,43 @@ export function aQuestion(overrides: Record<string, unknown> = {}): Record<strin
     provenance: "original",
     ...overrides,
   };
+}
+
+/** What a Viewer may do to a Question's Publication State, each its own endpoint. */
+export type ReviewAct = "publish" | "reject" | "resubmit";
+
+/** A review request itself, for a test that wants to read the response it got. */
+export function postReviewAct(
+  api: TestApi,
+  id: string,
+  act: ReviewAct,
+  token: string,
+  body: unknown = {},
+): Promise<Response> {
+  return api.request(`/api/questions/${id}/${act}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+}
+
+/** A Question's history as the API answers with it, for a test whose subject is what was
+ * recorded rather than the reading. */
+export async function historyOf(api: TestApi, id: string, token: string): Promise<ChangeEvent[]> {
+  const response = await api.request(`/api/questions/${id}/history`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (response.status !== 200) throw new Error(`Reading ${id} failed with ${response.status}.`);
+  return questionHistoryResponseSchema.parse(await response.json()).events;
+}
+
+/** The Question a response carries, failing loudly with the status and body otherwise. */
+export async function questionAnswered(response: Response): Promise<Question> {
+  if (response.status !== 200) throw new Error(`Answered ${await statusAndBody(response)}.`);
+  return questionResponseSchema.parse(await response.json()).question;
+}
+
+/** Each event as what happened and who did it, which is what most history tests compare. */
+export function whoDidWhat(events: readonly ChangeEvent[]): [string, string][] {
+  return events.map(({ type, viewerEmail }) => [type, viewerEmail]);
 }

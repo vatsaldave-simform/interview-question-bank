@@ -207,6 +207,8 @@ model Question {
   // silently declassify every Question restricted to it (ADR-0017).
   client           Client?          @relation(fields: [clientId], references: [id], onDelete: Restrict)
   publicationState PublicationState @default(pending)
+  /// Cleared on Publish or resubmit; the Change Events keep every earlier one.
+  reason           String?
   provenance       Provenance
   /// Named in the Author's own words, so free text rather than a link or a Tag.
   source           String?
@@ -266,6 +268,9 @@ enum ChangeEventType {
   viewer_reactivated
   role_request_granted
   role_request_denied
+  question_published
+  question_rejected
+  question_resubmitted
 }
 
 /// An append-only record of something that happened to the bank, naming who did it and

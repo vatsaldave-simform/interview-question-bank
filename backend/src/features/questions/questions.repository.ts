@@ -18,6 +18,7 @@ import {
   insertChangeEvent,
   toChangeEventFromDb,
   type ChangeEventFromDb,
+  type NewChangeEvent,
 } from "../change-events/change-events.repository.ts";
 import type { Database } from "../../platform/database.ts";
 
@@ -29,6 +30,7 @@ export type QuestionFromDb = {
   authorId: string;
   clientId: string | null;
   publicationState: PublicationState;
+  reason: string | null;
   provenance: Provenance;
   source: string | null;
   tags: { category: CategoryName; tag: string }[];
@@ -66,6 +68,7 @@ const questionFieldsToRead = {
   authorId: true,
   clientId: true,
   publicationState: true,
+  reason: true,
   provenance: true,
   source: true,
   createdAt: true,
@@ -266,7 +269,7 @@ export function searchStatement(
        LIMIT ${limit} OFFSET ${offset}
     )
     SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
-           q."publicationState", q.provenance, q.source, q."createdAt",
+           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
       FROM matched
       JOIN questions q ON q.id = matched.id
@@ -496,6 +499,55 @@ export async function updateVisibleQuestion(
       });
     }
     return after;
+  });
+}
+
+/** Each names the state it starts from, so the same act twice finds nothing to move the
+ * second time. */
+export type PublicationMove =
+  | { from: "pending"; to: "published" }
+  | { from: "pending"; to: "rejected"; reason: string }
+  | { from: "rejected"; to: "pending" };
+
+function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
+  switch (move.to) {
+    case "published":
+      return { type: "question_published", questionId, viewerId: viewer.id, payload: {} };
+    case "rejected":
+      return {
+        type: "question_rejected",
+        questionId,
+        viewerId: viewer.id,
+        payload: { reason: move.reason },
+      };
+    case "pending":
+      return { type: "question_resubmitted", questionId, viewerId: viewer.id, payload: {} };
+  }
+}
+
+/** Null when nothing moved, and the state is in the `where`, so of two moves at once only
+ * one finds the row and only one Change Event is written. */
+export async function moveVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  move: PublicationMove,
+): Promise<QuestionFromDb | null> {
+  return database.$transaction(async (transaction) => {
+    const { count } = await transaction.question.updateMany({
+      where: { AND: [{ id }, visibleQuestions(viewer), { publicationState: move.from }] },
+      data: { publicationState: move.to, reason: move.to === "rejected" ? move.reason : null },
+    });
+    if (count === 0) return null;
+
+    await insertChangeEvent(transaction, eventFor(move, id, viewer));
+
+    // By id, because a Permission Grant revoked since the write would hide the committed move.
+    const moved = await transaction.question.findUniqueOrThrow({
+      where: { id },
+      select: questionFieldsToRead,
+    });
+    return toQuestionFromDb(moved);
   });
 }
 

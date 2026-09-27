@@ -52,11 +52,12 @@ The authenticated person a request acts as. Every request has exactly one; there
 _Avoid_: user, actor, principal, requester
 
 **Author**:
-A Viewer who may add Questions and edit the ones they added.
+A Viewer who may add Questions and edit the ones they added. They may withdraw their own Pending
+Question by Rejecting it, and resubmit their own Rejected one.
 
 **Reviewer**:
-A Viewer who may edit any Question that is Visible to them, and who alone decides a Question's
-Publication State or removes its Client restriction.
+A Viewer who may edit any Question that is Visible to them, and who alone Publishes a Question,
+Rejects another Viewer's, or removes its Client restriction.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
@@ -108,5 +109,6 @@ _Avoid_: duplicate, similar question, match
 
 **Change Event**:
 An append-only record of something that happened to the bank — a Question submitted, edited,
-Published or Rejected, or a submission refused as a Near-Duplicate — carrying who did it and when.
+Published, Rejected or resubmitted, or a submission refused as a Near-Duplicate — carrying who
+did it and when.
 _Avoid_: audit log, history entry, revision, version

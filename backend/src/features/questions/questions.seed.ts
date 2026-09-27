@@ -20,6 +20,7 @@ export type SeedQuestion = {
   /** The Client this Question is restricted to; absent for one in the open bank. */
   restrictedTo?: SeedClient;
   publicationState: PublicationState;
+  reason?: string;
   provenance: Provenance;
   source?: string;
   tags: readonly SeedTagReference[];
@@ -98,6 +99,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     answerNotes: "None worth recording.",
     authorEmail: seedAuthorEmail,
     publicationState: "rejected",
+    reason: "Nobody learns anything about a candidate from this.",
     provenance: "original",
     tags: [{ category: "seniority", tag: "junior" }],
   },
@@ -183,6 +185,7 @@ export async function seedQuestionBank(database: Database): Promise<void> {
         authorId: author.id,
         ...(client === null ? {} : { clientId: client.id }),
         publicationState: question.publicationState,
+        ...(question.reason === undefined ? {} : { reason: question.reason }),
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
         tags: { create: question.tags.map((reference) => ({ tagId: tagId(tagIds, reference) })) },
