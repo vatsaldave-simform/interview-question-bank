@@ -1,5 +1,6 @@
-import type { Question } from "@iqb/shared";
+import type { NearDuplicate, Question } from "@iqb/shared";
 import { useState } from "react";
+import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { useMoveQuestion } from "@/features/questions/questions.queries";
 import { ReasonForm } from "@/features/questions/reason-form";
 import { whatWentWrong } from "@/platform/api-client";
@@ -15,24 +16,47 @@ type ActProps = {
   onRefusal: (refused: ActRefused | null) => void;
 };
 
+type RefusedAsNearDuplicate = { message: string; nearDuplicates: NearDuplicate[] };
+
 export function PublishButton({ question, onRefusal }: ActProps) {
   const move = useMoveQuestion(question.id);
+  const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
+    useState<RefusedAsNearDuplicate | null>(null);
 
-  function publish(): void {
+  function publish(confirmedNotANearDuplicate: boolean): void {
     onRefusal(null);
+    setRefusedAsNearDuplicate(null);
     move.mutate(
-      { act: "publish", request: { confirmedNotANearDuplicate: false } },
+      { act: "publish", request: { confirmedNotANearDuplicate } },
       {
-        onError: (reason) =>
-          onRefusal({ notDone: "was not Published", message: whatWentWrong(reason) }),
+        onError: (reason) => {
+          const nearDuplicates = nearDuplicatesIn(reason);
+          if (nearDuplicates !== null) {
+            setRefusedAsNearDuplicate({ message: reason.message, nearDuplicates });
+            return;
+          }
+          onRefusal({ notDone: "was not Published", message: whatWentWrong(reason) });
+        },
       },
     );
   }
 
   return (
-    <Button size="sm" disabled={move.isPending} onClick={publish}>
-      Publish
-    </Button>
+    <>
+      <Button size="sm" disabled={move.isPending} onClick={() => publish(false)}>
+        Publish
+      </Button>
+      {refusedAsNearDuplicate !== null && (
+        <NearDuplicateDialog
+          message={refusedAsNearDuplicate.message}
+          nearDuplicates={refusedAsNearDuplicate.nearDuplicates}
+          cancelLabel="Leave it Pending"
+          submitAnywayLabel="It is different, publish it"
+          onCancel={() => setRefusedAsNearDuplicate(null)}
+          onSubmitAnyway={() => publish(true)}
+        />
+      )}
+    </>
   );
 }
 

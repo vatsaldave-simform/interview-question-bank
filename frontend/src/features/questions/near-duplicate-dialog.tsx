@@ -21,18 +21,22 @@ type NearDuplicateDialogProps = {
   /** The API's own words for why it refused, shown as it sent them. */
   message: string;
   nearDuplicates: readonly NearDuplicate[];
-  /** What sending it anyway does, in the button's words: adding it, or saving an edit. */
+  /** What going back does, in the button's words: changing the text, or leaving it Pending. */
+  cancelLabel: string;
+  /** What sending it anyway does, in the button's words: adding it, saving an edit, or
+   * Publishing it. */
   submitAnywayLabel: string;
-  onChangeIt: () => void;
+  onCancel: () => void;
   onSubmitAnyway: () => void;
 };
 
-/** Only the Viewer who wrote the text may overrule detection, so the client offers the
- * choice and never makes it (ADR-0014). */
+/** Only the Viewer acting may overrule detection, whether they wrote the text or are
+ * Publishing it, so the client offers the choice and never makes it (ADR-0014). */
 export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
-  const { message, nearDuplicates, submitAnywayLabel, onChangeIt, onSubmitAnyway } = props;
+  const { message, nearDuplicates, cancelLabel, submitAnywayLabel, onCancel, onSubmitAnyway } =
+    props;
   return (
-    <Dialog open onOpenChange={(open) => !open && onChangeIt()}>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>This may already be in the bank</DialogTitle>
@@ -41,7 +45,7 @@ export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
         <ul className="flex flex-col gap-3">
           {nearDuplicates.map(({ questionId, text, similarity }) => (
             <li key={questionId} className="flex flex-col gap-0.5 text-sm">
-              {/* A new tab, so reading a Near-Duplicate does not throw away the form. */}
+              {/* A new tab, so reading a Near-Duplicate loses nothing on this screen. */}
               <Link
                 to="/questions/$questionId"
                 params={{ questionId }}
@@ -56,8 +60,8 @@ export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
           ))}
         </ul>
         <DialogFooter>
-          <Button variant="outline" onClick={onChangeIt}>
-            Change my Question
+          <Button variant="outline" onClick={onCancel}>
+            {cancelLabel}
           </Button>
           <Button onClick={onSubmitAnyway}>{submitAnywayLabel}</Button>
         </DialogFooter>
