@@ -1,6 +1,8 @@
 import { createRoute, createRouter } from "@tanstack/react-router";
 import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
+import { ClientList } from "@/features/clients/client-list";
+import { ClientGrants } from "@/features/permission-grants/client-grants";
 import { questionRoutes } from "@/features/questions/questions.routes";
 import { ViewerList } from "@/features/viewers/viewer-list";
 import { rootRoute } from "@/platform/root-route";
@@ -20,6 +22,7 @@ function AdministrationConsole() {
     <div className="flex flex-col gap-8">
       <h1 className="text-xl font-medium">Administration</h1>
       <ViewerList />
+      <ClientList detail={(client) => <ClientGrants clientId={client.id} />} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { ListNotLoaded } from "@/features/viewers/list-not-loaded";
 import { useViewerList } from "@/features/viewers/viewers.queries";
+import { ListNotLoaded } from "@/ui/list-not-loaded";
 import {
   Table,
   TableBody,

@@ -1,4 +1,4 @@
-import type { CategoryListResponse, Question, Viewer } from "@iqb/shared";
+import type { CategoryListResponse, Client, Question, Viewer } from "@iqb/shared";
 import { vi, type Mock } from "vitest";
 
 /** Only ever used to turn the client's relative path into something a `Request` will
@@ -79,6 +79,11 @@ export const anAdministrator = aViewer({
   role: "reviewer",
   isAdministrator: true,
 });
+
+/** A Client in the shape the API sends one, changed where a test says so. */
+export function aClient(changes: Partial<Client> = {}): Client {
+  return { id: "c0000000-0000-4000-8000-000000000001", name: "Northwind Trading", ...changes };
+}
 
 /** A Question in the shape the API sends one, changed where a test says so. */
 export function aQuestion(changes: Partial<Question> = {}): Question {

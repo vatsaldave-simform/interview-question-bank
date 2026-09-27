@@ -34,6 +34,8 @@ export function fakeBank(
     if (answered !== undefined) return answered;
     if (asked.pathname === "/api/questions") return answerTheList(asked);
     if (asked.pathname === "/api/categories") return answersWith(theCategories);
+    if (asked.pathname === "/api/viewers") return answersWith({ viewers: [] });
+    if (asked.pathname === "/api/clients/all") return answersWith({ clients: [] });
     if (asked.pathname === "/api/auth/logout") return new Response(null, { status: 204 });
     return answersWith(aSignedInAuthor);
   });
