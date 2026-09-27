@@ -101,6 +101,17 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
     expect(await idsListed(forTheOtherAuthor)).toEqual([theirs]);
   });
 
+  it("hands an Author the reason their Rejected Question was sent back", async () => {
+    const response = await getList(api, "own", {}, authorToken);
+
+    const body = questionListResponseSchema.parse(await response.json());
+    const reasons = Object.fromEntries(body.questions.map(({ id, reason }) => [id, reason]));
+    expect(reasons[rejectedAndUnrestricted]).toBe(
+      "Nobody learns anything about a candidate from this.",
+    );
+    expect(reasons[pendingAndUnrestricted]).toBeNull();
+  });
+
   it("hands a Reviewer an empty own list when they have added nothing", async () => {
     const response = await getList(api, "own", {}, reviewerToken);
 

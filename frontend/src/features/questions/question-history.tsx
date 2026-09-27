@@ -60,6 +60,12 @@ function whatHappened(event: ChangeEvent): string {
       return "added this Question";
     case "question_edited":
       return "edited this Question";
+    case "question_published":
+      return "Published this Question";
+    case "question_rejected":
+      return `Rejected this Question: ${event.payload.reason}`;
+    case "question_resubmitted":
+      return "resubmitted this Question";
     case "near_duplicate_overridden": {
       const { nearDuplicates } = event.payload;
       return `confirmed this Question is different from ${nearDuplicatesWording(nearDuplicates)}`;

@@ -29,6 +29,7 @@ export type QuestionFromDb = {
   authorId: string;
   clientId: string | null;
   publicationState: PublicationState;
+  reason: string | null;
   provenance: Provenance;
   source: string | null;
   tags: { category: CategoryName; tag: string }[];
@@ -66,6 +67,7 @@ const questionFieldsToRead = {
   authorId: true,
   clientId: true,
   publicationState: true,
+  reason: true,
   provenance: true,
   source: true,
   createdAt: true,
@@ -266,7 +268,7 @@ export function searchStatement(
        LIMIT ${limit} OFFSET ${offset}
     )
     SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
-           q."publicationState", q.provenance, q.source, q."createdAt",
+           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
       FROM matched
       JOIN questions q ON q.id = matched.id

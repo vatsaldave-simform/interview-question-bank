@@ -114,6 +114,7 @@ export function aQuestion(changes: Partial<Question> = {}): Question {
     authorId: aSignedInAuthor.viewer.id,
     clientId: null,
     publicationState: "published",
+    reason: null,
     provenance: "original",
     source: null,
     tags: [{ category: "technology", tag: "typescript" }],

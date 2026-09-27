@@ -57,6 +57,9 @@ export const questionSchema = z
     authorId: z.uuid(),
     clientId: z.uuid().nullable(),
     publicationState: publicationStateSchema,
+    /** Why it was last sent back. Null for a Published Question, and for one nobody has
+     * sent back since it was last submitted. */
+    reason: z.string().nullable(),
     provenance: provenanceSchema,
     source: z.string().nullable(),
     tags: z.array(questionTagSchema),

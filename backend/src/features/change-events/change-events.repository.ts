@@ -8,6 +8,9 @@ import {
   permissionGrantRevokedSchema,
   questionAddedSchema,
   questionEditedSchema,
+  questionPublishedSchema,
+  questionRejectedSchema,
+  questionResubmittedSchema,
   roleChangedSchema,
   roleRequestDeniedSchema,
   roleRequestGrantedSchema,
@@ -24,6 +27,9 @@ import {
   type PermissionGrantRevoked,
   type QuestionAdded,
   type QuestionEdited,
+  type QuestionPublished,
+  type QuestionRejected,
+  type QuestionResubmitted,
   type RoleChanged,
   type RoleRequestDenied,
   type RoleRequestGranted,
@@ -128,6 +134,24 @@ export type NewChangeEvent =
       questionId: null;
       viewerId: string;
       payload: RoleRequestDenied;
+    }
+  | {
+      type: "question_published";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionPublished;
+    }
+  | {
+      type: "question_rejected";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionRejected;
+    }
+  | {
+      type: "question_resubmitted";
+      questionId: string;
+      viewerId: string;
+      payload: QuestionResubmitted;
     };
 
 /**
@@ -192,6 +216,9 @@ export type ChangeEventFromDb = {
   | { type: "viewer_reactivated"; payload: ViewerReactivated }
   | { type: "role_request_granted"; payload: RoleRequestGranted }
   | { type: "role_request_denied"; payload: RoleRequestDenied }
+  | { type: "question_published"; payload: QuestionPublished }
+  | { type: "question_rejected"; payload: QuestionRejected }
+  | { type: "question_resubmitted"; payload: QuestionResubmitted }
 );
 
 /** Parsed rather than cast, for the reason a Tag's Category is parsed: a payload that
@@ -270,6 +297,20 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
         ...happened,
         type: row.type,
         payload: roleRequestDeniedSchema.parse(row.payload),
+      };
+    case "question_published":
+      return {
+        ...happened,
+        type: row.type,
+        payload: questionPublishedSchema.parse(row.payload),
+      };
+    case "question_rejected":
+      return { ...happened, type: row.type, payload: questionRejectedSchema.parse(row.payload) };
+    case "question_resubmitted":
+      return {
+        ...happened,
+        type: row.type,
+        payload: questionResubmittedSchema.parse(row.payload),
       };
   }
 }

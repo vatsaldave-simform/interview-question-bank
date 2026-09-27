@@ -4,9 +4,7 @@ import { clientSchema } from "./clients.js";
 import { permissionGrantSchema } from "./permission-grants.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
-/**
- * What a Change Event says happened. Publishing and Rejecting add their own (ADR-0006).
- */
+/** What a Change Event says happened (ADR-0006). */
 export const changeEventTypes = [
   "question_added",
   "question_edited",
@@ -23,6 +21,9 @@ export const changeEventTypes = [
   "viewer_reactivated",
   "role_request_granted",
   "role_request_denied",
+  "question_published",
+  "question_rejected",
+  "question_resubmitted",
 ] as const;
 export const changeEventTypeSchema = z.enum(changeEventTypes);
 export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
@@ -144,6 +145,21 @@ export const questionEditedSchema = z
   .strict();
 export type QuestionEdited = z.infer<typeof questionEditedSchema>;
 
+/** A Reviewer Publishing a Question. Nothing to carry: who did it is the event's Viewer,
+ * and a Reviewer Publishing their own is recorded exactly the same way (ADR-0013). */
+export const questionPublishedSchema = z.object({}).strict();
+export type QuestionPublished = z.infer<typeof questionPublishedSchema>;
+
+/** A Pending Question sent back. The Viewer on the event is its Author when they
+ * withdrew it, and a Reviewer otherwise. */
+export const questionRejectedSchema = z.object({ reason: z.string() }).strict();
+export type QuestionRejected = z.infer<typeof questionRejectedSchema>;
+
+/** An Author putting a Rejected Question back in the queue. Its own event, because an
+ * edit alone never does that. */
+export const questionResubmittedSchema = z.object({}).strict();
+export type QuestionResubmitted = z.infer<typeof questionResubmittedSchema>;
+
 /** What every Change Event says, whatever happened: which Question, which Viewer, when. */
 const changeEventSchema = z.object({
   id: z.uuid(),
@@ -205,6 +221,18 @@ export const changeEventResponseSchema = z.discriminatedUnion("type", [
   changeEventSchema.extend({
     type: z.literal("role_request_denied"),
     payload: roleRequestDeniedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_published"),
+    payload: questionPublishedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_rejected"),
+    payload: questionRejectedSchema,
+  }),
+  changeEventSchema.extend({
+    type: z.literal("question_resubmitted"),
+    payload: questionResubmittedSchema,
   }),
 ]);
 export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
