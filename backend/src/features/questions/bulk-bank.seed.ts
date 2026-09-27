@@ -141,7 +141,8 @@ export async function seedBulkBank(
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
       clientId: isRestricted ? client.id : null,
-      publicationState: publicationStateFor(randomFor(seed, `${key}:state`)),
+      // What a Reader's query filters on, so the plans measure a Reader's bank (ADR-0029).
+      publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),
     });
@@ -251,14 +252,6 @@ function answerNotesText(seed: string, key: string, words: readonly string[]): s
  * search is aimed at. */
 function pickFrame<Frame>(frames: readonly Frame[], random: number): Frame {
   return frames[Math.floor(random * frames.length)]!;
-}
-
-/** Mostly Published, so a filter has a bank to answer from, and enough of the other two
- * that the second check has something to keep out. */
-function publicationStateFor(random: number): PublicationState {
-  if (random < 0.8) return "published";
-  if (random < 0.94) return "pending";
-  return "rejected";
 }
 
 const bankStartsAt = Date.UTC(2024, 0, 1);

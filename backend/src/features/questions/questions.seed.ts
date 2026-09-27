@@ -145,6 +145,30 @@ export const seedQuestions: readonly SeedQuestion[] = [
       { category: "question-type", tag: "practical" },
     ],
   },
+  // One Rejected Question per Client, so each Client holds every Publication State and
+  // the Rejected path can be walked through a Grant, not only in the open bank.
+  {
+    id: "a0000000-0000-4000-8000-000000000008",
+    text: "What does this client's logo look like?",
+    answerNotes: "None worth recording.",
+    authorEmail: seedAuthorEmail,
+    restrictedTo: seedClient,
+    publicationState: "rejected",
+    reason: "It tests whether someone read the brief, not how they work.",
+    provenance: "original",
+    tags: [{ category: "seniority", tag: "junior" }],
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000009",
+    text: "Name every Python web framework this client has ever used.",
+    answerNotes: "None worth recording.",
+    authorEmail: seedAuthorEmail,
+    restrictedTo: seedOtherClient,
+    publicationState: "rejected",
+    reason: "A list someone could look up says nothing about how they would use one.",
+    provenance: "original",
+    tags: [{ category: "technology", tag: "python" }],
+  },
 ];
 
 /** How a Tag is looked up while seeding, since its id is not known until it is written. */

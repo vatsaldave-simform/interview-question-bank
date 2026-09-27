@@ -102,6 +102,29 @@ describe("the seed", () => {
     );
   });
 
+  // So the queue and the Rejected path can be walked through a Grant for either Client,
+  // not only in the open bank.
+  it("seeds Questions in every Publication State for each Client", async () => {
+    for (const seeded of seedClients) {
+      const states = await database.question.groupBy({
+        by: ["publicationState"],
+        where: { client: { name: seeded.name } },
+        _count: { _all: true },
+      });
+
+      expect(states.map((state) => state.publicationState).sort()).toEqual(
+        [...publicationStates].sort(),
+      );
+    }
+  });
+
+  // Without one, appointing the first Administrator is an act nobody can perform.
+  it("seeds an Administrator", async () => {
+    const administrators = await database.viewer.count({ where: { isAdministrator: true } });
+
+    expect(administrators).toBeGreaterThan(0);
+  });
+
   it("seeds a Question that is both restricted to the Client and Pending", async () => {
     const both = await database.question.findFirst({
       where: { publicationState: "pending", client: { name: seedClient.name } },

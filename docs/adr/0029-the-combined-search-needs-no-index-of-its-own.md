@@ -9,10 +9,17 @@ it, at ten thousand Questions, against the compose PostgreSQL.
 by earlier decisions: `questions (searchVector)` as a GIN index (ADR-0004), and
 `question_tags (tagId, questionId)` (ADR-0011).
 
-Every plan uses an index, none reads the whole table, and nothing takes longer than 7.3ms.
+Every plan uses an index, none reads the whole table, and nothing takes longer than 5.9ms.
 The full output is in
 [`ten-thousand-questions.md`](../evidence/query-plans/ten-thousand-questions.md), under
 `docs/evidence/query-plans/`, and `pnpm db:measure:plans` captures it again.
+
+**Captured again under issue #42, against a bank of Published Questions.** The first
+capture ran against a bulk bank where about a fifth of the Questions were Pending or
+Rejected. A Reader's query filters on Published, so that fifth was rows a Reader's bank
+would not have. The bulk bank is now all Published, and the numbers in this ADR are from
+that capture. The decision did not change: the same indexes drive the same plans, and no
+plan reads the whole table.
 
 **The planner chooses which index drives the query, per query.** When the keyword is the
 selective half it drives from the search vector index and probes `question_tags` per
@@ -24,8 +31,8 @@ Dropping either index removes a strategy.
 ## What was rejected
 
 **A partial GIN index on the Questions that are Published**, which is the obvious candidate:
-the filter throws away about a fifth of what the search vector index returns, because a
-Reader may not see a Pending or Rejected Question (ADR-0013).
+against the first bulk bank the filter threw away about a fifth of what the search vector
+index returned, because a Reader may not see a Pending or Rejected Question (ADR-0013).
 
 It works, and better than expected. PostgreSQL rewrites
 `(publicationState = 'published' OR authorId = $1)` into a `BitmapOr` of the partial index
@@ -48,6 +55,10 @@ page more on three of them. That buys a second GIN index to maintain on every wr
 Question, against totals of five to seven milliseconds. The plans are beside the others,
 in [`with-a-partial-search-index.md`](../evidence/query-plans/with-a-partial-search-index.md).
 
+That comparison was measured against the first bulk bank and was not taken again. Against
+a bank of Published Questions the case is weaker still: the filter has almost nothing to
+throw away, so a partial index on Published would hold nearly every row the full one does.
+
 **An index to make a deep page cheaper.** There is nothing to index: the order is
 `ts_rank`, which is computed per row, so no index can supply it. See the consequence below.
 
@@ -57,19 +68,20 @@ in [`with-a-partial-search-index.md`](../evidence/query-plans/with-a-partial-sea
   ADR-0011 measured a 12x penalty on the last page of a filtered list, because that query
   can stop early and `OFFSET` takes the early stop away. The search cannot stop early at
   all: every matching Question has to be produced and ranked before the first row of any
-  page is known. The first page and a page two thousand rows in run the same scan of 3,884
-  rows and differ only in the sort — 31kB of top-N heapsort against 370kB of quicksort,
-  5.5ms against 7.3ms. Keyset pagination would not remove that, because the thing being
+  page is known. The first page and a page two thousand rows in run the same scan of 4,933
+  rows and differ only in the sort — 31kB of top-N heapsort against 436kB, 4.8ms against
+  5.7ms. Keyset pagination would not remove that, because the thing being
   paged is a ranking. It is not worth paying for and there is nothing here to buy.
 - A broad keyword reads every page of the questions table, through a bitmap heap scan
-  rather than a sequential scan. That is not a missing index. A keyword carried by two
-  Questions in five has to read two Questions in five.
+  rather than a sequential scan. That is not a missing index. A keyword carried by half
+  the bank has to read half the bank.
 - The bulk seed leaves the search vector index about nine times larger than a freshly
   built one — 4,224kB against 488kB after a `REINDEX` — because it is updated a row at a
   time as ten thousand Questions go in. It makes no measurable difference: every page
   count above is identical either way, because the bitmap index scan reads four pages of
   it whatever size it is. Do not reindex to make the numbers look better; they do not
-  change.
+  change. This was checked again against the Published bank under issue #42, with the
+  same sizes and the same page counts.
 - The measurement is local by ADR-0012, and so is `pg_stat_statements` by ADR-0009's
   amendment. Neither is an observability story for the deployment, and this ADR is not a
   claim about how the deployed bank performs.

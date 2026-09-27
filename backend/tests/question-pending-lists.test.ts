@@ -22,6 +22,7 @@ const {
   aboutTwoPlusTwo: rejectedAndUnrestricted,
   aboutTheClientsRendering: pendingForTheFirstClient,
   aboutTheOtherClientsIntake: pendingForTheSecondClient,
+  aboutTheClientsLogo: rejectedForTheFirstClient,
 } = seededQuestionIds;
 
 const wholeFirstPage = { limit: 50, offset: 0 };
@@ -113,6 +114,7 @@ describe("the lists of Questions not yet in the bank", () => {
 
       expect(ids(own)).toEqual([
         added.id,
+        rejectedForTheFirstClient,
         pendingForTheFirstClient,
         rejectedAndUnrestricted,
         pendingAndUnrestricted,

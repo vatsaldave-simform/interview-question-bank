@@ -1,4 +1,4 @@
-import { categoryNames, publicationStates, type CategoryName } from "@iqb/shared";
+import { categoryNames, type CategoryName } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   bankVocabulary,
@@ -127,17 +127,15 @@ describe("the bulk bank", () => {
     expect(unrestricted).toBe(bulk.count - restricted);
   });
 
-  it("writes Questions in every Publication State", async () => {
+  // The small seed holds the other states.
+  it("writes only Published Questions", async () => {
     const states = await database.question.groupBy({
       by: ["publicationState"],
       where: fromTheBulkBank,
       _count: { _all: true },
     });
 
-    expect(states.map((state) => state.publicationState).sort()).toEqual(
-      [...publicationStates].sort(),
-    );
-    for (const state of states) expect(state._count._all).toBeGreaterThan(1);
+    expect(states.map((state) => state.publicationState)).toEqual(["published"]);
   });
 
   it("makes some Tags of a Category far more common than others", async () => {
