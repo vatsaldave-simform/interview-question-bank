@@ -60,12 +60,40 @@ export function PublishButton({ question, onRefusal }: ActProps) {
   );
 }
 
+/** Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013). */
+export function ResubmitButton({ question, onRefusal }: ActProps) {
+  const move = useMoveQuestion(question.id);
+
+  function resubmit(): void {
+    onRefusal(null);
+    move.mutate(
+      { act: "resubmit" },
+      {
+        onError: (reason) =>
+          onRefusal({ notDone: "was not resubmitted", message: whatWentWrong(reason) }),
+      },
+    );
+  }
+
+  return (
+    <Button size="sm" disabled={move.isPending} onClick={resubmit}>
+      Resubmit
+    </Button>
+  );
+}
+
 const reasonActWording = {
   reject: {
     open: "Reject",
     label: "Why it is Rejected",
     send: "Send the rejection",
     notDone: "was not Rejected",
+  },
+  return: {
+    open: "Return to its Author",
+    label: "Why it is returned",
+    send: "Return it",
+    notDone: "was not returned",
   },
 };
 

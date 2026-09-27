@@ -9,6 +9,7 @@ import {
   type ListQuestionsRequest,
   type PublishQuestionRequest,
   type RejectQuestionRequest,
+  type ReturnQuestionRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
@@ -111,7 +112,9 @@ export function useEditQuestion(id: string) {
 /** The acts that move a Question from one Publication State to another, and what each sends. */
 export type QuestionMove =
   | { act: "publish"; request: PublishQuestionRequest }
-  | { act: "reject"; request: RejectQuestionRequest };
+  | { act: "reject"; request: RejectQuestionRequest }
+  | { act: "return"; request: ReturnQuestionRequest }
+  | { act: "resubmit" };
 
 export function useMoveQuestion(id: string) {
   const queryClient = useQueryClient();
@@ -119,7 +122,7 @@ export function useMoveQuestion(id: string) {
     mutationFn: (move: QuestionMove) =>
       callApi(`/api/questions/${encodeURIComponent(id)}/${move.act}`, questionResponseSchema, {
         method: "POST",
-        body: move.request,
+        body: "request" in move ? move.request : undefined,
       }),
     onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
     // After a refusal too, because a 409 means someone else moved it first, and every list
