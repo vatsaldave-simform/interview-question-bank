@@ -6,6 +6,10 @@ import {
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import {
+  ContributeProvenanceFields,
+  type ProvenanceChoice,
+} from "@/features/questions/contribute-provenance-fields";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
 import {
@@ -18,6 +22,14 @@ import { useAddQuestion } from "@/features/questions/questions.queries";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
 
+/** A Source belongs only to an Adapted Question, and a blank one names nothing. */
+function provenanceIn({ provenance, source }: ProvenanceChoice) {
+  return {
+    ...(provenance === null ? {} : { provenance }),
+    ...(provenance === "adapted" && source.trim() !== "" ? { source } : {}),
+  };
+}
+
 /** Kept as it was sent, so that confirming sends the same Question again. */
 type RefusedAsNearDuplicate = {
   request: AddQuestionRequest;
@@ -29,6 +41,10 @@ type RefusedAsNearDuplicate = {
  * have refused too, and anything the API still refuses is shown in the same places. */
 export function ContributeScreen({ onAdded }: { onAdded: (question: Question) => void }) {
   const add = useAddQuestion();
+  const [provenanceChoice, setProvenanceChoice] = useState<ProvenanceChoice>({
+    provenance: null,
+    source: "",
+  });
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
   const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
@@ -51,9 +67,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
   }
 
   function submit(draft: QuestionDraft): void {
-    // Provenance cannot be chosen on this form yet, and a Question typed in fresh is its
-    // Author's own.
-    const checked = addQuestionRequestSchema.safeParse({ ...draft, provenance: "original" });
+    const checked = addQuestionRequestSchema.safeParse({ ...draft, ...provenanceIn(provenanceChoice) });
     if (!checked.success) {
       // The message is for a field this form does not show, which only a page out of date
       // can get wrong.
@@ -96,7 +110,13 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
         sending={add.isPending}
         submit={{ label: "Add the Question", sendingLabel: "Adding…" }}
         onSubmit={submit}
-      />
+      >
+        <ContributeProvenanceFields
+          choice={provenanceChoice}
+          problems={problems}
+          onChange={setProvenanceChoice}
+        />
+      </QuestionForm>
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog
           message={refusedAsNearDuplicate.message}

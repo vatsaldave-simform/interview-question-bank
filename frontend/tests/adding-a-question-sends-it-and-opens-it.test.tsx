@@ -54,7 +54,7 @@ async function additionsSent(api: FakeApi): Promise<unknown[]> {
 }
 
 describe("adding a Question", () => {
-  it("sends the text, Answer Notes and Tags, then opens the new Question", async () => {
+  it("sends the text, Answer Notes, Tags and Provenance, then opens the new Question", async () => {
     const api = aBankThatAddsIt();
     renderTheWholeClient("/");
 
@@ -67,6 +67,7 @@ describe("adding a Question", () => {
     );
     await userEvent.click(await screen.findByRole("checkbox", { name: "node" }));
     await userEvent.click(screen.getByRole("checkbox", { name: "mid" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Original" }));
     await userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
 
     expect(
