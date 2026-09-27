@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { LoginScreen } from "@/features/auth/login-screen";
+import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 /**
  * Two of #13's criteria are about what the screen says rather than what it does, and both
@@ -9,14 +9,15 @@ import { LoginScreen } from "@/features/auth/login-screen";
  * cannot get in at all, because there is no registration endpoint (ADR-0016).
  */
 describe("the login screen", () => {
-  it("warns that the first visit after a quiet spell is slow", () => {
-    render(<LoginScreen />);
+  it("warns that the first visit after a quiet spell is slow", async () => {
+    renderTheWholeClient("/login");
 
-    expect(screen.getByText(/takes about a minute to wake/)).toBeInTheDocument();
+    expect(await screen.findByText(/takes about a minute to wake/)).toBeInTheDocument();
   });
 
-  it("publishes an address and a password for every seeded role", () => {
-    render(<LoginScreen />);
+  it("publishes an address and a password for every seeded role", async () => {
+    renderTheWholeClient("/login");
+    await screen.findByText("Accounts to try");
 
     for (const [role, email, password] of [
       ["reader", "reader@iqb.test", "reader-password"],

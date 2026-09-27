@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LoginScreen } from "@/features/auth/login-screen";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { currentSession, replaceSession } from "@/platform/session";
 import { refusesWith, fakeApi } from "./helpers/fake-api";
 import { signInOnScreen } from "./helpers/login-screen";
+import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -26,7 +26,7 @@ describe("a sign-in the API refused", () => {
     fakeApi(() =>
       refusesWith(401, "unauthenticated", "That email address and password do not match."),
     );
-    render(<LoginScreen />);
+    renderTheWholeClient("/login");
 
     await signInOnScreen("author@iqb.test", "the-wrong-password");
 
@@ -40,7 +40,7 @@ describe("a sign-in the API refused", () => {
     fakeApi(() => {
       throw new TypeError("Failed to fetch");
     });
-    render(<LoginScreen />);
+    renderTheWholeClient("/login");
 
     await signInOnScreen("author@iqb.test", "author-password");
 
@@ -55,7 +55,7 @@ describe("a sign-in the API refused", () => {
       refusesWith(401, "unauthenticated", "That email address and password do not match."),
     ];
     fakeApi(() => refusals.shift()!);
-    render(<LoginScreen />);
+    renderTheWholeClient("/login");
 
     await signInOnScreen("author@iqb.test", "author-password");
     expect(await screen.findByText("Too many attempts. Try again in a minute.")).toBeInTheDocument();

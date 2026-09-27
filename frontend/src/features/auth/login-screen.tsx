@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { DemoCredentials } from "@/features/auth/demo-credentials";
 import { LoginForm } from "@/features/auth/login-form";
 import { ColdStartNotice } from "@/platform/cold-start-notice";
@@ -14,8 +15,14 @@ export function LoginScreen() {
             <CardTitle>Interview Question Bank</CardTitle>
             <CardDescription>Sign in to browse and contribute Questions.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-6">
             <LoginForm />
+            <Link
+              to="/forgotten-password"
+              className="text-muted-foreground text-sm hover:underline"
+            >
+              Forgotten your password?
+            </Link>
           </CardContent>
         </Card>
         <ColdStartNotice />

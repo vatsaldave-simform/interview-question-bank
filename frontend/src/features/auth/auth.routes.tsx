@@ -1,4 +1,5 @@
 import { createRoute, redirect } from "@tanstack/react-router";
+import { ForgottenPasswordScreen } from "@/features/auth/forgotten-password-screen";
 import { LoginScreen } from "@/features/auth/login-screen";
 import { rootRoute } from "@/platform/root-route";
 
@@ -14,4 +15,12 @@ const loginRoute = createRoute({
   component: LoginScreen,
 });
 
-export const authRoutes = [loginRoute];
+// Beside the login screen and outside the sign-in check, because whoever needs it cannot
+// sign in.
+const forgottenPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/forgotten-password",
+  component: ForgottenPasswordScreen,
+});
+
+export const authRoutes = [loginRoute, forgottenPasswordRoute];
