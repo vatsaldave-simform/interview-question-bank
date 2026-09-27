@@ -2,7 +2,7 @@
 
 `GET /api/clients` answers only with the Clients the caller holds a Permission Grant for. That is
 story 28 of spec #20: the list a Viewer picks from when restricting a Question must not reveal that
-an engagement exists.
+a Client exists.
 
 The administration console needs every Client. An Administrator who has just created one holds no
 Grant for it (ADR-0015), so the Grant-scoped list leaves it out. They could never issue its first

@@ -10,11 +10,11 @@ import { rootRoute } from "@/platform/root-route";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { signedInRoute } from "@/platform/signed-in-route";
 
-/** Here and not in a feature, because the console is a view of several (ADR-0030), and with
- * no check of its own, because the API refuses each list on it and the list says so. */
+/** Here and not in a feature, because the console is a view of several (ADR-0030). */
 const administrationRoute = createRoute({
   getParentRoute: () => signedInRoute,
   path: "/administration",
+  // No `beforeLoad` check, because the API refuses each list on the console and it says so.
   component: AdministrationConsole,
 });
 

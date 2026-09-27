@@ -1,4 +1,4 @@
-import { useViewerList } from "@/features/viewers/viewers.queries";
+import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import {
   Table,
@@ -10,7 +10,7 @@ import {
 } from "@/ui/shadcn/table";
 
 export function ViewerList() {
-  const viewers = useViewerList();
+  const viewers = useEveryViewer();
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="viewers">

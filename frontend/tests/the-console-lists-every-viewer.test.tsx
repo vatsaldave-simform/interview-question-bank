@@ -68,7 +68,7 @@ describe("the administration console", () => {
 
     renderTheWholeClient("/administration");
 
-    expect(await screen.findByText("Only an Administrator can see this")).toBeVisible();
+    expect(await screen.findByText("The bank refused to show the Viewers")).toBeVisible();
     expect(screen.getByText("You may not do that.")).toBeVisible();
     expect(screen.queryByRole("table", { name: "Viewers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();

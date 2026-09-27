@@ -92,9 +92,27 @@ describe("the Clients on the administration console", () => {
     renderTheWholeClient("/administration");
 
     const clients = within(await screen.findByRole("region", { name: "Clients" }));
-    expect(await clients.findByText("Only an Administrator can see this")).toBeVisible();
+    expect(await clients.findByText("The bank refused to show the Clients")).toBeVisible();
     expect(clients.getByText("You may not do that.")).toBeVisible();
     expect(clients.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("reports a refusal of one Client's Grants on that Client alone", async () => {
+    aBankAnswering({
+      clients: () => answersWith({ clients: [kingsbridge, northwind] }),
+      grants: (client) =>
+        client === northwind
+          ? refusesWith(403, "forbidden", "You may not do that.")
+          : grantsAgainst(client, [author]),
+    });
+
+    renderTheWholeClient("/administration");
+
+    const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
+    expect(await northwindGrants.findByText("The bank refused to show the Grants")).toBeVisible();
+    expect(northwindGrants.getByText("You may not do that.")).toBeVisible();
+    expect(northwindGrants.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(await within(sectionFor(kingsbridge.name)).findByText("author@iqb.test")).toBeVisible();
   });
 
   it("reports one Client's Grants failing on that Client alone, and asks again", async () => {

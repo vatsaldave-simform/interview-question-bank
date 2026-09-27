@@ -14,7 +14,8 @@ export function ListNotLoaded({ what, reason, onRetry }: ListNotLoadedProps) {
   if (reason instanceof ApiFailure && reason.code === "forbidden") {
     return (
       <Alert>
-        <AlertTitle>Only an Administrator can see this</AlertTitle>
+        {/* It names no reason, because only the API's own words say why (#20, story 52). */}
+        <AlertTitle>The bank refused to show the {what}</AlertTitle>
         <AlertDescription>
           <p>{reason.message}</p>
         </AlertDescription>

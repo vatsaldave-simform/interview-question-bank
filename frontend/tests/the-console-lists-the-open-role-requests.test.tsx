@@ -65,7 +65,7 @@ describe("the open Role Requests on the administration console", () => {
     renderTheWholeClient("/administration");
 
     const section = within(await screen.findByRole("region", { name: "Open Role Requests" }));
-    expect(await section.findByText("Only an Administrator can see this")).toBeVisible();
+    expect(await section.findByText("The bank refused to show the Role Requests")).toBeVisible();
     expect(section.getByText("You may not do that.")).toBeVisible();
     expect(section.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
