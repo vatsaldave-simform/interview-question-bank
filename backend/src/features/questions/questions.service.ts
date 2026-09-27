@@ -13,6 +13,7 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import {
+  changeVisibleRestriction,
   findNearDuplicates,
   findNearDuplicatesForEdit,
   findNearDuplicatesForPublication,
@@ -26,9 +27,12 @@ import {
   updateVisibleQuestion,
   type PublicationMove,
   type QuestionFromDb,
+  type RestrictionChange,
   type TagsInCategory,
 } from "./questions.repository.ts";
+import { mayClassify, mayDeclassify, mayMoveToAnotherClient } from "./may-classify.ts";
 import { mayEdit } from "./may-edit.ts";
+import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import { mayPublish, mayReject, mayResubmit, mayReturn } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
@@ -155,6 +159,18 @@ async function overrideOrRefuse(
   throw new ConflictError(refusedAsNearDuplicateFor[act], found);
 }
 
+/** A restriction the Viewer holds no Grant for would hide the Question from the Viewer who
+ * set it, and a Client they cannot see is answered as one that does not exist (ADR-0018). */
+async function checkGrantedClient(
+  database: Database,
+  viewer: Viewer,
+  clientId: string,
+): Promise<void> {
+  if ((await findClientGrantedTo(database, viewer.id, clientId)) === null) {
+    throw new InvalidRequestError("No such Client.");
+  }
+}
+
 /** Detection runs before anything is stored, so an Author hears about a Near-Duplicate
  * while the Question is still in front of them (ADR-0014). */
 export async function addQuestion(
@@ -163,6 +179,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
+  if (request.clientId !== undefined) await checkGrantedClient(database, viewer, request.clientId);
   const overridden = await overrideOrRefuse(database, viewer, {
     act: "add",
     questionId: null,
@@ -185,6 +202,7 @@ export async function addQuestion(
       answerNotes: request.answerNotes,
       provenance: request.provenance,
       ...(request.source === undefined ? {} : { source: request.source }),
+      ...(request.clientId === undefined ? {} : { clientId: request.clientId }),
       tagIds,
     },
     overridden,
@@ -342,4 +360,72 @@ export function returnQuestion(
   reason: string,
 ): Promise<QuestionFromDb> {
   return moveQuestion(database, viewer, id, { act: "return", reason }, mayReturn);
+}
+
+/** What a 409 says, by the act that found the restriction changed under it. */
+const restrictionChangedFor: Record<RestrictionChange["act"], string> = {
+  classify: "This Question's Client restriction changed meanwhile. Load it again.",
+  move: "This Question's Client restriction or Publication State changed meanwhile. Load it again.",
+  declassify: "This Question's Client restriction changed meanwhile. Load it again.",
+};
+
+/** The write found nothing to change, so the checks are asked again in order: a Permission
+ * Grant revoked since the first look makes it a 404 or a 400 rather than a 409. */
+async function refuseUnchangedRestriction(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  change: RestrictionChange,
+): Promise<never> {
+  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
+  if (change.act !== "declassify") await checkGrantedClient(database, viewer, change.to);
+  throw new ConflictError(restrictionChangedFor[change.act]);
+}
+
+/** The Client is looked up only after the role rule, or its 400 would answer a Viewer who may
+ * not act at all (ADR-0002). */
+export async function classifyQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  clientId: string,
+): Promise<QuestionFromDb> {
+  const question = await findVisibleQuestionById(database, viewer, id);
+  if (question === null) throw new NotFoundError();
+  if (!mayClassify(viewer, question)) throw new ForbiddenError();
+  await checkGrantedClient(database, viewer, clientId);
+
+  if (question.clientId === clientId) return question;
+  if (question.clientId !== null && !mayMoveToAnotherClient(viewer, question)) {
+    throw new ForbiddenError(
+      "A Published Question cannot be moved to another Client. A Reviewer can return it to " +
+        "you, and you can move it then.",
+    );
+  }
+
+  const change: RestrictionChange =
+    question.clientId === null
+      ? { act: "classify", to: clientId }
+      : { act: "move", from: question.clientId, to: clientId };
+  const changed = await changeVisibleRestriction(database, viewer, id, change);
+  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
+}
+
+export async function declassifyQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+): Promise<QuestionFromDb> {
+  const question = await findVisibleQuestionById(database, viewer, id);
+  if (question === null) throw new NotFoundError();
+  if (!mayDeclassify(viewer)) {
+    throw new ForbiddenError("Only a Reviewer may remove a Client restriction.");
+  }
+  if (question.clientId === null) {
+    throw new ConflictError("This Question has no Client restriction to remove.");
+  }
+
+  const change: RestrictionChange = { act: "declassify", from: question.clientId };
+  const changed = await changeVisibleRestriction(database, viewer, id, change);
+  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
 }

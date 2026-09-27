@@ -1,5 +1,6 @@
 import {
   addQuestionRequestSchema,
+  classifyQuestionRequestSchema,
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
   publishQuestionRequestSchema,
@@ -18,6 +19,8 @@ import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireRole } from "../auth/require-role.middleware.ts";
 import {
   addQuestion,
+  classifyQuestion,
+  declassifyQuestion,
   editQuestion,
   listQuestions,
   publishQuestion,
@@ -138,7 +141,8 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // No `requireRole` on any of these, for the reason the edit route has none.
+  // No `requireRole` on any of these, down to the last route, for the reason the edit route
+  // has none.
   router.post("/:id/publish", async (req, res) => {
     const id = questionIdNamed(req);
     // Express leaves the body undefined when none was sent, and that is a publish too.
@@ -174,6 +178,25 @@ export function questionRoutes(database: Database): Router {
     const { reason } = returnQuestionRequestSchema.parse(req.body);
 
     const question = await returnQuestion(database, authenticatedViewer(req), id, reason);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/classify", async (req, res) => {
+    const id = questionIdNamed(req);
+    const { clientId } = classifyQuestionRequestSchema.parse(req.body);
+
+    const question = await classifyQuestion(database, authenticatedViewer(req), id, clientId);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/declassify", async (req, res) => {
+    const id = questionIdNamed(req);
+
+    const question = await declassifyQuestion(database, authenticatedViewer(req), id);
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.json(body);

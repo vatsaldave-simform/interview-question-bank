@@ -82,6 +82,9 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
+    /** Named here rather than restricted afterwards, which would leave the new Question
+     * open to every Reviewer in between (ADR-0018). */
+    clientId: z.uuid().optional(),
     /** The Author's own word that a match detection found is wrong, which is the only
      * thing that stores a Question detection has refused once. */
     confirmedNotANearDuplicate: z.boolean().default(false),
@@ -123,6 +126,10 @@ export const rejectQuestionRequestSchema = z
   .object({ reason: z.string().trim().min(1).max(2_000) })
   .strict();
 export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
+
+/** Only a Client the Viewer holds a Grant for is accepted, and that is checked further in. */
+export const classifyQuestionRequestSchema = z.object({ clientId: z.uuid() }).strict();
+export type ClassifyQuestionRequest = z.infer<typeof classifyQuestionRequestSchema>;
 
 /** The same as Rejecting asks for, because a returned Question is Rejected and its Author
  * reads the reason the same way (ADR-0013). */

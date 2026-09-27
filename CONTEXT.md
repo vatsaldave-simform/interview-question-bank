@@ -53,12 +53,15 @@ _Avoid_: user, actor, principal, requester
 
 **Author**:
 A Viewer who may add Questions and edit the ones they added. They may withdraw their own Pending
-Question by Rejecting it, and resubmit their own Rejected one.
+Question by Rejecting it, and resubmit their own Rejected one. They may restrict their own Question
+to a Client they hold a Permission Grant for, and move it to another such Client while it is
+Pending or Rejected, but never remove a restriction.
 
 **Reviewer**:
 A Viewer who may edit any Question that is Visible to them, and who alone Publishes a Question,
 Rejects another Viewer's, returns a Published one to its Author, or removes its Client
-restriction. A returned Question is Rejected, with the reason it was returned.
+restriction. Like an Author, they restrict only their own. A returned Question is Rejected, with
+the reason it was returned.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
@@ -110,6 +113,7 @@ _Avoid_: duplicate, similar question, match
 
 **Change Event**:
 An append-only record of something that happened to the bank — a Question submitted, edited,
-Published, Rejected, returned or resubmitted, or a submission, publication or edit refused
-as a Near-Duplicate — carrying who did it and when.
+Published, Rejected, returned or resubmitted, restricted to a Client or had that restriction
+removed, or a submission, publication or edit refused as a Near-Duplicate — carrying who did it
+and when.
 _Avoid_: audit log, history entry, revision, version
