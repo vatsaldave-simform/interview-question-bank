@@ -101,8 +101,9 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
         <NearDuplicateDialog
           message={refusedAsNearDuplicate.message}
           nearDuplicates={refusedAsNearDuplicate.nearDuplicates}
+          cancelLabel="Change my Question"
           submitAnywayLabel="It is different, add it"
-          onChangeIt={() => setRefusedAsNearDuplicate(null)}
+          onCancel={() => setRefusedAsNearDuplicate(null)}
           onSubmitAnyway={() => submitAnyway(refusedAsNearDuplicate)}
         />
       )}

@@ -7,6 +7,9 @@ import {
   type AddQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
+  type PublishQuestionRequest,
+  type RejectQuestionRequest,
+  type ReturnQuestionRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
@@ -103,5 +106,32 @@ export function useEditQuestion(id: string) {
         queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
       ]);
     },
+  });
+}
+
+export type PublicationMove =
+  | { act: "publish"; request: PublishQuestionRequest }
+  | { act: "reject"; request: RejectQuestionRequest }
+  | { act: "return"; request: ReturnQuestionRequest }
+  | { act: "resubmit" };
+
+export function useMoveQuestion(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (move: PublicationMove) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/${move.act}`, questionResponseSchema, {
+        method: "POST",
+        body: "request" in move ? move.request : undefined,
+      }),
+    onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
+    // After a refusal too, because a 409 means someone else moved it first, and every list
+    // holding it is out of date either way.
+    onSettled: (answer) =>
+      queryClient.invalidateQueries({
+        queryKey: ["questions"],
+        // An answer is the Question as it now is, so it is not asked for again.
+        predicate: ({ queryKey }) =>
+          answer === undefined || queryKey[1] !== "one" || queryKey[2] !== id,
+      }),
   });
 }

@@ -138,8 +138,9 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
         <NearDuplicateDialog
           message={refusedAsNearDuplicate.message}
           nearDuplicates={refusedAsNearDuplicate.nearDuplicates}
+          cancelLabel="Change my Question"
           submitAnywayLabel="It is different, save it"
-          onChangeIt={() => setRefusedAsNearDuplicate(null)}
+          onCancel={() => setRefusedAsNearDuplicate(null)}
           onSubmitAnyway={() => saveAnyway(refusedAsNearDuplicate)}
         />
       )}
