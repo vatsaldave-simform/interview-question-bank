@@ -42,7 +42,7 @@ _Avoid_: label, keyword, topic, term
 
 **Rating**:
 One Viewer's opinion of one Question, revisable and never shown attributed: a Question carries
-only the average and the count.
+only the average and the count. Only a Published Question is rated, and never by its own Author.
 _Avoid_: score, vote, review, feedback
 
 ### People and access
