@@ -13,6 +13,11 @@ export async function clientNamesListed(api: TestApi, token: string): Promise<st
   return clientListResponseSchema.parse(await response.json()).clients.map(({ name }) => name);
 }
 
+/** Every Client, which only an Administrator may ask for. */
+export function getEveryClient(api: TestApi, token: string): Promise<Response> {
+  return api.request("/api/clients/all", { headers: { authorization: `Bearer ${token}` } });
+}
+
 export function postClient(api: TestApi, body: unknown, token: string): Promise<Response> {
   return api.request("/api/clients", {
     method: "POST",

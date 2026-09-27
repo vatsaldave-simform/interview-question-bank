@@ -1,4 +1,4 @@
-import { Outlet } from "@tanstack/react-router";
+import { Link, Outlet } from "@tanstack/react-router";
 import { CheckingTheSession } from "@/platform/checking-the-session";
 import { useSession } from "@/platform/session";
 import { Button } from "@/ui/shadcn/button";
@@ -17,7 +17,15 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-6 py-3">
-        <span className="font-medium">Interview Question Bank</span>
+        <Link to="/" className="font-medium">
+          Interview Question Bank
+        </Link>
+        {/* Hiding the link keeps nobody out: the API refuses the console's lists anyway. */}
+        {viewer.isAdministrator && (
+          <Link to="/administration" className="text-sm hover:underline">
+            Administration
+          </Link>
+        )}
         <span className="ml-auto text-sm">{viewer.email}</span>
         <span className="text-muted-foreground text-sm capitalize">{viewer.role}</span>
         <Button variant="outline" size="sm" onClick={onSignOut}>

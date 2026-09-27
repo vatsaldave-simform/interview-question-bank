@@ -36,6 +36,11 @@ export function findViewerById(
   return database.viewer.findUnique({ where: { id }, select: publicFields });
 }
 
+/** Deactivated Viewers too, because an Administrator has to find them to reactivate them. */
+export function findEveryViewer(database: Database): Promise<Viewer[]> {
+  return database.viewer.findMany({ orderBy: { email: "asc" }, select: publicFields });
+}
+
 /** Deactivated Administrators are not counted, because they cannot log in to appoint a
  * replacement (ADR-0015). */
 export function countOtherActiveAdministrators(

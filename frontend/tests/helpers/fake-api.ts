@@ -1,4 +1,10 @@
-import type { CategoryListResponse, Question } from "@iqb/shared";
+import type {
+  CategoryListResponse,
+  Client,
+  Question,
+  RoleRequest,
+  Viewer,
+} from "@iqb/shared";
 import { vi, type Mock } from "vitest";
 
 /** Only ever used to turn the client's relative path into something a `Request` will
@@ -66,6 +72,38 @@ export const aSignedInAuthor = {
     isDeactivated: false,
   },
 };
+
+/** A Viewer in the shape the API sends one, changed where a test says so. */
+export function aViewer(changes: Partial<Viewer> = {}): Viewer {
+  return { ...aSignedInAuthor.viewer, ...changes };
+}
+
+/** The signed-in Viewer for a test about administration. */
+export const anAdministrator = aViewer({
+  id: "7c3b4a1e-0000-4000-8000-000000000003",
+  email: "reviewer@iqb.test",
+  role: "reviewer",
+  isAdministrator: true,
+});
+
+/** A Client in the shape the API sends one, changed where a test says so. */
+export function aClient(changes: Partial<Client> = {}): Client {
+  return { id: "c0000000-0000-4000-8000-000000000001", name: "Northwind Trading", ...changes };
+}
+
+/** An open Role Request in the shape the API sends one, changed where a test says so. */
+export function aRoleRequest(changes: Partial<RoleRequest> = {}): RoleRequest {
+  return {
+    id: "d0000000-0000-4000-8000-000000000001",
+    viewer: { id: aSignedInAuthor.viewer.id, email: aSignedInAuthor.viewer.email },
+    role: "reviewer",
+    state: "open",
+    reason: null,
+    createdAt: "2026-09-01T09:00:00.000Z",
+    decidedAt: null,
+    ...changes,
+  };
+}
 
 /** A Question in the shape the API sends one, changed where a test says so. */
 export function aQuestion(changes: Partial<Question> = {}): Question {

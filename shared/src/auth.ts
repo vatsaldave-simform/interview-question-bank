@@ -21,7 +21,7 @@ export const viewerSchema = z
     /** Held alongside `role` rather than instead of it (ADR-0015). */
     isAdministrator: z.boolean(),
     /** Always false in a login, refresh or `/me` answer, since a Deactivated Viewer gets
-     * none of those; only an administrative act answers with a true one. */
+     * none of those; only an answer to an Administrator carries a true one. */
     isDeactivated: z.boolean(),
   })
   .strict();
@@ -96,3 +96,6 @@ export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
  * now. */
 export const viewerResponseSchema = z.object({ viewer: viewerSchema }).strict();
 export type ViewerResponse = z.infer<typeof viewerResponseSchema>;
+
+export const viewerListResponseSchema = z.object({ viewers: z.array(viewerSchema) }).strict();
+export type ViewerListResponse = z.infer<typeof viewerListResponseSchema>;
