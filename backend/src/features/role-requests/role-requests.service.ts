@@ -15,13 +15,13 @@ import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 /** Any role other than the one held, so a Reader may ask for Reviewer directly (ADR-0016). */
 export async function raiseRoleRequest(
   database: Database,
-  requester: Viewer,
+  requestingViewer: Viewer,
   role: ViewerRole,
 ): Promise<RoleRequestFromDb> {
-  if (requester.role === role) throw new ConflictError("You already hold that role.");
+  if (requestingViewer.role === role) throw new ConflictError("You already hold that role.");
 
   try {
-    return await insertRoleRequest(database, requester.id, role);
+    return await insertRoleRequest(database, requestingViewer.id, role);
   } catch (error) {
     // Caught from the partial unique index rather than checked first, so two requests at
     // once cannot both get in (ADR-0041).
@@ -61,14 +61,18 @@ export async function grantRoleRequest(
     // Read after the lock, so a direct role change at the same moment cannot make the
     // event's "before" wrong (ADR-0039).
     await lockViewer(transaction, granted.viewer.id);
-    const requester = await findViewerById(transaction, granted.viewer.id);
-    if (requester === null) throw new Error("A Role Request names a Viewer that is not there.");
-    if (requester.role !== granted.role) await setRole(transaction, requester.id, granted.role);
+    const requestingViewer = await findViewerById(transaction, granted.viewer.id);
+    if (requestingViewer === null) {
+      throw new Error("A Role Request names a Viewer that is not there.");
+    }
+    if (requestingViewer.role !== granted.role) {
+      await setRole(transaction, requestingViewer.id, granted.role);
+    }
 
     const payload: RoleRequestGranted = {
       roleRequestId: granted.id,
       viewer: granted.viewer,
-      role: { before: requester.role, after: granted.role },
+      role: { before: requestingViewer.role, after: granted.role },
       reason,
     };
     await insertChangeEvent(transaction, {

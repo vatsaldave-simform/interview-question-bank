@@ -10,11 +10,7 @@ import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { viewerByRole } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
-
-/** So two rows never share a createdAt, in a test about the order they are listed in. */
-function aMomentLater(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 5));
-}
+import { aMomentLater } from "./helpers/wait.ts";
 
 /** Held to the repository rather than to HTTP, because what is under test is the rule the
  * database keeps, and no route could show that nothing checks it first (ADR-0041). */

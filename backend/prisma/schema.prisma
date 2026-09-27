@@ -100,15 +100,14 @@ enum RoleRequestState {
   denied
 }
 
-/// A Viewer's request to hold a different role. Kept once decided, so the requester can
-/// read the reason, and never deleted (ADR-0017).
+/// A Viewer's request to hold a different role, kept once decided so the requester can
+/// still read the reason (ADR-0017).
 model RoleRequest {
   id        String           @id @default(uuid()) @db.Uuid
   viewerId  String           @db.Uuid
   viewer    Viewer           @relation(fields: [viewerId], references: [id])
   role      ViewerRole
   state     RoleRequestState @default(open)
-  /// Null until decided, and after a grant that gave none; a denial always carries one.
   reason    String?
   createdAt DateTime         @default(now()) @db.Timestamptz(3)
   decidedAt DateTime?        @db.Timestamptz(3)

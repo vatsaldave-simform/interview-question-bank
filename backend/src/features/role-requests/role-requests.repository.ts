@@ -22,7 +22,6 @@ export type RoleRequestFromDb = {
   decidedAt: Date | null;
 };
 
-/** A denial always names a reason; a grant may or may not. */
 export type RoleRequestDecision =
   | { state: "granted"; reason: string | null }
   | { state: "denied"; reason: string };
@@ -63,11 +62,8 @@ export function findOpenRoleRequests(database: Database): Promise<RoleRequestFro
   });
 }
 
-/**
- * Null when the Role Request is not open, whether decided already or never there. The
- * state is in the `where`, so of two decisions at once the second waits on the row and
- * then finds nothing to change.
- */
+/** Null when the Role Request is not open, because the state is in the `where`: of two
+ * decisions at once, the second waits on the row and then finds nothing to change. */
 export async function decideRoleRequest(
   database: DatabaseOrTransaction,
   id: string,

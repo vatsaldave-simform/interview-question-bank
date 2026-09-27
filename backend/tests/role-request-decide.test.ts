@@ -10,6 +10,7 @@ import {
   denyRoleRequest,
   grantRoleRequest,
 } from "../src/features/role-requests/role-requests.service.ts";
+import { lockViewer, setRole } from "../src/features/viewers/viewers.repository.ts";
 import { ConflictError } from "../src/platform/errors.ts";
 import { logIn, seededViewer } from "./helpers/auth.ts";
 import { unknownId } from "./helpers/clients.ts";
@@ -22,14 +23,11 @@ import {
   raisedRoleRequestId,
 } from "./helpers/role-requests.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
+import { untilARowLockIsWaitedOn } from "./helpers/test-database.ts";
+import { aMomentLater } from "./helpers/wait.ts";
 
 // Each race is run several times, because one run can happen not to interleave.
 const rounds = 5;
-
-/** So two rows never share a createdAt, in a test about the order they are listed in. */
-function aMomentLater(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 5));
-}
 
 function decisionEvents(api: TestApi) {
   return api.database.changeEvent.findMany({
@@ -247,7 +245,7 @@ describe("deciding a Role Request", () => {
         await seedTheBank(api.database);
         const first = await viewerByRole(api.database, "reviewer");
         const second = await aSecondAdministrator();
-        const requester = await viewerByRole(api.database, "reader");
+        const requestingViewer = await viewerByRole(api.database, "reader");
         const id = await raisedRoleRequestId(
           api,
           "reviewer",
@@ -265,9 +263,36 @@ describe("deciding a Role Request", () => {
         const events = await decisionEvents(api);
         expect(events).toHaveLength(1);
         // The role is the one the decision that won says it is.
-        const stored = await api.database.viewer.findUniqueOrThrow({ where: { id: requester.id } });
+        const stored = await api.database.viewer.findUniqueOrThrow({ where: { id: requestingViewer.id } });
         expect(stored.role).toBe(events[0]?.type === "role_request_granted" ? "reviewer" : "reader");
       }
+    });
+
+    // Held in place by hand, because the grant has to arrive while a direct role change has
+    // written the role and not yet committed, which two requests sent together rarely meet.
+    it("records the role a grant replaced, not the one before a role change under way", async () => {
+      const administrator = await viewerByRole(api.database, "reviewer");
+      const requestingViewer = await viewerByRole(api.database, "reader");
+      const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+      const roleWritten = Promise.withResolvers<void>();
+      const goOn = Promise.withResolvers<void>();
+
+      // What `changeRole` does to its target, stopped before it commits.
+      const roleChange = api.database.$transaction(async (transaction) => {
+        await lockViewer(transaction, requestingViewer.id);
+        await setRole(transaction, requestingViewer.id, "author");
+        roleWritten.resolve();
+        await goOn.promise;
+      });
+      await roleWritten.promise;
+      const grant = grantRoleRequest(api.database, administrator, id, null);
+      await untilARowLockIsWaitedOn(api.database);
+      goOn.resolve();
+      await Promise.all([roleChange, grant]);
+
+      const [event] = await decisionEvents(api);
+      expect(event?.payload).toMatchObject({ role: { before: "author", after: "reviewer" } });
+      expect((await viewerByRole(api.database, "reader")).role).toBe("reviewer");
     });
   });
 });

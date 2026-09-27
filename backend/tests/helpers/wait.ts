@@ -15,3 +15,8 @@ export async function readUntil<T>(
   }
   return value;
 }
+
+/** So two rows never share a createdAt, in a test about the order they are listed in. */
+export function aMomentLater(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 5));
+}

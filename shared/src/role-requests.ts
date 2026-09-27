@@ -16,7 +16,6 @@ export const roleRequestSchema = z
      * (ADR-0016). */
     role: viewerRoleSchema,
     state: roleRequestStateSchema,
-    /** Always there on a denial, and there on a grant only if the Administrator gave one. */
     reason: z.string().nullable(),
     createdAt: z.iso.datetime(),
     decidedAt: z.iso.datetime().nullable(),

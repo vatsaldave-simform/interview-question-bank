@@ -13,7 +13,11 @@ import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { ConflictError } from "../src/platform/errors.ts";
 import { viewerByRole } from "./helpers/question-bank.ts";
-import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
+import {
+  createTestDatabase,
+  truncateAll,
+  untilARowLockIsWaitedOn,
+} from "./helpers/test-database.ts";
 
 // Each race is run several times, because one run can happen not to interleave.
 const rounds = 5;
@@ -47,16 +51,6 @@ describe("two administrative acts at the same moment", () => {
 
   function activeAdministrators(): Promise<number> {
     return database.viewer.count({ where: { isAdministrator: true, isDeactivated: false } });
-  }
-
-  async function untilARowLockIsWaitedOn(): Promise<void> {
-    for (;;) {
-      const [row] = await database.$queryRaw<{ waiting: bigint }[]>`
-        SELECT count(*) AS waiting FROM pg_locks WHERE NOT granted
-      `;
-      if (Number(row?.waiting ?? 0) > 0) return;
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
   }
 
   /** One act went ahead and the other got the 409, not a deadlock or any other error. */
@@ -190,7 +184,7 @@ describe("two administrative acts at the same moment", () => {
     });
     await roleWritten.promise;
     const withdrawal = withdrawAdministrator(database, first, second.id);
-    await untilARowLockIsWaitedOn();
+    await untilARowLockIsWaitedOn(database);
     goOn.resolve();
 
     const results = await Promise.allSettled([roleChange, withdrawal]);

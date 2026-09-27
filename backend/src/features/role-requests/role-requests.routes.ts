@@ -46,7 +46,6 @@ export function roleRequestRoutes(database: Database): Router {
     res.status(201).json(body);
   });
 
-  // How a requester reads the reason their Role Request was denied.
   router.get("/mine", async (req, res) => {
     const roleRequests = await findRoleRequestsOf(database, authenticatedViewer(req).id);
 

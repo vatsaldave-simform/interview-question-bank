@@ -121,7 +121,6 @@ export const roleRequestGrantedSchema = z
   .strict();
 export type RoleRequestGranted = z.infer<typeof roleRequestGrantedSchema>;
 
-/** The role that was asked for, and why it was refused. */
 export const roleRequestDeniedSchema = z
   .object({
     roleRequestId: z.uuid(),
