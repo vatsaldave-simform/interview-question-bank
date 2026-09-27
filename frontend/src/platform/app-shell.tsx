@@ -26,7 +26,9 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
             Administration
           </Link>
         )}
-        <span className="ml-auto text-sm">{viewer.email}</span>
+        <Link to="/account" className="ml-auto text-sm hover:underline">
+          {viewer.email}
+        </Link>
         <span className="text-muted-foreground text-sm capitalize">{viewer.role}</span>
         <Button variant="outline" size="sm" onClick={onSignOut}>
           Log out
