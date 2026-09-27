@@ -1,6 +1,7 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import {
   PublishButton,
   ReasonAct,
@@ -14,7 +15,6 @@ import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
-import { RatingSummary, ratingIsShown } from "@/features/questions/rating-summary";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Badge } from "@/ui/shadcn/badge";
@@ -76,7 +76,7 @@ function QuestionInFull({ question }: { question: Question }) {
           <h2 id="rating" className="font-medium">
             Rating
           </h2>
-          <RatingSummary rating={question.rating} />
+          <AverageRating rating={question.rating} />
           {/* Offered by the Publication State alone, like the acts above (ADR-0002). */}
           {question.publicationState === "published" && <RatingControl question={question} />}
         </section>

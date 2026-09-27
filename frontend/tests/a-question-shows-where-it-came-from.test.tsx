@@ -1,10 +1,9 @@
-import type { Question } from "@iqb/shared";
 import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion, answersWith } from "./helpers/fake-api";
-import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { aQuestion } from "./helpers/fake-api";
+import { aBankHolding, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -30,19 +29,6 @@ const inherited = aQuestion({
   provenance: "inherited",
   source: null,
 });
-
-/** Serves each Question on its own page, and all of them in the list. */
-function aBankHolding(questions: Question[]): void {
-  fakeBank(
-    (asked) => aPageOf(questions, asked),
-    (_request, asked) => {
-      const one = questions.find(({ id }) => asked.pathname === `/api/questions/${id}`);
-      if (one !== undefined) return answersWith({ question: one });
-      if (asked.pathname.endsWith("/history")) return answersWith({ events: [] });
-      return undefined;
-    },
-  );
-}
 
 function whereItCameFrom(): HTMLElement {
   return screen.getByRole("region", { name: "Where it came from" });
