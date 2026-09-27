@@ -11,6 +11,7 @@ import {
   type ProvenanceChoice,
 } from "@/features/questions/contribute-provenance-fields";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
+import { QuestionClientChoice } from "@/features/questions/question-client-choice";
 import { QuestionForm } from "@/features/questions/question-form";
 import {
   checkRefused,
@@ -45,6 +46,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
     provenance: null,
     source: "",
   });
+  const [clientId, setClientId] = useState<string | null>(null);
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
   const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
@@ -67,7 +69,11 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
   }
 
   function submit(draft: QuestionDraft): void {
-    const checked = addQuestionRequestSchema.safeParse({ ...draft, ...provenanceIn(provenanceChoice) });
+    const checked = addQuestionRequestSchema.safeParse({
+      ...draft,
+      ...provenanceIn(provenanceChoice),
+      ...(clientId === null ? {} : { clientId }),
+    });
     if (!checked.success) {
       // The message is for a field this form does not show, which only a page out of date
       // can get wrong.
@@ -116,6 +122,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
           problems={problems}
           onChange={setProvenanceChoice}
         />
+        <QuestionClientChoice clientId={clientId} onChange={setClientId} />
       </QuestionForm>
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog

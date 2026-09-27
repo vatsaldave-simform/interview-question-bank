@@ -8,6 +8,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ClientRestriction } from "@/features/questions/client-restriction";
+import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
@@ -136,6 +137,7 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
         submit={{ label: "Save", sendingLabel: "Saving…" }}
         onSubmit={submit}
       />
+      <EditRestrictionForm question={question} />
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog
           message={refusedAsNearDuplicate.message}
