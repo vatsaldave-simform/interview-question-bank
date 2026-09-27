@@ -388,12 +388,14 @@ async function recordOverride(
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
- * moves it (ADR-0013), and no Client, since classifying is its own act (ADR-0018). */
+ * moves it (ADR-0013). */
 export type NewQuestion = {
   text: string;
   answerNotes: string;
   provenance: Provenance;
   source?: string;
+  /** A Client the adding Viewer holds a Grant for, which the caller has checked. */
+  clientId?: string;
   tagIds: readonly string[];
 };
 
@@ -419,6 +421,7 @@ export async function insertQuestion(
         authorId: viewer.id,
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
+        ...(question.clientId === undefined ? {} : { clientId: question.clientId }),
         tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
       },
       select: questionFieldsToRead,
@@ -437,6 +440,14 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
+    if (added.clientId !== null) {
+      await insertChangeEvent(transaction, {
+        type: "question_classified",
+        questionId: added.id,
+        viewerId: viewer.id,
+        payload: { clientId: { before: null, after: added.clientId } },
+      });
+    }
 
     await recordOverride(transaction, viewer, added.id, overridden);
     return added;

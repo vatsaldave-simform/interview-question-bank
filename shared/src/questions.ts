@@ -82,6 +82,9 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
+    /** Named here rather than restricted afterwards, which would leave the new Question
+     * open to every Reviewer in between (ADR-0018). */
+    clientId: z.uuid().optional(),
     /** The Author's own word that a match detection found is wrong, which is the only
      * thing that stores a Question detection has refused once. */
     confirmedNotANearDuplicate: z.boolean().default(false),

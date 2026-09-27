@@ -29,6 +29,7 @@ import {
   type TagsInCategory,
 } from "./questions.repository.ts";
 import { mayEdit } from "./may-edit.ts";
+import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import { mayPublish, mayReject, mayResubmit, mayReturn } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
@@ -155,6 +156,18 @@ async function overrideOrRefuse(
   throw new ConflictError(refusedAsNearDuplicateFor[act], found);
 }
 
+/** A restriction the Viewer holds no Grant for would hide the Question from the Viewer who
+ * set it, and a Client they cannot see is answered as one that does not exist (ADR-0018). */
+async function checkGrantedClient(
+  database: Database,
+  viewer: Viewer,
+  clientId: string,
+): Promise<void> {
+  if ((await findClientGrantedTo(database, viewer.id, clientId)) === null) {
+    throw new InvalidRequestError("No such Client.");
+  }
+}
+
 /** Detection runs before anything is stored, so an Author hears about a Near-Duplicate
  * while the Question is still in front of them (ADR-0014). */
 export async function addQuestion(
@@ -163,6 +176,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
+  if (request.clientId !== undefined) await checkGrantedClient(database, viewer, request.clientId);
   const overridden = await overrideOrRefuse(database, viewer, {
     act: "add",
     questionId: null,
@@ -185,6 +199,7 @@ export async function addQuestion(
       answerNotes: request.answerNotes,
       provenance: request.provenance,
       ...(request.source === undefined ? {} : { source: request.source }),
+      ...(request.clientId === undefined ? {} : { clientId: request.clientId }),
       tagIds,
     },
     overridden,
