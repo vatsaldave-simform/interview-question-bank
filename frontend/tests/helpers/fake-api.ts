@@ -118,6 +118,7 @@ export function aQuestion(changes: Partial<Question> = {}): Question {
     provenance: "original",
     source: null,
     tags: [{ category: "technology", tag: "typescript" }],
+    rating: { average: null, count: 0, mine: null },
     createdAt: "2026-09-01T09:00:00.000Z",
     ...changes,
   };

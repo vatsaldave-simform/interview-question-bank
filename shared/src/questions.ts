@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ratingSummarySchema } from "./ratings.js";
 
 /** Where a Question came from. Every Question carries exactly one. */
 export const provenances = ["original", "adapted", "inherited"] as const;
@@ -62,6 +63,7 @@ export const questionSchema = z
     provenance: provenanceSchema,
     source: z.string().nullable(),
     tags: z.array(questionTagSchema),
+    rating: ratingSummarySchema,
     createdAt: z.iso.datetime(),
   })
   .strict();

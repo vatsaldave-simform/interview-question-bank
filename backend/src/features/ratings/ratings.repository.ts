@@ -56,3 +56,13 @@ export async function withRatingSummaries<Q extends { id: string }>(
     };
   });
 }
+
+export async function withRatingSummary<Q extends { id: string }>(
+  database: Database,
+  viewer: Viewer,
+  question: Q,
+): Promise<Q & { rating: RatingSummary }> {
+  const [rated] = await withRatingSummaries(database, viewer, [question]);
+  if (rated === undefined) throw new Error(`No Rating summary came back for ${question.id}.`);
+  return rated;
+}
