@@ -48,11 +48,8 @@ describe("the forgotten-password page", () => {
     expect(await api.sent[0]!.json()).toEqual({ email: "reader@iqb.test" });
   });
 
-  /**
-   * The API answers 202 for an active Viewer, a Deactivated one and an address with no
-   * account (ADR-0016). A page that worded any of them differently, or read the address
-   * back, would hand out what the API is careful to keep.
-   */
+  /** The API answers every address alike (ADR-0016), so a page that worded any of them
+   * differently, or read the address back, would give away what the API keeps. */
   it("says the same words for every address, and never shows the address back", async () => {
     answersEveryAddressAlike();
 

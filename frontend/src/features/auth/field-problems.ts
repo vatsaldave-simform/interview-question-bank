@@ -8,11 +8,8 @@ function isField<Field extends string>(
   return typeof value === "string" && Object.hasOwn(wording, value);
 }
 
-/**
- * The fields a schema refused, each worded from `wording`. zod words its refusals for
- * whoever is reading a stack trace, and "Too small: expected string to have >=1
- * characters" is not a sentence to put in front of anyone.
- */
+/** Worded from `wording`, because zod words its refusals for whoever is reading a stack
+ * trace rather than for the person filling in the form. */
 export function problemsIn<Field extends string>(
   wording: Record<Field, string>,
   issues: readonly { path: readonly PropertyKey[] }[],
