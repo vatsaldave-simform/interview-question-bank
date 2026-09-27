@@ -1,6 +1,13 @@
-import { editQuestionRequestSchema, type Question, type QuestionTag } from "@iqb/shared";
+import {
+  editQuestionRequestSchema,
+  type EditQuestionRequest,
+  type NearDuplicate,
+  type Question,
+  type QuestionTag,
+} from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import {
@@ -59,6 +66,13 @@ function changesIn(draft: QuestionDraft, question: Question) {
   };
 }
 
+/** Kept as it was sent, so that confirming sends the same edit again. */
+type RefusedAsNearDuplicate = {
+  request: EditQuestionRequest;
+  message: string;
+  nearDuplicates: NearDuplicate[];
+};
+
 function EditForm({ question, onSaved }: { question: Question; onSaved: () => void }) {
   // Held from the moment the form opens, because the form holds that version too, and a
   // newer one fetched meanwhile would make a field look changed that nobody touched.
@@ -66,6 +80,24 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
   const edit = useEditQuestion(question.id);
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
+    useState<RefusedAsNearDuplicate | null>(null);
+
+  function send(request: EditQuestionRequest): void {
+    edit.mutate(request, {
+      onSuccess: onSaved,
+      onError: (reason) => {
+        const nearDuplicates = nearDuplicatesIn(reason);
+        if (nearDuplicates !== null) {
+          setRefusedAsNearDuplicate({ request, message: reason.message, nearDuplicates });
+          return;
+        }
+        const refused = refusalOf(reason);
+        setProblems(refused.problems);
+        setRefusal(refused.message);
+      },
+    });
+  }
 
   function submit(draft: QuestionDraft): void {
     const checked = editQuestionRequestSchema.safeParse(changesIn(draft, opened));
@@ -82,24 +114,35 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
 
     setProblems({});
     setRefusal(null);
-    edit.mutate(checked.data, {
-      onSuccess: onSaved,
-      onError: (reason) => {
-        const refused = refusalOf(reason);
-        setProblems(refused.problems);
-        setRefusal(refused.message);
-      },
-    });
+    send(checked.data);
+  }
+
+  function saveAnyway(refused: RefusedAsNearDuplicate): void {
+    setRefusedAsNearDuplicate(null);
+    send({ ...refused.request, confirmedNotANearDuplicate: true });
   }
 
   return (
-    <QuestionForm
-      initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
-      problems={problems}
-      refusal={refusal === null ? null : { title: "The Question was not saved", message: refusal }}
-      sending={edit.isPending}
-      submit={{ label: "Save", sendingLabel: "Saving…" }}
-      onSubmit={submit}
-    />
+    <>
+      <QuestionForm
+        initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
+        problems={problems}
+        refusal={
+          refusal === null ? null : { title: "The Question was not saved", message: refusal }
+        }
+        sending={edit.isPending}
+        submit={{ label: "Save", sendingLabel: "Saving…" }}
+        onSubmit={submit}
+      />
+      {refusedAsNearDuplicate !== null && (
+        <NearDuplicateDialog
+          message={refusedAsNearDuplicate.message}
+          nearDuplicates={refusedAsNearDuplicate.nearDuplicates}
+          submitAnywayLabel="It is different, save it"
+          onChangeIt={() => setRefusedAsNearDuplicate(null)}
+          onSubmitAnyway={() => saveAnyway(refusedAsNearDuplicate)}
+        />
+      )}
+    </>
   );
 }

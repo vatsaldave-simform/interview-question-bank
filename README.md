@@ -392,7 +392,8 @@ Each Question has a page at `/questions/:id`, with its history: who changed what
 sent, and anything the API still refuses is shown against the field it names. When the API
 finds Near-Duplicates, they are listed in a dialog, and the Author can go back and change the
 Question or say it is different and add it anyway. `/questions/:id/edit` edits one, and
-sends only the fields that changed. Both forms are there for every Viewer, a Reader
+sends only the fields that changed. New text on a Published Question gets the same dialog,
+and saving it anyway sends the same edit again with the confirmation. Both forms are there for every Viewer, a Reader
 included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
 API's refusal rather than a missing button.
 
