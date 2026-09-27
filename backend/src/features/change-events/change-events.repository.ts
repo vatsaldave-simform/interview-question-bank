@@ -58,9 +58,10 @@ export type NewChangeEvent =
       payload: QuestionEdited;
     }
   | {
-      /** Null, never an id: nothing was stored, which is the whole point of this one. */
+      /** Null for a refused submission, since nothing was stored, and an id when the
+       * refused act was on a Question that already exists (ADR-0014). */
       type: "near_duplicate_refused";
-      questionId: null;
+      questionId: string | null;
       viewerId: string;
       payload: NearDuplicateRefused;
     }

@@ -100,12 +100,23 @@ export const editQuestionRequestSchema = z
     text: z.string().trim().min(1).optional(),
     answerNotes: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).optional(),
+    /** Optional rather than defaulted, so an edit's body holds only what it changes (ADR-0014). */
+    confirmedNotANearDuplicate: z.boolean().optional(),
   })
   .strict()
-  .refine((request) => Object.values(request).some((named) => named !== undefined), {
-    message: "An edit names at least one of text, answerNotes or tags.",
-  });
+  .refine(
+    ({ text, answerNotes, tags }) => [text, answerNotes, tags].some((named) => named !== undefined),
+    { message: "An edit names at least one of text, answerNotes or tags." },
+  );
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
+
+export const publishQuestionRequestSchema = z
+  .object({
+    /** The Reviewer's word that a Near-Duplicate found at publication is wrong (ADR-0014). */
+    confirmedNotANearDuplicate: z.boolean().default(false),
+  })
+  .strict();
+export type PublishQuestionRequest = z.infer<typeof publishQuestionRequestSchema>;
 
 /** Required, because the reason is what the Author reads to put the Question right (ADR-0013). */
 export const rejectQuestionRequestSchema = z

@@ -9,8 +9,11 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
+  addAQuestion,
   aQuestion,
   postQuestion,
+  postReviewAct,
+  questionAnswered,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
@@ -30,6 +33,10 @@ const nearlyTheOtherClientsBookingOne =
 /** And the first Client's, which the Reviewer holds no Grant for: the mirror case. */
 const nearlyTheFirstClientsPipelineOne =
   "How would you migrate this client's reporting pipeline away from nightly batch jobs?";
+
+/** The text `aQuestion` sends, reworded. */
+const nearlyTheCacheOne =
+  "How would you introduce a cache without making its staleness somebody else's problem?";
 
 /**
  * What happens when a submission looks like something already in the bank: the Author is
@@ -67,6 +74,12 @@ describe("submitting a Question that resembles one already in the bank", () => {
       headers: { authorization: `Bearer ${authorToken}` },
     });
     return questionHistoryResponseSchema.parse(await response.json()).events;
+  }
+
+  /** Sorted, because the two events an override writes can share a millisecond, and a
+   * random id settles that tie. */
+  function typesIn(events: readonly ChangeEvent[]): ChangeEventType[] {
+    return events.map((event) => event.type).sort();
   }
 
   it("refuses the submission and names what it resembles", async () => {
@@ -131,6 +144,25 @@ describe("submitting a Question that resembles one already in the bank", () => {
     expect(await eventsOfKind("near_duplicate_refused")).toEqual([]);
   });
 
+  it("never tells an Author about a Pending Question, and does once it is Published", async () => {
+    const waiting = await addAQuestion(api, { text: nearlyTheCacheOne }, reviewerToken);
+    const first = await postQuestion(api, aQuestion(), authorToken);
+    expect(first.status).toBe(201);
+
+    // Withdrawn, so that Publishing the Reviewer's own Question does not find it.
+    const withdrawn = questionResponseSchema.parse(await first.json()).question.id;
+    await questionAnswered(
+      await postReviewAct(api, withdrawn, "reject", authorToken, { reason: "Withdrawn." }),
+    );
+    await questionAnswered(await postReviewAct(api, waiting, "publish", reviewerToken));
+    const second = await postQuestion(api, aQuestion(), authorToken);
+
+    expect(second.status).toBe(409);
+    const body = apiErrorSchema.parse(await second.json());
+    const found = nearDuplicatesFoundSchema.parse(body.error.details);
+    expect(found.nearDuplicates.map((near) => near.questionId)).toEqual([waiting]);
+  });
+
   it("holds a Reviewer to the same rule, for the Client they hold no Grant for", async () => {
     const response = await postQuestion(
       api,
@@ -169,14 +201,14 @@ describe("submitting a Question that resembles one already in the bank", () => {
 
     const events = await historyOf(stored.id);
 
-    expect(events.map((event) => event.type)).toEqual<ChangeEventType[]>([
-      "question_added",
+    expect(typesIn(events)).toEqual<ChangeEventType[]>([
       "near_duplicate_overridden",
+      "question_added",
     ]);
-    const overridden = events[1]!;
-    expect(overridden.viewerId).toBe(authorId);
-    expect(overridden.questionId).toBe(stored.id);
-    expect(overridden.payload).toMatchObject({
+    const overridden = events.find((event) => event.type === "near_duplicate_overridden");
+    expect(overridden?.viewerId).toBe(authorId);
+    expect(overridden?.questionId).toBe(stored.id);
+    expect(overridden?.payload).toMatchObject({
       nearDuplicates: [{ questionId: seededQuestionIds.aboutTypeScript }],
     });
   });
@@ -222,9 +254,9 @@ describe("submitting a Question that resembles one already in the bank", () => {
 
     const events = await historyOf(stored.id);
 
-    expect(events.map((event) => event.type)).toEqual<ChangeEventType[]>([
-      "question_added",
+    expect(typesIn(events)).toEqual<ChangeEventType[]>([
       "near_duplicate_overridden",
+      "question_added",
     ]);
   });
 

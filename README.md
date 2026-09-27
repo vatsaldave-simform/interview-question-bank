@@ -259,6 +259,16 @@ the decision against the Author who made it:
 #   "confirmedNotANearDuplicate": true
 ```
 
+A Reviewer Publishing a Question gets the same check again, because something like it may
+have been Published while it waited. A Near-Duplicate found then is a 409 in the same shape,
+and the Reviewer overrides it the same way, recorded against their name:
+
+```sh
+curl -s -X POST localhost:3000/api/questions/$ID/publish \
+  -H 'content-type: application/json' -H "authorization: Bearer $TOKEN" \
+  -d '{"confirmedNotANearDuplicate":true}'
+```
+
 **What is compared.** Question text alone, never the Answer Notes. Similarity counts the
 characters two strings share, so measuring a one-line Question against a paragraph of
 Notes scores near zero however plainly one is a copy of the other (ADR-0004).
@@ -270,6 +280,17 @@ the submitter holds no Permission Grant for, which tells them that Question exis
 (ADR-0007). Published only, so nobody learns about a Question sitting in a review queue
 they cannot see either (ADR-0014). The cost is real and accepted: the bank can hold
 genuine duplicates on opposite sides of a visibility boundary.
+
+At publication the Reviewer is checked against Pending Questions as well, because the queue
+is theirs to see, so two near-identical submissions do not both reach the bank. Rejected
+Questions are left out, being in neither the bank nor the queue, and so is the Question
+being Published, which would always be its own Near-Duplicate.
+
+An edit that changes a Published Question's text is checked the way a submission is,
+against Published Questions only, leaving out the Question being edited. That holds for a
+Reviewer editing too. Nothing else an edit changes is checked, and neither is an edit to a
+Pending Question, since Publishing it will check it. The override is the same
+`"confirmedNotANearDuplicate": true`, sent beside the fields being changed.
 
 **The threshold is 0.45**, on the zero-to-one scale `pg_trgm` measures similarity on.
 Trigram similarity ignores word order and punctuation, so it is measuring the words two
@@ -291,19 +312,19 @@ noise for text this long and would refuse honest submissions. The number is
 `nearDuplicateThreshold` in `shared/src/questions.ts`; change it there and the measurements
 above are what to re-run.
 
-**Both outcomes leave a trace.** A refusal is recorded as a Change Event naming no
-Question — nothing was stored — and carrying the whole attempt, which is why the history
-is an event log rather than versions of a row (ADR-0006). An override is recorded against
-the Question it stored, in the same transaction, so the Question and the record of the
-call it took cannot exist apart.
+**Both outcomes leave a trace.** A refused submission is recorded as a Change Event naming
+no Question — nothing was stored — and carrying the whole attempt, which is why the history
+is an event log rather than versions of a row (ADR-0006). A refused publication or edit
+names the Question, which stays as it was. An override is recorded against the Question in the same
+transaction as the act it let through, so the two cannot exist apart.
 
 Both of those events name Near-Duplicates, which are Questions in their own right, so only
 the Viewer an event names may read it. Somebody else reading the same Question's history
 does not see the event at all — its presence alone would say a Question they cannot reach
 exists (ADR-0028).
 
-Detection runs at submission today. Publication and text edits are the other two moments
-it belongs at, and they arrive with their own ticket (ADR-0014).
+Detection runs at those three moments: submission, publication, and a text edit to a
+Published Question (ADR-0014).
 
 ## Running the tests
 
@@ -371,8 +392,9 @@ Each Question has a page at `/questions/:id`, with its history: who changed what
 sent, and anything the API still refuses is shown against the field it names. When the API
 finds Near-Duplicates, they are listed in a dialog, and the Author can go back and change the
 Question or say it is different and add it anyway. `/questions/:id/edit` edits one, and
-sends only the fields that changed. Both forms are there for every Viewer, a Reader
-included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
+sends only the fields that changed. New text on a Published Question gets the same
+dialog, and saving it anyway sends the same edit again with the confirmation. Both forms
+are there for every Viewer, a Reader included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
 API's refusal rather than a missing button.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if

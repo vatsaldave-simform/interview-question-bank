@@ -21,14 +21,16 @@ type NearDuplicateDialogProps = {
   /** The API's own words for why it refused, shown as it sent them. */
   message: string;
   nearDuplicates: readonly NearDuplicate[];
+  /** What sending it anyway does, in the button's words: adding it, or saving an edit. */
+  submitAnywayLabel: string;
   onChangeIt: () => void;
   onSubmitAnyway: () => void;
 };
 
-/** Only the Author may overrule detection, so the client offers the choice and never makes
- * it (ADR-0014). */
+/** Only the Viewer who wrote the text may overrule detection, so the client offers the
+ * choice and never makes it (ADR-0014). */
 export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
-  const { message, nearDuplicates, onChangeIt, onSubmitAnyway } = props;
+  const { message, nearDuplicates, submitAnywayLabel, onChangeIt, onSubmitAnyway } = props;
   return (
     <Dialog open onOpenChange={(open) => !open && onChangeIt()}>
       <DialogContent>
@@ -57,7 +59,7 @@ export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
           <Button variant="outline" onClick={onChangeIt}>
             Change my Question
           </Button>
-          <Button onClick={onSubmitAnyway}>It is different, add it</Button>
+          <Button onClick={onSubmitAnyway}>{submitAnywayLabel}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

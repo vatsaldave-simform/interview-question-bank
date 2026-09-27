@@ -2,6 +2,7 @@ import {
   addQuestionRequestSchema,
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
+  publishQuestionRequestSchema,
   questionPageRequestSchema,
   rejectQuestionRequestSchema,
   returnQuestionRequestSchema,
@@ -140,8 +141,10 @@ export function questionRoutes(database: Database): Router {
   // No `requireRole` on any of these, for the reason the edit route has none.
   router.post("/:id/publish", async (req, res) => {
     const id = questionIdNamed(req);
+    // Express leaves the body undefined when none was sent, and that is a publish too.
+    const request = publishQuestionRequestSchema.parse(req.body ?? {});
 
-    const question = await publishQuestion(database, authenticatedViewer(req), id);
+    const question = await publishQuestion(database, authenticatedViewer(req), id, request);
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.json(body);

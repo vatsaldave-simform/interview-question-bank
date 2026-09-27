@@ -136,6 +136,45 @@ describe("a Question's history", () => {
     expect(first).toHaveTextContent("What does satisfies do in TypeScript?");
   });
 
+  it("says what text was stopped as a Near-Duplicate, and which one it resembled", async () => {
+    const refused: ChangeEvent = {
+      id: "e0000000-0000-4000-8000-000000000004",
+      questionId: question.id,
+      viewerId: added.viewerId,
+      viewerEmail: "author@iqb.test",
+      at: added.at,
+      type: "near_duplicate_refused",
+      payload: {
+        attempted: {
+          text: "What does satisfies do, exactly?",
+          answerNotes: question.answerNotes,
+          provenance: question.provenance,
+          source: question.source,
+          tags: question.tags,
+        },
+        nearDuplicates: [
+          {
+            questionId: "a0000000-0000-4000-8000-000000000002",
+            text: "What does satisfies do in TypeScript?",
+            similarity: 0.62,
+          },
+        ],
+      },
+    };
+    aBankWhoseHistoryIs(() => answersWith({ events: [refused, added] }));
+
+    renderTheWholeClient(`/questions/${question.id}`);
+
+    const [first] = await historyEntries();
+    expect(first).toHaveTextContent(
+      "author@iqb.test was stopped, as the text sent closely resembled a Near-Duplicate",
+    );
+    // The text sent, which on an edit is not the text the Question kept.
+    const sent = within(first!).getByRole("group", { name: "Text sent" });
+    expect(sent).toHaveTextContent("What does satisfies do, exactly?");
+    expect(first).toHaveTextContent("What does satisfies do in TypeScript?");
+  });
+
   it("reports a history that could not be read, and still shows the Question", async () => {
     const answers = [
       refusesWith(500, "internal_error", "Something went wrong on our side."),

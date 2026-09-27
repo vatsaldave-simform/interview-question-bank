@@ -20,7 +20,7 @@ import {
   type ChangeEventFromDb,
   type NewChangeEvent,
 } from "../change-events/change-events.repository.ts";
-import type { Database } from "../../platform/database.ts";
+import type { Database, Transaction } from "../../platform/database.ts";
 
 /** A Question as the rest of the code sees one: its Tags carry names, not ids. */
 export type QuestionFromDb = {
@@ -305,15 +305,16 @@ export async function searchVisibleQuestions(
   }));
 }
 
-/**
- * The Questions a submission closely resembles, closest first, and none below the
- * threshold. Question text only, never Answer Notes (ADR-0004), and Visible and Published
- * whoever is asking, a Reviewer included (ADR-0007, ADR-0014).
- */
-export async function findNearDuplicates(
+/** Which Visible Questions one check compares against. */
+type NearDuplicateReach = { states: readonly PublicationState[]; excluding?: string };
+
+/** Closest first and none below the threshold, over Question text alone (ADR-0004) and
+ * Visible Questions alone (ADR-0007). */
+async function findNearDuplicatesAmong(
   database: Database,
   viewer: Viewer,
   text: string,
+  { states, excluding }: NearDuplicateReach,
 ): Promise<NearDuplicate[]> {
   return database.$queryRaw<NearDuplicate[]>`
     SELECT nearest.id AS "questionId", nearest.text, nearest.similarity
@@ -321,7 +322,8 @@ export async function findNearDuplicates(
         SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
           FROM questions q
          WHERE ${visibleToInSql(viewer)}
-           AND q."publicationState" = 'published'
+           AND q."publicationState" = ANY(${[...states]}::"PublicationState"[])
+           ${excluding === undefined ? Prisma.empty : Prisma.sql`AND q.id <> ${excluding}::uuid`}
          -- Ordered by distance rather than by similarity, because distance is what the
          -- GiST index can answer; the two are the same order (ADR-0004).
          ORDER BY q.text <-> ${text}
@@ -330,6 +332,59 @@ export async function findNearDuplicates(
      WHERE nearest.similarity >= ${nearDuplicateThreshold}
      ORDER BY nearest.similarity DESC, nearest.id DESC
   `;
+}
+
+/** Published only, whoever is asking, a Reviewer included, so nobody submitting is told
+ * about a Question waiting in a queue they may not see (ADR-0014). */
+export function findNearDuplicates(
+  database: Database,
+  viewer: Viewer,
+  text: string,
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, text, { states: ["published"] });
+}
+
+/** The Questions a submission is checked against, without the one being edited, which
+ * would always be its own Near-Duplicate (ADR-0014). */
+export function findNearDuplicatesForEdit(
+  database: Database,
+  viewer: Viewer,
+  question: { id: string; text: string },
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, question.text, {
+    states: ["published"],
+    excluding: question.id,
+  });
+}
+
+/** Pending ones too, because the queue is the publishing Reviewer's to see, and never the
+ * Question being Published, which would always be its own Near-Duplicate (ADR-0014). */
+export function findNearDuplicatesForPublication(
+  database: Database,
+  viewer: Viewer,
+  question: { id: string; text: string },
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, question.text, {
+    states: ["published", "pending"],
+    excluding: question.id,
+  });
+}
+
+/** A Transaction, not a Database, so the override is written with the act it let through
+ * or not at all. */
+async function recordOverride(
+  transaction: Transaction,
+  viewer: Viewer,
+  questionId: string,
+  overridden: readonly NearDuplicate[],
+): Promise<void> {
+  if (overridden.length === 0) return;
+  await insertChangeEvent(transaction, {
+    type: "near_duplicate_overridden",
+    questionId,
+    viewerId: viewer.id,
+    payload: { nearDuplicates: [...overridden] },
+  });
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
@@ -383,30 +438,22 @@ export async function insertQuestion(
       },
     });
 
-    if (overridden.length > 0) {
-      await insertChangeEvent(transaction, {
-        type: "near_duplicate_overridden",
-        questionId: added.id,
-        viewerId: viewer.id,
-        payload: { nearDuplicates: [...overridden] },
-      });
-    }
+    await recordOverride(transaction, viewer, added.id, overridden);
     return added;
   });
 }
 
-/**
- * The trace a refused submission leaves. It names no Question because none was stored,
- * which is the case the log exists as a log for (ADR-0006).
- */
-export async function recordRefusedSubmission(
+/** A refused submission names no Question, since none was stored, which is the case the
+ * log exists as a log for (ADR-0006). */
+export async function recordRefusedAsNearDuplicate(
   database: Database,
   viewer: Viewer,
+  questionId: string | null,
   refused: NearDuplicateRefused,
 ): Promise<void> {
   await insertChangeEvent(database, {
     type: "near_duplicate_refused",
-    questionId: null,
+    questionId,
     viewerId: viewer.id,
     payload: refused,
   });
@@ -451,6 +498,7 @@ export async function updateVisibleQuestion(
   viewer: Viewer,
   id: string,
   edit: QuestionEdit,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb | null> {
   return database.$transaction(async (transaction) => {
     const visible: Prisma.QuestionWhereInput = { AND: [{ id }, visibleQuestions(viewer)] };
@@ -497,6 +545,7 @@ export async function updateVisibleQuestion(
         viewerId: viewer.id,
         payload: changed,
       });
+      await recordOverride(transaction, viewer, id, overridden);
     }
     return after;
   });
@@ -544,6 +593,7 @@ export async function moveVisibleQuestion(
   viewer: Viewer,
   id: string,
   move: PublicationMove,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb | null> {
   const { from, to } = statesFor[move.act];
   return database.$transaction(async (transaction) => {
@@ -554,6 +604,7 @@ export async function moveVisibleQuestion(
     if (count === 0) return null;
 
     await insertChangeEvent(transaction, eventFor(move, id, viewer));
+    await recordOverride(transaction, viewer, id, overridden);
 
     // By id, because a Permission Grant revoked since the write would hide the committed move.
     const moved = await transaction.question.findUniqueOrThrow({

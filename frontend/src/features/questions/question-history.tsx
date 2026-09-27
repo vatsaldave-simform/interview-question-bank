@@ -43,7 +43,11 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
                 </time>
               </p>
               {event.type === "question_edited" && <WhatAnEditChanged edit={event.payload} />}
-              {event.type === "near_duplicate_overridden" && (
+              {event.type === "near_duplicate_refused" && (
+                <TextSent text={event.payload.attempted.text} />
+              )}
+              {(event.type === "near_duplicate_overridden" ||
+                event.type === "near_duplicate_refused") && (
                 <NearDuplicatesNamed nearDuplicates={event.payload.nearDuplicates} />
               )}
             </li>
@@ -72,11 +76,15 @@ function whatHappened(event: ChangeEvent): string {
       const { nearDuplicates } = event.payload;
       return `confirmed this Question is different from ${nearDuplicatesWording(nearDuplicates)}`;
     }
+    // Refused at publication or on an edit, since a refused submission names no Question.
+    case "near_duplicate_refused": {
+      const { nearDuplicates } = event.payload;
+      const resembled = nearDuplicatesWording(nearDuplicates);
+      return `was stopped, as the text sent closely resembled ${resembled}`;
+    }
     // None of these ever names a Question, so none ever reaches a Question's
     // history; they are here so that a new kind of event is a type error rather than a
     // blank line (ADR-0015).
-    case "near_duplicate_refused":
-      return "tried to add a Question that was refused as a Near-Duplicate";
     case "administrator_appointed":
       return "appointed an Administrator";
     case "administrator_withdrawn":
@@ -138,6 +146,16 @@ function nearDuplicatesWording(nearDuplicates: readonly NearDuplicate[]): string
   return nearDuplicates.length === 1
     ? "a Near-Duplicate"
     : `${nearDuplicates.length} Near-Duplicates`;
+}
+
+/** Shown because a refused edit's text is not the text the Question kept. */
+function TextSent({ text }: { text: string }) {
+  return (
+    <div role="group" aria-label="Text sent" className="flex flex-col gap-0.5 border-l-2 pl-3">
+      <span className="text-muted-foreground text-xs font-medium">Text sent</span>
+      <span className="whitespace-pre-line">{text}</span>
+    </div>
+  );
 }
 
 function NearDuplicatesNamed({ nearDuplicates }: { nearDuplicates: readonly NearDuplicate[] }) {

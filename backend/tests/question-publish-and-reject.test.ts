@@ -13,7 +13,6 @@ import {
   seededQuestionIds,
   unknownQuestionId,
   whoDidWhat,
-  type ReviewAct,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
@@ -27,6 +26,9 @@ const {
 } = seededQuestionIds;
 
 const rejectBody = { reason: "Say what a strong answer covers, not only a weak one." };
+
+/** Each act's own body, since a Publish naming a reason is refused at the edge. */
+const bodyFor = (act: "publish" | "reject") => (act === "reject" ? rejectBody : {});
 
 /**
  * Who may move a Pending Question into the bank or send it back, enforced by the API. The
@@ -58,8 +60,8 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   /** What the same act answers for an id that names nothing, to hold a refusal against. */
-  const unknownIdAnswer = async (act: ReviewAct, token: string) =>
-    statusAndBody(await postReviewAct(api, unknownQuestionId, act, token, rejectBody));
+  const unknownIdAnswer = async (act: "publish" | "reject", token: string) =>
+    statusAndBody(await postReviewAct(api, unknownQuestionId, act, token, bodyFor(act)));
 
   it("puts a Published Question in front of Readers", async () => {
     const published = await questionAnswered(
@@ -126,7 +128,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
         pendingAndUnrestricted,
         act,
         readerToken,
-        rejectBody,
+        bodyFor(act),
       );
 
       expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, readerToken));
@@ -140,7 +142,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
         publishedAndUnrestricted,
         act,
         readerToken,
-        rejectBody,
+        bodyFor(act),
       );
 
       expect(response.status).toBe(403);
@@ -154,7 +156,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
         pendingForTheFirstClient,
         act,
         reviewerToken,
-        rejectBody,
+        bodyFor(act),
       );
 
       expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, reviewerToken));
