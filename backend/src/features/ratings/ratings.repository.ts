@@ -1,8 +1,7 @@
 import type { RatingSummary, Viewer } from "@iqb/shared";
 import type { Database } from "../../platform/database.ts";
 
-/** Replaces the Viewer's earlier Rating, if there is one. The caller has checked the Question
- * is one they may rate, because nothing here can. */
+/** The caller has checked the Question is one this Viewer may rate, because nothing here can. */
 export async function saveRating(
   database: Database,
   viewer: Viewer,
@@ -16,11 +15,8 @@ export async function saveRating(
   });
 }
 
-/**
- * Each Question with its Rating summary, in the order given. Only for Questions already read
- * through the visibility check, since this looks them up by id alone, and only after the page
- * was cut, so a Rating can never change which Questions are on it (ADR-0043).
- */
+/** Only for Questions already read through the visibility check and already picked for the
+ * page, because this looks them up by id alone (ADR-0043). */
 export async function withRatingSummaries<Q extends { id: string }>(
   database: Database,
   viewer: Viewer,

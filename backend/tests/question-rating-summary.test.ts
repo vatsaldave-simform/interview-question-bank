@@ -154,14 +154,19 @@ describe("the Rating summary on every Question", () => {
       body: JSON.stringify({ confirmedNotANearDuplicate: true }),
     });
     await saveRating(api.database, otherRater, id, 1);
+    await saveRating(api.database, otherRater, pending, 2);
 
+    const asked: [string, string][] = [
+      [`/api/questions/${id}`, readerToken],
+      ["/api/questions", readerToken],
+      ["/api/questions?keywords=average", readerToken],
+      [`/api/questions/${id}/history`, readerToken],
+      ["/api/questions/pending", reviewerToken],
+      ["/api/questions/own", authorToken],
+    ];
     const bodies = await Promise.all(
-      [`/api/questions/${id}`, "/api/questions", `/api/questions/${id}/history`].map(async (path) =>
-        (
-          await api.request(path, {
-            headers: { authorization: `Bearer ${readerToken}` },
-          })
-        ).text(),
+      asked.map(async ([path, token]) =>
+        (await api.request(path, { headers: { authorization: `Bearer ${token}` } })).text(),
       ),
     );
 
@@ -169,7 +174,9 @@ describe("the Rating summary on every Question", () => {
       expect(body).not.toContain(otherRater.id);
       expect(body).not.toContain(otherRater.email);
     }
-    // The Rating is there to be found, so the absence above is not an empty page's.
+    // The Ratings are there to be found, so the absence above is not an empty page's.
+    expect(bodies[2]).toContain(id);
     expect(bodies[0]).toContain('"count":1');
+    expect(bodies[4]).toContain('"count":2');
   });
 });

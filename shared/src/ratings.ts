@@ -10,10 +10,8 @@ export const ratingValueSchema = z.number().int().min(lowestRating).max(highestR
 export const rateQuestionRequestSchema = z.object({ value: ratingValueSchema }).strict();
 export type RateQuestionRequest = z.infer<typeof rateQuestionRequestSchema>;
 
-/**
- * What a Question says about its Ratings. Nothing here names who gave one, so the figure stays
- * a signal about the Question and never becomes one about a colleague (CONTEXT.md).
- */
+/** Names nobody who gave a Rating, so it stays a signal about the Question and not about a
+ * colleague (CONTEXT.md). */
 export const ratingSummarySchema = z
   .object({
     /** Null while nobody has rated it, and not rounded: that is for whoever shows it. */

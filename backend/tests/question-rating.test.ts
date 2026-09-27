@@ -20,6 +20,8 @@ const {
   aboutTwoPlusTwo: rejected,
   aboutTheClientsPipeline: publishedForTheFirstClient,
   aboutTheOtherClientsBooking: publishedForTheSecondClient,
+  aboutTheClientsRendering: pendingForTheFirstClient,
+  aboutTheOtherClientsIntake: pendingForTheSecondClient,
 } = seededQuestionIds;
 
 /** Over HTTP, because "cannot be told apart" means the status and the bytes (ADR-0002). */
@@ -104,6 +106,8 @@ describe("rating a Question", () => {
     const answers = [
       await statusAndBody(await rate(pending, { value: 3 }, readerToken)),
       await statusAndBody(await rate(publishedForTheSecondClient, { value: 3 }, readerToken)),
+      // Both restricted and Pending, so the two checks are held together and not one at a time.
+      await statusAndBody(await rate(pendingForTheSecondClient, { value: 3 }, readerToken)),
       await statusAndBody(await rate(unknownQuestionId, { value: 3 }, readerToken)),
     ];
 
@@ -114,10 +118,11 @@ describe("rating a Question", () => {
     expect((await rate(publishedForTheSecondClient, { value: 3 }, reviewerToken)).status).toBe(200);
   });
 
-  it("answers a Viewer holding no Grant the same way for each of the three", async () => {
+  it("answers a Viewer holding no Grant the same way for each of them", async () => {
     const answers = [
       await statusAndBody(await rate(pending, { value: 3 }, noGrantToken)),
       await statusAndBody(await rate(publishedForTheFirstClient, { value: 3 }, noGrantToken)),
+      await statusAndBody(await rate(pendingForTheFirstClient, { value: 3 }, noGrantToken)),
       await statusAndBody(await rate(unknownQuestionId, { value: 3 }, noGrantToken)),
     ];
 

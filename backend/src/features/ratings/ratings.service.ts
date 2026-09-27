@@ -5,11 +5,8 @@ import { saveRating, withRatingSummary } from "./ratings.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../platform/errors.ts";
 
-/**
- * In the order every act on a Question checks: not Visible is a 404, then the rule is a 403,
- * then the state is a 409 (ADR-0002). A Reader cannot reach another Viewer's Pending Question,
- * so for them it is a 404 like a missing one.
- */
+/** Not Visible is a 404, then the rule is a 403, then the state is a 409, as for every other
+ * act on a Question (ADR-0002). */
 export async function rateQuestion(
   database: Database,
   viewer: Viewer,

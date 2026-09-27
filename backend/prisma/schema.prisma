@@ -252,8 +252,8 @@ model QuestionTag {
   @@map("question_tags")
 }
 
-/// One Viewer's opinion of one Question. Its own table rather than a column on the Question, and
-/// read beside a page of Questions rather than into the query that orders it (ADR-0043).
+/// Its own table, read after a page of Questions is picked, so no Rating can change the order
+/// (ADR-0043).
 model Rating {
   id         String   @id @default(uuid()) @db.Uuid
   questionId String   @db.Uuid
