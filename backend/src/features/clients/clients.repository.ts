@@ -4,13 +4,19 @@ import type { Database, DatabaseOrTransaction } from "../../platform/database.ts
 const publicFields = { id: true, name: true } as const;
 
 /** Only the Clients the Viewer holds a Permission Grant for, the same condition every
- * Question read uses, so a list never reveals that a Client exists. */
+ * Question read uses, so a Viewer's own list never reveals that a Client exists. */
 export function findClientsGrantedTo(database: Database, viewerId: string): Promise<Client[]> {
   return database.client.findMany({
     where: { permissionGrants: { some: { viewerId } } },
     orderBy: { name: "asc" },
     select: publicFields,
   });
+}
+
+/** For an Administrator only (ADR-0042): a Viewer's own list goes through the Grant condition
+ * above. */
+export function findEveryClient(database: Database): Promise<Client[]> {
+  return database.client.findMany({ orderBy: { name: "asc" }, select: publicFields });
 }
 
 /** For administrative acts only: a Viewer's own reads go through the Grant condition above. */

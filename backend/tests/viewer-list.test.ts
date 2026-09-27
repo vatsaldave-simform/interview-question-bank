@@ -50,7 +50,7 @@ describe("listing Viewers", () => {
   });
 
   it.each(["reader", "author"] as const)(
-    "refuses a %s without the Administrator authority",
+    "refuses the seeded %s, who is not an Administrator",
     async (role) => {
       const token = await logIn(api, seededViewer(role));
 
