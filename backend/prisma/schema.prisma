@@ -47,6 +47,7 @@ model Viewer {
   roleRequests     RoleRequest[]
   questions        Question[]
   changeEvents     ChangeEvent[]
+  ratings          Rating[]
 
   @@map("viewers")
 }
@@ -221,6 +222,7 @@ model Question {
 
   tags         QuestionTag[]
   changeEvents ChangeEvent[]
+  ratings      Rating[]
 
   // What makes the keyword search an index lookup rather than a scan (ADR-0004).
   @@index([searchVector], type: Gin)
@@ -248,6 +250,24 @@ model QuestionTag {
   // on a selective filter (ADR-0011).
   @@index([tagId, questionId])
   @@map("question_tags")
+}
+
+/// One Viewer's opinion of one Question. Its own table rather than a column on the Question, and
+/// read beside a page of Questions rather than into the query that orders it (ADR-0043).
+model Rating {
+  id         String   @id @default(uuid()) @db.Uuid
+  questionId String   @db.Uuid
+  question   Question @relation(fields: [questionId], references: [id])
+  viewerId   String   @db.Uuid
+  viewer     Viewer   @relation(fields: [viewerId], references: [id])
+  // Held to 1–5 by a check in the migration, which this schema has no way to say.
+  value      Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  // The Question first, because a page's summaries are read by Question.
+  @@unique([questionId, viewerId])
+  @@map("ratings")
 }
 
 /// What happened to the bank. The tickets that Publish and Reject add their own
