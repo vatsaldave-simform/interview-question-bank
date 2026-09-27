@@ -1,7 +1,8 @@
-import type { Question } from "@iqb/shared";
+import type { Client, Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
+import { ClientRestriction } from "@/features/questions/client-restriction";
 import {
   PublishButton,
   ReasonAct,
@@ -62,6 +63,7 @@ function QuestionInFull({ question }: { question: Question }) {
         <Badge variant="outline">{state.name}</Badge>
         <span className="text-muted-foreground">{state.meaning}</span>
       </p>
+      {question.client !== null && <WhoCanSeeIt client={question.client} />}
       {question.reason !== null && <RejectionReason reason={question.reason} />}
       <PublicationActs question={question} />
       <section className="flex flex-col gap-2" aria-labelledby="answer-notes">
@@ -83,6 +85,17 @@ function QuestionInFull({ question }: { question: Question }) {
       )}
       <WhereItCameFrom question={question} />
     </article>
+  );
+}
+
+function WhoCanSeeIt({ client }: { client: Client }) {
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-sm">
+      <ClientRestriction client={client} />
+      <span className="text-muted-foreground">
+        Only Viewers with a Grant for {client.name} can see this Question.
+      </span>
+    </p>
   );
 }
 

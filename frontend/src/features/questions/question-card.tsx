@@ -2,6 +2,7 @@ import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
+import { ClientRestriction } from "@/features/questions/client-restriction";
 import { provenanceWording } from "@/features/questions/provenance-wording";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { Badge } from "@/ui/shadcn/badge";
@@ -37,6 +38,7 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
               <span className="sr-only">Where it came from: </span>
               {provenanceWording[question.provenance].name}
             </Badge>
+            <ClientRestriction client={question.client} />
             {ratingIsShown(question) && <AverageRating rating={question.rating} />}
           </div>
           {children}
