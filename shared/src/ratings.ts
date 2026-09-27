@@ -24,3 +24,7 @@ export const ratingSummarySchema = z
   })
   .strict();
 export type RatingSummary = z.infer<typeof ratingSummarySchema>;
+
+/** The summary alone, since a Rating changes nothing about the Question it is about. */
+export const ratingResponseSchema = z.object({ rating: ratingSummarySchema }).strict();
+export type RatingResponse = z.infer<typeof ratingResponseSchema>;

@@ -15,8 +15,7 @@ import {
   type RatingSummary,
   type Viewer,
 } from "@iqb/shared";
-import { Router, type Request } from "express";
-import { z } from "zod";
+import { Router } from "express";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireRole } from "../auth/require-role.middleware.ts";
 import {
@@ -40,18 +39,10 @@ import {
 } from "./questions.repository.ts";
 import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
 import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
+import { ratingRoutes } from "../ratings/ratings.routes.ts";
+import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
-
-const questionIdSchema = z.uuid();
-
-/** A malformed id is answered as a missing one rather than as a bad request: it names no
- * Question, and there is one answer for that (ADR-0002). */
-function questionIdNamed(req: Request): string {
-  const id = questionIdSchema.safeParse(req.params["id"]);
-  if (!id.success) throw new NotFoundError();
-  return id.data;
-}
 
 /** The Question as the API answers with it: only the timestamp needs changing. */
 function toQuestion(question: QuestionFromDb & { rating: RatingSummary }): Question {
@@ -231,6 +222,8 @@ export function questionRoutes(database: Database): Router {
     const body = await toResponse(database, viewer, question);
     res.json(body);
   });
+
+  router.use("/:id/rating", ratingRoutes(database));
 
   return router;
 }
