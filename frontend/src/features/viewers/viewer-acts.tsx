@@ -3,7 +3,7 @@ import { useState } from "react";
 import { roleWording } from "@/features/viewers/role-wording";
 import { useActOnViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
-import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
+import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
 
@@ -55,12 +55,7 @@ export function ViewerActs({ viewer }: { viewer: Viewer }) {
           {viewer.isDeactivated ? "Reactivate" : "Deactivate"}
         </Button>
       </div>
-      {act.isError && (
-        <Alert variant="destructive">
-          <AlertTitle>That was not done.</AlertTitle>
-          <AlertDescription>{whatWentWrong(act.error)}</AlertDescription>
-        </Alert>
-      )}
+      {act.isError && <ActNotDone title="That was not done." reason={whatWentWrong(act.error)} />}
     </div>
   );
 }

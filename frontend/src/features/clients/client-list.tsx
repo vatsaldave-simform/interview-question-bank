@@ -1,5 +1,6 @@
 import type { Client } from "@iqb/shared";
 import type { ReactNode } from "react";
+import { CreateClientForm } from "@/features/clients/create-client-form";
 import { useEveryClient } from "@/features/clients/clients.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 
@@ -16,6 +17,7 @@ export function ClientList({ detail }: ClientListProps) {
       <h2 id="clients" className="font-medium">
         Clients
       </h2>
+      <CreateClientForm />
       {clients.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Clients…

@@ -1,3 +1,6 @@
+import { refusedFieldsSchema } from "@iqb/shared";
+import { ApiFailure, whatWentWrong } from "@/platform/api-client";
+
 /** What is wrong with each field of a form, in words meant for the person filling it in. */
 export type FieldProblems<Field extends string> = Partial<Record<Field, string>>;
 
@@ -32,4 +35,26 @@ export function focusFirstProblem(
     (control) => control instanceof HTMLInputElement && problems[control.name] !== undefined,
   );
   if (first instanceof HTMLInputElement) first.focus();
+}
+
+/** Why the API refused a form: on the fields it named, or as one message when it named
+ * none of this form's. */
+export type FormRefusal<Field extends string> = {
+  problems: FieldProblems<Field>;
+  message: string | null;
+};
+
+export function refusalOf<Field extends string>(
+  wording: Record<Field, string>,
+  reason: Error,
+): FormRefusal<Field> {
+  if (reason instanceof ApiFailure && reason.code === "invalid_request") {
+    const refused = refusedFieldsSchema.safeParse(reason.details);
+    if (refused.success) {
+      const named = Object.keys(refused.data.properties).map((field) => ({ path: [field] }));
+      const problems = problemsIn(wording, named);
+      if (Object.keys(problems).length > 0) return { problems, message: null };
+    }
+  }
+  return { problems: {}, message: whatWentWrong(reason) };
 }

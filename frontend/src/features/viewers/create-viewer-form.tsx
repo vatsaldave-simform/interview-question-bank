@@ -1,15 +1,14 @@
-import {
-  createViewerRequestSchema,
-  refusedFieldsSchema,
-  viewerRoles,
-  type CreateViewerRequest,
-} from "@iqb/shared";
+import { createViewerRequestSchema, viewerRoles, type CreateViewerRequest } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
 import { roleWording } from "@/features/viewers/role-wording";
 import { useCreateViewer } from "@/features/viewers/viewers.queries";
-import { ApiFailure, whatWentWrong } from "@/platform/api-client";
-import { focusFirstProblem, problemsIn, type FieldProblems } from "@/platform/field-problems";
-import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
+import {
+  focusFirstProblem,
+  problemsIn,
+  refusalOf,
+  type FieldProblems,
+} from "@/platform/field-problems";
+import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/shadcn/field";
 import { Input } from "@/ui/shadcn/input";
@@ -21,18 +20,6 @@ const problemWording: Record<keyof CreateViewerRequest, string> = {
   email: "Enter an email address, like author@iqb.test.",
   role: "Choose a role.",
 };
-
-function refusalOf(reason: Error): { problems: Problems; message: string | null } {
-  if (reason instanceof ApiFailure && reason.code === "invalid_request") {
-    const refused = refusedFieldsSchema.safeParse(reason.details);
-    if (refused.success) {
-      const named = Object.keys(refused.data.properties).map((field) => ({ path: [field] }));
-      const problems = problemsIn(problemWording, named);
-      if (Object.keys(problems).length > 0) return { problems, message: null };
-    }
-  }
-  return { problems: {}, message: whatWentWrong(reason) };
-}
 
 export function CreateViewerForm() {
   const create = useCreateViewer();
@@ -65,7 +52,7 @@ export function CreateViewerForm() {
         setCreated(viewer.email);
       },
       onError: (reason) => {
-        const refused = refusalOf(reason);
+        const refused = refusalOf(problemWording, reason);
         setProblems(refused.problems);
         setRefusal(refused.message);
         focusFirstProblem(form, refused.problems);
@@ -80,12 +67,7 @@ export function CreateViewerForm() {
         <h3 id="create-viewer" className="text-sm font-medium">
           Create a Viewer
         </h3>
-        {refusal !== null && (
-          <Alert variant="destructive">
-            <AlertTitle>The Viewer was not created.</AlertTitle>
-            <AlertDescription>{refusal}</AlertDescription>
-          </Alert>
-        )}
+        {refusal !== null && <ActNotDone title="The Viewer was not created." reason={refusal} />}
         {created !== null && (
           <p role="status" className="text-sm">
             {created} was created, and was emailed a link to set their password.
