@@ -20,6 +20,7 @@ import {
   listQuestions,
   publishQuestion,
   rejectQuestion,
+  resubmitQuestion,
 } from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
@@ -134,7 +135,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // No `requireRole` on either, for the reason the edit route has none.
+  // No `requireRole` on any of these, for the reason the edit route has none.
   router.post("/:id/publish", async (req, res) => {
     const id = questionIdNamed(req);
 
@@ -149,6 +150,15 @@ export function questionRoutes(database: Database): Router {
     const { reason } = rejectQuestionRequestSchema.parse(req.body);
 
     const question = await rejectQuestion(database, authenticatedViewer(req), id, reason);
+
+    const body: QuestionResponse = { question: toResponse(question) };
+    res.json(body);
+  });
+
+  router.post("/:id/resubmit", async (req, res) => {
+    const id = questionIdNamed(req);
+
+    const question = await resubmitQuestion(database, authenticatedViewer(req), id);
 
     const body: QuestionResponse = { question: toResponse(question) };
     res.json(body);

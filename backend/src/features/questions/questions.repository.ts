@@ -506,7 +506,8 @@ export async function updateVisibleQuestion(
  * act twice finds nothing to move the second time. */
 export type PublicationMove =
   | { from: "pending"; to: "published" }
-  | { from: "pending"; to: "rejected"; reason: string };
+  | { from: "pending"; to: "rejected"; reason: string }
+  | { from: "rejected"; to: "pending" };
 
 /** The Change Event a move writes. */
 function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
@@ -520,6 +521,8 @@ function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): Ne
         viewerId: viewer.id,
         payload: { reason: move.reason },
       };
+    case "pending":
+      return { type: "question_resubmitted", questionId, viewerId: viewer.id, payload: {} };
   }
 }
 

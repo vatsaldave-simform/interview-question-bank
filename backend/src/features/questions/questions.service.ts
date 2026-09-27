@@ -24,7 +24,7 @@ import {
   type TagsInCategory,
 } from "./questions.repository.ts";
 import { mayEdit } from "./may-edit.ts";
-import { mayPublish, mayReject } from "./may-review.ts";
+import { mayPublish, mayReject, mayResubmit } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -221,4 +221,13 @@ export function rejectQuestion(
   reason: string,
 ): Promise<QuestionFromDb> {
   return moveQuestion(database, viewer, id, { from: "pending", to: "rejected", reason }, mayReject);
+}
+
+/** Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013). */
+export function resubmitQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+): Promise<QuestionFromDb> {
+  return moveQuestion(database, viewer, id, { from: "rejected", to: "pending" }, mayResubmit);
 }

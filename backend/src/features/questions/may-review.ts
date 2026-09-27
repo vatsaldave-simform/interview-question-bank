@@ -12,3 +12,9 @@ export function mayPublish(viewer: Viewer): boolean {
 export function mayReject(viewer: Viewer, question: { authorId: string }): boolean {
   return mayEdit(viewer, question);
 }
+
+/** Only its own Author, since resubmitting is saying the Question is ready again, and only
+ * one who may still edit it: a Question they cannot put right is not theirs to requeue. */
+export function mayResubmit(viewer: Viewer, question: { authorId: string }): boolean {
+  return question.authorId === viewer.id && mayEdit(viewer, question);
+}
