@@ -44,6 +44,8 @@ The rule is a property of the event kind, not of the payload, so a later kind th
 another Question — a suggested edit, say — joins the list rather than needing its own
 thinking.
 
-The refused-submission event is unreachable today: it names no Question, and the only
-reader hangs off one. It carries the same content, so any later surface that reads the log
-directly — an administration console — has to apply this rule rather than inherit it.
+A refused submission names no Question, so no history reaches it. It carries the same
+content, so any later surface that reads the log directly — an administration console — has
+to apply this rule rather than inherit it. A refused publication does name the Question it
+left Pending, so it is in that Question's history, and this rule keeps it to the Reviewer
+it names (ADR-0014).

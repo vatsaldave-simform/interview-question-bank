@@ -107,6 +107,15 @@ export const editQuestionRequestSchema = z
   });
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
+/** A body is optional, and one left out Publishes with no confirmation. */
+export const publishQuestionRequestSchema = z
+  .object({
+    /** The Reviewer's word that a match detection found at publication is wrong (ADR-0014). */
+    confirmedNotANearDuplicate: z.boolean().default(false),
+  })
+  .strict();
+export type PublishQuestionRequest = z.infer<typeof publishQuestionRequestSchema>;
+
 /** Required, because the reason is what the Author reads to put the Question right (ADR-0013). */
 export const rejectQuestionRequestSchema = z
   .object({ reason: z.string().trim().min(1).max(2_000) })

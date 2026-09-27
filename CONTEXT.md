@@ -110,6 +110,6 @@ _Avoid_: duplicate, similar question, match
 
 **Change Event**:
 An append-only record of something that happened to the bank — a Question submitted, edited,
-Published, Rejected, returned or resubmitted, or a submission refused as a Near-Duplicate —
-carrying who did it and when.
+Published, Rejected, returned or resubmitted, or a submission or publication refused as a
+Near-Duplicate — carrying who did it and when.
 _Avoid_: audit log, history entry, revision, version

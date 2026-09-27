@@ -4,19 +4,23 @@ import {
   type CategoryName,
   type EditQuestionRequest,
   type ListQuestionsRequest,
+  type NearDuplicate,
+  type NearDuplicateRefused,
   type NearDuplicatesFound,
+  type PublishQuestionRequest,
   type QuestionTag,
   type UnknownTags,
   type Viewer,
 } from "@iqb/shared";
 import {
   findNearDuplicates,
+  findNearDuplicatesForPublication,
   findTagsNamed,
   findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
   moveVisibleQuestion,
-  recordRefusedSubmission,
+  recordRefusedAsNearDuplicate,
   searchVisibleQuestions,
   updateVisibleQuestion,
   type PublicationMove,
@@ -115,6 +119,39 @@ async function tagIdsNamed(
   return tags.map((tag) => idOf(found, tag));
 }
 
+/** What a 409 says, by the act detection refused. */
+const refusedAsNearDuplicateFor = {
+  add:
+    "This Question closely resembles one already in the bank. Submit it again " +
+    "confirming it is genuinely different if that is wrong.",
+  publish:
+    "This Question closely resembles one already in the bank or waiting to be reviewed. " +
+    "Publish it again confirming it is genuinely different if that is wrong.",
+} as const;
+
+type RefusedAsNearDuplicate = {
+  act: keyof typeof refusedAsNearDuplicateFor;
+  /** Null when the act would have stored the Question, so there is none yet to name. */
+  questionId: string | null;
+  refused: NearDuplicateRefused;
+  confirmed: boolean;
+};
+
+/** The Near-Duplicates a confirmation overrides, which is every one found. Without a
+ * confirmation, any match is recorded and refused, and nothing else happens. */
+async function overrideOrRefuse(
+  database: Database,
+  viewer: Viewer,
+  { act, questionId, refused, confirmed }: RefusedAsNearDuplicate,
+): Promise<NearDuplicate[]> {
+  const { nearDuplicates } = refused;
+  if (nearDuplicates.length === 0 || confirmed) return nearDuplicates;
+
+  await recordRefusedAsNearDuplicate(database, viewer, questionId, refused);
+  const found: NearDuplicatesFound = { nearDuplicates };
+  throw new ConflictError(refusedAsNearDuplicateFor[act], found);
+}
+
 /** Detection runs before anything is stored, so an Author hears about a Near-Duplicate
  * while the Question is still in front of them (ADR-0014). */
 export async function addQuestion(
@@ -123,10 +160,10 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  const nearDuplicates = await findNearDuplicates(database, viewer, request.text);
-
-  if (nearDuplicates.length > 0 && !request.confirmedNotANearDuplicate) {
-    await recordRefusedSubmission(database, viewer, {
+  const overridden = await overrideOrRefuse(database, viewer, {
+    act: "add",
+    questionId: null,
+    refused: {
       attempted: {
         text: request.text,
         answerNotes: request.answerNotes,
@@ -134,15 +171,10 @@ export async function addQuestion(
         source: request.source ?? null,
         tags: [...request.tags],
       },
-      nearDuplicates,
-    });
-    const found: NearDuplicatesFound = { nearDuplicates };
-    throw new ConflictError(
-      "This Question closely resembles one already in the bank. Submit it again " +
-        "confirming it is genuinely different if that is wrong.",
-      found,
-    );
-  }
+      nearDuplicates: await findNearDuplicates(database, viewer, request.text),
+    },
+    confirmed: request.confirmedNotANearDuplicate,
+  });
 
   return insertQuestion(
     database,
@@ -154,7 +186,7 @@ export async function addQuestion(
       ...(request.source === undefined ? {} : { source: request.source }),
       tagIds,
     },
-    nearDuplicates,
+    overridden,
   );
 }
 
@@ -194,6 +226,12 @@ const refusedFor: Record<PublicationMove["act"], string> = {
   return: "Only a Published Question can be returned.",
 };
 
+/** What an act overrides once detection has looked at the Question it is about. */
+type NearDuplicateCheck = (question: QuestionFromDb) => Promise<NearDuplicate[]>;
+
+/** Nothing to override, for every act detection does not run on. */
+const noNearDuplicateCheck: NearDuplicateCheck = async () => [];
+
 /** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
  * role rule is a 403, and only then can the state be wrong, as a 409 (ADR-0002). */
 async function moveQuestion(
@@ -202,12 +240,14 @@ async function moveQuestion(
   id: string,
   move: PublicationMove,
   mayMove: (viewer: Viewer, question: QuestionFromDb) => boolean,
+  checkNearDuplicates: NearDuplicateCheck = noNearDuplicateCheck,
 ): Promise<QuestionFromDb> {
   const question = await findVisibleQuestionById(database, viewer, id);
   if (question === null) throw new NotFoundError();
   if (!mayMove(viewer, question)) throw new ForbiddenError();
 
-  const moved = await moveVisibleQuestion(database, viewer, id, move);
+  const overridden = await checkNearDuplicates(question);
+  const moved = await moveVisibleQuestion(database, viewer, id, move, overridden);
   if (moved !== null) return moved;
   // Asked again because a Permission Grant revoked since the first look makes it a 404.
   if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
@@ -218,8 +258,28 @@ export function publishQuestion(
   database: Database,
   viewer: Viewer,
   id: string,
+  request: PublishQuestionRequest,
 ): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { act: "publish" }, mayPublish);
+  return moveQuestion(database, viewer, id, { act: "publish" }, mayPublish, async (question) => {
+    // A Question that is not Pending cannot be Published, and hearing that is more use
+    // than a list of matches for an act that would fail anyway.
+    if (question.publicationState !== "pending") return [];
+    return overrideOrRefuse(database, viewer, {
+      act: "publish",
+      questionId: question.id,
+      refused: {
+        attempted: {
+          text: question.text,
+          answerNotes: question.answerNotes,
+          provenance: question.provenance,
+          source: question.source,
+          tags: question.tags,
+        },
+        nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
+      },
+      confirmed: request.confirmedNotANearDuplicate,
+    });
+  });
 }
 
 export function rejectQuestion(

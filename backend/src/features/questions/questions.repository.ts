@@ -305,15 +305,16 @@ export async function searchVisibleQuestions(
   }));
 }
 
-/**
- * The Questions a submission closely resembles, closest first, and none below the
- * threshold. Question text only, never Answer Notes (ADR-0004), and Visible and Published
- * whoever is asking, a Reviewer included (ADR-0007, ADR-0014).
- */
-export async function findNearDuplicates(
+/** Which Visible Questions one check compares against. */
+type NearDuplicateReach = { states: readonly PublicationState[]; excluding?: string };
+
+/** Closest first, and none below the threshold. Question text only, never Answer Notes
+ * (ADR-0004), and never a Question that is not Visible (ADR-0007). */
+async function findNearDuplicatesAmong(
   database: Database,
   viewer: Viewer,
   text: string,
+  { states, excluding }: NearDuplicateReach,
 ): Promise<NearDuplicate[]> {
   return database.$queryRaw<NearDuplicate[]>`
     SELECT nearest.id AS "questionId", nearest.text, nearest.similarity
@@ -321,7 +322,8 @@ export async function findNearDuplicates(
         SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
           FROM questions q
          WHERE ${visibleToInSql(viewer)}
-           AND q."publicationState" = 'published'
+           AND q."publicationState" = ANY(${[...states]}::"PublicationState"[])
+           ${excluding === undefined ? Prisma.empty : Prisma.sql`AND q.id <> ${excluding}::uuid`}
          -- Ordered by distance rather than by similarity, because distance is what the
          -- GiST index can answer; the two are the same order (ADR-0004).
          ORDER BY q.text <-> ${text}
@@ -330,6 +332,29 @@ export async function findNearDuplicates(
      WHERE nearest.similarity >= ${nearDuplicateThreshold}
      ORDER BY nearest.similarity DESC, nearest.id DESC
   `;
+}
+
+/** Published only, whoever is asking, a Reviewer included, so nobody submitting is told
+ * about a Question waiting in a queue they may not see (ADR-0014). */
+export function findNearDuplicates(
+  database: Database,
+  viewer: Viewer,
+  text: string,
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, text, { states: ["published"] });
+}
+
+/** Pending ones too, because the queue is the publishing Reviewer's to see, and never the
+ * Question being Published, which would match itself (ADR-0014). */
+export function findNearDuplicatesForPublication(
+  database: Database,
+  viewer: Viewer,
+  question: { id: string; text: string },
+): Promise<NearDuplicate[]> {
+  return findNearDuplicatesAmong(database, viewer, question.text, {
+    states: ["published", "pending"],
+    excluding: question.id,
+  });
 }
 
 /** What an Author supplies: no Publication State, which is Pending until a Reviewer
@@ -396,17 +421,19 @@ export async function insertQuestion(
 }
 
 /**
- * The trace a refused submission leaves. It names no Question because none was stored,
- * which is the case the log exists as a log for (ADR-0006).
+ * The trace a refusal leaves. A refused submission names no Question because none was
+ * stored, which is the case the log exists as a log for (ADR-0006); a refused publication
+ * names the Question it left where it was.
  */
-export async function recordRefusedSubmission(
+export async function recordRefusedAsNearDuplicate(
   database: Database,
   viewer: Viewer,
+  questionId: string | null,
   refused: NearDuplicateRefused,
 ): Promise<void> {
   await insertChangeEvent(database, {
     type: "near_duplicate_refused",
-    questionId: null,
+    questionId,
     viewerId: viewer.id,
     payload: refused,
   });
@@ -544,6 +571,7 @@ export async function moveVisibleQuestion(
   viewer: Viewer,
   id: string,
   move: PublicationMove,
+  overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb | null> {
   const { from, to } = statesFor[move.act];
   return database.$transaction(async (transaction) => {
@@ -554,6 +582,14 @@ export async function moveVisibleQuestion(
     if (count === 0) return null;
 
     await insertChangeEvent(transaction, eventFor(move, id, viewer));
+    if (overridden.length > 0) {
+      await insertChangeEvent(transaction, {
+        type: "near_duplicate_overridden",
+        questionId: id,
+        viewerId: viewer.id,
+        payload: { nearDuplicates: [...overridden] },
+      });
+    }
 
     // By id, because a Permission Grant revoked since the write would hide the committed move.
     const moved = await transaction.question.findUniqueOrThrow({
