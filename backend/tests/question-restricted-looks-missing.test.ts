@@ -242,11 +242,11 @@ describe("what a response says about the Questions it left out", () => {
     expect(first.questions).toHaveLength(25);
     expect(second.questions).toHaveLength(25);
     expect([...idsOf(first), ...idsOf(second)]).toEqual(idsOf(both));
-    expect(both.questions.every((question) => question.clientId !== restrictedTo)).toBe(true);
+    expect(both.questions.every((question) => question.client?.id !== restrictedTo)).toBe(true);
     // And the same request really did have Questions to leave out: the Reader holds the
     // Grant and their page carries them.
     const forReader = await pageOf({ ...query, offset: 0 }, readerToken);
-    expect(forReader.questions.some((question) => question.clientId === restrictedTo)).toBe(true);
+    expect(forReader.questions.some((question) => question.client?.id === restrictedTo)).toBe(true);
   });
 
   it("reads the questions table once per request, and that read names the Permission Grants", async () => {

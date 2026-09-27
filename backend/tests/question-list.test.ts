@@ -182,9 +182,9 @@ describe("listing Questions over HTTP", () => {
     // Non-empty first, or "no restricted Question here" would be true of nothing.
     expect(seenByReviewer.questions.length).toBeGreaterThan(0);
     expect(
-      seenByReviewer.questions.every((question) => question.clientId !== restrictedTo),
+      seenByReviewer.questions.every((question) => question.client?.id !== restrictedTo),
     ).toBe(true);
-    expect(seenByReader.questions.some((question) => question.clientId === restrictedTo)).toBe(
+    expect(seenByReader.questions.some((question) => question.client?.id === restrictedTo)).toBe(
       true,
     );
   });

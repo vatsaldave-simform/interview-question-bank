@@ -112,7 +112,7 @@ export function aQuestion(changes: Partial<Question> = {}): Question {
     text: "What does `satisfies` check that a type annotation does not?",
     answerNotes: "Look for: it checks the value against the type without widening it.",
     authorId: aSignedInAuthor.viewer.id,
-    clientId: null,
+    client: null,
     publicationState: "published",
     reason: null,
     provenance: "original",

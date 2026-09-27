@@ -48,17 +48,17 @@ describe("adding a Question restricted to a Client", () => {
   it("stores the restriction the Author named", async () => {
     const question = await addedAs(authorToken, firstClientId);
 
-    expect(question.clientId).toBe(firstClientId);
+    expect(question.client?.id).toBe(firstClientId);
     const fetched = questionResponseSchema.parse(
       await (await getQuestion(api, question.id, authorToken)).json(),
     );
-    expect(fetched.question.clientId).toBe(firstClientId);
+    expect(fetched.question.client?.id).toBe(firstClientId);
   });
 
   it("lets a Reviewer add one restricted to a Client they hold a Grant for", async () => {
     const question = await addedAs(reviewerToken, secondClientId);
 
-    expect(question.clientId).toBe(secondClientId);
+    expect(question.client?.id).toBe(secondClientId);
   });
 
   it("answers a Reviewer holding no Grant for it as if it did not exist", async () => {
@@ -92,7 +92,7 @@ describe("adding a Question restricted to a Client", () => {
 
     const events = await historyOf(api, question.id, authorToken);
 
-    expect(question.clientId).toBeNull();
+    expect(question.client).toBeNull();
     expect(events.map(({ type }) => type)).toEqual(["question_added"]);
   });
 

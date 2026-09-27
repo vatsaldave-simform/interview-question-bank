@@ -111,7 +111,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
         await classify(publishedAndUnrestricted, firstClientId, authorToken),
       );
 
-      expect(question.clientId).toBe(firstClientId);
+      expect(question.client?.id).toBe(firstClientId);
       expect(await clientIdOf(publishedAndUnrestricted)).toBe(firstClientId);
     });
 
@@ -139,7 +139,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
         await classify(pendingAndUnrestricted, firstClientId, authorToken),
       );
 
-      expect(question.clientId).toBe(firstClientId);
+      expect(question.client?.id).toBe(firstClientId);
     });
 
     it("lets a Reviewer restrict their own Question", async () => {
@@ -151,7 +151,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
 
       const question = await questionAnswered(await classify(id, secondClientId, reviewerToken));
 
-      expect(question.clientId).toBe(secondClientId);
+      expect(question.client?.id).toBe(secondClientId);
     });
 
     it("refuses a Reviewer restricting another Viewer's Question, which could hide it from them", async () => {
@@ -212,7 +212,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
         await classify(publishedForTheFirstClient, firstClientId, authorToken),
       );
 
-      expect(question.clientId).toBe(firstClientId);
+      expect(question.client?.id).toBe(firstClientId);
       expect(await typesInHistory(publishedForTheFirstClient, authorToken)).toEqual(before);
     });
 
@@ -299,7 +299,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
 
       const question = await questionAnswered(await classify(id, secondClientId, authorOfBothToken));
 
-      expect(question.clientId).toBe(secondClientId);
+      expect(question.client?.id).toBe(secondClientId);
       const last = (await historyOf(api, id, authorOfBothToken)).at(-1);
       expect(last).toMatchObject({
         type: "question_classified",
@@ -318,7 +318,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
 
       const question = await questionAnswered(await classify(id, secondClientId, authorOfBothToken));
 
-      expect(question.clientId).toBe(secondClientId);
+      expect(question.client?.id).toBe(secondClientId);
       expect(question.publicationState).toBe("rejected");
     });
 
@@ -333,7 +333,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
         await classify(id, secondClientId, reviewerOfBothToken),
       );
 
-      expect(question.clientId).toBe(secondClientId);
+      expect(question.client?.id).toBe(secondClientId);
     });
 
     it("refuses an Author moving one to a Client they hold no Grant for", async () => {
@@ -376,7 +376,7 @@ describe("restricting a Question to a Client, and removing the restriction", () 
         await declassify(publishedForTheSecondClient, reviewerToken),
       );
 
-      expect(question.clientId).toBeNull();
+      expect(question.client).toBeNull();
       expect((await getQuestion(api, publishedForTheSecondClient, readerToken)).status).toBe(200);
     });
 

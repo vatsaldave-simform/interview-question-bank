@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { clientSchema } from "./clients.js";
 import { ratingSummarySchema } from "./ratings.js";
 
 /** Where a Question came from. Every Question carries exactly one. */
@@ -47,8 +48,8 @@ export const unknownTagsSchema = z.object({ tags: z.array(z.string()).min(1) }).
 export type UnknownTags = z.infer<typeof unknownTagsSchema>;
 
 /**
- * A Question as every response describes one. `clientId` is safe to send: a Viewer
- * reading this either holds the Grant for that Client or the Question is unrestricted.
+ * A Question as every response describes one. The Client's name is safe to send: a Viewer
+ * reading this either holds the Grant for that Client or the Question is unrestricted (ADR-0044).
  */
 export const questionSchema = z
   .object({
@@ -56,7 +57,7 @@ export const questionSchema = z
     text: z.string(),
     answerNotes: z.string(),
     authorId: z.uuid(),
-    clientId: z.uuid().nullable(),
+    client: clientSchema.nullable(),
     publicationState: publicationStateSchema,
     /** Why it was Rejected, and null again once it is resubmitted or Published. */
     reason: z.string().nullable(),
