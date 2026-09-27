@@ -1,68 +1,40 @@
-import { questionListResponseSchema, type ViewerRole } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { hashPassword } from "../src/features/auth/password.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
   getQuestion,
   getQuestions,
+  idsListed,
   seedTheBank,
+  seededQuestionIds,
   unknownQuestionId,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
-/** Pending, unrestricted, written by the seeded Author and carrying only this Tag. */
-const pendingAndUnrestricted = "a0000000-0000-4000-8000-000000000003";
+/** Pending, unrestricted, written by the seeded Author, and carrying only this Tag. */
+const pendingAndUnrestricted = seededQuestionIds.aboutDisagreeing;
 const inThePendingQuestionOnly = "disagreed";
 const tagOnThePendingQuestion = { "question-type": "behavioural" };
 
-/** Pending, restricted to the first Client, and written by the seeded Author, who holds
- * the Grant for it. */
-const pendingForTheFirstClient = "a0000000-0000-4000-8000-000000000005";
+/** Pending, and restricted to the first Client, whose Grant its Author holds. */
+const pendingForTheFirstClient = seededQuestionIds.aboutTheClientsRendering;
 
-/** A Viewer holding no Permission Grant at all, written straight to the database because
- * creating one over HTTP needs an Administrator and a set-password mail. */
-async function logInAsNewViewer(api: TestApi, role: ViewerRole): Promise<string> {
-  const credentials = {
-    email: `new-${role}@iqb.test`,
-    password: `new-${role}-password`,
-    role,
-  };
-  await api.database.viewer.create({
-    data: {
-      email: credentials.email,
-      role,
-      passwordHash: await hashPassword(credentials.password),
-    },
-  });
-  return logIn(api, credentials);
-}
-
-async function idsListed(response: Response): Promise<string[]> {
-  expect(response.status).toBe(200);
-  const body = questionListResponseSchema.parse(await response.json());
-  return body.questions.map((question) => question.id);
-}
-
-/**
- * The bank itself never shows a Pending Question to anyone but its Author and Reviewers,
- * on any of the four ways to read it. Now that there is a queue beside it, this holds the
- * bank to the rule rather than trusting that nothing moved (ADR-0013).
- */
+/** All four ways into the bank, because each is its own query and one of them could
+ * let a Pending Question through while the others hold (ADR-0013). */
 describe("a Pending Question outside its Author and the Reviewers", () => {
   let api: TestApi;
   /** Tokens for the Viewers the Pending Question must stay hidden from. */
   let outsiders: { reader: string; otherAuthor: string };
-  /** The Question's own Author, who has to see it, so "hidden" is a real constraint. */
-  let writerToken: string;
+  /** Its own Author has to see it, or "hidden" would pass for an always-empty answer. */
+  let itsAuthorToken: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     outsiders = {
       reader: await logIn(api, seededViewer("reader")),
-      otherAuthor: await logInAsNewViewer(api, "author"),
+      otherAuthor: await logInHoldingNoGrant(api, "author"),
     };
-    writerToken = await logIn(api, seededViewer("author"));
+    itsAuthorToken = await logIn(api, seededViewer("author"));
   });
   afterAll(async () => {
     await api.stop();
@@ -74,7 +46,7 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
         pendingAndUnrestricted,
       );
     }
-    expect(await idsListed(await getQuestions(api, {}, writerToken))).toContain(
+    expect(await idsListed(await getQuestions(api, {}, itsAuthorToken))).toContain(
       pendingAndUnrestricted,
     );
   });
@@ -85,8 +57,8 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
 
       expect(await idsListed(filtered)).not.toContain(pendingAndUnrestricted);
     }
-    const forTheWriter = await getQuestions(api, tagOnThePendingQuestion, writerToken);
-    expect(await idsListed(forTheWriter)).toContain(pendingAndUnrestricted);
+    const forItsAuthor = await getQuestions(api, tagOnThePendingQuestion, itsAuthorToken);
+    expect(await idsListed(forItsAuthor)).toContain(pendingAndUnrestricted);
   });
 
   it("stays out of a keyword search on a word only it holds", async () => {
@@ -95,12 +67,12 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
 
       expect(await idsListed(found)).toEqual([]);
     }
-    const forTheWriter = await getQuestions(
+    const forItsAuthor = await getQuestions(
       api,
       { keywords: inThePendingQuestionOnly },
-      writerToken,
+      itsAuthorToken,
     );
-    expect(await idsListed(forTheWriter)).toEqual([pendingAndUnrestricted]);
+    expect(await idsListed(forItsAuthor)).toEqual([pendingAndUnrestricted]);
   });
 
   it("answers a direct fetch with the same status and bytes as an id that does not exist", async () => {
@@ -110,15 +82,12 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
 
       expect(await statusAndBody(pending)).toBe(await statusAndBody(unknown));
     }
-    expect((await getQuestion(api, pendingAndUnrestricted, writerToken)).status).toBe(200);
+    expect((await getQuestion(api, pendingAndUnrestricted, itsAuthorToken)).status).toBe(200);
   });
 });
 
-/**
- * The two checks at once, which ADR-0013 says have to hold together and not merely one at
- * a time. Every role is asked, the Reviewer among them: Pending alone would not hide this
- * Question from a Reviewer, so for them it is the Client restriction doing the hiding.
- */
+// The Reviewer is the case that matters: Pending hides nothing from them, so only the
+// Client restriction stands between them and this Question (ADR-0013).
 describe("a Question both restricted and Pending, for a Viewer holding no Grant", () => {
   let api: TestApi;
 
@@ -132,7 +101,7 @@ describe("a Question both restricted and Pending, for a Viewer holding no Grant"
 
   for (const role of ["reader", "author", "reviewer"] as const) {
     it(`answers a ${role} exactly as it answers an id that does not exist`, async () => {
-      const token = await logInAsNewViewer(api, role);
+      const token = await logInHoldingNoGrant(api, role);
 
       const both = await getQuestion(api, pendingForTheFirstClient, token);
       const unknown = await getQuestion(api, unknownQuestionId, token);

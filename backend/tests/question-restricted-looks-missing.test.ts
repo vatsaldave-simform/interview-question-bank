@@ -1,8 +1,7 @@
 import { questionListResponseSchema, type QuestionListResponse } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { hashPassword } from "../src/features/auth/password.ts";
 import { seedClient } from "../src/features/clients/clients.seed.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
   clientIdNamed,
   getQuestions,
@@ -17,27 +16,6 @@ import {
   tagOnTheOtherClientsQuestionsOnly,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
-
-/**
- * A Viewer holding no Permission Grant at all. Every seeded Viewer holds one for one
- * Client or the other, and holding none is its own case. The row is written here because
- * creating a Viewer over HTTP is #25.
- */
-async function logInHoldingNoGrant(api: TestApi): Promise<string> {
-  const credentials = {
-    email: "no-grants@iqb.test",
-    password: "no-grants-password",
-    role: "reader" as const,
-  };
-  await api.database.viewer.create({
-    data: {
-      email: credentials.email,
-      role: credentials.role,
-      passwordHash: await hashPassword(credentials.password),
-    },
-  });
-  return logIn(api, credentials);
-}
 
 /**
  * The guarantee the whole project is built around: a Question restricted to a Client a
@@ -58,7 +36,7 @@ describe("a restricted Question and a Question that is not there", () => {
     await seedTheBank(api.database);
     readerToken = await logIn(api, seededViewer("reader"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
-    noGrantToken = await logInHoldingNoGrant(api);
+    noGrantToken = await logInHoldingNoGrant(api, "reader");
   });
   afterAll(async () => {
     await api.stop();

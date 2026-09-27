@@ -7,35 +7,26 @@ import {
   insertQuestion,
 } from "../src/features/questions/questions.repository.ts";
 import type { Database } from "../src/platform/database.ts";
-import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import {
+  aViewer,
+  clientIdNamed,
+  seedTheBank,
+  seededQuestionIds,
+  viewerByRole,
+} from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
-/** The seeded Questions these lists are about. All of them have the seeded Author. */
-const pendingAndUnrestricted = "a0000000-0000-4000-8000-000000000003";
-const rejectedAndUnrestricted = "a0000000-0000-4000-8000-000000000004";
-const pendingForTheFirstClient = "a0000000-0000-4000-8000-000000000005";
-const pendingForTheSecondClient = "a0000000-0000-4000-8000-000000000007";
+/** The seeded Questions these lists are about, all written by the seeded Author. */
+const {
+  aboutDisagreeing: pendingAndUnrestricted,
+  aboutTwoPlusTwo: rejectedAndUnrestricted,
+  aboutTheClientsRendering: pendingForTheFirstClient,
+  aboutTheOtherClientsIntake: pendingForTheSecondClient,
+} = seededQuestionIds;
 
 const wholeFirstPage = { limit: 50, offset: 0 };
 
 const ids = (questions: readonly { id: string }[]) => questions.map((question) => question.id);
-
-/** A Viewer written straight to the database, with the Grants a test needs. */
-async function aViewer(
-  database: Database,
-  role: ViewerRole,
-  grantedClientIds: readonly string[] = [],
-): Promise<Viewer> {
-  return database.viewer.create({
-    data: {
-      email: `${role}-${crypto.randomUUID()}@iqb.test`,
-      passwordHash: "not used by this test",
-      role,
-      permissionGrants: { create: grantedClientIds.map((clientId) => ({ clientId })) },
-    },
-    select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
-  });
-}
 
 /** A Pending Question with no Client, added the way an Author adds one. */
 function addPending(database: Database, author: Viewer, text: string) {
@@ -47,10 +38,8 @@ function addPending(database: Database, author: Viewer, text: string) {
   });
 }
 
-/**
- * Both lists, asserted against the query functions because that is where the two checks
- * either hold together or do not (ADR-0003, ADR-0013).
- */
+/** Asserted against the query functions, because that is where the two checks either
+ * hold together or do not (ADR-0003, ADR-0013). */
 describe("the lists of Questions not yet in the bank", () => {
   const database = createTestDatabase();
 
@@ -143,8 +132,8 @@ describe("the lists of Questions not yet in the bank", () => {
     });
 
     it("leaves out the Author's own Pending Question under a Client they hold no Grant for", async () => {
-      // The seeded Author wrote the second Client's Pending Question and holds a Grant
-      // for the first Client only. The Author rule never runs instead of visibility.
+      // The seeded Author wrote the second Client's Pending Question but holds a Grant
+      // for the first Client only.
       const own = await findOwnUnpublishedQuestions(
         database,
         await viewer("author"),

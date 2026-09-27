@@ -1,14 +1,21 @@
 import { questionListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.ts";
-import { seedTheBank } from "./helpers/question-bank.ts";
+import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import {
+  addAQuestion,
+  idsListed,
+  seedTheBank,
+  seededQuestionIds,
+} from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
-/** The seeded Questions these lists hand back. All of them have the seeded Author. */
-const pendingAndUnrestricted = "a0000000-0000-4000-8000-000000000003";
-const rejectedAndUnrestricted = "a0000000-0000-4000-8000-000000000004";
-const pendingForTheFirstClient = "a0000000-0000-4000-8000-000000000005";
-const pendingForTheSecondClient = "a0000000-0000-4000-8000-000000000007";
+/** The seeded Questions these lists hand back, all written by the seeded Author. */
+const {
+  aboutDisagreeing: pendingAndUnrestricted,
+  aboutTwoPlusTwo: rejectedAndUnrestricted,
+  aboutTheClientsRendering: pendingForTheFirstClient,
+  aboutTheOtherClientsIntake: pendingForTheSecondClient,
+} = seededQuestionIds;
 
 type List = "pending" | "own";
 
@@ -26,17 +33,9 @@ function getList(
   });
 }
 
-async function idsListed(response: Response): Promise<string[]> {
-  expect(response.status).toBe(200);
-  const body = questionListResponseSchema.parse(await response.json());
-  return body.questions.map((question) => question.id);
-}
-
-/**
- * Who may ask for each list over HTTP. What each list holds is tested against the query
- * functions themselves; what exists only here is the role check and the response.
- */
-describe("the Pending queue and an Author's own list over HTTP", () => {
+/** What each list holds is tested against the query functions; what exists only here is
+ * the role check and the response. */
+describe("who may ask for the Pending queue and for an Author's own list", () => {
   let api: TestApi;
   let readerToken: string;
   let authorToken: string;
@@ -71,7 +70,7 @@ describe("the Pending queue and an Author's own list over HTTP", () => {
     expect(await idsListed(response)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient]);
   });
 
-  it("refuses the own list to a Reader, who can have added nothing", async () => {
+  it("refuses an Author's own list to a Reader, who can have added nothing", async () => {
     const response = await getList(api, "own", {}, readerToken);
 
     expect(response.status).toBe(403);
@@ -87,7 +86,22 @@ describe("the Pending queue and an Author's own list over HTTP", () => {
     ]);
   });
 
-  it("hands a Reviewer their own list too, empty when they have added nothing", async () => {
+  it("hands an Author their own Pending Question and not another Author's", async () => {
+    const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+    const theirs = await addAQuestion(
+      api,
+      { text: "Which of your own past designs would you now argue against, and why?" },
+      otherAuthorToken,
+    );
+
+    const forTheSeededAuthor = await getList(api, "own", {}, authorToken);
+    const forTheOtherAuthor = await getList(api, "own", {}, otherAuthorToken);
+
+    expect(await idsListed(forTheSeededAuthor)).not.toContain(theirs);
+    expect(await idsListed(forTheOtherAuthor)).toEqual([theirs]);
+  });
+
+  it("hands a Reviewer an empty own list when they have added nothing", async () => {
     const response = await getList(api, "own", {}, reviewerToken);
 
     expect(await idsListed(response)).toEqual([]);
@@ -103,13 +117,15 @@ describe("the Pending queue and an Author's own list over HTTP", () => {
     expect(body.offset).toBe(1);
   });
 
-  it("refuses a Tag, which neither list can narrow by", async () => {
-    for (const list of ["pending", "own"] as const) {
-      const token = list === "pending" ? reviewerToken : authorToken;
+  it("refuses a Tag on the queue, which it cannot be narrowed by", async () => {
+    const response = await getList(api, "pending", { technology: "typescript" }, reviewerToken);
 
-      const response = await getList(api, list, { technology: "typescript" }, token);
+    expect(response.status).toBe(400);
+  });
 
-      expect(response.status).toBe(400);
-    }
+  it("refuses keywords on an Author's own list, which it cannot be searched by", async () => {
+    const response = await getList(api, "own", { keywords: "disagreed" }, authorToken);
+
+    expect(response.status).toBe(400);
   });
 });

@@ -160,7 +160,6 @@ const tagValuesPerCategory = Object.fromEntries(
   categoryNames.map((name) => [name, tagValuesSchema.optional()]),
 ) as Record<CategoryName, z.ZodOptional<typeof tagValuesSchema>>;
 
-/** Which page of a list, the same way on every list of Questions. */
 const pageFields = {
   limit: z.coerce
     .number()
@@ -171,9 +170,8 @@ const pageFields = {
   offset: z.coerce.number().int().min(0).default(0),
 };
 
-/** A list that takes a page and nothing else: the Pending queue and an Author's own
- * list. Strict, so a Tag or a keyword a caller expected to narrow the list is refused
- * rather than ignored. */
+/** Strict, so a Tag or keywords sent to the Pending queue or an Author's own list are
+ * refused rather than quietly ignored. */
 export const questionPageRequestSchema = z.object(pageFields).strict();
 export type QuestionPageRequest = z.infer<typeof questionPageRequestSchema>;
 

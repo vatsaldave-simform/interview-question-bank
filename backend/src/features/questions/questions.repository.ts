@@ -131,14 +131,10 @@ export async function findEventsAboutVisibleQuestion(
   return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
 }
 
-/** One page of a list: how many Questions, and how many to skip first. */
 export type QuestionPage = { limit: number; offset: number };
 
-/**
- * The Pending Questions waiting on a Reviewer, the longest-waiting first. Built on
- * `visibleQuestions` and only narrowed from it, so the queue is no way around a
- * Permission Grant (ADR-0013).
- */
+/** Only ever narrowed from `visibleQuestions`, so the queue is no way around a
+ * Permission Grant (ADR-0013). */
 export async function findPendingQuestionsForReview(
   database: Database,
   viewer: Viewer,
@@ -154,9 +150,8 @@ export async function findPendingQuestionsForReview(
   return questions.map(toQuestionFromDb);
 }
 
-/** The Viewer's own Questions that are not in the bank, newest first. Still built on
- * `visibleQuestions`: an Author loses sight of their own Question under a Client they no
- * longer hold a Grant for, exactly as the fetch does (ADR-0002). */
+/** Still built on `visibleQuestions`, so an Author loses sight of their own Question
+ * under a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
 export async function findOwnUnpublishedQuestions(
   database: Database,
   viewer: Viewer,
