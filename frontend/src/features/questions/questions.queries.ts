@@ -7,6 +7,8 @@ import {
   type AddQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
+  type PublishQuestionRequest,
+  type RejectQuestionRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
@@ -103,5 +105,25 @@ export function useEditQuestion(id: string) {
         queryClient.invalidateQueries({ queryKey: ["questions", "list"] }),
       ]);
     },
+  });
+}
+
+/** The acts that move a Question from one Publication State to another, and what each sends. */
+export type QuestionMove =
+  | { act: "publish"; request: PublishQuestionRequest }
+  | { act: "reject"; request: RejectQuestionRequest };
+
+export function useMoveQuestion(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (move: QuestionMove) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/${move.act}`, questionResponseSchema, {
+        method: "POST",
+        body: move.request,
+      }),
+    onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
+    // After a refusal too, because a 409 means someone else moved it first, and every list
+    // holding it is out of date either way.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["questions"] }),
   });
 }
