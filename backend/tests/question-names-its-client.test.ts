@@ -18,7 +18,6 @@ import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts
 
 const { aboutTypeScript, aboutTheClientsPipeline } = seededQuestionIds;
 
-/** Every response that carries a Question names its Client, so a person can read which one. */
 describe("a Question names the Client it is restricted to", () => {
   let api: TestApi;
   /** Holds a Grant for the first Client. */

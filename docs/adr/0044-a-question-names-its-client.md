@@ -5,9 +5,10 @@ Question the API returned named its Client only by `clientId`. A person cannot r
 is the same problem ADR-0035 solved for the Viewers in a Question's history.
 
 **Every Question the API returns carries `client: { id, name } | null` in place of `clientId`.**
-It is `null` when the Question is not restricted. It is read in the same query as the Question,
-from the Client the row already points at. The keyword search is hand-written SQL (ADR-0026), so
-it builds the same shape itself, after the page has been cut.
+It is `null` when the Question is not restricted. It is read from the Client the row already
+points at, looked up by id once the Questions have been found. So it cannot change which
+Questions a read finds. The keyword search is hand-written SQL (ADR-0026), so it builds the same
+shape itself, after the page has been cut.
 
 ## Why this shows nothing it should not
 
