@@ -207,6 +207,10 @@ export const seededQuestionIds = {
   aboutTheOtherClientsBooking: "a0000000-0000-4000-8000-000000000006",
   /** Pending, and restricted to the second Client. */
   aboutTheOtherClientsIntake: "a0000000-0000-4000-8000-000000000007",
+  /** Rejected, and restricted to the first Client. */
+  aboutTheClientsLogo: "a0000000-0000-4000-8000-000000000008",
+  /** Rejected, and restricted to the second Client. */
+  aboutTheOtherClientsFrameworks: "a0000000-0000-4000-8000-000000000009",
 } as const;
 
 /** The word the most bulk Questions carry — about half of them — so a search on it

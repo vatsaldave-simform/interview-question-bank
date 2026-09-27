@@ -145,7 +145,7 @@ describe("a restricted Question and a Question that is not there", () => {
     expect(await statusAndBody(holder)).not.toBe(zeroMatch);
   });
 
-  it("answers that same filter with both Questions for the Viewer holding the Grant", async () => {
+  it("answers that same filter with every such Question for the Viewer holding the Grant", async () => {
     const found = await getQuestions(
       api,
       { technology: tagOnTheOtherClientsQuestionsOnly.tag },
@@ -157,6 +157,7 @@ describe("a restricted Question and a Question that is not there", () => {
       [
         seededQuestionIds.aboutTheOtherClientsBooking,
         seededQuestionIds.aboutTheOtherClientsIntake,
+        seededQuestionIds.aboutTheOtherClientsFrameworks,
       ].sort(),
     );
   });

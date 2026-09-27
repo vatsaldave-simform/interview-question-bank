@@ -15,6 +15,7 @@ const {
   aboutTwoPlusTwo: rejectedAndUnrestricted,
   aboutTheClientsRendering: pendingForTheFirstClient,
   aboutTheOtherClientsIntake: pendingForTheSecondClient,
+  aboutTheClientsLogo: rejectedForTheFirstClient,
 } = seededQuestionIds;
 
 type List = "pending" | "own";
@@ -80,6 +81,7 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
     const response = await getList(api, "own", {}, authorToken);
 
     expect(await idsListed(response)).toEqual([
+      rejectedForTheFirstClient,
       pendingForTheFirstClient,
       rejectedAndUnrestricted,
       pendingAndUnrestricted,
@@ -123,7 +125,7 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
 
     expect(response.status).toBe(200);
     const body = questionListResponseSchema.parse(await response.json());
-    expect(body.questions.map((question) => question.id)).toEqual([rejectedAndUnrestricted]);
+    expect(body.questions.map((question) => question.id)).toEqual([pendingForTheFirstClient]);
     expect(body.limit).toBe(1);
     expect(body.offset).toBe(1);
   });

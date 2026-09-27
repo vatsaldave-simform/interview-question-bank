@@ -124,7 +124,7 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/auth/password-reset 
 
 ## A bank big enough to time a query against
 
-`pnpm db:seed` writes seven Questions across two Clients. That is enough to read and not
+`pnpm db:seed` writes nine Questions across two Clients. That is enough to read and not
 enough to time a query against, so `pnpm db:seed:bulk` writes a big bank beside them:
 
 ```sh
