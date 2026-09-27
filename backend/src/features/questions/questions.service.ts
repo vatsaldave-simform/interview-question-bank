@@ -24,7 +24,7 @@ import {
   type TagsInCategory,
 } from "./questions.repository.ts";
 import { mayEdit } from "./may-edit.ts";
-import { mayPublish, mayReject, mayResubmit } from "./may-review.ts";
+import { mayPublish, mayReject, mayResubmit, mayReturn } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -186,11 +186,12 @@ export async function editQuestion(
   return edited;
 }
 
-/** What a 409 says, by the state the act would have moved the Question to. */
-const refusedFor: Record<PublicationMove["to"], string> = {
-  published: "Only a Pending Question can be Published.",
-  rejected: "Only a Pending Question can be Rejected.",
-  pending: "Only a Rejected Question can be resubmitted.",
+/** What a 409 says, by the act that found the Question in the wrong state. */
+const refusedFor: Record<PublicationMove["act"], string> = {
+  publish: "Only a Pending Question can be Published.",
+  reject: "Only a Pending Question can be Rejected.",
+  resubmit: "Only a Rejected Question can be resubmitted.",
+  return: "Only a Published Question can be returned.",
 };
 
 /** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
@@ -210,7 +211,7 @@ async function moveQuestion(
   if (moved !== null) return moved;
   // Asked again because a Permission Grant revoked since the first look makes it a 404.
   if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  throw new ConflictError(refusedFor[move.to]);
+  throw new ConflictError(refusedFor[move.act]);
 }
 
 export function publishQuestion(
@@ -218,7 +219,7 @@ export function publishQuestion(
   viewer: Viewer,
   id: string,
 ): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { from: "pending", to: "published" }, mayPublish);
+  return moveQuestion(database, viewer, id, { act: "publish" }, mayPublish);
 }
 
 export function rejectQuestion(
@@ -227,7 +228,7 @@ export function rejectQuestion(
   id: string,
   reason: string,
 ): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { from: "pending", to: "rejected", reason }, mayReject);
+  return moveQuestion(database, viewer, id, { act: "reject", reason }, mayReject);
 }
 
 /** Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013). */
@@ -236,5 +237,14 @@ export function resubmitQuestion(
   viewer: Viewer,
   id: string,
 ): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { from: "rejected", to: "pending" }, mayResubmit);
+  return moveQuestion(database, viewer, id, { act: "resubmit" }, mayResubmit);
+}
+
+export function returnQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  reason: string,
+): Promise<QuestionFromDb> {
+  return moveQuestion(database, viewer, id, { act: "return", reason }, mayReturn);
 }

@@ -288,7 +288,7 @@ export function aQuestion(overrides: Record<string, unknown> = {}): Record<strin
 }
 
 /** What a Viewer may do to a Question's Publication State, each its own endpoint. */
-export type ReviewAct = "publish" | "reject" | "resubmit";
+export type ReviewAct = "publish" | "reject" | "resubmit" | "return";
 
 /** A review request itself, for a test that wants to read the response it got. */
 export function postReviewAct(
