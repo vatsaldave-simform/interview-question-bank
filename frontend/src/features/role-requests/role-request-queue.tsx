@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RoleRequestDecision } from "@/features/role-requests/role-request-decision";
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
+import { roleWording } from "@/features/viewers/role-wording";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
@@ -60,7 +61,7 @@ export function RoleRequestQueue() {
             {roleRequests.data.map((roleRequest) => (
               <TableRow key={roleRequest.id}>
                 <TableCell>{roleRequest.viewer.email}</TableCell>
-                <TableCell className="capitalize">{roleRequest.role}</TableCell>
+                <TableCell>{roleWording[roleRequest.role]}</TableCell>
                 <TableCell>
                   <time dateTime={roleRequest.createdAt}>
                     {whenWording.format(new Date(roleRequest.createdAt))}

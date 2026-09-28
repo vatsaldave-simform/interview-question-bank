@@ -50,11 +50,11 @@ describe("the administration console", () => {
 
     expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
     const left = within(rowFor("left@iqb.test"));
-    expect(left.getByRole("cell", { name: "author" })).toBeVisible();
+    expect(left.getByRole("cell", { name: "Author" })).toBeVisible();
     expect(left.getByRole("cell", { name: "No" })).toBeVisible();
     expect(left.getByRole("cell", { name: "Deactivated" })).toBeVisible();
     const administrator = within(rowFor("reviewer@iqb.test"));
-    expect(administrator.getByRole("cell", { name: "reviewer" })).toBeVisible();
+    expect(administrator.getByRole("cell", { name: "Reviewer" })).toBeVisible();
     expect(administrator.getByRole("cell", { name: "Yes" })).toBeVisible();
     expect(administrator.getByRole("cell", { name: "Active" })).toBeVisible();
   });

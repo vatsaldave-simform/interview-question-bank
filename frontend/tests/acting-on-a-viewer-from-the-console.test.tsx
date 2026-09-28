@@ -83,7 +83,7 @@ describe("acting on one Viewer from the administration console", () => {
     await userEvent.selectOptions(row.getByLabelText("Role for reader@iqb.test"), "Author");
     await userEvent.click(row.getByRole("button", { name: "Change role" }));
 
-    expect(await row.findByRole("cell", { name: "author" })).toBeVisible();
+    expect(await row.findByRole("cell", { name: "Author" })).toBeVisible();
     expect(actsSent(api)).toEqual([`PATCH /api/viewers/${reader.id}/role`]);
     const [sent] = api.sent.filter((request) => request.method === "PATCH");
     expect(await sent?.json()).toEqual({ role: "author" });

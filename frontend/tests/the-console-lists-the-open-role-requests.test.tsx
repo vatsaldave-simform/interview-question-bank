@@ -44,10 +44,10 @@ describe("the open Role Requests on the administration console", () => {
     const table = await screen.findByRole("table", { name: "Open Role Requests" });
     const [, first, second] = within(table).getAllByRole("row");
     expect(within(first!).getByRole("cell", { name: "reader@iqb.test" })).toBeVisible();
-    expect(within(first!).getByRole("cell", { name: "reviewer" })).toBeVisible();
+    expect(within(first!).getByRole("cell", { name: "Reviewer" })).toBeVisible();
     expect(within(first!).getByRole("time")).toHaveAttribute("datetime", older.createdAt);
     expect(within(second!).getByRole("cell", { name: "author@iqb.test" })).toBeVisible();
-    expect(within(second!).getByRole("cell", { name: "author" })).toBeVisible();
+    expect(within(second!).getByRole("cell", { name: "Author" })).toBeVisible();
     expect(within(second!).getByRole("time")).toHaveAttribute("datetime", newer.createdAt);
   });
 

@@ -1,4 +1,5 @@
 import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
+import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -48,7 +49,7 @@ export function ViewerList() {
             {viewers.data.map((viewer) => (
               <TableRow key={viewer.id}>
                 <TableCell>{viewer.email}</TableCell>
-                <TableCell className="capitalize">{viewer.role}</TableCell>
+                <TableCell>{roleWording[viewer.role]}</TableCell>
                 <TableCell>{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
                 <TableCell className={viewer.isDeactivated ? "text-muted-foreground" : ""}>
                   {viewer.isDeactivated ? "Deactivated" : "Active"}

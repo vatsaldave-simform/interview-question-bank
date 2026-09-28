@@ -103,7 +103,7 @@ describe("deciding a Role Request from the administration console", () => {
     const menu = within(screen.getByRole("navigation", { name: "Administration" }));
     await userEvent.click(menu.getByRole("link", { name: "Viewers" }));
     const viewers = within(await screen.findByRole("table", { name: "Viewers" }));
-    expect(await viewers.findByRole("cell", { name: "reviewer" })).toBeVisible();
+    expect(await viewers.findByRole("cell", { name: "Reviewer" })).toBeVisible();
   });
 
   it("refuses a denial with no reason on its field, and sends nothing", async () => {
