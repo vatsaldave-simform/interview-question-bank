@@ -51,7 +51,7 @@ export function NearDuplicateDialog(props: NearDuplicateDialogProps) {
                 params={{ questionId }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium hover:underline"
+                className="font-medium hover:text-primary hover:underline"
               >
                 {text}
               </Link>

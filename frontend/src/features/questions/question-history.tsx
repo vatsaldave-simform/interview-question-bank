@@ -12,7 +12,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="history">
-      <h2 id="history" className="font-medium">
+      <h2 id="history" className="text-lg font-semibold">
         History
       </h2>
       {history.isPending ? (
@@ -170,7 +170,11 @@ function NearDuplicatesNamed({ nearDuplicates }: { nearDuplicates: readonly Near
     <ul className="flex flex-col gap-1 border-l-2 pl-3">
       {nearDuplicates.map(({ questionId, text }) => (
         <li key={questionId}>
-          <Link to="/questions/$questionId" params={{ questionId }} className="hover:underline">
+          <Link
+            to="/questions/$questionId"
+            params={{ questionId }}
+            className="hover:text-primary hover:underline"
+          >
             {text}
           </Link>
         </li>

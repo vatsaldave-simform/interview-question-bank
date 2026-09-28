@@ -16,7 +16,7 @@ export function ViewerList() {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="viewers">
-      <h2 id="viewers" className="font-medium">
+      <h2 id="viewers" className="text-lg font-semibold">
         Viewers
       </h2>
       <CreateViewerForm />

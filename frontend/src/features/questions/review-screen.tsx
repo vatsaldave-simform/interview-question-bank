@@ -11,6 +11,7 @@ import {
 import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useReviewQueue } from "@/features/questions/questions.queries";
+import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
 
@@ -24,12 +25,10 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Review queue</h1>
-        <p className="text-muted-foreground text-sm">
-          Pending Questions waiting on a Reviewer, the one that has waited longest first.
-        </p>
-      </div>
+      <PageHeader
+        title="Review queue"
+        description="Pending Questions waiting on a Reviewer, the one that has waited longest first."
+      />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {queue.isPending ? (
         <p role="status" className="text-muted-foreground">

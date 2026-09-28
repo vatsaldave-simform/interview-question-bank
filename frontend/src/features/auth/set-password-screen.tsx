@@ -36,7 +36,10 @@ export function SetPasswordScreen({ token, onSet }: SetPasswordScreenProps) {
                   <AlertTitle>This link does not work.</AlertTitle>
                   <AlertDescription>{linkRefusal ?? incompleteLink}</AlertDescription>
                 </Alert>
-                <Link to="/forgotten-password" className="text-sm font-medium hover:underline">
+                <Link
+                  to="/forgotten-password"
+                  className="text-primary text-sm font-medium hover:underline"
+                >
                   Ask for a new link
                 </Link>
               </>

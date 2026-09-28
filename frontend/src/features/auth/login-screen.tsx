@@ -26,14 +26,14 @@ export function LoginScreen({ passwordJustSet }: { passwordJustSet: boolean }) {
             <LoginForm />
             <Link
               to="/forgotten-password"
-              className="text-muted-foreground text-sm hover:underline"
+              className="text-primary text-sm hover:underline"
             >
               Forgotten your password?
             </Link>
           </CardContent>
         </Card>
-        <ColdStartNotice />
         <DemoCredentials />
+        <ColdStartNotice />
       </div>
     </main>
   );
