@@ -77,6 +77,11 @@ async function sectionFor(client: Client) {
   return within(await screen.findByRole("region", { name: client.name }));
 }
 
+async function confirmTheRevoke(): Promise<void> {
+  const confirmation = within(await screen.findByRole("alertdialog"));
+  await userEvent.click(confirmation.getByRole("button", { name: "Revoke" }));
+}
+
 function optionsIn(picker: HTMLElement): string[] {
   return within(picker)
     .getAllByRole("option")
@@ -115,10 +120,26 @@ describe("issuing and revoking a Grant from the administration console", () => {
     const holders = within(await section.findByRole("list", { name: "Viewers holding a Grant" }));
     const holder = within(holders.getByText("author@iqb.test").closest("li")!);
     await userEvent.click(holder.getByRole("button", { name: "Revoke" }));
+    await confirmTheRevoke();
 
     expect(await section.findByText("Nobody holds a Grant against this Client.")).toBeVisible();
     expect(optionsIn(section.getByLabelText("Viewer"))).toContain("author@iqb.test");
     expect(grantActsSent(api)).toEqual([`DELETE /api/clients/${northwind.id}/grants/${author.id}`]);
+  });
+
+  it("asks before it revokes, and sends nothing on Cancel", async () => {
+    const api = aBankGranting(new Map([[northwind, [named(author)]]]));
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
+
+    const section = await sectionFor(northwind);
+    await userEvent.click(await section.findByRole("button", { name: "Revoke" }));
+    const confirmation = within(await screen.findByRole("alertdialog"));
+    expect(confirmation.getByText(/author@iqb\.test can no longer see/)).toBeVisible();
+    await userEvent.click(confirmation.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect((await sectionFor(northwind)).getByText("author@iqb.test")).toBeVisible();
+    expect(grantActsSent(api)).toEqual([]);
   });
 
   it.each([
@@ -138,6 +159,7 @@ describe("issuing and revoking a Grant from the administration console", () => {
       message: "Not found.",
       press: async (section: ReturnType<typeof within>) => {
         await userEvent.click(section.getByRole("button", { name: "Revoke" }));
+        await confirmTheRevoke();
       },
     },
   ])("reports the API's refusal of $act, and keeps the Grants as they were", async ({ refusal, message, press }) => {

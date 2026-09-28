@@ -1,4 +1,4 @@
-import type { PermissionGrant } from "@iqb/shared";
+import type { NamedViewer, PermissionGrant } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useEveryClient } from "@/features/clients/clients.queries";
@@ -9,6 +9,7 @@ import {
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
+import { ConfirmAct } from "@/ui/confirm-act";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { Button } from "@/ui/shadcn/button";
@@ -37,6 +38,9 @@ export function ClientGrants({ clientId }: { clientId: string }) {
 function GrantsAgainst({ clientId }: { clientId: string }) {
   const grants = useGrantsAgainst(clientId);
   const act = useActOnGrants(clientId);
+  // Kept after the confirmation closes, so its words stay right while it fades out.
+  const [toRevoke, setToRevoke] = useState<NamedViewer | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   if (grants.isPending) {
     return (
@@ -62,8 +66,12 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
               <Button
                 variant="outline"
                 size="sm"
+                className="text-destructive hover:text-destructive"
                 disabled={act.isPending}
-                onClick={() => act.mutate({ act: "revoke", viewerId: viewer.id })}
+                onClick={() => {
+                  setToRevoke(viewer);
+                  setConfirming(true);
+                }}
               >
                 Revoke
               </Button>
@@ -78,6 +86,14 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
         onIssue={(viewerId, done) => act.mutate({ act: "issue", viewerId }, { onSuccess: done })}
       />
       {act.isError && <ActNotDone title="That was not done." reason={whatWentWrong(act.error)} />}
+      <ConfirmAct
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Revoke the Grant?"
+        description={`${toRevoke?.email} can no longer see this Client's Questions.`}
+        act="Revoke"
+        onConfirm={() => toRevoke !== null && act.mutate({ act: "revoke", viewerId: toRevoke.id })}
+      />
     </div>
   );
 }

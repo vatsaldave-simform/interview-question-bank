@@ -81,6 +81,12 @@ async function pick(act: string, email: string): Promise<void> {
   await userEvent.click(await screen.findByRole("menuitem", { name: act }));
 }
 
+/** Presses `act` on the confirmation that a hard-to-undo act asks for first. */
+async function confirm(act: string): Promise<void> {
+  const confirmation = within(await screen.findByRole("alertdialog"));
+  await userEvent.click(confirmation.getByRole("button", { name: act }));
+}
+
 /** Opens the "⋯" menu on the row for `email`, and says which acts it offers. */
 async function actsOfferedTo(email: string): Promise<string[]> {
   const row = await rowFor(email);
@@ -150,6 +156,7 @@ describe("acting on one Viewer from the administration console", () => {
 
     const row = await rowFor("reader@iqb.test");
     await pick("Deactivate", "reader@iqb.test");
+    await confirm("Deactivate");
     expect(await row.findByRole("cell", { name: "Deactivated" })).toBeVisible();
 
     await pick("Reactivate", "reader@iqb.test");
@@ -161,15 +168,31 @@ describe("acting on one Viewer from the administration console", () => {
     ]);
   });
 
+  it("asks before it Deactivates, and sends nothing on Cancel", async () => {
+    const api = aBankHolding([anAdministrator, reader]);
+    renderTheWholeClient("/administration/viewers");
+
+    await pick("Deactivate", "reader@iqb.test");
+    const confirmation = within(await screen.findByRole("alertdialog"));
+    expect(confirmation.getByText("Deactivate reader@iqb.test?")).toBeVisible();
+    await userEvent.click(confirmation.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect((await rowFor("reader@iqb.test")).getByRole("cell", { name: "Active" })).toBeVisible();
+    expect(actsSent(api)).toEqual([]);
+  });
+
   it.each([
     {
       act: "Withdraw Administrator",
+      confirmed: false,
       method: "DELETE",
       part: "administrator",
       refusal: "The last Administrator's authority cannot be withdrawn.",
     },
     {
       act: "Deactivate",
+      confirmed: true,
       method: "POST",
       part: "deactivation",
       refusal: "The last active Administrator cannot be Deactivated.",
@@ -185,6 +208,7 @@ describe("acting on one Viewer from the administration console", () => {
 
     const row = await rowFor("reviewer@iqb.test");
     await pick(refused.act, "reviewer@iqb.test");
+    if (refused.confirmed) await confirm(refused.act);
 
     const alert = within(await row.findByRole("alert"));
     expect(alert.getByText(refused.refusal)).toBeVisible();

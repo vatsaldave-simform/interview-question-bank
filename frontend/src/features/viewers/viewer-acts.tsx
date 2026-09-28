@@ -5,6 +5,7 @@ import { roleWording } from "@/features/viewers/role-wording";
 import { useActOnViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
+import { ConfirmAct } from "@/ui/confirm-act";
 import { Button } from "@/ui/shadcn/button";
 import {
   Dialog,
@@ -26,6 +27,7 @@ import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
 export function ViewerActs({ viewer }: { viewer: Viewer }) {
   const act = useActOnViewer(viewer.id);
   const [changingRole, setChangingRole] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -48,14 +50,18 @@ export function ViewerActs({ viewer }: { viewer: Viewer }) {
             {viewer.isAdministrator ? "Withdraw Administrator" : "Appoint as Administrator"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => act.mutate({ act: viewer.isDeactivated ? "reactivate" : "deactivate" })}
-          >
-            {viewer.isDeactivated ? "Reactivate" : "Deactivate"}
-          </DropdownMenuItem>
+          {viewer.isDeactivated ? (
+            <DropdownMenuItem onSelect={() => act.mutate({ act: "reactivate" })}>
+              Reactivate
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem variant="destructive" onSelect={() => setDeactivating(true)}>
+              Deactivate
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* Outside the menu, because what is inside the menu goes away as it closes. */}
+      {/* These are outside the menu, because what is inside the menu goes away as it closes. */}
       <Dialog open={changingRole} onOpenChange={setChangingRole}>
         <DialogContent>
           <DialogHeader>
@@ -67,6 +73,17 @@ export function ViewerActs({ viewer }: { viewer: Viewer }) {
           <ChangeRoleForm viewer={viewer} onDone={() => setChangingRole(false)} />
         </DialogContent>
       </Dialog>
+      <ConfirmAct
+        open={deactivating}
+        onOpenChange={setDeactivating}
+        title={`Deactivate ${viewer.email}?`}
+        description={
+          "They can no longer log in. What they wrote stays in the bank, and you can " +
+          "Reactivate them later."
+        }
+        act="Deactivate"
+        onConfirm={() => act.mutate({ act: "deactivate" })}
+      />
       {act.isError && <ActNotDone title="That was not done." reason={whatWentWrong(act.error)} />}
     </div>
   );
