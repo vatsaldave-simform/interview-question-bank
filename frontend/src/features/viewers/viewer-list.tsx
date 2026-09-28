@@ -68,7 +68,9 @@ export function ViewerList() {
               <TableHead>Role</TableHead>
               <TableHead>Administrator</TableHead>
               <TableHead>Account</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
