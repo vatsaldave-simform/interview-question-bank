@@ -464,6 +464,26 @@ there is no in-platform way to run the seed. Point `DATABASE_URL` at Neon from y
 machine and run `pnpm db:seed` there. It is safe to run twice and leaves an existing
 Viewer untouched, so it can be re-run without resetting a password someone changed.
 
+**The hosted bank has its own seed.** `pnpm db:seed:hosted` writes the people who use it
+(John Doe the Author, Jane Doe the Reviewer and Administrator, and three Readers), three
+made-up Clients, and 50 Questions. It does not run the demo seed. Their passwords are
+never in git: set one per person, each at least 15 characters, and run it against Neon:
+
+```sh
+DATABASE_URL='<Neon connection string>' \
+HOSTED_PASSWORD_JOHN_DOE='…' \
+HOSTED_PASSWORD_JANE_DOE='…' \
+HOSTED_PASSWORD_SHANE_AUSTIN='…' \
+HOSTED_PASSWORD_CODY_RHODES='…' \
+HOSTED_PASSWORD_DWAYNE_ROOK='…' \
+pnpm db:seed:hosted
+```
+
+It checks every password before it connects, so a missing or short one stops it with
+nothing written. Like the demo seed, it is safe to run twice. Keep its Clients and
+Questions made up: real client material here would undo the case for publishing the demo
+logins (ADR-0012).
+
 **Mail goes out through Brevo.** Render's free tier blocks the usual SMTP ports, so the
 bank uses Brevo's relay on port 2525, which its free plan allows (ADR-0037). Set two
 values on the Render service, which `render.yaml` leaves out of git:

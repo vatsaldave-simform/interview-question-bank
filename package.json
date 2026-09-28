@@ -16,6 +16,7 @@
     "db:generate": "pnpm --filter @iqb/backend db:generate",
     "db:seed": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:seed",
     "db:seed:bulk": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:seed:bulk",
+    "db:seed:hosted": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:seed:hosted",
     "db:measure:plans": "pnpm --filter @iqb/shared build && pnpm --filter @iqb/backend db:measure:plans"
   },
   "packageManager": "pnpm@11.27.1"
