@@ -1,7 +1,19 @@
+import { categoryNames, nearDuplicateThreshold, type Viewer } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "../src/features/auth/password.ts";
 import { seedClientsAndGrants } from "../src/features/clients/clients.seed.ts";
-import { hostedClients } from "../src/features/clients/hosted-clients.seed.ts";
+import {
+  brightwater,
+  fernhill,
+  harbourline,
+  hostedClients,
+} from "../src/features/clients/hosted-clients.seed.ts";
+import { hostedBank, hostedQuestions } from "../src/features/questions/hosted-bank.seed.ts";
+import {
+  findPendingQuestionsForReview,
+  findVisibleQuestions,
+} from "../src/features/questions/questions.repository.ts";
+import { seedQuestionBank } from "../src/features/questions/questions.seed.ts";
 import {
   hostedViewers,
   readHostedPasswords,
@@ -158,6 +170,145 @@ describe("the hosted seed's Clients", () => {
 
     expect(
       await Promise.all([database.client.count(), database.permissionGrant.count()]),
+    ).toEqual(before);
+  });
+});
+
+describe("the hosted seed's Questions", () => {
+  let database: Database;
+
+  const hostedIds = new Set(hostedQuestions.map((question) => question.id));
+  const everyRow = { limit: 1000, offset: 0 };
+
+  function hostedViewerNamed(email: string): Promise<Viewer> {
+    return database.viewer.findUniqueOrThrow({
+      where: { email },
+      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
+    });
+  }
+
+  /** The Clients of the hosted Questions a Viewer can see in the bank. */
+  async function clientsSeenBy(email: string): Promise<string[]> {
+    const seen = await findVisibleQuestions(database, await hostedViewerNamed(email), {
+      tagsPerCategory: [],
+      ...everyRow,
+    });
+    const names = seen
+      .filter((question) => hostedIds.has(question.id) && question.client !== null)
+      .map((question) => question.client!.name);
+    return [...new Set(names)].sort();
+  }
+
+  beforeAll(async () => {
+    database = createTestDatabase();
+    await truncateAll(database);
+    await seedViewerAccounts(database);
+    await seedClientsAndGrants(database);
+    await seedQuestionBank(database);
+    await seedHostedViewers(database, readHostedPasswords(passwordSource));
+    await seedClientsAndGrants(database, hostedClients);
+    await seedQuestionBank(database, hostedBank);
+  });
+  afterAll(async () => {
+    await database.$disconnect();
+  });
+
+  it("writes 50 Questions, all by John", async () => {
+    const stored = await database.question.findMany({
+      where: { id: { in: [...hostedIds] } },
+      select: { author: { select: { email: true } } },
+    });
+
+    expect(stored).toHaveLength(50);
+    expect(new Set(stored.map((question) => question.author.email))).toEqual(
+      new Set(["john.doe@iqb.test"]),
+    );
+  });
+
+  it("uses every Category, and every hosted Tag at least once", async () => {
+    const carried = await database.questionTag.findMany({
+      where: { questionId: { in: [...hostedIds] } },
+      select: { tag: { select: { value: true, category: { select: { name: true } } } } },
+    });
+    const used = new Set(carried.map(({ tag }) => `${tag.category.name}/${tag.value}`));
+
+    for (const category of hostedBank.categories) {
+      for (const tag of category.tags) expect(used).toContain(`${category.name}/${tag}`);
+    }
+    expect(hostedBank.categories.map((category) => category.name)).toEqual([...categoryNames]);
+  });
+
+  it("leaves 38 open to everyone and gives each Client Published and Pending Questions", async () => {
+    const groups = await database.question.groupBy({
+      by: ["clientId", "publicationState"],
+      where: { id: { in: [...hostedIds] } },
+      _count: { _all: true },
+    });
+    const count = async (clientName: string | null, state: string) => {
+      const clientId =
+        clientName === null
+          ? null
+          : (await database.client.findUniqueOrThrow({ where: { name: clientName } })).id;
+      const group = groups.find((g) => g.clientId === clientId && g.publicationState === state);
+      return group?._count._all ?? 0;
+    };
+
+    expect([await count(null, "published"), await count(null, "pending")]).toEqual([35, 3]);
+    expect([await count(harbourline.name, "published"), await count(harbourline.name, "pending")])
+      .toEqual([3, 1]);
+    expect([await count(brightwater.name, "published"), await count(brightwater.name, "pending")])
+      .toEqual([2, 2]);
+    expect([await count(fernhill.name, "published"), await count(fernhill.name, "pending")])
+      .toEqual([3, 1]);
+  });
+
+  it("puts every Pending hosted Question in Jane's review queue", async () => {
+    const queue = await findPendingQuestionsForReview(
+      database,
+      await hostedViewerNamed("jane.doe@iqb.test"),
+      everyRow,
+    );
+
+    const pending = hostedQuestions.filter((question) => question.publicationState === "pending");
+    expect(pending).toHaveLength(7);
+    const queued = new Set(queue.map((question) => question.id));
+    for (const question of pending) expect(queued).toContain(question.id);
+  });
+
+  it("shows each Reader only the Clients they hold a Grant for", async () => {
+    expect(await clientsSeenBy("shane.austin@iqb.test")).toEqual([harbourline.name]);
+    expect(await clientsSeenBy("cody.rhodes@iqb.test")).toEqual([brightwater.name]);
+    expect(await clientsSeenBy("dwayne.rook@iqb.test")).toEqual([]);
+  });
+
+  // The seed skips the check an Author meets, so without this an edit to one of these
+  // could be refused as a Near-Duplicate of another.
+  it("holds no two Questions that are Near-Duplicates of each other", async () => {
+    const pairs = await database.$queryRaw<{ first: string; second: string }[]>`
+      SELECT a.text AS first, b.text AS second
+        FROM questions a
+        JOIN questions b ON a.id < b.id
+       WHERE similarity(a.text, b.text) >= ${nearDuplicateThreshold}
+    `;
+
+    expect(pairs).toEqual([]);
+  });
+
+  it("adds nothing when it runs again", async () => {
+    const before = await Promise.all([
+      database.question.count(),
+      database.tag.count(),
+      database.questionTag.count(),
+    ]);
+
+    await seedQuestionBank(database, hostedBank);
+
+    expect(
+      await Promise.all([
+        database.question.count(),
+        database.tag.count(),
+        database.questionTag.count(),
+      ]),
     ).toEqual(before);
   });
 });
