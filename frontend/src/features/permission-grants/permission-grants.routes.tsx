@@ -6,10 +6,10 @@ import { administrationRoute } from "@/platform/administration-route";
 const clientGrantsRoute = createRoute({
   getParentRoute: () => administrationRoute,
   path: "/clients/$clientId",
-  component: OneClientsGrants,
+  component: OneClient,
 });
 
-function OneClientsGrants() {
+function OneClient() {
   const { clientId } = clientGrantsRoute.useParams();
   return <ClientGrants clientId={clientId} />;
 }

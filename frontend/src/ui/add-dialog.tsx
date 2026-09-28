@@ -11,7 +11,6 @@ import {
 } from "@/ui/shadcn/dialog";
 
 type AddDialogProps = {
-  /** The button's words, like "Add a Viewer". */
   label: string;
   title: string;
   description: ReactNode;

@@ -7,8 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { signedInRoute } from "@/platform/signed-in-route";
 
-/** Here and not in a feature, because the console is a view of several (ADR-0015). Each
- * feature adds its own page underneath, and this only links to their addresses. */
+/** Here and not in a feature, because the console is a view of several (ADR-0015). */
 export const administrationRoute = createRoute({
   getParentRoute: () => signedInRoute,
   path: "/administration",
