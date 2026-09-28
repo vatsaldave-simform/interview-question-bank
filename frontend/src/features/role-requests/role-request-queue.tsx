@@ -69,7 +69,7 @@ export function RoleRequestQueue() {
                 </TableCell>
                 <TableCell>
                   <RoleRequestDecision
-                    roleRequestId={roleRequest.id}
+                    roleRequest={roleRequest}
                     onRefusal={(message) =>
                       setRefusal(
                         message === null ? null : { from: roleRequest.viewer.email, message },

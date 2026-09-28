@@ -45,6 +45,7 @@ function creations(api: ReturnType<typeof fakeBank>): Request[] {
 }
 
 async function theCreateForm() {
+  await userEvent.click(await screen.findByRole("button", { name: "Add a Client" }));
   return within(await screen.findByRole("form", { name: "Create a Client" }));
 }
 
@@ -59,11 +60,11 @@ describe("creating a Client from the administration console", () => {
     await userEvent.type(form.getByLabelText("Name"), "  Kingsbridge Health ");
     await userEvent.click(form.getByRole("button", { name: "Create" }));
 
-    expect(await form.findByText("Kingsbridge Health was created.")).toBeVisible();
+    expect(await screen.findByText("Kingsbridge Health was created.")).toBeVisible();
+    expect(screen.queryByRole("form", { name: "Create a Client" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ name: "Kingsbridge Health" });
     expect(await screen.findByRole("link", { name: "Kingsbridge Health" })).toBeVisible();
-    expect(form.getByLabelText("Name")).toHaveValue("");
   });
 
   it("refuses a name of only spaces on its field, and sends nothing", async () => {

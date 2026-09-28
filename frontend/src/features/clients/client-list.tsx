@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
+import { useState } from "react";
 import { CreateClientForm } from "@/features/clients/create-client-form";
 import { useEveryClient } from "@/features/clients/clients.queries";
+import { AddDialog } from "@/ui/add-dialog";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 
 export function ClientList() {
   const clients = useEveryClient();
+  // Here and not in the form, because the dialog closes once the Client is created.
+  const [created, setCreated] = useState<string | null>(null);
 
   return (
     <section className="flex flex-col gap-6" aria-labelledby="clients">
@@ -14,8 +18,30 @@ export function ClientList() {
         title="Clients"
         titleId="clients"
         description="Open a Client to see and change who holds a Grant against it."
+        action={
+          <AddDialog
+            label="Add a Client"
+            title="Create a Client"
+            description="Questions can then be restricted to it."
+            onOpen={() => setCreated(null)}
+          >
+            {(close) => (
+              <CreateClientForm
+                onCreated={(client) => {
+                  close();
+                  setCreated(client.name);
+                }}
+                onCancel={close}
+              />
+            )}
+          </AddDialog>
+        }
       />
-      <CreateClientForm />
+      {created !== null && (
+        <p role="status" className="text-sm">
+          {created} was created.
+        </p>
+      )}
       {clients.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Clients…

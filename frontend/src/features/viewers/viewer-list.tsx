@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
 import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
+import { AddDialog } from "@/ui/add-dialog";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import {
@@ -15,6 +17,8 @@ import {
 
 export function ViewerList() {
   const viewers = useEveryViewer();
+  // Here and not in the form, because the dialog closes once the Viewer is created.
+  const [created, setCreated] = useState<string | null>(null);
 
   return (
     <section className="flex flex-col gap-6" aria-labelledby="viewers">
@@ -22,8 +26,30 @@ export function ViewerList() {
         title="Viewers"
         titleId="viewers"
         description="Everyone who can log in, or could before they were Deactivated."
+        action={
+          <AddDialog
+            label="Add a Viewer"
+            title="Create a Viewer"
+            description="They are emailed a link to set their password."
+            onOpen={() => setCreated(null)}
+          >
+            {(close) => (
+              <CreateViewerForm
+                onCreated={(viewer) => {
+                  close();
+                  setCreated(viewer.email);
+                }}
+                onCancel={close}
+              />
+            )}
+          </AddDialog>
+        }
       />
-      <CreateViewerForm />
+      {created !== null && (
+        <p role="status" className="text-sm">
+          {created} was created, and was emailed a link to set their password.
+        </p>
+      )}
       {viewers.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Viewers…

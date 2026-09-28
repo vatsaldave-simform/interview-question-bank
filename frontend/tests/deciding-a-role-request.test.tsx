@@ -85,6 +85,13 @@ async function rowFor(email: string) {
   return within(row);
 }
 
+/** Presses Deny on the row for `email`, which opens the reason form in a dialog. */
+async function theDenialOf(email: string) {
+  const row = await rowFor(email);
+  await userEvent.click(row.getByRole("button", { name: "Deny" }));
+  return within(await screen.findByRole("dialog", { name: "Deny the Role Request" }));
+}
+
 describe("deciding a Role Request from the administration console", () => {
   it("grants a Role Request, which leaves the queue and changes the Viewer list", async () => {
     const api = aBankDeciding([fromReader, fromAuthor]);
@@ -110,12 +117,11 @@ describe("deciding a Role Request from the administration console", () => {
     const api = aBankDeciding([fromReader]);
     renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Deny" }));
-    await userEvent.type(row.getByLabelText("Why it is denied"), "   ");
-    await userEvent.click(row.getByRole("button", { name: "Send the denial" }));
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "   ");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
-    const reason = row.getByLabelText("Why it is denied");
+    const reason = denial.getByLabelText("Why it is denied");
     expect(reason).toHaveAccessibleDescription(
       "Say why, so they can act on it, in 2,000 characters or fewer.",
     );
@@ -127,14 +133,30 @@ describe("deciding a Role Request from the administration console", () => {
     const api = aBankDeciding([fromReader]);
     renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Deny" }));
-    await userEvent.type(row.getByLabelText("Why it is denied"), "  Not on a project yet. ");
-    await userEvent.click(row.getByRole("button", { name: "Send the denial" }));
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "  Not on a project yet. ");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
     expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const [sent] = decisionsSent(api);
     expect(await sent!.json()).toEqual({ outcome: "denied", reason: "Not on a project yet." });
+  });
+
+  it("closes the denial when the API refuses it, and reports it above the queue", async () => {
+    aBankDeciding([fromReader], () =>
+      refusesWith(409, "conflict", "That Role Request has already been decided."),
+    );
+    renderTheWholeClient("/administration/role-requests");
+
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "Not on a project yet.");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
+
+    const queue = within(screen.getByRole("region", { name: "Open Role Requests" }));
+    const alert = within(await queue.findByRole("alert"));
+    expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("asks again after a refusal, and keeps the refusal on screen", async () => {

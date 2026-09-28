@@ -46,6 +46,7 @@ function creations(api: ReturnType<typeof fakeBank>): Request[] {
 }
 
 async function theCreateForm() {
+  await userEvent.click(await screen.findByRole("button", { name: "Add a Viewer" }));
   return within(await screen.findByRole("form", { name: "Create a Viewer" }));
 }
 
@@ -61,7 +62,8 @@ describe("creating a Viewer from the administration console", () => {
     await userEvent.selectOptions(form.getByLabelText("Role"), "Reviewer");
     await userEvent.click(form.getByRole("button", { name: "Create" }));
 
-    expect(await form.findByText(/newcomer@iqb\.test was created/)).toBeVisible();
+    expect(await screen.findByText(/newcomer@iqb\.test was created/)).toBeVisible();
+    expect(screen.queryByRole("form", { name: "Create a Viewer" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ email: "newcomer@iqb.test", role: "reviewer" });
     const viewers = within(screen.getByRole("table", { name: "Viewers" }));
