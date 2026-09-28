@@ -40,9 +40,8 @@ export type QuestionFromDb = {
   createdAt: Date;
 };
 
-/** The first check: the Question has no Client, or the Viewer holds a Permission Grant
- * for the one it names (ADR-0002). Its own function because detection pairs it with a
- * narrower second check of its own (ADR-0014). */
+/** The first check, on its own because detection pairs it with a narrower second check
+ * (ADR-0002, ADR-0014). */
 function visibleTo(viewer: Viewer): Prisma.Sql {
   return Prisma.sql`(
     q."clientId" IS NULL
@@ -51,35 +50,31 @@ function visibleTo(viewer: Viewer): Prisma.Sql {
   )`;
 }
 
-/**
- * Both checks, and the only place the second one is written: a Pending or Rejected
- * Question reaches only its Author and Reviewers. A Reviewer gets no second check, which
- * could not widen the first anyway, so a Reviewer still sees no Client they hold no Grant
- * for (ADR-0013).
- *
- * Not exported, and there is no version without the checks: a caller who can write a
- * condition of their own is the second way in that ends the guarantee (ADR-0003).
- */
+/** Not exported, and with no version that skips a check: a caller who can write their
+ * own condition is the second way in that ends the guarantee (ADR-0003). */
 function visibleQuestions(viewer: Viewer): Prisma.Sql {
+  // No second check for a Reviewer, which could not widen the first anyway (ADR-0013).
   if (viewer.role === "reviewer") return visibleTo(viewer);
   return Prisma.sql`${visibleTo(viewer)} AND (
     q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
   )`;
 }
 
+function visibleQuestionWithId(viewer: Viewer, id: string): Prisma.Sql {
+  return Prisma.sql`SELECT q.id FROM questions q
+                     WHERE q.id = ${id}::uuid AND ${visibleQuestions(viewer)}`;
+}
+
 /** Holds the row until the transaction ends, so of two writes at once the second waits
- * here and then sees what the first one left. False for a Question that is not Visible
- * and one that does not exist alike (ADR-0002). */
+ * here and then sees what the first one left. */
 async function lockVisibleQuestion(
   transaction: Transaction,
   viewer: Viewer,
   id: string,
 ): Promise<boolean> {
-  const locked = await transaction.$queryRaw<{ id: string }[]>`
-    SELECT q.id FROM questions q
-     WHERE q.id = ${id}::uuid AND ${visibleQuestions(viewer)}
-       FOR UPDATE OF q
-  `;
+  const locked = await transaction.$queryRaw<{ id: string }[]>(
+    Prisma.sql`${visibleQuestionWithId(viewer, id)} FOR UPDATE OF q`,
+  );
   return locked.length > 0;
 }
 
@@ -137,7 +132,8 @@ export async function findEventsAboutVisibleQuestion(
 ): Promise<ChangeEventFromDb[] | null> {
   // The events are read only below this, so there is no way to reach the log for an id
   // nobody checked (ADR-0003).
-  if ((await findVisibleQuestionById(database, viewer, id)) === null) return null;
+  const visible = await database.$queryRaw<{ id: string }[]>(visibleQuestionWithId(viewer, id));
+  if (visible.length === 0) return null;
 
   const events = await database.changeEvent.findMany({
     // Being able to see a Question is not being able to see what its Author was warned
@@ -216,11 +212,11 @@ type QuestionRowInSql = Omit<QuestionFromDb, "tags"> & {
   tags: { category: string; tag: string }[];
 };
 
-/** `page` picks the ids and does every check; this only reads what they name, in `order`,
- * which may name the page's own columns as `page.<column>`. */
-function questionRowsStatement(page: Prisma.Sql, order: Prisma.Sql): Prisma.Sql {
+/** Does no checking of its own, so `pickPage` has to do every check. */
+function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.Sql {
+  // `order` may name the page's own columns as `page.<column>`.
   return Prisma.sql`
-    WITH page AS (${page})
+    WITH page AS (${pickPage})
     SELECT q.id, q.text, q."answerNotes", q."authorId",
            (SELECT json_build_object('id', cl.id, 'name', cl.name)
               FROM clients cl WHERE cl.id = q."clientId") AS client,

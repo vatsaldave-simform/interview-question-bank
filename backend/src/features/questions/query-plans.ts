@@ -62,6 +62,10 @@ export async function capturePlan(
   return { scenario, plan, ...readPlan(plan) };
 }
 
+export function queryOf(scenario: PlanScenario): QuestionQuery {
+  return "search" in scenario ? scenario.search : scenario.list;
+}
+
 /** Taken from the repository, so what is measured is the statement that ships. */
 function statementFor(scenario: PlanScenario): Prisma.Sql {
   return "search" in scenario
@@ -342,3 +346,11 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
     },
   ];
 }
+
+/** Each read the plans can be captured for, by the name `pnpm db:measure:plans` takes. */
+export const scenariosFor = {
+  search: scenariosForTheSearch,
+  list: scenariosForTheList,
+} satisfies Record<string, (database: Database) => Promise<PlanScenario[]>>;
+
+export type PlannedRead = keyof typeof scenariosFor;

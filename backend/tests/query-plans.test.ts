@@ -2,10 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   capturePlan,
   readPlan,
-  scenariosForTheList,
-  scenariosForTheSearch,
+  queryOf,
+  scenariosFor,
   vacuumAndAnalyze,
-  type PlanScenario,
 } from "../src/features/questions/query-plans.ts";
 import { seedBulkBank } from "../src/features/questions/bulk-bank.seed.ts";
 import type { Database } from "../src/platform/database.ts";
@@ -73,14 +72,10 @@ describe("capturing a plan", () => {
     await database.$disconnect();
   });
 
-  const sets = { search: scenariosForTheSearch, list: scenariosForTheList };
-  const queryOf = (scenario: PlanScenario) =>
-    "search" in scenario ? scenario.search : scenario.list;
-
   it.each(["search", "list"] as const)(
     "measures the statement the %s sends, for every scenario",
     async (read) => {
-      const scenarios = await sets[read](database);
+      const scenarios = await scenariosFor[read](database);
 
       for (const scenario of scenarios) {
         const captured = await capturePlan(database, scenario);
@@ -96,7 +91,7 @@ describe("capturing a plan", () => {
   it.each(["search", "list"] as const)(
     "aims the %s scenarios at Tags the bank actually carries, and at all three roles",
     async (read) => {
-      const scenarios = await sets[read](database);
+      const scenarios = await scenariosFor[read](database);
 
       const named = scenarios.flatMap((scenario) =>
         queryOf(scenario).tagsPerCategory.flatMap((category) => [...category.tagIds]),
@@ -113,7 +108,7 @@ describe("capturing a plan", () => {
   it.each(["search", "list"] as const)(
     "asks each %s scenario for a different part of the bank",
     async (read) => {
-      const scenarios = await sets[read](database);
+      const scenarios = await scenariosFor[read](database);
 
       // The role counts: three scenarios ask the same thing as different Viewers, and the
       // second check they get is the difference being measured.

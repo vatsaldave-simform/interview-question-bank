@@ -2,14 +2,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnvFile, readEnv } from "../platform/env.ts";
-import { createDatabase, type Database } from "../platform/database.ts";
+import { createDatabase } from "../platform/database.ts";
 import {
   capturePlan,
-  scenariosForTheList,
-  scenariosForTheSearch,
+  scenariosFor,
   vacuumAndAnalyze,
   type CapturedPlan,
-  type PlanScenario,
+  type PlannedRead,
 } from "../features/questions/query-plans.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
@@ -20,14 +19,16 @@ const label = process.argv[2] ?? "plans";
 if (!/^[a-z0-9-]+$/.test(label)) {
   throw new Error(`The label must be lower-case letters, numbers and dashes, not "${label}".`);
 }
-const read = process.argv[3] ?? "search";
-if (read !== "search" && read !== "list") {
-  throw new Error(`The read to measure must be "search" or "list", not "${read}".`);
+function isPlannedRead(read: string): read is PlannedRead {
+  return read in scenariosFor;
 }
-const scenariosFor: Record<typeof read, (database: Database) => Promise<PlanScenario[]>> = {
-  search: scenariosForTheSearch,
-  list: scenariosForTheList,
-};
+
+const read = process.argv[3] ?? "search";
+if (!isPlannedRead(read)) {
+  throw new Error(
+    `The read to measure must be one of ${Object.keys(scenariosFor).join(", ")}, not "${read}".`,
+  );
+}
 
 const writeTo = fileURLToPath(
   new URL(`../../../docs/evidence/query-plans/${label}.md`, import.meta.url),
