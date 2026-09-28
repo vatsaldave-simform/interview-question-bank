@@ -7,13 +7,12 @@ import {
   type ActProps,
   type ActRefused,
 } from "@/features/questions/publication-acts";
-import { publicationStateWording } from "@/features/questions/publication-state-wording";
+import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
-import { Badge } from "@/ui/shadcn/badge";
 import { Button } from "@/ui/shadcn/button";
 
 type OwnQuestionsScreenProps = { offset: number; onMove: (offset: number) => void };
@@ -72,9 +71,7 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
       {page.questions.map((question) => (
         <li key={question.id}>
           <QuestionCard question={question}>
-            <Badge variant="outline">
-              {publicationStateWording[question.publicationState].name}
-            </Badge>
+            <PublicationStateBadge state={question.publicationState} />
             {question.reason !== null && <RejectionReason reason={question.reason} />}
             {question.publicationState === "rejected" && (
               <RejectedActs question={question} onRefusal={onRefusal} />

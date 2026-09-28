@@ -10,6 +10,7 @@ import {
   type ActRefused,
 } from "@/features/questions/publication-acts";
 import { provenanceWording } from "@/features/questions/provenance-wording";
+import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { publicationStateWording } from "@/features/questions/publication-state-wording";
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
@@ -18,7 +19,6 @@ import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ActNotDone } from "@/ui/act-not-done";
-import { Badge } from "@/ui/shadcn/badge";
 import { Button } from "@/ui/shadcn/button";
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
@@ -60,7 +60,7 @@ function QuestionInFull({ question }: { question: Question }) {
         </Button>
       </div>
       <p className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge variant="outline">{state.name}</Badge>
+        <PublicationStateBadge state={question.publicationState} />
         <span className="text-muted-foreground">{state.meaning}</span>
       </p>
       {question.client !== null && <WhoCanSeeIt client={question.client} />}
