@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
+import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
+import { AddDialog } from "@/ui/add-dialog";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { PageHeader } from "@/ui/page-header";
 import {
   Table,
   TableBody,
@@ -13,13 +17,39 @@ import {
 
 export function ViewerList() {
   const viewers = useEveryViewer();
+  // Here and not in the form, because the dialog closes once the Viewer is created.
+  const [created, setCreated] = useState<string | null>(null);
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="viewers">
-      <h2 id="viewers" className="text-lg font-semibold">
-        Viewers
-      </h2>
-      <CreateViewerForm />
+    <section className="flex flex-col gap-6" aria-labelledby="viewers">
+      <PageHeader
+        title="Viewers"
+        titleId="viewers"
+        description="Everyone who can log in, or could before they were Deactivated."
+        action={
+          <AddDialog
+            label="Add a Viewer"
+            title="Create a Viewer"
+            description="They are emailed a link to set their password."
+            onOpen={() => setCreated(null)}
+          >
+            {(close) => (
+              <CreateViewerForm
+                onCreated={(viewer) => {
+                  close();
+                  setCreated(viewer.email);
+                }}
+                onCancel={close}
+              />
+            )}
+          </AddDialog>
+        }
+      />
+      {created !== null && (
+        <p role="status" className="text-sm">
+          {created} was created, and was emailed a link to set their password.
+        </p>
+      )}
       {viewers.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Viewers…
@@ -38,14 +68,16 @@ export function ViewerList() {
               <TableHead>Role</TableHead>
               <TableHead>Administrator</TableHead>
               <TableHead>Account</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {viewers.data.map((viewer) => (
               <TableRow key={viewer.id}>
                 <TableCell>{viewer.email}</TableCell>
-                <TableCell className="capitalize">{viewer.role}</TableCell>
+                <TableCell>{roleWording[viewer.role]}</TableCell>
                 <TableCell>{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
                 <TableCell className={viewer.isDeactivated ? "text-muted-foreground" : ""}>
                   {viewer.isDeactivated ? "Deactivated" : "Active"}

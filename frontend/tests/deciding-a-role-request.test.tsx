@@ -4,7 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aRoleRequest, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
+import {
+  aRoleRequest,
+  aViewer,
+  anAdministrator,
+  answersWith,
+  refusesWith,
+} from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -22,6 +28,7 @@ const fromReader = aRoleRequest({
   viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "reader@iqb.test" },
 });
 const fromAuthor = aRoleRequest({ id: "d0000000-0000-4000-8000-000000000002" });
+const reader = aViewer({ ...fromReader.viewer, role: "reader" });
 
 /** A bank holding the `open` Role Requests, which takes each decided one out of the queue,
  * unless `refuse` answers first. */
@@ -35,6 +42,10 @@ function aBankDeciding(
     (asked) => aPageOf([], asked),
     async (request, asked) => {
       if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: open });
+      if (asked.pathname === "/api/viewers") {
+        const role = rolesGranted.get(reader.id) ?? reader.role;
+        return answersWith({ viewers: [{ ...reader, role }] });
+      }
       if (asked.pathname === "/api/auth/me") {
         const role = rolesGranted.get(anAdministrator.id) ?? anAdministrator.role;
         return answersWith({ viewer: { ...anAdministrator, role } });
@@ -74,10 +85,17 @@ async function rowFor(email: string) {
   return within(row);
 }
 
+/** Presses Deny on the row for `email`, which opens the reason form in a dialog. */
+async function theDenialOf(email: string) {
+  const row = await rowFor(email);
+  await userEvent.click(row.getByRole("button", { name: "Deny" }));
+  return within(await screen.findByRole("dialog", { name: "Deny the Role Request" }));
+}
+
 describe("deciding a Role Request from the administration console", () => {
   it("grants a Role Request, which leaves the queue and changes the Viewer list", async () => {
     const api = aBankDeciding([fromReader, fromAuthor]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Grant" }));
@@ -88,21 +106,22 @@ describe("deciding a Role Request from the administration console", () => {
     const [sent] = decisionsSent(api);
     expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
     expect(await sent!.json()).toEqual({ outcome: "granted" });
-    const asked = api.sent.map((request) => `${request.method} ${new URL(request.url).pathname}`);
-    const decidedAt = asked.indexOf(`POST /api/role-requests/${fromReader.id}/decision`);
-    expect(asked.slice(decidedAt)).toContain("GET /api/viewers");
+
+    const menu = within(screen.getByRole("navigation", { name: "Administration" }));
+    await userEvent.click(menu.getByRole("link", { name: "Viewers" }));
+    const viewers = within(await screen.findByRole("table", { name: "Viewers" }));
+    expect(await viewers.findByRole("cell", { name: "Reviewer" })).toBeVisible();
   });
 
   it("refuses a denial with no reason on its field, and sends nothing", async () => {
     const api = aBankDeciding([fromReader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Deny" }));
-    await userEvent.type(row.getByLabelText("Why it is denied"), "   ");
-    await userEvent.click(row.getByRole("button", { name: "Send the denial" }));
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "   ");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
-    const reason = row.getByLabelText("Why it is denied");
+    const reason = denial.getByLabelText("Why it is denied");
     expect(reason).toHaveAccessibleDescription(
       "Say why, so they can act on it, in 2,000 characters or fewer.",
     );
@@ -112,16 +131,32 @@ describe("deciding a Role Request from the administration console", () => {
 
   it("denies a Role Request with the reason written, which leaves the queue", async () => {
     const api = aBankDeciding([fromReader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Deny" }));
-    await userEvent.type(row.getByLabelText("Why it is denied"), "  Not on a project yet. ");
-    await userEvent.click(row.getByRole("button", { name: "Send the denial" }));
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "  Not on a project yet. ");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
     expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const [sent] = decisionsSent(api);
     expect(await sent!.json()).toEqual({ outcome: "denied", reason: "Not on a project yet." });
+  });
+
+  it("closes the denial when the API refuses it, and reports it above the queue", async () => {
+    aBankDeciding([fromReader], () =>
+      refusesWith(409, "conflict", "That Role Request has already been decided."),
+    );
+    renderTheWholeClient("/administration/role-requests");
+
+    const denial = await theDenialOf("reader@iqb.test");
+    await userEvent.type(denial.getByLabelText("Why it is denied"), "Not on a project yet.");
+    await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
+
+    const queue = within(screen.getByRole("region", { name: "Open Role Requests" }));
+    const alert = within(await queue.findByRole("alert"));
+    expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("asks again after a refusal, and keeps the refusal on screen", async () => {
@@ -132,7 +167,7 @@ describe("deciding a Role Request from the administration console", () => {
       open.splice(open.indexOf(fromReader), 1);
       return refusesWith(409, "conflict", "That Role Request has already been decided.");
     });
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Grant" }));
@@ -152,7 +187,7 @@ describe("deciding a Role Request from the administration console", () => {
       role: "author",
     });
     aBankDeciding([own]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     // The Review queue link is shown to a Reviewer only, so it goes with the role.
     const header = within(await screen.findByRole("banner"));

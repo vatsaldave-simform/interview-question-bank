@@ -39,14 +39,16 @@ function grantsAgainst(client: Client, viewers: NamedViewer[]): Response {
 type Answers = {
   clients?: () => Response;
   grants?: (client: Client) => Response | undefined;
+  viewers?: () => Response;
 };
 
-/** Answers the every-Client list and each Client's Grants as the test says. */
-function aBankAnswering({ clients, grants }: Answers): void {
+/** Answers the every-Client list, each Client's Grants and the Viewers as the test says. */
+function aBankAnswering({ clients, grants, viewers }: Answers): void {
   fakeBank(
     (asked) => aPageOf([], asked),
     (_request, asked) => {
       if (asked.pathname === "/api/clients/all") return clients?.();
+      if (asked.pathname === "/api/viewers") return viewers?.();
       const client = [northwind, kingsbridge].find(
         ({ id }) => asked.pathname === `/api/clients/${id}/grants`,
       );
@@ -55,24 +57,31 @@ function aBankAnswering({ clients, grants }: Answers): void {
   );
 }
 
-function sectionFor(name: string): HTMLElement {
-  return screen.getByRole("region", { name });
+function clientPage(client: Client): string {
+  return `/administration/clients/${client.id}`;
 }
 
 describe("the Clients on the administration console", () => {
-  it("lists every Client with the Viewers holding a Grant against it", async () => {
+  it("lists every Client, and each one's page shows the Viewers holding a Grant", async () => {
     aBankAnswering({
       clients: () => answersWith({ clients: [kingsbridge, northwind] }),
       grants: (client) =>
         client === northwind ? grantsAgainst(client, [author, reader]) : grantsAgainst(client, []),
     });
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
+    const clients = within(await screen.findByRole("list", { name: "Clients" }));
+    const names = clients.getAllByRole("link").map((link) => link.textContent);
+    expect(names).toEqual([kingsbridge.name, northwind.name]);
+    await userEvent.click(clients.getByRole("link", { name: northwind.name }));
     const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
     expect(await northwindGrants.findByText("author@iqb.test")).toBeVisible();
     expect(northwindGrants.getByText("reader@iqb.test")).toBeVisible();
-    const kingsbridgeGrants = within(sectionFor(kingsbridge.name));
+
+    await userEvent.click(screen.getByRole("link", { name: "← All Clients" }));
+    await userEvent.click(await screen.findByRole("link", { name: kingsbridge.name }));
+    const kingsbridgeGrants = within(await screen.findByRole("region", { name: kingsbridge.name }));
     expect(
       await kingsbridgeGrants.findByText("Nobody holds a Grant against this Client."),
     ).toBeVisible();
@@ -81,7 +90,7 @@ describe("the Clients on the administration console", () => {
   it("says so when no Client has been created", async () => {
     aBankAnswering({ clients: () => answersWith({ clients: [] }) });
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     expect(await screen.findByText("No Client has been created.")).toBeVisible();
   });
@@ -89,7 +98,7 @@ describe("the Clients on the administration console", () => {
   it("reports the API's refusal of the Client list, with no Try again", async () => {
     aBankAnswering({ clients: () => refusesWith(403, "forbidden", "You may not do that.") });
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     const clients = within(await screen.findByRole("region", { name: "Clients" }));
     expect(await clients.findByText("The bank refused to show the Clients")).toBeVisible();
@@ -97,41 +106,50 @@ describe("the Clients on the administration console", () => {
     expect(clients.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
 
-  it("reports a refusal of one Client's Grants on that Client alone", async () => {
+  it("reports the API's refusal of a Client's Grants, with no Try again", async () => {
     aBankAnswering({
       clients: () => answersWith({ clients: [kingsbridge, northwind] }),
-      grants: (client) =>
-        client === northwind
-          ? refusesWith(403, "forbidden", "You may not do that.")
-          : grantsAgainst(client, [author]),
+      grants: () => refusesWith(403, "forbidden", "You may not do that."),
     });
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient(clientPage(northwind));
 
     const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
     expect(await northwindGrants.findByText("The bank refused to show the Grants")).toBeVisible();
     expect(northwindGrants.getByText("You may not do that.")).toBeVisible();
     expect(northwindGrants.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
-    expect(await within(sectionFor(kingsbridge.name)).findByText("author@iqb.test")).toBeVisible();
   });
 
-  it("reports one Client's Grants failing on that Client alone, and asks again", async () => {
+  it("reports a Client's Grants failing, and asks again", async () => {
     const northwindAnswers = [
       refusesWith(500, "internal_error", "Something went wrong on our side."),
       grantsAgainst(northwind, [reader]),
     ];
     aBankAnswering({
       clients: () => answersWith({ clients: [kingsbridge, northwind] }),
-      grants: (client) =>
-        client === northwind ? northwindAnswers.shift() : grantsAgainst(client, [author]),
+      grants: () => northwindAnswers.shift(),
     });
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient(clientPage(northwind));
 
     const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
     expect(await northwindGrants.findByText("Something went wrong on our side.")).toBeVisible();
-    expect(await within(sectionFor(kingsbridge.name)).findByText("author@iqb.test")).toBeVisible();
     await userEvent.click(northwindGrants.getByRole("button", { name: "Try again" }));
     expect(await northwindGrants.findByText("reader@iqb.test")).toBeVisible();
+  });
+
+  it("reports the Viewer list failing where a Grant would be issued", async () => {
+    aBankAnswering({
+      clients: () => answersWith({ clients: [northwind] }),
+      grants: (client) => grantsAgainst(client, [author]),
+      viewers: () => refusesWith(500, "internal_error", "Something went wrong on our side."),
+    });
+
+    renderTheWholeClient(clientPage(northwind));
+
+    const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
+    expect(await northwindGrants.findByText("The Viewers could not be loaded")).toBeVisible();
+    expect(northwindGrants.getByText("author@iqb.test")).toBeVisible();
+    expect(northwindGrants.queryByLabelText("Viewer")).not.toBeInTheDocument();
   });
 });

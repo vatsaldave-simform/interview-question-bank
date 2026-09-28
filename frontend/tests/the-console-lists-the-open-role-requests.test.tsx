@@ -39,22 +39,22 @@ describe("the open Role Requests on the administration console", () => {
     });
     aBankAnsweringTheRoleRequests(() => answersWith({ roleRequests: [older, newer] }));
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     const table = await screen.findByRole("table", { name: "Open Role Requests" });
     const [, first, second] = within(table).getAllByRole("row");
     expect(within(first!).getByRole("cell", { name: "reader@iqb.test" })).toBeVisible();
-    expect(within(first!).getByRole("cell", { name: "reviewer" })).toBeVisible();
+    expect(within(first!).getByRole("cell", { name: "Reviewer" })).toBeVisible();
     expect(within(first!).getByRole("time")).toHaveAttribute("datetime", older.createdAt);
     expect(within(second!).getByRole("cell", { name: "author@iqb.test" })).toBeVisible();
-    expect(within(second!).getByRole("cell", { name: "author" })).toBeVisible();
+    expect(within(second!).getByRole("cell", { name: "Author" })).toBeVisible();
     expect(within(second!).getByRole("time")).toHaveAttribute("datetime", newer.createdAt);
   });
 
   it("says so when nothing is waiting", async () => {
     aBankAnsweringTheRoleRequests(() => answersWith({ roleRequests: [] }));
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
   });
@@ -62,7 +62,7 @@ describe("the open Role Requests on the administration console", () => {
   it("reports the API's refusal, with no Try again", async () => {
     aBankAnsweringTheRoleRequests(() => refusesWith(403, "forbidden", "You may not do that."));
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/role-requests");
 
     const section = within(await screen.findByRole("region", { name: "Open Role Requests" }));
     expect(await section.findByText("The bank refused to show the Role Requests")).toBeVisible();

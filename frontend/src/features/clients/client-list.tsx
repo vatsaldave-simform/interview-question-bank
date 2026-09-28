@@ -1,23 +1,47 @@
-import type { Client } from "@iqb/shared";
-import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronRightIcon } from "lucide-react";
+import { useState } from "react";
 import { CreateClientForm } from "@/features/clients/create-client-form";
 import { useEveryClient } from "@/features/clients/clients.queries";
+import { AddDialog } from "@/ui/add-dialog";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { PageHeader } from "@/ui/page-header";
 
-type ClientListProps = {
-  /** Handed in by the console, so a Client does not have to know what is held against it. */
-  detail: (client: Client) => ReactNode;
-};
-
-export function ClientList({ detail }: ClientListProps) {
+export function ClientList() {
   const clients = useEveryClient();
+  // Here and not in the form, because the dialog closes once the Client is created.
+  const [created, setCreated] = useState<string | null>(null);
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="clients">
-      <h2 id="clients" className="text-lg font-semibold">
-        Clients
-      </h2>
-      <CreateClientForm />
+    <section className="flex flex-col gap-6" aria-labelledby="clients">
+      <PageHeader
+        title="Clients"
+        titleId="clients"
+        description="Open a Client to see and change who holds a Grant against it."
+        action={
+          <AddDialog
+            label="Add a Client"
+            title="Create a Client"
+            description="Questions can then be restricted to it."
+            onOpen={() => setCreated(null)}
+          >
+            {(close) => (
+              <CreateClientForm
+                onCreated={(client) => {
+                  close();
+                  setCreated(client.name);
+                }}
+                onCancel={close}
+              />
+            )}
+          </AddDialog>
+        }
+      />
+      {created !== null && (
+        <p role="status" className="text-sm">
+          {created} was created.
+        </p>
+      )}
       {clients.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">
           Loading the Clients…
@@ -31,18 +55,18 @@ export function ClientList({ detail }: ClientListProps) {
       ) : clients.data.length === 0 ? (
         <p className="text-muted-foreground text-sm">No Client has been created.</p>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul aria-labelledby="clients" className="bg-card divide-y rounded-md border">
           {clients.data.map((client) => (
             <li key={client.id}>
-              <section
-                className="flex flex-col gap-2 rounded-md border p-4"
-                aria-labelledby={`client-${client.id}`}
+              {/* A link to the Client's page, so its Grants are asked for only when opened. */}
+              <Link
+                to="/administration/clients/$clientId"
+                params={{ clientId: client.id }}
+                className="hover:bg-accent flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium"
               >
-                <h3 id={`client-${client.id}`} className="text-sm font-medium">
-                  {client.name}
-                </h3>
-                {detail(client)}
-              </section>
+                {client.name}
+                <ChevronRightIcon aria-hidden="true" className="text-muted-foreground size-4" />
+              </Link>
             </li>
           ))}
         </ul>

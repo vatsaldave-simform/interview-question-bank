@@ -74,32 +74,76 @@ async function rowFor(email: string) {
   return within(row);
 }
 
+/** Opens the "⋯" menu on the row for `email` and picks `act` from it. */
+async function pick(act: string, email: string): Promise<void> {
+  const row = await rowFor(email);
+  await userEvent.click(row.getByRole("button", { name: `Actions for ${email}` }));
+  await userEvent.click(await screen.findByRole("menuitem", { name: act }));
+}
+
+/** Presses `act` on the confirmation that a hard-to-undo act asks for first. */
+async function confirm(act: string): Promise<void> {
+  const confirmation = within(await screen.findByRole("alertdialog"));
+  await userEvent.click(confirmation.getByRole("button", { name: act }));
+}
+
+/** Opens the "⋯" menu on the row for `email`, and says which acts it offers. */
+async function actsOfferedTo(email: string): Promise<string[]> {
+  const row = await rowFor(email);
+  await userEvent.click(row.getByRole("button", { name: `Actions for ${email}` }));
+  const menu = within(await screen.findByRole("menu"));
+  const offered = menu.getAllByRole("menuitem").map((item) => item.textContent ?? "");
+  await userEvent.keyboard("{Escape}");
+  return offered;
+}
+
 describe("acting on one Viewer from the administration console", () => {
   it("changes a Viewer's role to the one picked", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
+
+    await pick("Change role…", "reader@iqb.test");
+    const dialog = within(await screen.findByRole("dialog", { name: "Change role" }));
+    await userEvent.selectOptions(dialog.getByLabelText("Role for reader@iqb.test"), "Author");
+    await userEvent.click(dialog.getByRole("button", { name: "Change role" }));
 
     const row = await rowFor("reader@iqb.test");
-    await userEvent.selectOptions(row.getByLabelText("Role for reader@iqb.test"), "Author");
-    await userEvent.click(row.getByRole("button", { name: "Change role" }));
-
-    expect(await row.findByRole("cell", { name: "author" })).toBeVisible();
+    expect(await row.findByRole("cell", { name: "Author" })).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(actsSent(api)).toEqual([`PATCH /api/viewers/${reader.id}/role`]);
     const [sent] = api.sent.filter((request) => request.method === "PATCH");
     expect(await sent?.json()).toEqual({ role: "author" });
   });
 
+  it("reports a refused role change in its dialog, and leaves the role as it was", async () => {
+    aBankHolding([anAdministrator, reader], (request) =>
+      request.method === "PATCH" ? refusesWith(404, "not_found", "Not found.") : undefined,
+    );
+    renderTheWholeClient("/administration/viewers");
+
+    await pick("Change role…", "reader@iqb.test");
+    const dialog = within(await screen.findByRole("dialog", { name: "Change role" }));
+    await userEvent.selectOptions(dialog.getByLabelText("Role for reader@iqb.test"), "Author");
+    await userEvent.click(dialog.getByRole("button", { name: "Change role" }));
+
+    const alert = within(await dialog.findByRole("alert"));
+    expect(alert.getByText("The role was not changed.")).toBeVisible();
+    expect(alert.getByText("Not found.")).toBeVisible();
+    await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    expect((await rowFor("reader@iqb.test")).getByRole("cell", { name: "Reader" })).toBeVisible();
+  });
+
   it("appoints a Viewer as an Administrator, and withdraws the authority again", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Appoint as Administrator" }));
+    await pick("Appoint as Administrator", "reader@iqb.test");
     expect(await row.findByRole("cell", { name: "Yes" })).toBeVisible();
 
-    await userEvent.click(row.getByRole("button", { name: "Withdraw Administrator" }));
+    await pick("Withdraw Administrator", "reader@iqb.test");
     expect(await row.findByRole("cell", { name: "No" })).toBeVisible();
-    expect(row.getByRole("button", { name: "Appoint as Administrator" })).toBeVisible();
+    expect(await actsOfferedTo("reader@iqb.test")).toContain("Appoint as Administrator");
     expect(actsSent(api)).toEqual([
       `POST /api/viewers/${reader.id}/administrator`,
       `DELETE /api/viewers/${reader.id}/administrator`,
@@ -108,30 +152,47 @@ describe("acting on one Viewer from the administration console", () => {
 
   it("Deactivates a Viewer, and reactivates them again", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Deactivate" }));
+    await pick("Deactivate", "reader@iqb.test");
+    await confirm("Deactivate");
     expect(await row.findByRole("cell", { name: "Deactivated" })).toBeVisible();
 
-    await userEvent.click(row.getByRole("button", { name: "Reactivate" }));
+    await pick("Reactivate", "reader@iqb.test");
     expect(await row.findByRole("cell", { name: "Active" })).toBeVisible();
-    expect(row.getByRole("button", { name: "Deactivate" })).toBeVisible();
+    expect(await actsOfferedTo("reader@iqb.test")).toContain("Deactivate");
     expect(actsSent(api)).toEqual([
       `POST /api/viewers/${reader.id}/deactivation`,
       `DELETE /api/viewers/${reader.id}/deactivation`,
     ]);
   });
 
+  it("asks before it Deactivates, and sends nothing on Cancel", async () => {
+    const api = aBankHolding([anAdministrator, reader]);
+    renderTheWholeClient("/administration/viewers");
+
+    await pick("Deactivate", "reader@iqb.test");
+    const confirmation = within(await screen.findByRole("alertdialog"));
+    expect(confirmation.getByText("Deactivate reader@iqb.test?")).toBeVisible();
+    await userEvent.click(confirmation.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect((await rowFor("reader@iqb.test")).getByRole("cell", { name: "Active" })).toBeVisible();
+    expect(actsSent(api)).toEqual([]);
+  });
+
   it.each([
     {
       act: "Withdraw Administrator",
+      confirmed: false,
       method: "DELETE",
       part: "administrator",
       refusal: "The last Administrator's authority cannot be withdrawn.",
     },
     {
       act: "Deactivate",
+      confirmed: true,
       method: "POST",
       part: "deactivation",
       refusal: "The last active Administrator cannot be Deactivated.",
@@ -143,10 +204,11 @@ describe("acting on one Viewer from the administration console", () => {
         ? refusesWith(409, "conflict", refused.refusal)
         : undefined,
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reviewer@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: refused.act }));
+    await pick(refused.act, "reviewer@iqb.test");
+    if (refused.confirmed) await confirm(refused.act);
 
     const alert = within(await row.findByRole("alert"));
     expect(alert.getByText(refused.refusal)).toBeVisible();
@@ -162,12 +224,12 @@ describe("acting on one Viewer from the administration console", () => {
       isAdministrator: true,
     });
     aBankHolding([anAdministrator, another]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const header = within(await screen.findByRole("banner"));
     expect(header.getByRole("link", { name: "Administration" })).toBeVisible();
     const row = await rowFor("reviewer@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Withdraw Administrator" }));
+    await pick("Withdraw Administrator", "reviewer@iqb.test");
 
     expect(await row.findByRole("cell", { name: "No" })).toBeVisible();
     expect(header.queryByRole("link", { name: "Administration" })).not.toBeInTheDocument();

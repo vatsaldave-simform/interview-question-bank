@@ -24,13 +24,12 @@ const kingsbridge = aClient({
 });
 
 /** A bank holding `clients`, which answers a create with `created` and adds a Client it
- * made to the list it sends next. Every Client holds no Grants. */
+ * made to the list it sends next. */
 function aBankCreatingClients(clients: Client[], created: () => Response) {
   return fakeBank(
     (asked) => aPageOf([], asked),
     async (request, asked) => {
       if (asked.pathname === "/api/clients/all") return answersWith({ clients });
-      if (asked.pathname.endsWith("/grants")) return answersWith({ grants: [] });
       if (asked.pathname !== "/api/clients" || request.method !== "POST") return undefined;
       const answer = created();
       if (answer.ok) clients.push(((await answer.clone().json()) as { client: Client }).client);
@@ -46,6 +45,7 @@ function creations(api: ReturnType<typeof fakeBank>): Request[] {
 }
 
 async function theCreateForm() {
+  await userEvent.click(await screen.findByRole("button", { name: "Add a Client" }));
   return within(await screen.findByRole("form", { name: "Create a Client" }));
 }
 
@@ -54,22 +54,22 @@ describe("creating a Client from the administration console", () => {
     const api = aBankCreatingClients([aClient()], () =>
       answersWith({ client: kingsbridge }, 201),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Name"), "  Kingsbridge Health ");
     await userEvent.click(form.getByRole("button", { name: "Create" }));
 
-    expect(await form.findByText("Kingsbridge Health was created.")).toBeVisible();
+    expect(await screen.findByText("Kingsbridge Health was created.")).toBeVisible();
+    expect(screen.queryByRole("form", { name: "Create a Client" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ name: "Kingsbridge Health" });
-    expect(await screen.findByRole("region", { name: "Kingsbridge Health" })).toBeVisible();
-    expect(form.getByLabelText("Name")).toHaveValue("");
+    expect(await screen.findByRole("link", { name: "Kingsbridge Health" })).toBeVisible();
   });
 
   it("refuses a name of only spaces on its field, and sends nothing", async () => {
     const api = aBankCreatingClients([], () => answersWith({ client: kingsbridge }, 201));
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Name"), "   ");
@@ -87,7 +87,7 @@ describe("creating a Client from the administration console", () => {
     aBankCreatingClients([aClient()], () =>
       refusesWith(409, "conflict", "A Client with that name already exists."),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Name"), "Northwind Trading");
@@ -107,7 +107,7 @@ describe("creating a Client from the administration console", () => {
         properties: { name: { errors: ["Too big"] } },
       }),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/clients");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Name"), "Kingsbridge Health");

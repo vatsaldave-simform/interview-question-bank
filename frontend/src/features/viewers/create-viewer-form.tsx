@@ -1,4 +1,9 @@
-import { createViewerRequestSchema, viewerRoles, type CreateViewerRequest } from "@iqb/shared";
+import {
+  createViewerRequestSchema,
+  viewerRoles,
+  type CreateViewerRequest,
+  type Viewer,
+} from "@iqb/shared";
 import { useState, type FormEvent } from "react";
 import { roleWording } from "@/features/viewers/role-wording";
 import { useCreateViewer } from "@/features/viewers/viewers.queries";
@@ -10,6 +15,7 @@ import {
 } from "@/platform/field-problems";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
+import { DialogFooter } from "@/ui/shadcn/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/ui/shadcn/field";
 import { Input } from "@/ui/shadcn/input";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
@@ -21,11 +27,15 @@ const problemWording: Record<keyof CreateViewerRequest, string> = {
   role: "Choose a role.",
 };
 
-export function CreateViewerForm() {
+type CreateViewerFormProps = {
+  onCreated: (viewer: Viewer) => void;
+  onCancel: () => void;
+};
+
+export function CreateViewerForm({ onCreated, onCancel }: CreateViewerFormProps) {
   const create = useCreateViewer();
   const [problems, setProblems] = useState<Problems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
-  const [created, setCreated] = useState<string | null>(null);
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -37,7 +47,6 @@ export function CreateViewerForm() {
     });
 
     setRefusal(null);
-    setCreated(null);
     if (!checked.success) {
       const found = problemsIn(problemWording, checked.error.issues);
       setProblems(found);
@@ -47,10 +56,7 @@ export function CreateViewerForm() {
 
     setProblems({});
     create.mutate(checked.data, {
-      onSuccess: ({ viewer }) => {
-        form.reset();
-        setCreated(viewer.email);
-      },
+      onSuccess: ({ viewer }) => onCreated(viewer),
       onError: (reason) => {
         const refused = refusalOf(problemWording, reason);
         setProblems(refused.problems);
@@ -62,17 +68,9 @@ export function CreateViewerForm() {
 
   return (
     // The schema is the only check, so the browser's own validation must not answer first.
-    <form noValidate onSubmit={submit} aria-labelledby="create-viewer" className="max-w-md">
+    <form noValidate onSubmit={submit} aria-label="Create a Viewer">
       <FieldGroup>
-        <h3 id="create-viewer" className="text-sm font-medium">
-          Create a Viewer
-        </h3>
         {refusal !== null && <ActNotDone title="The Viewer was not created." reason={refusal} />}
-        {created !== null && (
-          <p role="status" className="text-sm">
-            {created} was created, and was emailed a link to set their password.
-          </p>
-        )}
         <Field data-invalid={problems.email !== undefined}>
           <FieldLabel htmlFor="new-viewer-email">Email</FieldLabel>
           <Input
@@ -102,9 +100,14 @@ export function CreateViewerForm() {
           </NativeSelect>
           <FieldError id="new-viewer-role-problem">{problems.role}</FieldError>
         </Field>
-        <Button type="submit" className="self-start" disabled={create.isPending}>
-          {create.isPending ? "Creating…" : "Create"}
-        </Button>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={create.isPending}>
+            {create.isPending ? "Creating…" : "Create"}
+          </Button>
+        </DialogFooter>
       </FieldGroup>
     </form>
   );
