@@ -15,6 +15,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "node src/commands/seed.ts",
     "db:seed:bulk": "node src/commands/seed-bulk-bank.ts",
+    "db:seed:hosted": "node src/commands/seed-hosted-bank.ts",
     "db:measure:plans": "node src/commands/measure-query-plans.ts",
     "postinstall": "prisma generate"
   },

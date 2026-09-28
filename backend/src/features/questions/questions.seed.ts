@@ -171,6 +171,12 @@ export const seedQuestions: readonly SeedQuestion[] = [
   },
 ];
 
+/** The Categories with every Tag the Questions name, and the Questions themselves. */
+export type SeedBank = {
+  categories: readonly SeedCategory[];
+  questions: readonly SeedQuestion[];
+};
+
 /** How a Tag is looked up while seeding, since its id is not known until it is written. */
 const tagKey = ({ category, tag }: SeedTagReference): string => `${category}/${tag}`;
 
@@ -183,10 +189,13 @@ const tagKey = ({ category, tag }: SeedTagReference): string => `${category}/${t
  * against a database someone has been using must not undo their edits. The Questions
  * carry fixed ids for the same reason — there is no other key to recognise them by.
  */
-export async function seedQuestionBank(database: Database): Promise<void> {
-  const tagIds = await seedCategoriesAndTags(database);
+export async function seedQuestionBank(
+  database: Database,
+  { categories, questions }: SeedBank = { categories: seedCategories, questions: seedQuestions },
+): Promise<void> {
+  const tagIds = await seedCategoriesAndTags(database, categories);
 
-  for (const question of seedQuestions) {
+  for (const question of questions) {
     const author = await database.viewer.findUniqueOrThrow({
       where: { email: question.authorEmail },
       select: { id: true },
@@ -219,10 +228,13 @@ export async function seedQuestionBank(database: Database): Promise<void> {
 }
 
 /** The seeded Tags, by the key a seeded Question names them with. */
-async function seedCategoriesAndTags(database: Database): Promise<Map<string, string>> {
+async function seedCategoriesAndTags(
+  database: Database,
+  categories: readonly SeedCategory[],
+): Promise<Map<string, string>> {
   const tagIds = new Map<string, string>();
 
-  for (const category of seedCategories) {
+  for (const category of categories) {
     const stored = await database.category.upsert({
       where: { name: category.name },
       update: {},
