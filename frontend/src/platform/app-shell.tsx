@@ -27,7 +27,6 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
         <Link to="/" className="py-3 text-sm font-semibold sm:text-base">
           Interview Question Bank
         </Link>
-        {/* On a phone the links take a row of their own, under the name and the menu. */}
         <nav
           aria-label="Pages"
           className="order-last flex w-full flex-wrap gap-x-4 sm:order-none sm:w-auto sm:gap-x-5"
@@ -40,8 +39,8 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
           {viewer.role === "reviewer" && <PageLink to="/review">Review queue</PageLink>}
           {viewer.isAdministrator && <PageLink to="/administration">Administration</PageLink>}
         </nav>
-        {/* Sized from nothing, so a long address is cut short on a phone rather than
-            pushed onto a row of its own. */}
+        {/* It may shrink to no width, so on a phone a long address is cut short instead of
+            moving to a row of its own. */}
         <div className="flex min-w-0 flex-1 basis-0 justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -67,7 +66,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /** The underline on the current page follows the `aria-current` the router sets on it. */
-function PageLink(props: LinkComponentProps) {
+function PageLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link
       {...props}

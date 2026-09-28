@@ -37,7 +37,6 @@
 
 :root {
   --radius: 0.625rem;
-  /* A very light grey-teal behind the white cards, so the cards stand out from the page. */
   --background: oklch(0.975 0.007 195);
   --foreground: oklch(0.18 0.015 230);
   --card: oklch(1 0 0);
@@ -56,7 +55,7 @@
   --border: oklch(0.91 0.01 210);
   --input: oklch(0.89 0.012 210);
   --ring: oklch(0.6 0.1 188);
-  /* The two states that carry a meaning of their own. Rejected uses `destructive`. */
+  /* Pending and a Client restriction, because Rejected already uses `destructive`. */
   --pending: oklch(0.962 0.059 95.617);
   --pending-foreground: oklch(0.473 0.137 46.201);
   --restricted: oklch(0.943 0.029 294.588);

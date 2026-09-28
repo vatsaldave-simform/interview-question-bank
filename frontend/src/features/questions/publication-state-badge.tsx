@@ -1,18 +1,20 @@
 import type { PublicationState } from "@iqb/shared";
+import type { VariantProps } from "class-variance-authority";
 import { publicationStateWording } from "@/features/questions/publication-state-wording";
-import { Badge } from "@/ui/shadcn/badge";
+import { Badge, type badgeVariants } from "@/ui/shadcn/badge";
+
+type BadgeLook = { variant: VariantProps<typeof badgeVariants>["variant"]; className?: string };
 
 // Published has no colour, because it is the normal state.
-const colourOf: Record<PublicationState, string> = {
-  pending: "bg-pending text-pending-foreground border-transparent",
-  published: "",
-  rejected: "bg-destructive border-transparent text-white",
+const lookOf: Record<PublicationState, BadgeLook> = {
+  pending: {
+    variant: "outline",
+    className: "bg-pending text-pending-foreground border-transparent",
+  },
+  published: { variant: "outline" },
+  rejected: { variant: "destructive" },
 };
 
 export function PublicationStateBadge({ state }: { state: PublicationState }) {
-  return (
-    <Badge variant="outline" className={colourOf[state]}>
-      {publicationStateWording[state].name}
-    </Badge>
-  );
+  return <Badge {...lookOf[state]}>{publicationStateWording[state].name}</Badge>;
 }
