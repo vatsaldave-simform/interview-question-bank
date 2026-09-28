@@ -6,6 +6,14 @@ import { ReasonForm } from "@/features/questions/reason-form";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/ui/shadcn/dialog";
 
 /** Names the Question by its text, because its card may have left the list by the time the
  * refusal shows. */
@@ -97,8 +105,18 @@ export function ResubmitButton({ question, onRefusal }: ActProps) {
 }
 
 const reasonActWording = {
-  reject: { open: "Reject", label: "Why it is Rejected", send: "Send the rejection" },
-  return: { open: "Return to its Author", label: "Why it is returned", send: "Return it" },
+  reject: {
+    open: "Reject",
+    title: "Reject the Question",
+    label: "Why it is Rejected",
+    send: "Send the rejection",
+  },
+  return: {
+    open: "Return to its Author",
+    title: "Return it to its Author",
+    label: "Why it is returned",
+    send: "Return it",
+  },
 };
 
 type ReasonActProps = ActProps & { act: keyof typeof reasonActWording };
@@ -109,25 +127,38 @@ export function ReasonAct({ act, question, onRefusal }: ReasonActProps) {
   const [writing, setWriting] = useState(false);
   const wording = reasonActWording[act];
 
-  if (!writing) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setWriting(true)}>
-        {wording.open}
-      </Button>
-    );
-  }
   return (
-    <ReasonForm
-      fieldId={`${act}-reason-${question.id}`}
-      label={wording.label}
-      sendLabel={wording.send}
-      sending={move.isPending}
-      onSend={(request) => {
-        onRefusal(null);
-        return move.mutateAsync({ act, request });
-      }}
-      onRefusal={(message) => onRefusal(refusedAs(act, question, message))}
-      onCancel={() => setWriting(false)}
-    />
+    <Dialog open={writing} onOpenChange={setWriting}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          {wording.open}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{wording.title}</DialogTitle>
+          <DialogDescription className="flex flex-col gap-2">
+            <span className="text-foreground">{question.text}</span>
+            <span>Its Author is shown the reason you give.</span>
+          </DialogDescription>
+        </DialogHeader>
+        <ReasonForm
+          fieldId={`${act}-reason-${question.id}`}
+          label={wording.label}
+          sendLabel={wording.send}
+          sending={move.isPending}
+          onSend={(request) => {
+            onRefusal(null);
+            return move.mutateAsync({ act, request }).then(() => setWriting(false));
+          }}
+          onRefusal={(message) => {
+            onRefusal(refusedAs(act, question, message));
+            // Closed, so the refusal the screen shows is not hidden behind the dialog.
+            setWriting(false);
+          }}
+          onCancel={() => setWriting(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

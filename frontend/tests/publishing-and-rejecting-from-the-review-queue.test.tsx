@@ -133,6 +133,11 @@ describe("publishing from the review queue", () => {
   });
 });
 
+/** The reason form, which opens in a dialog rather than inside the card. */
+function rejectDialog() {
+  return within(screen.getByRole("dialog", { name: "Reject the Question" }));
+}
+
 describe("a refusal shown above the queue", () => {
   const refusedWith = () => refusesWith(403, "forbidden", "Only a Reviewer may do that.");
 
@@ -144,7 +149,7 @@ describe("a refusal shown above the queue", () => {
     await screen.findByText(`"${waiting.text}" was not Published.`);
     const other = await cardFor(alsoWaiting.text);
     await userEvent.click(other.getByRole("button", { name: "Reject" }));
-    await userEvent.click(other.getByRole("button", { name: "Cancel" }));
+    await userEvent.click(rejectDialog().getByRole("button", { name: "Cancel" }));
 
     expect(screen.getByText(`"${waiting.text}" was not Published.`)).toBeVisible();
   });
@@ -190,10 +195,10 @@ describe("rejecting from the review queue", () => {
 
     const card = await cardFor(waiting.text);
     await userEvent.click(card.getByRole("button", { name: "Reject" }));
-    await userEvent.type(card.getByLabelText("Why it is Rejected"), "   ");
-    await userEvent.click(card.getByRole("button", { name: "Send the rejection" }));
+    await userEvent.type(rejectDialog().getByLabelText("Why it is Rejected"), "   ");
+    await userEvent.click(rejectDialog().getByRole("button", { name: "Send the rejection" }));
 
-    const reason = card.getByLabelText("Why it is Rejected");
+    const reason = rejectDialog().getByLabelText("Why it is Rejected");
     expect(reason).toHaveAccessibleDescription(
       "Say why, so the Author can put it right, in 2,000 characters or fewer.",
     );
@@ -207,8 +212,11 @@ describe("rejecting from the review queue", () => {
 
     const card = await cardFor(waiting.text);
     await userEvent.click(card.getByRole("button", { name: "Reject" }));
-    await userEvent.type(card.getByLabelText("Why it is Rejected"), "  Too close to one we have. ");
-    await userEvent.click(card.getByRole("button", { name: "Send the rejection" }));
+    await userEvent.type(
+      rejectDialog().getByLabelText("Why it is Rejected"),
+      "  Too close to one we have. ",
+    );
+    await userEvent.click(rejectDialog().getByRole("button", { name: "Send the rejection" }));
 
     const queue = within(screen.getByRole("list", { name: "Pending Questions" }));
     await vi.waitFor(() => expect(queue.queryByText(waiting.text)).not.toBeInTheDocument());
@@ -228,11 +236,11 @@ describe("rejecting from the review queue", () => {
 
     const card = await cardFor(waiting.text);
     await userEvent.click(card.getByRole("button", { name: "Reject" }));
-    await userEvent.type(card.getByLabelText("Why it is Rejected"), "Not for us.");
-    await userEvent.click(card.getByRole("button", { name: "Send the rejection" }));
+    await userEvent.type(rejectDialog().getByLabelText("Why it is Rejected"), "Not for us.");
+    await userEvent.click(rejectDialog().getByRole("button", { name: "Send the rejection" }));
 
     const problem = "Say why, so the Author can put it right, in 2,000 characters or fewer.";
-    expect(await card.findByText(problem)).toBeVisible();
+    expect(await rejectDialog().findByText(problem)).toBeVisible();
     expect(screen.queryByText(`"${waiting.text}" was not Rejected.`)).not.toBeInTheDocument();
   });
 });
