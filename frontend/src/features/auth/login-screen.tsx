@@ -32,8 +32,8 @@ export function LoginScreen({ passwordJustSet }: { passwordJustSet: boolean }) {
             </Link>
           </CardContent>
         </Card>
-        <ColdStartNotice />
         <DemoCredentials />
+        <ColdStartNotice />
       </div>
     </main>
   );
