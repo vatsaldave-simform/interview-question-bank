@@ -16,7 +16,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   const { viewer } = session;
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-6 py-3">
+      <header className="bg-card flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-6 py-3">
         <Link to="/" className="font-medium">
           Interview Question Bank
         </Link>

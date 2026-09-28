@@ -22,6 +22,10 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-pending: var(--pending);
+  --color-pending-foreground: var(--pending-foreground);
+  --color-restricted: var(--restricted);
+  --color-restricted-foreground: var(--restricted-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -33,24 +37,30 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* A very light grey-teal behind the white cards, so the cards stand out from the page. */
+  --background: oklch(0.975 0.007 195);
+  --foreground: oklch(0.18 0.015 230);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.18 0.015 230);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.18 0.015 230);
+  --primary: oklch(0.52 0.095 188);
+  --primary-foreground: oklch(0.985 0.005 190);
+  --secondary: oklch(0.955 0.01 200);
+  --secondary-foreground: oklch(0.25 0.02 220);
+  --muted: oklch(0.955 0.008 210);
+  --muted-foreground: oklch(0.5 0.018 230);
+  --accent: oklch(0.95 0.02 190);
+  --accent-foreground: oklch(0.3 0.05 190);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.91 0.01 210);
+  --input: oklch(0.89 0.012 210);
+  --ring: oklch(0.6 0.1 188);
+  /* The two states that carry a meaning of their own. Rejected uses `destructive`. */
+  --pending: oklch(0.962 0.059 95.617);
+  --pending-foreground: oklch(0.473 0.137 46.201);
+  --restricted: oklch(0.943 0.029 294.588);
+  --restricted-foreground: oklch(0.432 0.232 292.759);
 }
 
 .dark {

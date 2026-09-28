@@ -30,7 +30,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
       <Link
         to="/questions/$questionId"
         params={{ questionId }}
-        className="text-muted-foreground text-sm hover:underline"
+        className="text-primary text-sm hover:underline"
       >
         ← Back to the Question
       </Link>

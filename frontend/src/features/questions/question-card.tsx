@@ -22,7 +22,7 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
             <Link
               to="/questions/$questionId"
               params={{ questionId: question.id }}
-              className="hover:underline"
+              className="hover:text-primary hover:underline"
             >
               {question.text}
             </Link>

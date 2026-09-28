@@ -29,7 +29,7 @@ export function ForgottenPasswordScreen() {
             ) : (
               <ForgottenPasswordForm onSent={() => setSent(true)} />
             )}
-            <Link to="/login" className="text-muted-foreground text-sm hover:underline">
+            <Link to="/login" className="text-primary text-sm hover:underline">
               ← Back to sign in
             </Link>
           </CardContent>
