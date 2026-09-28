@@ -8,15 +8,19 @@ import { Prisma } from "../../generated/prisma/client.ts";
 import type { Database } from "../../platform/database.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
 import { bankVocabulary } from "./bulk-bank.seed.ts";
-import { searchStatement, type QuestionSearch } from "./questions.repository.ts";
+import {
+  listStatement,
+  searchStatement,
+  type QuestionQuery,
+  type QuestionSearch,
+  type TagsInCategory,
+} from "./questions.repository.ts";
 
 /** One query worth capturing a plan for, and why it is in the set. */
-export type PlanScenario = {
-  name: string;
-  why: string;
-  viewer: Viewer;
-  search: QuestionSearch;
-};
+type Scenario = { name: string; why: string; viewer: Viewer };
+export type SearchScenario = Scenario & { search: QuestionSearch };
+export type ListScenario = Scenario & { list: QuestionQuery };
+export type PlanScenario = SearchScenario | ListScenario;
 
 /** What one run of `EXPLAIN (ANALYZE, BUFFERS)` said, plus the three things the ticket
  * asks the plans to answer: how long, how many pages, and which indexes. */
@@ -58,9 +62,20 @@ export async function capturePlan(
   return { scenario, plan, ...readPlan(plan) };
 }
 
-async function explain(database: Database, { viewer, search }: PlanScenario): Promise<string> {
+export function queryOf(scenario: PlanScenario): QuestionQuery {
+  return "search" in scenario ? scenario.search : scenario.list;
+}
+
+/** Taken from the repository, so what is measured is the statement that ships. */
+function statementFor(scenario: PlanScenario): Prisma.Sql {
+  return "search" in scenario
+    ? searchStatement(scenario.viewer, scenario.search)
+    : listStatement(scenario.viewer, scenario.list);
+}
+
+async function explain(database: Database, scenario: PlanScenario): Promise<string> {
   const rows = await database.$queryRaw<{ "QUERY PLAN": string }[]>(
-    Prisma.sql`EXPLAIN (ANALYZE, BUFFERS) ${searchStatement(viewer, search)}`,
+    Prisma.sql`EXPLAIN (ANALYZE, BUFFERS) ${statementFor(scenario)}`,
   );
   return rows.map((row) => row["QUERY PLAN"]).join("\n");
 }
@@ -129,24 +144,29 @@ async function seededViewers(database: Database): Promise<Record<ViewerRole, Vie
  * and thrown away, which is where the limit-and-offset ceiling shows up. */
 const deepOffset = 2_000;
 
-/**
- * The set of queries the plans are captured for. Each one changes a single thing about
- * the one above it, so a plan that differs says which change caused it.
- */
-export async function scenariosForTheBank(database: Database): Promise<PlanScenario[]> {
-  const viewer = await seededViewers(database);
+async function whatTheBankHolds(database: Database) {
   const technology = await tagsByReach(database, "technology");
   const seniority = await tagsByReach(database, "seniority");
+  return {
+    viewer: await seededViewers(database),
+    commonTag: technology[0]!,
+    rareTag: technology[technology.length - 1]!,
+    commonSeniority: seniority[0]!,
+  };
+}
 
-  const commonTag = technology[0]!;
-  const rareTag = technology[technology.length - 1]!;
-  const commonSeniority = seniority[0]!;
+function inCategory(category: CategoryName, tag: TagReach): TagsInCategory {
+  return { category, tagIds: [tag.id] };
+}
 
-  const inCategory = (category: CategoryName, tag: TagReach) => ({
-    category,
-    tagIds: [tag.id],
-  });
-  const page = { limit: defaultQuestionPageSize, offset: 0 };
+const page = { limit: defaultQuestionPageSize, offset: 0 };
+
+/**
+ * The set of searches the plans are captured for. Each one changes a single thing about
+ * the one above it, so a plan that differs says which change caused it.
+ */
+export async function scenariosForTheSearch(database: Database): Promise<SearchScenario[]> {
+  const { viewer, commonTag, rareTag, commonSeniority } = await whatTheBankHolds(database);
 
   const broadWord = bankVocabulary[0];
   const narrowWord = bankVocabulary[bankVocabulary.length - 1]!;
@@ -255,3 +275,82 @@ export async function scenariosForTheBank(database: Database): Promise<PlanScena
     },
   ];
 }
+
+/**
+ * The same idea for the list, which is the search's filters without keywords: the cases
+ * ADR-0011 found the planner treats differently, plus the three roles.
+ */
+export async function scenariosForTheList(database: Database): Promise<ListScenario[]> {
+  const { viewer, commonTag, rareTag, commonSeniority } = await whatTheBankHolds(database);
+
+  return [
+    {
+      name: "no Category",
+      why:
+        "The whole bank a Reader sees. The baseline every other plan is read against, and the " +
+        "query that can stop earliest.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [], ...page },
+    },
+    {
+      name: "a common Tag",
+      why: "One Category, matching much of the bank, so walking the ordering index still pays.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [inCategory("technology", commonTag)], ...page },
+    },
+    {
+      name: "a rare Tag",
+      why:
+        "One Category, matching little of the bank, which is where ADR-0011 found the planner " +
+        "drives from question_tags instead.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [inCategory("technology", rareTag)], ...page },
+    },
+    {
+      name: "two Categories",
+      why: "One EXISTS per Category, which is the shape ADR-0011 chose.",
+      viewer: viewer.reader,
+      list: {
+        tagsPerCategory: [
+          inCategory("technology", commonTag),
+          inCategory("seniority", commonSeniority),
+        ],
+        ...page,
+      },
+    },
+    {
+      name: "a common Tag, a deep page",
+      why:
+        "Where ADR-0011 found the limit-and-offset ceiling: the skipped rows still have to be " +
+        "produced and thrown away. One Tag, because two match too few Questions to reach the page.",
+      viewer: viewer.reader,
+      list: {
+        tagsPerCategory: [inCategory("technology", commonTag)],
+        limit: defaultQuestionPageSize,
+        offset: deepOffset,
+      },
+    },
+    {
+      name: "no Category, as the Author",
+      why:
+        "The second check becomes published OR authored by this Viewer, and the Author wrote the " +
+        "whole bulk bank.",
+      viewer: viewer.author,
+      list: { tagsPerCategory: [], ...page },
+    },
+    {
+      name: "no Category, as a Reviewer",
+      why: "A Reviewer drops the second check entirely (ADR-0013).",
+      viewer: viewer.reviewer,
+      list: { tagsPerCategory: [], ...page },
+    },
+  ];
+}
+
+/** Each read the plans can be captured for, by the name `pnpm db:measure:plans` takes. */
+export const scenariosFor = {
+  search: scenariosForTheSearch,
+  list: scenariosForTheList,
+} satisfies Record<string, (database: Database) => Promise<PlanScenario[]>>;
+
+export type PlannedRead = keyof typeof scenariosFor;

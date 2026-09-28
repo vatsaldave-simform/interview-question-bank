@@ -40,28 +40,42 @@ export type QuestionFromDb = {
   createdAt: Date;
 };
 
-/** The first check: the Question has no Client, or the Viewer holds a Permission Grant
- * for the one it names (ADR-0002). */
-function visibleTo(viewer: Viewer): Prisma.QuestionWhereInput {
-  return {
-    OR: [{ clientId: null }, { client: { permissionGrants: { some: { viewerId: viewer.id } } } }],
-  };
+/** The first check, on its own because detection pairs it with a narrower second check
+ * (ADR-0002, ADR-0014). */
+function visibleTo(viewer: Viewer): Prisma.Sql {
+  return Prisma.sql`(
+    q."clientId" IS NULL
+    OR EXISTS (SELECT 1 FROM permission_grants g
+                WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
+  )`;
 }
 
-/**
- * The second check: a Pending or Rejected Question reaches only its Author and Reviewers.
- * A Reviewer gets an empty condition, which cannot widen the visibility check this is
- * AND-ed with, so a Reviewer still sees no Client they hold no Grant for (ADR-0013).
- */
-function inTheBankFor(viewer: Viewer): Prisma.QuestionWhereInput {
-  if (viewer.role === "reviewer") return {};
-  return { OR: [{ publicationState: "published" }, { authorId: viewer.id }] };
+/** Not exported, and with no version that skips a check: a caller who can write their
+ * own condition is the second way in that ends the guarantee (ADR-0003). */
+function visibleQuestions(viewer: Viewer): Prisma.Sql {
+  // No second check for a Reviewer, which could not widen the first anyway (ADR-0013).
+  if (viewer.role === "reviewer") return visibleTo(viewer);
+  return Prisma.sql`${visibleTo(viewer)} AND (
+    q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
+  )`;
 }
 
-/** Not exported, and there is no version without the checks: a caller who can write a
- * `where` of their own is the second way in that ends the guarantee (ADR-0003). */
-function visibleQuestions(viewer: Viewer): Prisma.QuestionWhereInput {
-  return { AND: [visibleTo(viewer), inTheBankFor(viewer)] };
+function visibleQuestionWithId(viewer: Viewer, id: string): Prisma.Sql {
+  return Prisma.sql`SELECT q.id FROM questions q
+                     WHERE q.id = ${id}::uuid AND ${visibleQuestions(viewer)}`;
+}
+
+/** Holds the row until the transaction ends, so of two writes at once the second waits
+ * here and then sees what the first one left. */
+async function lockVisibleQuestion(
+  transaction: Transaction,
+  viewer: Viewer,
+  id: string,
+): Promise<boolean> {
+  const locked = await transaction.$queryRaw<{ id: string }[]>(
+    Prisma.sql`${visibleQuestionWithId(viewer, id)} FOR UPDATE OF q`,
+  );
+  return locked.length > 0;
 }
 
 const questionFieldsToRead = {
@@ -99,11 +113,11 @@ export async function findVisibleQuestionById(
   viewer: Viewer,
   id: string,
 ): Promise<QuestionFromDb | null> {
-  const question = await database.question.findFirst({
-    where: { AND: [{ id }, visibleQuestions(viewer)] },
-    select: questionFieldsToRead,
-  });
-  return question === null ? null : toQuestionFromDb(question);
+  const [question] = await readQuestionRows(
+    database,
+    visibleQuestionsStatement(viewer, [Prisma.sql`q.id = ${id}::uuid`], newestFirst),
+  );
+  return question ?? null;
 }
 
 /**
@@ -116,67 +130,65 @@ export async function findEventsAboutVisibleQuestion(
   viewer: Viewer,
   id: string,
 ): Promise<ChangeEventFromDb[] | null> {
-  // The events hang off the same condition as every other read, so there is no way to
-  // reach the log for an id nobody checked (ADR-0003).
-  const question = await database.question.findFirst({
-    where: { AND: [{ id }, visibleQuestions(viewer)] },
-    select: {
-      changeEvents: {
-        // Being able to see a Question is not being able to see what its Author was
-        // warned about: those events name Questions of their own (ADR-0028).
-        where: {
-          OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
-        },
-        // The time comes from the process that wrote the event, so two events can share
-        // one; the id settles that, and the order is at least the same every read.
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: changeEventFieldsToRead,
-      },
+  // The events are read only below this, so there is no way to reach the log for an id
+  // nobody checked (ADR-0003).
+  const visible = await database.$queryRaw<{ id: string }[]>(visibleQuestionWithId(viewer, id));
+  if (visible.length === 0) return null;
+
+  const events = await database.changeEvent.findMany({
+    // Being able to see a Question is not being able to see what its Author was warned
+    // about: those events name Questions of their own (ADR-0028).
+    where: {
+      questionId: id,
+      OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
     },
+    // The time comes from the process that wrote the event, so two events can share
+    // one; the id settles that, and the order is at least the same every read.
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: changeEventFieldsToRead,
   });
-  return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
+  return events.map(toChangeEventFromDb);
 }
 
 export type QuestionPage = { limit: number; offset: number };
 
-/** Only ever narrowed from `visibleQuestions`, so the queue is no way around a
- * Permission Grant (ADR-0013). */
-export async function findPendingQuestionsForReview(
+/** Only ever narrowed from both checks, so the queue is no way around a Permission
+ * Grant (ADR-0013). */
+export function findPendingQuestionsForReview(
   database: Database,
   viewer: Viewer,
-  { limit, offset }: QuestionPage,
+  page: QuestionPage,
 ): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: { AND: [visibleQuestions(viewer), { publicationState: "pending" }] },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
+  return readQuestionRows(
+    database,
+    visibleQuestionsStatement(
+      viewer,
+      [Prisma.sql`q."publicationState" = 'pending'`],
+      oldestFirst,
+      page,
+    ),
+  );
 }
 
-/** Still built on `visibleQuestions`, so an Author loses sight of their own Question
- * under a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
-export async function findOwnUnpublishedQuestions(
+/** Still narrowed from both checks, so an Author loses sight of their own Question under
+ * a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
+export function findOwnUnpublishedQuestions(
   database: Database,
   viewer: Viewer,
-  { limit, offset }: QuestionPage,
+  page: QuestionPage,
 ): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: {
-      AND: [
-        visibleQuestions(viewer),
-        { authorId: viewer.id },
-        { publicationState: { in: ["pending", "rejected"] } },
+  return readQuestionRows(
+    database,
+    visibleQuestionsStatement(
+      viewer,
+      [
+        Prisma.sql`q."authorId" = ${viewer.id}::uuid`,
+        Prisma.sql`q."publicationState" IN ('pending', 'rejected')`,
       ],
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
+      newestFirst,
+      page,
+    ),
+  );
 }
 
 /** The Tag ids to filter by within one Category. Only the grouping reaches the query;
@@ -188,62 +200,105 @@ export type QuestionQuery = QuestionPage & {
   tagsPerCategory: readonly TagsInCategory[];
 };
 
-/** Prisma sends this as its own `EXISTS` over `question_tags`, which is the shape
- * ADR-0011 measured against a join and a grouped count. */
-function carryingOneOf({ tagIds }: TagsInCategory): Prisma.QuestionWhereInput {
-  return { tags: { some: { tagId: { in: [...tagIds] } } } };
-}
-
-/** Built on the same `visibleQuestions` as every other read, so both checks are
- * conditions in this one statement rather than a second pass (ADR-0003). */
-export async function findVisibleQuestions(
-  database: Database,
-  viewer: Viewer,
-  { tagsPerCategory, limit, offset }: QuestionQuery,
-): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: { AND: [visibleQuestions(viewer), ...tagsPerCategory.map(carryingOneOf)] },
-    // The id settles a createdAt tie, so no Question shifts between two pages.
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
-}
-
-/** What `visibleTo` says, in SQL, because the queries below are hand written and cannot
- * take a `where` (ADR-0026). Its own function because detection pairs it with a different
- * second check from the one the search pairs it with. */
-function visibleToInSql(viewer: Viewer): Prisma.Sql {
-  return Prisma.sql`(
-    q."clientId" IS NULL
-    OR EXISTS (SELECT 1 FROM permission_grants g
-                WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
-  )`;
-}
-
-/** The same thing `visibleTo` and `inTheBankFor` say, in SQL (ADR-0026). */
-function visibleQuestionsInSql(viewer: Viewer): Prisma.Sql {
-  const visible = visibleToInSql(viewer);
-  if (viewer.role === "reviewer") return visible;
-  return Prisma.sql`${visible} AND (
-    q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
-  )`;
-}
-
 /** One of these per Category named, which is the shape ADR-0011 measured. */
-function carryingOneOfInSql({ tagIds }: TagsInCategory): Prisma.Sql {
+function carryingOneOf({ tagIds }: TagsInCategory): Prisma.Sql {
   return Prisma.sql`EXISTS (SELECT 1 FROM question_tags qt
                              WHERE qt."questionId" = q.id
                                AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
 }
 
+/** The row a hand-written read gets back; `tags` arrives as JSON built by the database. */
+type QuestionRowInSql = Omit<QuestionFromDb, "tags"> & {
+  tags: { category: string; tag: string }[];
+};
+
+/** Does no checking of its own, so `pickPage` has to do every check. */
+function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.Sql {
+  // `order` may name the page's own columns as `page.<column>`.
+  return Prisma.sql`
+    WITH page AS (${pickPage})
+    SELECT q.id, q.text, q."answerNotes", q."authorId",
+           (SELECT json_build_object('id', cl.id, 'name', cl.name)
+              FROM clients cl WHERE cl.id = q."clientId") AS client,
+           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
+           coalesce(carried.tags, '[]'::json) AS tags
+      FROM page
+      JOIN questions q ON q.id = page.id
+      -- After the page has been cut, so the Tags of a Question the page left out are
+      -- never gathered.
+      LEFT JOIN LATERAL (
+        SELECT json_agg(json_build_object('category', c.name, 'tag', t.value)) AS tags
+          FROM question_tags qt
+          JOIN tags t ON t.id = qt."tagId"
+          JOIN categories c ON c.id = t."categoryId"
+         WHERE qt."questionId" = q.id
+      ) carried ON true
+     ORDER BY ${order}
+  `;
+}
+
+async function readQuestionRows(
+  database: Database,
+  statement: Prisma.Sql,
+): Promise<QuestionFromDb[]> {
+  const rows = await database.$queryRaw<QuestionRowInSql[]>(statement);
+
+  return rows.map((row) => ({
+    ...row,
+    // Parsed, not cast, for the reason `toQuestionFromDb` parses (ADR-0024).
+    tags: row.tags.map((carried) => ({
+      category: categoryNameSchema.parse(carried.category),
+      tag: carried.tag,
+    })),
+  }));
+}
+
+/** Every read but the search goes through this, and `narrowing` is AND-ed with both
+ * checks, so it can only ever narrow them (ADR-0003). */
+function visibleQuestionsStatement(
+  viewer: Viewer,
+  narrowing: readonly Prisma.Sql[],
+  order: Prisma.Sql,
+  page?: QuestionPage,
+): Prisma.Sql {
+  return questionRowsStatement(
+    Prisma.sql`
+      SELECT q.id
+        FROM questions q
+       WHERE ${Prisma.join([visibleQuestions(viewer), ...narrowing], " AND ")}
+       ORDER BY ${order}
+       ${page === undefined ? Prisma.empty : Prisma.sql`LIMIT ${page.limit} OFFSET ${page.offset}`}
+    `,
+    order,
+  );
+}
+
+// The id settles a createdAt tie, so no Question shifts between two pages.
+const newestFirst = Prisma.sql`q."createdAt" DESC, q.id DESC`;
+const oldestFirst = Prisma.sql`q."createdAt" ASC, q.id ASC`;
+
+/** Exported so its plan can be captured, as `searchStatement` is, and like it has no
+ * argument that removes a check or adds a condition (ADR-0003). */
+export function listStatement(
+  viewer: Viewer,
+  { tagsPerCategory, limit, offset }: QuestionQuery,
+): Prisma.Sql {
+  return visibleQuestionsStatement(viewer, tagsPerCategory.map(carryingOneOf), newestFirst, {
+    limit,
+    offset,
+  });
+}
+
+export function findVisibleQuestions(
+  database: Database,
+  viewer: Viewer,
+  query: QuestionQuery,
+): Promise<QuestionFromDb[]> {
+  return readQuestionRows(database, listStatement(viewer, query));
+}
+
 /** What a Viewer typed, alongside the same filters the list takes. */
 export type QuestionSearch = QuestionQuery & { keywords: string };
-
-/** The row the search reads back; `tags` arrives as JSON built by the database. */
-type SearchRow = Omit<QuestionFromDb, "tags"> & { tags: { category: string; tag: string }[] };
 
 /**
  * The statement the search sends. Built here rather than where it is run, so the query
@@ -257,10 +312,10 @@ export function searchStatement(
   viewer: Viewer,
   { keywords, tagsPerCategory, limit, offset }: QuestionSearch,
 ): Prisma.Sql {
-  const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
+  const conditions = [visibleQuestions(viewer), ...tagsPerCategory.map(carryingOneOf)];
 
-  return Prisma.sql`
-    WITH matched AS (
+  return questionRowsStatement(
+    Prisma.sql`
       SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
         FROM questions q,
              -- Never raises on what a person types, which strict to_tsquery does
@@ -270,44 +325,19 @@ export function searchStatement(
          AND ${Prisma.join(conditions, " AND ")}
        ORDER BY rank DESC, q.id DESC
        LIMIT ${limit} OFFSET ${offset}
-    )
-    SELECT q.id, q.text, q."answerNotes", q."authorId",
-           (SELECT json_build_object('id', cl.id, 'name', cl.name)
-              FROM clients cl WHERE cl.id = q."clientId") AS client,
-           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
-           coalesce(carried.tags, '[]'::json) AS tags
-      FROM matched
-      JOIN questions q ON q.id = matched.id
-      -- After the page has been cut, so the Tags of a Question the page left out are
-      -- never gathered.
-      LEFT JOIN LATERAL (
-        SELECT json_agg(json_build_object('category', c.name, 'tag', t.value)) AS tags
-          FROM question_tags qt
-          JOIN tags t ON t.id = qt."tagId"
-          JOIN categories c ON c.id = t."categoryId"
-         WHERE qt."questionId" = q.id
-      ) carried ON true
-     ORDER BY matched.rank DESC, q.id DESC
-  `;
+    `,
+    Prisma.sql`page.rank DESC, q.id DESC`,
+  );
 }
 
 /** Keyword search across Question text and Answer Notes, matched against the stored
  * column rather than a vector worked out per row (ADR-0004). */
-export async function searchVisibleQuestions(
+export function searchVisibleQuestions(
   database: Database,
   viewer: Viewer,
   search: QuestionSearch,
 ): Promise<QuestionFromDb[]> {
-  const rows = await database.$queryRaw<SearchRow[]>(searchStatement(viewer, search));
-
-  return rows.map((row) => ({
-    ...row,
-    // Parsed, not cast, for the reason `toQuestionFromDb` parses (ADR-0024).
-    tags: row.tags.map((carried) => ({
-      category: categoryNameSchema.parse(carried.category),
-      tag: carried.tag,
-    })),
-  }));
+  return readQuestionRows(database, searchStatement(viewer, search));
 }
 
 /** Which Visible Questions one check compares against. */
@@ -326,7 +356,7 @@ async function findNearDuplicatesAmong(
       FROM (
         SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
           FROM questions q
-         WHERE ${visibleToInSql(viewer)}
+         WHERE ${visibleTo(viewer)}
            AND q."publicationState" = ANY(${[...states]}::"PublicationState"[])
            ${excluding === undefined ? Prisma.empty : Prisma.sql`AND q.id <> ${excluding}::uuid`}
          -- Ordered by distance rather than by similarity, because distance is what the
@@ -506,7 +536,7 @@ function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdi
 
 /**
  * Null for a Question that is not Visible and one that does not exist alike, exactly as
- * the fetch answers (ADR-0002). The write is built on the same `visibleQuestions` as the
+ * the fetch answers (ADR-0002). The write is checked by the same `visibleQuestions` as the
  * reads, so a caller does not become the second way to the questions table (ADR-0003).
  */
 export async function updateVisibleQuestion(
@@ -517,36 +547,35 @@ export async function updateVisibleQuestion(
   overridden: readonly NearDuplicate[] = [],
 ): Promise<QuestionFromDb | null> {
   return database.$transaction(async (transaction) => {
-    const visible: Prisma.QuestionWhereInput = { AND: [{ id }, visibleQuestions(viewer)] };
+    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
+
+    // From here on the Question is named by id alone, which is safe only because the
+    // lock above found it Visible to this Viewer.
 
     // Read before the write, because the event carries what each changed field was.
-    const before = await transaction.question.findFirst({
-      where: visible,
+    const before = await transaction.question.findUniqueOrThrow({
+      where: { id },
       select: questionFieldsToRead,
     });
-    if (before === null) return null;
 
-    const { count } = await transaction.question.updateMany({
-      where: visible,
+    await transaction.question.updateMany({
+      where: { id },
       data: {
         ...(edit.text === undefined ? {} : { text: edit.text }),
         ...(edit.answerNotes === undefined ? {} : { answerNotes: edit.answerNotes }),
       },
     });
-    if (count === 0) return null;
 
     if (edit.tagIds !== undefined) {
-      // Named by id alone, which is safe only below the return above: that is where this
-      // Question was established to be Visible to this Viewer.
       await transaction.questionTag.deleteMany({ where: { questionId: id } });
       await transaction.questionTag.createMany({
         data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
       });
     }
 
-    // Read by id, not by `visible` again. A Permission Grant revoked since the write
-    // would make that second read find nothing, and the edit is already committed by
-    // then: the Change Event would be the thing lost.
+    // Read by id, not checked again. A Permission Grant revoked since the write would
+    // make that second read find nothing, and the edit is already committed by then:
+    // the Change Event would be the thing lost.
     const updated = await transaction.question.findUniqueOrThrow({
       where: { id },
       select: questionFieldsToRead,
@@ -613,8 +642,10 @@ export async function moveVisibleQuestion(
 ): Promise<QuestionFromDb | null> {
   const { from, to } = statesFor[move.act];
   return database.$transaction(async (transaction) => {
+    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
+
     const { count } = await transaction.question.updateMany({
-      where: { AND: [{ id }, visibleQuestions(viewer), { publicationState: from }] },
+      where: { id, publicationState: from },
       data: { publicationState: to, reason: "reason" in move ? move.reason : null },
     });
     if (count === 0) return null;
@@ -692,8 +723,10 @@ export async function changeVisibleRestriction(
       return null;
     }
 
+    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
+
     const { count } = await transaction.question.updateMany({
-      where: { AND: [{ id }, visibleQuestions(viewer), expectedBefore(change)] },
+      where: { AND: [{ id }, expectedBefore(change)] },
       data: { clientId: change.act === "declassify" ? null : change.to },
     });
     if (count === 0) return null;

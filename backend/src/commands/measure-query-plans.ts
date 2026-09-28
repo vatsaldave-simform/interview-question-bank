@@ -5,18 +5,29 @@ import { loadEnvFile, readEnv } from "../platform/env.ts";
 import { createDatabase } from "../platform/database.ts";
 import {
   capturePlan,
-  scenariosForTheBank,
+  scenariosFor,
   vacuumAndAnalyze,
   type CapturedPlan,
+  type PlannedRead,
 } from "../features/questions/query-plans.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 
-/** `pnpm db:measure:plans [label]`. The label names the file, so a run before an index
- * and a run after it can sit beside each other. */
+/** `pnpm db:measure:plans [label] [search|list]`. The label names the file, so a run
+ * before an index and a run after it can sit beside each other. */
 const label = process.argv[2] ?? "plans";
 if (!/^[a-z0-9-]+$/.test(label)) {
   throw new Error(`The label must be lower-case letters, numbers and dashes, not "${label}".`);
+}
+function isPlannedRead(read: string): read is PlannedRead {
+  return read in scenariosFor;
+}
+
+const read = process.argv[3] ?? "search";
+if (!isPlannedRead(read)) {
+  throw new Error(
+    `The read to measure must be one of ${Object.keys(scenariosFor).join(", ")}, not "${read}".`,
+  );
 }
 
 const writeTo = fileURLToPath(
@@ -52,7 +63,7 @@ function asMarkdown(captured: CapturedPlan[], { bank, server, measuredAt }: Wher
     "",
     `Measured at ${measuredAt} against ${server}.`,
     "",
-    "Every statement is the one the search sends, taken from the repository itself rather",
+    `Every statement is the one the ${read} sends, taken from the repository itself rather`,
     "than retyped here, so this cannot get out of sync with what ships. The tables are",
     "vacuumed and analysed first, and each plan is the second of two runs, so neither a",
     "cold cache nor a missing visibility map is what gets measured.",
@@ -80,7 +91,7 @@ try {
   }
 
   await vacuumAndAnalyze(database);
-  const scenarios = await scenariosForTheBank(database);
+  const scenarios = await scenariosFor[read](database);
 
   const captured: CapturedPlan[] = [];
   for (const scenario of scenarios) {
