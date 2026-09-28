@@ -1,6 +1,6 @@
-import type { Client, Question } from "@iqb/shared";
+import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { ClientRestriction } from "@/features/questions/client-restriction";
 import {
@@ -17,16 +17,17 @@ import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
-import { RejectionReason } from "@/features/questions/rejection-reason";
 import { PageHeader } from "@/ui/page-header";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
+import { Card } from "@/ui/shadcn/card";
+import { Separator } from "@/ui/shadcn/separator";
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <Link to="/" className="text-primary text-sm hover:underline">
         ← All Questions
       </Link>
@@ -47,68 +48,96 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
 }
 
 function QuestionInFull({ question }: { question: Question }) {
-  const state = publicationStateWording[question.publicationState];
   return (
-    <article className="flex flex-col gap-4">
-      <PageHeader
-        title={question.text}
-        action={
-          // Shown to every Viewer: whether this one may edit is the API's answer, and it
-          // gives it when they save (ADR-0002).
-          <Button asChild variant="outline">
-            <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-              Edit
-            </Link>
-          </Button>
-        }
-      />
-      <p className="flex flex-wrap items-center gap-2 text-sm">
-        <PublicationStateBadge state={question.publicationState} />
-        <span className="text-muted-foreground">{state.meaning}</span>
-      </p>
-      {question.client !== null && <WhoCanSeeIt client={question.client} />}
-      {question.reason !== null && <RejectionReason reason={question.reason} />}
-      <PublicationActs question={question} />
-      <section className="flex flex-col gap-2" aria-labelledby="answer-notes">
-        <h2 id="answer-notes" className="text-lg font-semibold">
-          Answer Notes
-        </h2>
-        <p className="whitespace-pre-line">{question.answerNotes}</p>
-      </section>
-      <QuestionTags tags={question.tags} />
-      {ratingIsShown(question) && (
-        <section className="flex flex-col gap-2" aria-labelledby="rating">
-          <h2 id="rating" className="text-lg font-semibold">
-            Rating
-          </h2>
-          <AverageRating rating={question.rating} />
-          {/* Offered by the Publication State alone, like the acts above (ADR-0002). */}
-          {question.publicationState === "published" && <RatingControl question={question} />}
-        </section>
-      )}
-      <WhereItCameFrom question={question} />
+    // The details come before the main column, so on a phone they sit just under the title.
+    <article className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
+      <PageHeader title={question.text} />
+      <AboutThisQuestion question={question} />
+      <div className="flex flex-col gap-6 md:col-start-1">
+        {question.reason !== null && (
+          <ScreenSection id="why-it-was-rejected" title="Why it was Rejected">
+            <p className="whitespace-pre-line">{question.reason}</p>
+          </ScreenSection>
+        )}
+        <ScreenSection id="answer-notes" title="Answer Notes">
+          <p className="whitespace-pre-line">{question.answerNotes}</p>
+          <QuestionTags tags={question.tags} />
+        </ScreenSection>
+        {ratingIsShown(question) && (
+          <ScreenSection id="rating" title="Rating">
+            <AverageRating rating={question.rating} />
+            {/* Offered by the Publication State alone, like the acts (ADR-0002). */}
+            {question.publicationState === "published" && <RatingControl question={question} />}
+          </ScreenSection>
+        )}
+      </div>
     </article>
   );
 }
 
-function WhoCanSeeIt({ client }: { client: Client }) {
+type ScreenSectionProps = { id: string; title: string; children: ReactNode };
+
+function ScreenSection({ id, title, children }: ScreenSectionProps) {
   return (
-    <p className="flex flex-wrap items-center gap-2 text-sm">
-      <ClientRestriction client={client} />
-      <span className="text-muted-foreground">
-        Only Viewers with a Grant for {client.name} can see this Question.
-      </span>
-    </p>
+    <section aria-labelledby={id}>
+      <Card className="gap-3 px-6">
+        <h2 id={id} className="text-lg font-semibold">
+          {title}
+        </h2>
+        {children}
+      </Card>
+    </section>
+  );
+}
+
+function AboutThisQuestion({ question }: { question: Question }) {
+  const state = publicationStateWording[question.publicationState];
+  return (
+    <section
+      aria-labelledby="about-this-question"
+      className="md:col-start-2 md:row-span-2 md:row-start-1"
+    >
+      <Card className="gap-5 px-6">
+        <h2 id="about-this-question" className="text-lg font-semibold">
+          About this Question
+        </h2>
+        <Detail id="publication-state" title="Publication State">
+          <PublicationStateBadge state={question.publicationState} />
+          <p className="text-muted-foreground">{state.meaning}</p>
+        </Detail>
+        {question.client !== null && (
+          <Detail id="who-can-see-it" title="Who can see it">
+            <ClientRestriction client={question.client} />
+            <p className="text-muted-foreground">
+              Only Viewers with a Grant for {question.client.name} can see this Question.
+            </p>
+          </Detail>
+        )}
+        <WhereItCameFrom question={question} />
+        <Separator />
+        <PublicationActs question={question} />
+      </Card>
+    </section>
+  );
+}
+
+type DetailProps = { id: string; title: string; children: ReactNode };
+
+function Detail({ id, title, children }: DetailProps) {
+  return (
+    <section className="flex flex-col items-start gap-1.5 text-sm" aria-labelledby={id}>
+      <h3 id={id} className="font-medium">
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }
 
 function WhereItCameFrom({ question }: { question: Question }) {
   const { name, meaning } = provenanceWording[question.provenance];
   return (
-    <section className="flex flex-col gap-2" aria-labelledby="where-it-came-from">
-      <h2 id="where-it-came-from" className="text-lg font-semibold">
-        Where it came from
-      </h2>
+    <Detail id="where-it-came-from" title="Where it came from">
       <p>
         {name}. {meaning}
       </p>
@@ -120,7 +149,7 @@ function WhereItCameFrom({ question }: { question: Question }) {
             Source: <cite>{question.source}</cite>
           </p>
         ))}
-    </section>
+    </Detail>
   );
 }
 
@@ -136,6 +165,13 @@ function PublicationActs({ question }: { question: Question }) {
         <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
       )}
       <div className="flex flex-wrap items-start gap-2">
+        {/* Shown to every Viewer: whether this one may edit is the API's answer, and it gives
+            it when they save (ADR-0002). */}
+        <Button asChild variant="outline" size="sm">
+          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+            Edit
+          </Link>
+        </Button>
         {publicationState === "pending" && (
           <>
             <PublishButton question={question} onRefusal={setRefusal} />
