@@ -24,7 +24,7 @@ describe("who sees what", () => {
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 
-  it("shows the shell, with the address and the role, to a Viewer who has one", async () => {
+  it("shows the shell, with the address, to a Viewer who has one", async () => {
     fakeApi(() => answersWith(aSignedInAuthor));
     replaceSession({
       status: "signed-in",
@@ -34,9 +34,7 @@ describe("who sees what", () => {
 
     renderTheWholeClient();
 
-    expect(await screen.findByText("author@iqb.test")).toBeInTheDocument();
-    expect(screen.getByText("author")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "author@iqb.test" })).toBeInTheDocument();
     // The shell has an outlet and something is in it: the landing route rendered.
     expect(screen.getByRole("heading", { name: "Questions" })).toBeInTheDocument();
   });

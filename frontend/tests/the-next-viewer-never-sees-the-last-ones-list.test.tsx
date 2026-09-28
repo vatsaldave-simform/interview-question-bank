@@ -42,7 +42,8 @@ describe("two Viewers taking turns in one tab", () => {
     renderTheWholeClient("/");
     await screen.findByText("Only the first Viewer may see this");
 
-    await userEvent.click(screen.getByRole("button", { name: "Log out" }));
+    await userEvent.click(screen.getByRole("button", { name: "author@iqb.test" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
     await screen.findByRole("button", { name: "Sign in" });
     await signInOnScreen(aReader.email, "reader-password");
 

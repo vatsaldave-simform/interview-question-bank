@@ -30,8 +30,7 @@ describe("the screen a Viewer is on", () => {
 
     await signInOnScreen("author@iqb.test", "author-password");
 
-    expect(await screen.findByRole("button", { name: "Log out" })).toBeInTheDocument();
-    expect(screen.getByText("author@iqb.test")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "author@iqb.test" })).toBeInTheDocument();
   });
 
   it("becomes the login screen when they log out", async () => {
@@ -47,7 +46,8 @@ describe("the screen a Viewer is on", () => {
     });
     renderTheWholeClient();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
+    await userEvent.click(await screen.findByRole("button", { name: "author@iqb.test" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
 
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
     await waitFor(() => expect(currentSession()).toEqual({ status: "signed-out" }));

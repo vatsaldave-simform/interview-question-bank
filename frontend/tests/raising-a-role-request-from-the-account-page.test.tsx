@@ -53,11 +53,12 @@ async function theRoleRequestSection() {
 }
 
 describe("a Viewer's own Role Request on their account page", () => {
-  it("opens from the email in the header, and shows who is signed in", async () => {
+  it("opens from the menu under the email in the header, and shows who is signed in", async () => {
     aBankHoldingMine([]);
     renderTheWholeClient("/");
 
-    await userEvent.click(await screen.findByRole("link", { name: "author@iqb.test" }));
+    await userEvent.click(await screen.findByRole("button", { name: "author@iqb.test" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Your account" }));
 
     expect(await screen.findByRole("heading", { name: "Your account" })).toBeVisible();
     expect(await theDetailsShown()).toEqual(["author@iqb.test", "Author"]);
@@ -144,7 +145,9 @@ describe("a Viewer's own Role Request on their account page", () => {
     const picker = await section.findByLabelText("Role to ask for");
     const offered = within(picker).getAllByRole("option").map((option) => option.textContent);
     expect(offered).toEqual(["Reader", "Author"]);
-    expect(within(screen.getByRole("banner")).getByText("reviewer")).toBeVisible();
+    // Shown to a Reviewer only, so the header follows the role the API sent too.
+    const header = within(screen.getByRole("banner"));
+    expect(header.getByRole("link", { name: "Review queue" })).toBeVisible();
   });
 
   it("asks again after a refusal, and keeps the refusal on screen", async () => {

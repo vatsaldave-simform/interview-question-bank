@@ -90,7 +90,7 @@ describe("the set-password page", () => {
 
     await signInOnScreen("author@iqb.test", aGoodPassword);
 
-    expect(await screen.findByRole("button", { name: "Log out" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "author@iqb.test" })).toBeInTheDocument();
   });
 
   it("logs out whoever was signed in here, so the link's owner signs in fresh", async () => {
