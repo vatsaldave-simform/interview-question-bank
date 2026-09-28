@@ -99,11 +99,11 @@ export async function findVisibleQuestionById(
   viewer: Viewer,
   id: string,
 ): Promise<QuestionFromDb | null> {
-  const question = await database.question.findFirst({
-    where: { AND: [{ id }, visibleQuestions(viewer)] },
-    select: questionFieldsToRead,
-  });
-  return question === null ? null : toQuestionFromDb(question);
+  const [question] = await readQuestionRows(
+    database,
+    visibleQuestionsStatement(viewer, [Prisma.sql`q.id = ${id}::uuid`], newestFirst),
+  );
+  return question ?? null;
 }
 
 /**
@@ -116,67 +116,64 @@ export async function findEventsAboutVisibleQuestion(
   viewer: Viewer,
   id: string,
 ): Promise<ChangeEventFromDb[] | null> {
-  // The events hang off the same condition as every other read, so there is no way to
-  // reach the log for an id nobody checked (ADR-0003).
-  const question = await database.question.findFirst({
-    where: { AND: [{ id }, visibleQuestions(viewer)] },
-    select: {
-      changeEvents: {
-        // Being able to see a Question is not being able to see what its Author was
-        // warned about: those events name Questions of their own (ADR-0028).
-        where: {
-          OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
-        },
-        // The time comes from the process that wrote the event, so two events can share
-        // one; the id settles that, and the order is at least the same every read.
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: changeEventFieldsToRead,
-      },
+  // The events are read only below this, so there is no way to reach the log for an id
+  // nobody checked (ADR-0003).
+  if ((await findVisibleQuestionById(database, viewer, id)) === null) return null;
+
+  const events = await database.changeEvent.findMany({
+    // Being able to see a Question is not being able to see what its Author was warned
+    // about: those events name Questions of their own (ADR-0028).
+    where: {
+      questionId: id,
+      OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
     },
+    // The time comes from the process that wrote the event, so two events can share
+    // one; the id settles that, and the order is at least the same every read.
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: changeEventFieldsToRead,
   });
-  return question === null ? null : question.changeEvents.map(toChangeEventFromDb);
+  return events.map(toChangeEventFromDb);
 }
 
 export type QuestionPage = { limit: number; offset: number };
 
-/** Only ever narrowed from `visibleQuestions`, so the queue is no way around a
- * Permission Grant (ADR-0013). */
-export async function findPendingQuestionsForReview(
+/** Only ever narrowed from both checks, so the queue is no way around a Permission
+ * Grant (ADR-0013). */
+export function findPendingQuestionsForReview(
   database: Database,
   viewer: Viewer,
-  { limit, offset }: QuestionPage,
+  page: QuestionPage,
 ): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: { AND: [visibleQuestions(viewer), { publicationState: "pending" }] },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
+  return readQuestionRows(
+    database,
+    visibleQuestionsStatement(
+      viewer,
+      [Prisma.sql`q."publicationState" = 'pending'`],
+      oldestFirst,
+      page,
+    ),
+  );
 }
 
-/** Still built on `visibleQuestions`, so an Author loses sight of their own Question
- * under a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
-export async function findOwnUnpublishedQuestions(
+/** Still narrowed from both checks, so an Author loses sight of their own Question under
+ * a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
+export function findOwnUnpublishedQuestions(
   database: Database,
   viewer: Viewer,
-  { limit, offset }: QuestionPage,
+  page: QuestionPage,
 ): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: {
-      AND: [
-        visibleQuestions(viewer),
-        { authorId: viewer.id },
-        { publicationState: { in: ["pending", "rejected"] } },
+  return readQuestionRows(
+    database,
+    visibleQuestionsStatement(
+      viewer,
+      [
+        Prisma.sql`q."authorId" = ${viewer.id}::uuid`,
+        Prisma.sql`q."publicationState" IN ('pending', 'rejected')`,
       ],
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
+      newestFirst,
+      page,
+    ),
+  );
 }
 
 /** The Tag ids to filter by within one Category. Only the grouping reaches the query;
@@ -261,25 +258,40 @@ async function readQuestionRows(
   }));
 }
 
+/** Every read but the search goes through this, and `narrowing` is AND-ed with both
+ * checks, so it can only ever narrow them (ADR-0003). */
+function visibleQuestionsStatement(
+  viewer: Viewer,
+  narrowing: readonly Prisma.Sql[],
+  order: Prisma.Sql,
+  page?: QuestionPage,
+): Prisma.Sql {
+  return questionRowsStatement(
+    Prisma.sql`
+      SELECT q.id
+        FROM questions q
+       WHERE ${Prisma.join([visibleQuestionsInSql(viewer), ...narrowing], " AND ")}
+       ORDER BY ${order}
+       ${page === undefined ? Prisma.empty : Prisma.sql`LIMIT ${page.limit} OFFSET ${page.offset}`}
+    `,
+    order,
+  );
+}
+
+// The id settles a createdAt tie, so no Question shifts between two pages.
+const newestFirst = Prisma.sql`q."createdAt" DESC, q.id DESC`;
+const oldestFirst = Prisma.sql`q."createdAt" ASC, q.id ASC`;
+
 /** Exported so its plan can be captured, as `searchStatement` is, and like it has no
  * argument that removes a check or adds a condition (ADR-0003). */
 export function listStatement(
   viewer: Viewer,
   { tagsPerCategory, limit, offset }: QuestionQuery,
 ): Prisma.Sql {
-  const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
-
-  return questionRowsStatement(
-    Prisma.sql`
-      SELECT q.id
-        FROM questions q
-       WHERE ${Prisma.join(conditions, " AND ")}
-       -- The id settles a createdAt tie, so no Question shifts between two pages.
-       ORDER BY q."createdAt" DESC, q.id DESC
-       LIMIT ${limit} OFFSET ${offset}
-    `,
-    Prisma.sql`q."createdAt" DESC, q.id DESC`,
-  );
+  return visibleQuestionsStatement(viewer, tagsPerCategory.map(carryingOneOfInSql), newestFirst, {
+    limit,
+    offset,
+  });
 }
 
 export function findVisibleQuestions(
