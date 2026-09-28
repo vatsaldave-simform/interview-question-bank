@@ -2,8 +2,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   capturePlan,
   readPlan,
-  scenariosForTheBank,
+  scenariosForTheList,
+  scenariosForTheSearch,
   vacuumAndAnalyze,
+  type PlanScenario,
 } from "../src/features/questions/query-plans.ts";
 import { seedBulkBank } from "../src/features/questions/bulk-bank.seed.ts";
 import type { Database } from "../src/platform/database.ts";
@@ -71,41 +73,54 @@ describe("capturing a plan", () => {
     await database.$disconnect();
   });
 
-  it("measures the statement the search sends, for every scenario", async () => {
-    const scenarios = await scenariosForTheBank(database);
+  const sets = { search: scenariosForTheSearch, list: scenariosForTheList };
+  const queryOf = (scenario: PlanScenario) =>
+    "search" in scenario ? scenario.search : scenario.list;
 
-    for (const scenario of scenarios) {
-      const captured = await capturePlan(database, scenario);
+  it.each(["search", "list"] as const)(
+    "measures the statement the %s sends, for every scenario",
+    async (read) => {
+      const scenarios = await sets[read](database);
 
-      expect(captured.scenario.name).toBe(scenario.name);
-      expect(captured.plan).toContain("Execution Time:");
-      expect(captured.milliseconds).toBeGreaterThan(0);
-      expect(captured.buffers).toBeGreaterThan(0);
-    }
-  });
+      for (const scenario of scenarios) {
+        const captured = await capturePlan(database, scenario);
 
-  it("aims the scenarios at Tags the bank actually carries, and at all three roles", async () => {
-    const scenarios = await scenariosForTheBank(database);
+        expect(captured.scenario.name).toBe(scenario.name);
+        expect(captured.plan).toContain("Execution Time:");
+        expect(captured.milliseconds).toBeGreaterThan(0);
+        expect(captured.buffers).toBeGreaterThan(0);
+      }
+    },
+  );
 
-    const named = scenarios.flatMap((scenario) =>
-      scenario.search.tagsPerCategory.flatMap((category) => [...category.tagIds]),
-    );
-    expect(await database.tag.count({ where: { id: { in: named } } })).toBe(
-      new Set(named).size,
-    );
-    expect(new Set(scenarios.map((scenario) => scenario.viewer.role))).toEqual(
-      new Set(["reader", "author", "reviewer"]),
-    );
-  });
+  it.each(["search", "list"] as const)(
+    "aims the %s scenarios at Tags the bank actually carries, and at all three roles",
+    async (read) => {
+      const scenarios = await sets[read](database);
 
-  it("asks each scenario for a different part of the bank", async () => {
-    const scenarios = await scenariosForTheBank(database);
+      const named = scenarios.flatMap((scenario) =>
+        queryOf(scenario).tagsPerCategory.flatMap((category) => [...category.tagIds]),
+      );
+      expect(await database.tag.count({ where: { id: { in: named } } })).toBe(
+        new Set(named).size,
+      );
+      expect(new Set(scenarios.map((scenario) => scenario.viewer.role))).toEqual(
+        new Set(["reader", "author", "reviewer"]),
+      );
+    },
+  );
 
-    // The role counts: three scenarios ask the same thing as different Viewers, and the
-    // second check they get is the difference being measured.
-    const asked = scenarios.map((scenario) =>
-      JSON.stringify([scenario.viewer.role, scenario.search]),
-    );
-    expect(new Set(asked).size).toBe(scenarios.length);
-  });
+  it.each(["search", "list"] as const)(
+    "asks each %s scenario for a different part of the bank",
+    async (read) => {
+      const scenarios = await sets[read](database);
+
+      // The role counts: three scenarios ask the same thing as different Viewers, and the
+      // second check they get is the difference being measured.
+      const asked = scenarios.map((scenario) =>
+        JSON.stringify([scenario.viewer.role, queryOf(scenario)]),
+      );
+      expect(new Set(asked).size).toBe(scenarios.length);
+    },
+  );
 });

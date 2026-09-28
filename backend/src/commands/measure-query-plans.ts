@@ -2,22 +2,32 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnvFile, readEnv } from "../platform/env.ts";
-import { createDatabase } from "../platform/database.ts";
+import { createDatabase, type Database } from "../platform/database.ts";
 import {
   capturePlan,
-  scenariosForTheBank,
+  scenariosForTheList,
+  scenariosForTheSearch,
   vacuumAndAnalyze,
   type CapturedPlan,
+  type PlanScenario,
 } from "../features/questions/query-plans.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 
-/** `pnpm db:measure:plans [label]`. The label names the file, so a run before an index
- * and a run after it can sit beside each other. */
+/** `pnpm db:measure:plans [label] [search|list]`. The label names the file, so a run
+ * before an index and a run after it can sit beside each other. */
 const label = process.argv[2] ?? "plans";
 if (!/^[a-z0-9-]+$/.test(label)) {
   throw new Error(`The label must be lower-case letters, numbers and dashes, not "${label}".`);
 }
+const read = process.argv[3] ?? "search";
+if (read !== "search" && read !== "list") {
+  throw new Error(`The read to measure must be "search" or "list", not "${read}".`);
+}
+const scenariosFor: Record<typeof read, (database: Database) => Promise<PlanScenario[]>> = {
+  search: scenariosForTheSearch,
+  list: scenariosForTheList,
+};
 
 const writeTo = fileURLToPath(
   new URL(`../../../docs/evidence/query-plans/${label}.md`, import.meta.url),
@@ -52,7 +62,7 @@ function asMarkdown(captured: CapturedPlan[], { bank, server, measuredAt }: Wher
     "",
     `Measured at ${measuredAt} against ${server}.`,
     "",
-    "Every statement is the one the search sends, taken from the repository itself rather",
+    `Every statement is the one the ${read} sends, taken from the repository itself rather`,
     "than retyped here, so this cannot get out of sync with what ships. The tables are",
     "vacuumed and analysed first, and each plan is the second of two runs, so neither a",
     "cold cache nor a missing visibility map is what gets measured.",
@@ -80,7 +90,7 @@ try {
   }
 
   await vacuumAndAnalyze(database);
-  const scenarios = await scenariosForTheBank(database);
+  const scenarios = await scenariosFor[read](database);
 
   const captured: CapturedPlan[] = [];
   for (const scenario of scenarios) {
