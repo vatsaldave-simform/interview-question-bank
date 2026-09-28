@@ -1,38 +1,20 @@
 import { createRoute, createRouter } from "@tanstack/react-router";
 import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
-import { ClientList } from "@/features/clients/client-list";
-import { ClientGrants } from "@/features/permission-grants/client-grants";
+import { clientRoutes } from "@/features/clients/clients.routes";
+import { permissionGrantRoutes } from "@/features/permission-grants/permission-grants.routes";
 import { questionRoutes } from "@/features/questions/questions.routes";
 import { MyRoleRequest } from "@/features/role-requests/my-role-request";
-import { RoleRequestQueue } from "@/features/role-requests/role-request-queue";
+import { roleRequestRoutes } from "@/features/role-requests/role-requests.routes";
 import { roleWording } from "@/features/viewers/role-wording";
-import { ViewerList } from "@/features/viewers/viewer-list";
+import { viewerRoutes } from "@/features/viewers/viewers.routes";
+import { administrationRoute, administrationStartRoute } from "@/platform/administration-route";
 import { rootRoute } from "@/platform/root-route";
 import { useCurrentViewer } from "@/platform/current-viewer";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
 import { PageHeader } from "@/ui/page-header";
-
-/** Here and not in a feature, because the console is a view of several (ADR-0030). */
-const administrationRoute = createRoute({
-  getParentRoute: () => signedInRoute,
-  path: "/administration",
-  // No `beforeLoad` check, because the API refuses each list on the console and it says so.
-  component: AdministrationConsole,
-});
-
-function AdministrationConsole() {
-  return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
-      <PageHeader title="Administration" />
-      <RoleRequestQueue />
-      <ViewerList />
-      <ClientList detail={(client) => <ClientGrants clientId={client.id} />} />
-    </div>
-  );
-}
 
 /** Here and not in a feature, so the Viewer feature need not depend on the Role Request
  * one. */
@@ -66,7 +48,17 @@ function AccountPage() {
 
 const routeTree = rootRoute.addChildren([
   ...authRoutes,
-  signedInRoute.addChildren([...questionRoutes, administrationRoute, accountRoute]),
+  signedInRoute.addChildren([
+    ...questionRoutes,
+    administrationRoute.addChildren([
+      administrationStartRoute,
+      ...roleRequestRoutes,
+      ...viewerRoutes,
+      ...clientRoutes,
+      ...permissionGrantRoutes,
+    ]),
+    accountRoute,
+  ]),
 ]);
 
 /** One per page load, and one per test: the router holds where you are, so a shared

@@ -1,5 +1,7 @@
 import type { PermissionGrant } from "@iqb/shared";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useEveryClient } from "@/features/clients/clients.queries";
 import {
   useActOnGrants,
   useGrantsAgainst,
@@ -8,10 +10,31 @@ import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { PageHeader } from "@/ui/page-header";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
 
 export function ClientGrants({ clientId }: { clientId: string }) {
+  // The API has no address for one Client, so the name comes from the list of them all.
+  const clients = useEveryClient();
+  const client = clients.data?.find(({ id }) => id === clientId);
+
+  return (
+    <section className="flex flex-col gap-6" aria-labelledby="client">
+      <Link to="/administration/clients" className="text-primary text-sm hover:underline">
+        ← All Clients
+      </Link>
+      <PageHeader
+        title={client?.name ?? "Client"}
+        titleId="client"
+        description="The Viewers who may see the Questions restricted to this Client."
+      />
+      <GrantsAgainst clientId={clientId} />
+    </section>
+  );
+}
+
+function GrantsAgainst({ clientId }: { clientId: string }) {
   const grants = useGrantsAgainst(clientId);
   const act = useActOnGrants(clientId);
 
@@ -70,8 +93,13 @@ function IssueGrant({ clientId, grants, pending, onIssue }: IssueGrantProps) {
   const viewers = useEveryViewer();
   const [picked, setPicked] = useState("");
 
-  // The Viewer list reports its own failure in the section above.
-  if (!viewers.isSuccess) return null;
+  if (viewers.isPending) return null;
+  // Said here, because the Viewer list is on a page of its own.
+  if (viewers.isError) {
+    return (
+      <ListNotLoaded what="Viewers" reason={viewers.error} onRetry={() => void viewers.refetch()} />
+    );
+  }
   // Not a rule about who may hold a Grant: it leaves out only those the API says hold one.
   const withoutGrant = viewers.data.filter(
     (viewer) => !grants.some((grant) => grant.viewer.id === viewer.id),

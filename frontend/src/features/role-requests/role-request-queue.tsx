@@ -3,6 +3,7 @@ import { RoleRequestDecision } from "@/features/role-requests/role-request-decis
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { PageHeader } from "@/ui/page-header";
 import {
   Table,
   TableBody,
@@ -21,10 +22,12 @@ export function RoleRequestQueue() {
   const [refusal, setRefusal] = useState<Refusal | null>(null);
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="open-role-requests">
-      <h2 id="open-role-requests" className="text-lg font-semibold">
-        Open Role Requests
-      </h2>
+    <section className="flex flex-col gap-6" aria-labelledby="open-role-requests">
+      <PageHeader
+        title="Open Role Requests"
+        titleId="open-role-requests"
+        description="Viewers asking for a different role, the one waiting longest first."
+      />
       {refusal !== null && (
         <ActNotDone
           title={`The Role Request from ${refusal.from} was not decided.`}

@@ -46,7 +46,7 @@ describe("the administration console", () => {
       answersWith({ viewers: [deactivatedAuthor, anAdministrator] }),
     );
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
     const left = within(rowFor("left@iqb.test"));
@@ -66,7 +66,7 @@ describe("the administration console", () => {
     signInAs();
     aBankAnsweringTheViewers(() => refusesWith(403, "forbidden", "You may not do that."));
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     expect(await screen.findByText("The bank refused to show the Viewers")).toBeVisible();
     expect(screen.getByText("You may not do that.")).toBeVisible();
@@ -82,7 +82,7 @@ describe("the administration console", () => {
     ];
     aBankAnsweringTheViewers(() => answers.shift());
 
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     expect(await screen.findByText("Something went wrong on our side.")).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -94,13 +94,13 @@ describe("the administration console", () => {
 describe("the link to the administration console", () => {
   it("is shown to an Administrator, and opens the console", async () => {
     signInAs(anAdministrator);
-    aBankAnsweringTheViewers(() => answersWith({ viewers: [anAdministrator] }));
+    aBankAnsweringTheViewers(() => undefined);
     renderTheWholeClient("/");
 
     await userEvent.click(await screen.findByRole("link", { name: "Administration" }));
 
-    expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
-    expect(window.location.pathname).toBe("/administration");
+    expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(window.location.pathname).toBe("/administration/role-requests");
   });
 
   it("is not shown to a Viewer without the Administrator authority", async () => {

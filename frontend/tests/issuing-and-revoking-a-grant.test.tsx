@@ -19,10 +19,6 @@ afterEach(() => {
 });
 
 const northwind = aClient();
-const kingsbridge = aClient({
-  id: "c0000000-0000-4000-8000-000000000002",
-  name: "Kingsbridge Health",
-});
 const reader = aViewer({
   id: "7c3b4a1e-0000-4000-8000-000000000004",
   email: "reader@iqb.test",
@@ -90,12 +86,9 @@ function optionsIn(picker: HTMLElement): string[] {
 describe("issuing and revoking a Grant from the administration console", () => {
   it("issues a Grant to a Viewer picked from those who do not hold one", async () => {
     const api = aBankGranting(
-      new Map([
-        [northwind, [named(author)]],
-        [kingsbridge, []],
-      ]),
+      new Map([[northwind, [named(author)]]]),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
     const picker = await section.findByLabelText("Viewer");
@@ -116,7 +109,7 @@ describe("issuing and revoking a Grant from the administration console", () => {
 
   it("revokes a Viewer's Grant, and offers them for one again", async () => {
     const api = aBankGranting(new Map([[northwind, [named(author)]]]));
-    renderTheWholeClient("/administration");
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
     const holders = within(await section.findByRole("list", { name: "Viewers holding a Grant" }));
@@ -147,15 +140,12 @@ describe("issuing and revoking a Grant from the administration console", () => {
         await userEvent.click(section.getByRole("button", { name: "Revoke" }));
       },
     },
-  ])("reports the API's refusal of $act on that Client alone", async ({ refusal, message, press }) => {
+  ])("reports the API's refusal of $act, and keeps the Grants as they were", async ({ refusal, message, press }) => {
     aBankGranting(
-      new Map([
-        [northwind, [named(author)]],
-        [kingsbridge, []],
-      ]),
+      new Map([[northwind, [named(author)]]]),
       refusal,
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
     await section.findByLabelText("Viewer");
@@ -165,6 +155,5 @@ describe("issuing and revoking a Grant from the administration console", () => {
     expect(alert.getByText("That was not done.")).toBeVisible();
     expect(alert.getByText(message)).toBeVisible();
     expect(section.getByText("author@iqb.test")).toBeVisible();
-    expect((await sectionFor(kingsbridge)).queryByRole("alert")).not.toBeInTheDocument();
   });
 });

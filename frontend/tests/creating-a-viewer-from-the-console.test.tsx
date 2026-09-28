@@ -54,7 +54,7 @@ describe("creating a Viewer from the administration console", () => {
     const api = aBankCreatingViewers([anAdministrator], () =>
       answersWith({ viewer: newcomer }, 201),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Email"), "Newcomer@iqb.test");
@@ -72,7 +72,7 @@ describe("creating a Viewer from the administration console", () => {
     const api = aBankCreatingViewers([anAdministrator], () =>
       answersWith({ viewer: newcomer }, 201),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Email"), "not an address");
@@ -88,7 +88,7 @@ describe("creating a Viewer from the administration console", () => {
     aBankCreatingViewers([anAdministrator], () =>
       refusesWith(409, "conflict", "A Viewer with that email address already exists."),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Email"), "reviewer@iqb.test");
@@ -108,7 +108,7 @@ describe("creating a Viewer from the administration console", () => {
         properties: { email: { errors: ["Invalid email address"] } },
       }),
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const form = await theCreateForm();
     await userEvent.type(form.getByLabelText("Email"), "newcomer@iqb.test");

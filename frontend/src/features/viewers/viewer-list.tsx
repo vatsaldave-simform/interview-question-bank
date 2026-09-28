@@ -2,6 +2,7 @@ import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { PageHeader } from "@/ui/page-header";
 import {
   Table,
   TableBody,
@@ -15,10 +16,12 @@ export function ViewerList() {
   const viewers = useEveryViewer();
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="viewers">
-      <h2 id="viewers" className="text-lg font-semibold">
-        Viewers
-      </h2>
+    <section className="flex flex-col gap-6" aria-labelledby="viewers">
+      <PageHeader
+        title="Viewers"
+        titleId="viewers"
+        description="Everyone who can log in, or could before they were Deactivated."
+      />
       <CreateViewerForm />
       {viewers.isPending ? (
         <p role="status" className="text-muted-foreground text-sm">

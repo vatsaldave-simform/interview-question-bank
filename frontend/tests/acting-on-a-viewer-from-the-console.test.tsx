@@ -77,7 +77,7 @@ async function rowFor(email: string) {
 describe("acting on one Viewer from the administration console", () => {
   it("changes a Viewer's role to the one picked", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.selectOptions(row.getByLabelText("Role for reader@iqb.test"), "Author");
@@ -91,7 +91,7 @@ describe("acting on one Viewer from the administration console", () => {
 
   it("appoints a Viewer as an Administrator, and withdraws the authority again", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Appoint as Administrator" }));
@@ -108,7 +108,7 @@ describe("acting on one Viewer from the administration console", () => {
 
   it("Deactivates a Viewer, and reactivates them again", async () => {
     const api = aBankHolding([anAdministrator, reader]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reader@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Deactivate" }));
@@ -143,7 +143,7 @@ describe("acting on one Viewer from the administration console", () => {
         ? refusesWith(409, "conflict", refused.refusal)
         : undefined,
     );
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const row = await rowFor("reviewer@iqb.test");
     await userEvent.click(row.getByRole("button", { name: refused.act }));
@@ -162,7 +162,7 @@ describe("acting on one Viewer from the administration console", () => {
       isAdministrator: true,
     });
     aBankHolding([anAdministrator, another]);
-    renderTheWholeClient("/administration");
+    renderTheWholeClient("/administration/viewers");
 
     const header = within(await screen.findByRole("banner"));
     expect(header.getByRole("link", { name: "Administration" })).toBeVisible();
