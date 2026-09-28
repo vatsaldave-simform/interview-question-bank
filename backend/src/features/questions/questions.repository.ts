@@ -188,30 +188,6 @@ export type QuestionQuery = QuestionPage & {
   tagsPerCategory: readonly TagsInCategory[];
 };
 
-/** Prisma sends this as its own `EXISTS` over `question_tags`, which is the shape
- * ADR-0011 measured against a join and a grouped count. */
-function carryingOneOf({ tagIds }: TagsInCategory): Prisma.QuestionWhereInput {
-  return { tags: { some: { tagId: { in: [...tagIds] } } } };
-}
-
-/** Built on the same `visibleQuestions` as every other read, so both checks are
- * conditions in this one statement rather than a second pass (ADR-0003). */
-export async function findVisibleQuestions(
-  database: Database,
-  viewer: Viewer,
-  { tagsPerCategory, limit, offset }: QuestionQuery,
-): Promise<QuestionFromDb[]> {
-  const questions = await database.question.findMany({
-    where: { AND: [visibleQuestions(viewer), ...tagsPerCategory.map(carryingOneOf)] },
-    // The id settles a createdAt tie, so no Question shifts between two pages.
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit,
-    skip: offset,
-    select: questionFieldsToRead,
-  });
-  return questions.map(toQuestionFromDb);
-}
-
 /** What `visibleTo` says, in SQL, because the queries below are hand written and cannot
  * take a `where` (ADR-0026). Its own function because detection pairs it with a different
  * second check from the one the search pairs it with. */
@@ -283,6 +259,35 @@ async function readQuestionRows(
       tag: carried.tag,
     })),
   }));
+}
+
+/** Exported so its plan can be captured, as `searchStatement` is, and like it has no
+ * argument that removes a check or adds a condition (ADR-0003). */
+export function listStatement(
+  viewer: Viewer,
+  { tagsPerCategory, limit, offset }: QuestionQuery,
+): Prisma.Sql {
+  const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
+
+  return questionRowsStatement(
+    Prisma.sql`
+      SELECT q.id
+        FROM questions q
+       WHERE ${Prisma.join(conditions, " AND ")}
+       -- The id settles a createdAt tie, so no Question shifts between two pages.
+       ORDER BY q."createdAt" DESC, q.id DESC
+       LIMIT ${limit} OFFSET ${offset}
+    `,
+    Prisma.sql`q."createdAt" DESC, q.id DESC`,
+  );
+}
+
+export function findVisibleQuestions(
+  database: Database,
+  viewer: Viewer,
+  query: QuestionQuery,
+): Promise<QuestionFromDb[]> {
+  return readQuestionRows(database, listStatement(viewer, query));
 }
 
 /** What a Viewer typed, alongside the same filters the list takes. */

@@ -105,16 +105,15 @@ describe("filtering the bank by Category", () => {
       ]),
     );
 
-    // The page, then its rows' Clients, Tags and Categories, each looked up by id. Only
-    // the first carries a condition: a version that collected ids and paged them in a
-    // second pass would show a second one, and that is the version this rules out.
-    expect(sqlLog.statements).toHaveLength(5);
-    const [page, ...loadedById] = sqlLog.statements;
-    expect(loadedById.every((sql) => !sql.includes("EXISTS"))).toBe(true);
+    // One, because the Tags of the page come back with it. A version that collected ids
+    // and paged them in a second pass would show more, and a version that filtered in
+    // JavaScript would show one without these conditions in it.
+    expect(sqlLog.statements).toHaveLength(1);
+    const [page] = sqlLog.statements;
     expect(page).toContain("LIMIT");
     expect(page).toContain("permission_grants");
-    expect(page!.match(/EXISTS\(SELECT[^)]*"question_tags"/g)).toHaveLength(2);
+    expect(page!.match(/EXISTS \(SELECT 1 FROM question_tags/g)).toHaveLength(2);
     // Both columns, because the id is what settles a createdAt tie between pages.
-    expect(page).toMatch(/ORDER BY[^;]*"createdAt" DESC, [^;]*"id" DESC/);
+    expect(page).toMatch(/ORDER BY q\."createdAt" DESC, q\.id DESC/);
   });
 });
