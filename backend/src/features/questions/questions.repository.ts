@@ -239,11 +239,54 @@ function carryingOneOfInSql({ tagIds }: TagsInCategory): Prisma.Sql {
                                AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
 }
 
+/** The row a hand-written read gets back; `tags` arrives as JSON built by the database. */
+type QuestionRowInSql = Omit<QuestionFromDb, "tags"> & {
+  tags: { category: string; tag: string }[];
+};
+
+/** `page` picks the ids and does every check; this only reads what they name, in `order`,
+ * which may name the page's own columns as `page.<column>`. */
+function questionRowsStatement(page: Prisma.Sql, order: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`
+    WITH page AS (${page})
+    SELECT q.id, q.text, q."answerNotes", q."authorId",
+           (SELECT json_build_object('id', cl.id, 'name', cl.name)
+              FROM clients cl WHERE cl.id = q."clientId") AS client,
+           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
+           coalesce(carried.tags, '[]'::json) AS tags
+      FROM page
+      JOIN questions q ON q.id = page.id
+      -- After the page has been cut, so the Tags of a Question the page left out are
+      -- never gathered.
+      LEFT JOIN LATERAL (
+        SELECT json_agg(json_build_object('category', c.name, 'tag', t.value)) AS tags
+          FROM question_tags qt
+          JOIN tags t ON t.id = qt."tagId"
+          JOIN categories c ON c.id = t."categoryId"
+         WHERE qt."questionId" = q.id
+      ) carried ON true
+     ORDER BY ${order}
+  `;
+}
+
+async function readQuestionRows(
+  database: Database,
+  statement: Prisma.Sql,
+): Promise<QuestionFromDb[]> {
+  const rows = await database.$queryRaw<QuestionRowInSql[]>(statement);
+
+  return rows.map((row) => ({
+    ...row,
+    // Parsed, not cast, for the reason `toQuestionFromDb` parses (ADR-0024).
+    tags: row.tags.map((carried) => ({
+      category: categoryNameSchema.parse(carried.category),
+      tag: carried.tag,
+    })),
+  }));
+}
+
 /** What a Viewer typed, alongside the same filters the list takes. */
 export type QuestionSearch = QuestionQuery & { keywords: string };
-
-/** The row the search reads back; `tags` arrives as JSON built by the database. */
-type SearchRow = Omit<QuestionFromDb, "tags"> & { tags: { category: string; tag: string }[] };
 
 /**
  * The statement the search sends. Built here rather than where it is run, so the query
@@ -259,8 +302,8 @@ export function searchStatement(
 ): Prisma.Sql {
   const conditions = [visibleQuestionsInSql(viewer), ...tagsPerCategory.map(carryingOneOfInSql)];
 
-  return Prisma.sql`
-    WITH matched AS (
+  return questionRowsStatement(
+    Prisma.sql`
       SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
         FROM questions q,
              -- Never raises on what a person types, which strict to_tsquery does
@@ -270,44 +313,19 @@ export function searchStatement(
          AND ${Prisma.join(conditions, " AND ")}
        ORDER BY rank DESC, q.id DESC
        LIMIT ${limit} OFFSET ${offset}
-    )
-    SELECT q.id, q.text, q."answerNotes", q."authorId",
-           (SELECT json_build_object('id', cl.id, 'name', cl.name)
-              FROM clients cl WHERE cl.id = q."clientId") AS client,
-           q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
-           coalesce(carried.tags, '[]'::json) AS tags
-      FROM matched
-      JOIN questions q ON q.id = matched.id
-      -- After the page has been cut, so the Tags of a Question the page left out are
-      -- never gathered.
-      LEFT JOIN LATERAL (
-        SELECT json_agg(json_build_object('category', c.name, 'tag', t.value)) AS tags
-          FROM question_tags qt
-          JOIN tags t ON t.id = qt."tagId"
-          JOIN categories c ON c.id = t."categoryId"
-         WHERE qt."questionId" = q.id
-      ) carried ON true
-     ORDER BY matched.rank DESC, q.id DESC
-  `;
+    `,
+    Prisma.sql`page.rank DESC, q.id DESC`,
+  );
 }
 
 /** Keyword search across Question text and Answer Notes, matched against the stored
  * column rather than a vector worked out per row (ADR-0004). */
-export async function searchVisibleQuestions(
+export function searchVisibleQuestions(
   database: Database,
   viewer: Viewer,
   search: QuestionSearch,
 ): Promise<QuestionFromDb[]> {
-  const rows = await database.$queryRaw<SearchRow[]>(searchStatement(viewer, search));
-
-  return rows.map((row) => ({
-    ...row,
-    // Parsed, not cast, for the reason `toQuestionFromDb` parses (ADR-0024).
-    tags: row.tags.map((carried) => ({
-      category: categoryNameSchema.parse(carried.category),
-      tag: carried.tag,
-    })),
-  }));
+  return readQuestionRows(database, searchStatement(viewer, search));
 }
 
 /** Which Visible Questions one check compares against. */
