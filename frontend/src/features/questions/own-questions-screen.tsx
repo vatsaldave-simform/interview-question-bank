@@ -12,6 +12,7 @@ import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
 
@@ -23,13 +24,10 @@ export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) 
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Your Questions</h1>
-        <p className="text-muted-foreground text-sm">
-          The Questions you added that are not in the bank: Pending, waiting on a Reviewer, or
-          Rejected, with the reason. The newest is first.
-        </p>
-      </div>
+      <PageHeader
+        title="Your Questions"
+        description="The Questions you added that are not in the bank: Pending, waiting on a Reviewer, or Rejected, with the reason. The newest is first."
+      />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {own.isPending ? (
         <p role="status" className="text-muted-foreground">

@@ -19,6 +19,7 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useEditQuestion, useQuestion } from "@/features/questions/questions.queries";
+import { PageHeader } from "@/ui/page-header";
 
 type EditScreenProps = { questionId: string; onSaved: () => void };
 
@@ -34,7 +35,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
       >
         ← Back to the Question
       </Link>
-      <h1 className="text-2xl font-semibold">Edit the Question</h1>
+      <PageHeader title="Edit the Question" />
       {question.isPending ? (
         <p role="status" className="text-muted-foreground">
           Loading the Question…

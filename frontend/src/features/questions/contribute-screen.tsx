@@ -20,6 +20,7 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useAddQuestion } from "@/features/questions/questions.queries";
+import { PageHeader } from "@/ui/page-header";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
 
@@ -101,12 +102,10 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
       <Link to="/" className="text-primary text-sm hover:underline">
         ← All Questions
       </Link>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Add a Question</h1>
-        <p className="text-muted-foreground text-sm">
-          A Reviewer reads it before it is in the bank.
-        </p>
-      </div>
+      <PageHeader
+        title="Add a Question"
+        description="A Reviewer reads it before it is in the bank."
+      />
       <QuestionForm
         initial={emptyDraft}
         problems={problems}

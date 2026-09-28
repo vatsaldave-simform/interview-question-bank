@@ -18,6 +18,7 @@ import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { PageHeader } from "@/ui/page-header";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
 
@@ -49,16 +50,18 @@ function QuestionInFull({ question }: { question: Question }) {
   const state = publicationStateWording[question.publicationState];
   return (
     <article className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl leading-snug font-semibold">{question.text}</h1>
-        {/* Shown to every Viewer: whether this one may edit is the API's answer, and it
-            gives it when they save (ADR-0002). */}
-        <Button asChild variant="outline">
-          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-            Edit
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title={question.text}
+        action={
+          // Shown to every Viewer: whether this one may edit is the API's answer, and it
+          // gives it when they save (ADR-0002).
+          <Button asChild variant="outline">
+            <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+              Edit
+            </Link>
+          </Button>
+        }
+      />
       <p className="flex flex-wrap items-center gap-2 text-sm">
         <PublicationStateBadge state={question.publicationState} />
         <span className="text-muted-foreground">{state.meaning}</span>
@@ -67,7 +70,7 @@ function QuestionInFull({ question }: { question: Question }) {
       {question.reason !== null && <RejectionReason reason={question.reason} />}
       <PublicationActs question={question} />
       <section className="flex flex-col gap-2" aria-labelledby="answer-notes">
-        <h2 id="answer-notes" className="font-medium">
+        <h2 id="answer-notes" className="text-lg font-semibold">
           Answer Notes
         </h2>
         <p className="whitespace-pre-line">{question.answerNotes}</p>
@@ -75,7 +78,7 @@ function QuestionInFull({ question }: { question: Question }) {
       <QuestionTags tags={question.tags} />
       {ratingIsShown(question) && (
         <section className="flex flex-col gap-2" aria-labelledby="rating">
-          <h2 id="rating" className="font-medium">
+          <h2 id="rating" className="text-lg font-semibold">
             Rating
           </h2>
           <AverageRating rating={question.rating} />
@@ -103,7 +106,7 @@ function WhereItCameFrom({ question }: { question: Question }) {
   const { name, meaning } = provenanceWording[question.provenance];
   return (
     <section className="flex flex-col gap-2" aria-labelledby="where-it-came-from">
-      <h2 id="where-it-came-from" className="font-medium">
+      <h2 id="where-it-came-from" className="text-lg font-semibold">
         Where it came from
       </h2>
       <p>

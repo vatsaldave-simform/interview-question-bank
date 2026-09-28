@@ -22,7 +22,7 @@ export function RoleRequestQueue() {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="open-role-requests">
-      <h2 id="open-role-requests" className="font-medium">
+      <h2 id="open-role-requests" className="text-lg font-semibold">
         Open Role Requests
       </h2>
       {refusal !== null && (

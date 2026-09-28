@@ -13,6 +13,7 @@ import { useCurrentViewer } from "@/platform/current-viewer";
 import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
+import { PageHeader } from "@/ui/page-header";
 
 /** Here and not in a feature, because the console is a view of several (ADR-0030). */
 const administrationRoute = createRoute({
@@ -24,8 +25,8 @@ const administrationRoute = createRoute({
 
 function AdministrationConsole() {
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-xl font-medium">Administration</h1>
+    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+      <PageHeader title="Administration" />
       <RoleRequestQueue />
       <ViewerList />
       <ClientList detail={(client) => <ClientGrants clientId={client.id} />} />
@@ -50,8 +51,8 @@ function AccountPage() {
 
   const { viewer } = session;
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-xl font-medium">Your account</h1>
+    <div className="mx-auto flex max-w-3xl flex-col gap-8">
+      <PageHeader title="Your account" />
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Email</dt>
         <dd>{viewer.email}</dd>

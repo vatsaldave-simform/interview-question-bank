@@ -36,7 +36,7 @@ export function EditRestrictionForm({ question }: { question: Question }) {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="who-can-see-it">
-      <h2 id="who-can-see-it" className="font-medium">
+      <h2 id="who-can-see-it" className="text-lg font-semibold">
         Who can see it
       </h2>
       {refusal !== null && (

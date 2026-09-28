@@ -32,7 +32,7 @@ export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="my-role-request">
-      <h2 id="my-role-request" className="font-medium">
+      <h2 id="my-role-request" className="text-lg font-semibold">
         Role Request
       </h2>
       {mine.isPending ? (

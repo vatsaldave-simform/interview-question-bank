@@ -14,7 +14,7 @@ export function ClientList({ detail }: ClientListProps) {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="clients">
-      <h2 id="clients" className="font-medium">
+      <h2 id="clients" className="text-lg font-semibold">
         Clients
       </h2>
       <CreateClientForm />

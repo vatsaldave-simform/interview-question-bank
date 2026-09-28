@@ -12,7 +12,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="history">
-      <h2 id="history" className="font-medium">
+      <h2 id="history" className="text-lg font-semibold">
         History
       </h2>
       {history.isPending ? (
