@@ -25,7 +25,9 @@ does any choosing, so only its plan is printed below. The table counts all five.
 The time taken end to end is the median of 300 calls to `findVisibleQuestions` in a
 row, after 30 to warm up, from Node on the same machine. It includes the round trips to
 the database, which the plan times leave out. The new statement was timed twice, and the
-two runs show how much this number moves between runs.
+two runs show how much this number moves between runs. The Prisma version was timed once.
+The script that timed them was a throwaway and is not in the repository, so these
+columns cannot be taken again the way the plans can.
 
 ## Summary
 
