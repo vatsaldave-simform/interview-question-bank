@@ -27,8 +27,11 @@ export const seedOtherClient: SeedClient = {
 export const seedClients: readonly SeedClient[] = [seedClient, seedOtherClient];
 
 /** Safe to run twice, and leaves an existing Client and its Grants untouched. */
-export async function seedClientsAndGrants(database: Database): Promise<void> {
-  for (const seeded of seedClients) {
+export async function seedClientsAndGrants(
+  database: Database,
+  clients: readonly SeedClient[] = seedClients,
+): Promise<void> {
+  for (const seeded of clients) {
     const client = await database.client.upsert({
       where: { name: seeded.name },
       update: {},

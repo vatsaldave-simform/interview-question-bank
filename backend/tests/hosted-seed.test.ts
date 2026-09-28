@@ -1,10 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "../src/features/auth/password.ts";
+import { seedClientsAndGrants } from "../src/features/clients/clients.seed.ts";
+import { hostedClients } from "../src/features/clients/hosted-clients.seed.ts";
 import {
   hostedViewers,
   readHostedPasswords,
   seedHostedViewers,
 } from "../src/features/viewers/hosted-viewers.seed.ts";
+import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
@@ -98,5 +101,63 @@ describe("the hosted seed's Viewers", () => {
       }),
     ).toEqual({ role: "reviewer", passwordHash: "changed since the seed last ran" });
     expect(await database.viewer.count()).toBe(hostedViewers.length);
+  });
+});
+
+describe("the hosted seed's Clients", () => {
+  let database: Database;
+
+  /** Which hosted Client each Viewer holds a Grant for, by email. */
+  async function grantsHeld(): Promise<Record<string, string[]>> {
+    const grants = await database.permissionGrant.findMany({
+      include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
+      orderBy: [{ viewer: { email: "asc" } }, { client: { name: "asc" } }],
+    });
+    const held: Record<string, string[]> = {};
+    for (const grant of grants) (held[grant.viewer.email] ??= []).push(grant.client.name);
+    return held;
+  }
+
+  // The demo seed runs too, because the hosted bank sits beside it in the same database.
+  beforeAll(async () => {
+    database = createTestDatabase();
+    await truncateAll(database);
+    await seedViewerAccounts(database);
+    await seedClientsAndGrants(database);
+    await seedHostedViewers(database, readHostedPasswords(passwordSource));
+    await seedClientsAndGrants(database, hostedClients);
+  });
+  afterAll(async () => {
+    await database.$disconnect();
+  });
+
+  it("grants John and Jane every hosted Client, and each Reader a different share", async () => {
+    const held = await grantsHeld();
+
+    const all = ["Brightwater Bank", "Fernhill Retail", "Harbourline Logistics"];
+    expect(held["john.doe@iqb.test"]).toEqual(all);
+    expect(held["jane.doe@iqb.test"]).toEqual(all);
+    expect(held["shane.austin@iqb.test"]).toEqual(["Harbourline Logistics"]);
+    expect(held["cody.rhodes@iqb.test"]).toEqual(["Brightwater Bank"]);
+    expect(held["dwayne.rook@iqb.test"]).toBeUndefined();
+  });
+
+  it("gives the demo Viewers no Grant for a hosted Client", async () => {
+    const held = await grantsHeld();
+    const hostedNames = new Set(hostedClients.map((client) => client.name));
+
+    for (const viewer of seedViewers) {
+      expect((held[viewer.email] ?? []).filter((name) => hostedNames.has(name))).toEqual([]);
+    }
+  });
+
+  it("adds nothing when it runs again", async () => {
+    const before = await Promise.all([database.client.count(), database.permissionGrant.count()]);
+
+    await seedClientsAndGrants(database, hostedClients);
+
+    expect(
+      await Promise.all([database.client.count(), database.permissionGrant.count()]),
+    ).toEqual(before);
   });
 });
