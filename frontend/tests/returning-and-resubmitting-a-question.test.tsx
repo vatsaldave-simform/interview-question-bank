@@ -96,9 +96,12 @@ describe("returning a Published Question to its Author", () => {
     renderTheWholeClient(`/questions/${published.id}`);
 
     await userEvent.click(await screen.findByRole("button", { name: "Return to its Author" }));
-    const reason = screen.getByLabelText("Why it is returned");
-    await userEvent.type(reason, "Restricted to the wrong Client.");
-    await userEvent.click(screen.getByRole("button", { name: "Return it" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Return it to its Author" }));
+    await userEvent.type(
+      dialog.getByLabelText("Why it is returned"),
+      "Restricted to the wrong Client.",
+    );
+    await userEvent.click(dialog.getByRole("button", { name: "Return it" }));
 
     expect(await screen.findByText("Restricted to the wrong Client.")).toBeVisible();
     expect(screen.getByText("Rejected")).toBeVisible();
@@ -120,6 +123,8 @@ describe("returning a Published Question to its Author", () => {
     const alert = within(await screen.findByRole("alert"));
     expect(alert.getByText("This Question was not returned.")).toBeVisible();
     expect(alert.getByText("Only a Reviewer may do that.")).toBeVisible();
+    // Closed, so the refusal is not hidden behind it.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
 

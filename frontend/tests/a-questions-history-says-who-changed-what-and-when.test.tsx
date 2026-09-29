@@ -95,6 +95,16 @@ describe("a Question's history", () => {
     expect(second).toHaveTextContent("reviewer@iqb.test edited this Question");
     expect(within(second!).getByRole("time")).toHaveAttribute("datetime", edited.at);
 
+    // Kept out of sight until asked for, so a long edit does not stretch the history.
+    expect(within(second!).queryByRole("group", { name: "Text" })).not.toBeInTheDocument();
+    const show = within(second!).getByRole("button", { name: "Show changes" });
+    expect(show).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(show);
+    expect(within(second!).getByRole("button", { name: "Hide changes" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
     const text = within(second!).getByRole("group", { name: "Text" });
     expect(within(text).getByRole("deletion")).toHaveTextContent("What does satisfies do?");
     expect(within(text).getByRole("insertion")).toHaveTextContent("What does `satisfies` check?");

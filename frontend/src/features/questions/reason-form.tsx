@@ -7,6 +7,7 @@ import {
   type FieldProblems,
 } from "@/platform/field-problems";
 import { Button } from "@/ui/shadcn/button";
+import { DialogFooter } from "@/ui/shadcn/dialog";
 import { Field, FieldError, FieldLabel } from "@/ui/shadcn/field";
 import { Textarea } from "@/ui/shadcn/textarea";
 
@@ -58,11 +59,7 @@ export function ReasonForm(props: ReasonFormProps) {
 
   return (
     // The schema is the only check, so the browser's own validation must not answer first.
-    <form
-      noValidate
-      onSubmit={(event) => void send(event)}
-      className="flex w-full flex-col gap-2"
-    >
+    <form noValidate onSubmit={(event) => void send(event)} className="flex flex-col gap-4">
       <Field data-invalid={problems.reason !== undefined}>
         <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
         <Textarea
@@ -73,14 +70,14 @@ export function ReasonForm(props: ReasonFormProps) {
         />
         <FieldError id={`${fieldId}-problem`}>{problems.reason}</FieldError>
       </Field>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" disabled={sending}>
-          {sendLabel}
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-      </div>
+        <Button type="submit" disabled={sending}>
+          {sendLabel}
+        </Button>
+      </DialogFooter>
     </form>
   );
 }
