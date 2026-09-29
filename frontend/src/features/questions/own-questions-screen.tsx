@@ -9,6 +9,7 @@ import {
 } from "@/features/questions/publication-acts";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
@@ -30,9 +31,7 @@ export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) 
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {own.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading your Questions…
-        </p>
+        <QuestionCardsLoading label="Loading your Questions…" />
       ) : own.isError ? (
         <ListNotLoaded what="Questions" reason={own.error} onRetry={() => void own.refetch()} />
       ) : (
@@ -68,8 +67,10 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
     <ul className="flex flex-col gap-4" aria-label="Your Questions">
       {page.questions.map((question) => (
         <li key={question.id}>
-          <QuestionCard question={question}>
-            <PublicationStateBadge state={question.publicationState} />
+          <QuestionCard
+            question={question}
+            badges={<PublicationStateBadge state={question.publicationState} />}
+          >
             {question.reason !== null && <RejectionReason reason={question.reason} />}
             {question.publicationState === "rejected" && (
               <RejectedActs question={question} onRefusal={onRefusal} />

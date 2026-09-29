@@ -9,6 +9,7 @@ import {
   type ActRefused,
 } from "@/features/questions/publication-acts";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useReviewQueue } from "@/features/questions/questions.queries";
 import { PageHeader } from "@/ui/page-header";
@@ -31,9 +32,7 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {queue.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading the Pending Questions…
-        </p>
+        <QuestionCardsLoading label="Loading the Pending Questions…" />
       ) : queue.isError ? (
         <ListNotLoaded
           what="Pending Questions"
@@ -83,14 +82,15 @@ function PendingList({ page, onRefusal }: PendingListProps) {
 function PendingCard({ question, onRefusal }: ActProps) {
   return (
     <QuestionCard question={question}>
+      {/* Publish is the one filled button, so a page of cards does not read as a wall of them. */}
       <div className="flex flex-wrap items-start gap-2">
         <PublishButton question={question} onRefusal={onRefusal} />
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="ghost" size="sm">
           <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
             Edit
           </Link>
         </Button>
-        <ReasonAct act="reject" question={question} onRefusal={onRefusal} />
+        <ReasonAct act="reject" variant="ghost" question={question} onRefusal={onRefusal} />
       </div>
     </QuestionCard>
   );

@@ -4,6 +4,7 @@ import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.s
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
@@ -60,9 +61,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
               </AlertDescription>
             </Alert>
           ) : list.isPending ? (
-            <p role="status" className="text-muted-foreground">
-              Loading Questions…
-            </p>
+            <QuestionCardsLoading label="Loading Questions…" />
           ) : list.isError ? (
             <Alert variant="destructive">
               <AlertTitle>The Questions could not be loaded</AlertTitle>

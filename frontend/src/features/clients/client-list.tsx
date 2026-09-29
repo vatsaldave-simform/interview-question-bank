@@ -4,8 +4,10 @@ import { useState } from "react";
 import { CreateClientForm } from "@/features/clients/create-client-form";
 import { useEveryClient } from "@/features/clients/clients.queries";
 import { AddDialog } from "@/ui/add-dialog";
+import { DoneMessage } from "@/ui/done-message";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
+import { RowsLoading } from "@/ui/rows-loading";
 
 export function ClientList() {
   const clients = useEveryClient();
@@ -38,14 +40,10 @@ export function ClientList() {
         }
       />
       {created !== null && (
-        <p role="status" className="text-sm">
-          {created} was created.
-        </p>
+        <DoneMessage>{created} was created.</DoneMessage>
       )}
       {clients.isPending ? (
-        <p role="status" className="text-muted-foreground text-sm">
-          Loading the Clients…
-        </p>
+        <RowsLoading label="Loading the Clients…" />
       ) : clients.isError ? (
         <ListNotLoaded
           what="Clients"

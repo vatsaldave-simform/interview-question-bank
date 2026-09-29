@@ -12,6 +12,7 @@ import { ActNotDone } from "@/ui/act-not-done";
 import { ConfirmAct } from "@/ui/confirm-act";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
+import { RowsLoading } from "@/ui/rows-loading";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
 
@@ -43,11 +44,7 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
   const [confirming, setConfirming] = useState(false);
 
   if (grants.isPending) {
-    return (
-      <p role="status" className="text-muted-foreground text-sm">
-        Loading the Grants…
-      </p>
-    );
+    return <RowsLoading label="Loading the Grants…" />;
   }
   if (grants.isError) {
     return (

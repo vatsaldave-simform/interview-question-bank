@@ -67,7 +67,7 @@ describe("the browse screen", () => {
 
     renderTheWholeClient("/");
 
-    expect(await screen.findByText("Loading Questions…")).toBeVisible();
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading Questions…");
   });
 
   it("says so when nothing matches, rather than showing an empty page", async () => {

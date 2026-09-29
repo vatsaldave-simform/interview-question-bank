@@ -5,6 +5,7 @@ import { roleWording } from "@/features/viewers/role-wording";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
+import { RowsLoading } from "@/ui/rows-loading";
 import {
   Table,
   TableBody,
@@ -36,9 +37,7 @@ export function RoleRequestQueue() {
         />
       )}
       {roleRequests.isPending ? (
-        <p role="status" className="text-muted-foreground text-sm">
-          Loading the Role Requests…
-        </p>
+        <RowsLoading label="Loading the Role Requests…" />
       ) : roleRequests.isError ? (
         <ListNotLoaded
           what="Role Requests"
