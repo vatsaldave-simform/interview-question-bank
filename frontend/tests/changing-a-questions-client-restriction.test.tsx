@@ -1,5 +1,5 @@
 import type { ClassifyQuestionRequest, Client, Question } from "@iqb/shared";
-import { screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
+import { screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
@@ -119,6 +119,17 @@ describe("changing a Question's Client restriction", () => {
     expect(
       await screen.findByText("Only Viewers with a Grant for Acme can see this Question."),
     ).toBeVisible();
+  });
+
+  it("keeps the restriction in a card of its own, apart from the edit's Save", async () => {
+    aBankHolding(restricted);
+    renderTheWholeClient(`/questions/${restricted.id}/edit`);
+
+    const whoCanSeeIt = await screen.findByRole("region", { name: "Who can see it" });
+    expect(within(whoCanSeeIt).getByText("Restricted to Acme")).toBeVisible();
+    expect(await within(whoCanSeeIt).findByRole("button", { name: "Restrict" })).toBeVisible();
+    expect(within(whoCanSeeIt).queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.getAllByText("Restricted to Acme")).toHaveLength(1);
   });
 
   it("lets a Reviewer remove a restriction, and shows it is gone", async () => {

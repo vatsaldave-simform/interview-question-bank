@@ -98,7 +98,7 @@ describe("adding a Question that is refused", () => {
     await writeAQuestion();
     await addIt();
 
-    expect(await screen.findByText("Choose the Tags from the lists.")).toBeVisible();
+    expect(await screen.findByText("Choose the Tags from the ones shown.")).toBeVisible();
     expect(screen.queryByText("The request is not valid.")).not.toBeInTheDocument();
   });
 

@@ -7,7 +7,6 @@ import {
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ClientRestriction } from "@/features/questions/client-restriction";
 import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
@@ -19,7 +18,10 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useEditQuestion, useQuestion } from "@/features/questions/questions.queries";
+import { TagChipShapes } from "@/features/questions/tag-chips";
 import { PageHeader } from "@/ui/page-header";
+import { Card } from "@/ui/shadcn/card";
+import { Skeleton } from "@/ui/shadcn/skeleton";
 
 type EditScreenProps = { questionId: string; onSaved: () => void };
 
@@ -37,14 +39,30 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
       </Link>
       <PageHeader title="Edit the Question" />
       {question.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading the Question…
-        </p>
+        <EditFormLoading />
       ) : question.isError ? (
         <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
       ) : (
         <EditForm question={question.data} onSaved={onSaved} />
       )}
+    </div>
+  );
+}
+
+/** Shaped like the form's first two cards, so the page does not jump when it arrives. */
+function EditFormLoading() {
+  return (
+    <div role="status" className="flex flex-col gap-6">
+      <span className="sr-only">Loading the Question…</span>
+      <Card className="gap-4 px-6">
+        <Skeleton className="bg-muted h-6 w-40" />
+        <Skeleton className="bg-muted h-16 w-full" />
+        <Skeleton className="bg-muted h-32 w-full" />
+      </Card>
+      <Card className="gap-4 px-6">
+        <Skeleton className="bg-muted h-6 w-20" />
+        <TagChipShapes />
+      </Card>
     </div>
   );
 }
@@ -127,7 +145,6 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
 
   return (
     <>
-      <ClientRestriction client={question.client} />
       <QuestionForm
         initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
         problems={problems}

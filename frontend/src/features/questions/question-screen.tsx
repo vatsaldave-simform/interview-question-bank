@@ -17,6 +17,7 @@ import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
+import { ScreenSection } from "@/features/questions/screen-section";
 import { PageHeader } from "@/ui/page-header";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
@@ -76,19 +77,6 @@ function QuestionInFull({ question }: { question: Question }) {
 }
 
 type TitledProps = { id: string; title: string; children: ReactNode };
-
-function ScreenSection({ id, title, children }: TitledProps) {
-  return (
-    <section aria-labelledby={id}>
-      <Card className="gap-3 px-6">
-        <h2 id={id} className="text-lg font-semibold">
-          {title}
-        </h2>
-        {children}
-      </Card>
-    </section>
-  );
-}
 
 function AboutThisQuestion({ question }: { question: Question }) {
   const state = publicationStateWording[question.publicationState];

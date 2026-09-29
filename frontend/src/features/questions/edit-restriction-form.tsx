@@ -1,11 +1,13 @@
 import type { Question } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
 import { useGrantedClients } from "@/features/clients/clients.queries";
+import { ClientRestriction } from "@/features/questions/client-restriction";
 import { QuestionClientChoice } from "@/features/questions/question-client-choice";
 import {
   useChangeRestriction,
   type RestrictionChange,
 } from "@/features/questions/questions.queries";
+import { ScreenSection } from "@/features/questions/screen-section";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
@@ -35,25 +37,31 @@ export function EditRestrictionForm({ question }: { question: Question }) {
   if (clients.data?.length === 0 && question.client === null) return null;
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="who-can-see-it">
-      <h2 id="who-can-see-it" className="text-lg font-semibold">
-        Who can see it
-      </h2>
+    <ScreenSection
+      id="who-can-see-it"
+      title="Who can see it"
+      beside={<ClientRestriction client={question.client} />}
+    >
+      <p className="text-muted-foreground text-sm">
+        This changes straight away. It is not part of Save.
+      </p>
       {refusal !== null && (
         <ActNotDone title="The restriction was not changed." reason={refusal} />
       )}
       <form className="flex flex-col gap-3" onSubmit={restrict}>
         <QuestionClientChoice clientId={clientId} onChange={setClientId}>
-          <Button
-            type="submit"
-            size="sm"
-            className="self-start"
-            disabled={
-              clientId === null || clientId === question.client?.id || change.isPending
-            }
-          >
-            Restrict
-          </Button>
+          {/* Its own box, because the field stretches everything directly inside it. */}
+          <div>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={
+                clientId === null || clientId === question.client?.id || change.isPending
+              }
+            >
+              Restrict
+            </Button>
+          </div>
         </QuestionClientChoice>
       </form>
       {/* Offered to every Viewer, because only the API says who may remove it (ADR-0002). */}
@@ -68,6 +76,6 @@ export function EditRestrictionForm({ question }: { question: Question }) {
           Remove the restriction
         </Button>
       )}
-    </section>
+    </ScreenSection>
   );
 }

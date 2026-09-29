@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import { Field, FieldLabel } from "@/ui/shadcn/field";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
+import { Skeleton } from "@/ui/shadcn/skeleton";
 
 type QuestionClientChoiceProps = {
   /** The chosen Client's id, or null for no restriction. */
@@ -19,9 +20,11 @@ export function QuestionClientChoice(props: QuestionClientChoiceProps) {
   const clients = useGrantedClients();
   if (clients.isPending) {
     return (
-      <p role="status" className="text-muted-foreground text-sm">
-        Loading your Clients…
-      </p>
+      <div role="status" className="flex flex-col gap-3">
+        <span className="sr-only">Loading your Clients…</span>
+        <Skeleton className="bg-muted h-4 w-32" />
+        <Skeleton className="bg-muted h-9 w-full" />
+      </div>
     );
   }
   // Shown as an error, because a choice that quietly went missing would let an Author add a

@@ -22,7 +22,7 @@ export type DraftProblems = Partial<Record<DraftField, string>>;
 const problemWording: Record<DraftField, string> = {
   text: "Write the Question.",
   answerNotes: "Write what a good answer looks like.",
-  tags: "Choose the Tags from the lists.",
+  tags: "Choose the Tags from the ones shown.",
   provenance: "Choose where the Question came from.",
   source: "Name the work it was adapted from.",
 };

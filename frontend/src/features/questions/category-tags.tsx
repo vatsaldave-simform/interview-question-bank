@@ -10,6 +10,14 @@ type CategoryTagsProps = {
   onChange: (tags: string[]) => void;
 };
 
+export function chosenAfter(
+  chosen: readonly string[],
+  tag: string,
+  checked: boolean | "indeterminate",
+): string[] {
+  return checked === true ? [...chosen, tag] : chosen.filter((one) => one !== tag);
+}
+
 export function CategoryTags({ idPrefix, category, chosen, onChange }: CategoryTagsProps) {
   return (
     <FieldSet>
@@ -24,11 +32,7 @@ export function CategoryTags({ idPrefix, category, chosen, onChange }: CategoryT
               <Checkbox
                 id={id}
                 checked={chosen.includes(tag)}
-                onCheckedChange={(checked) =>
-                  onChange(
-                    checked === true ? [...chosen, tag] : chosen.filter((one) => one !== tag),
-                  )
-                }
+                onCheckedChange={(checked) => onChange(chosenAfter(chosen, tag, checked))}
               />
               <FieldLabel htmlFor={id} className="font-normal">
                 {tag}
