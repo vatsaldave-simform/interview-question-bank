@@ -4,6 +4,7 @@ import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { AddDialog } from "@/ui/add-dialog";
+import { DoneMessage } from "@/ui/done-message";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -47,9 +48,9 @@ export function ViewerList() {
         }
       />
       {created !== null && (
-        <p role="status" className="text-sm">
+        <DoneMessage>
           {created} was created, and was emailed a link to set their password.
-        </p>
+        </DoneMessage>
       )}
       {viewers.isPending ? (
         <RowsLoading label="Loading the Viewers…" />
