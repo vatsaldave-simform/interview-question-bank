@@ -1,4 +1,7 @@
-export type ThemeChoice = "light" | "dark" | "device";
+import { useSyncExternalStore } from "react";
+
+export const themeChoices = ["light", "dark", "device"] as const;
+export type ThemeChoice = (typeof themeChoices)[number];
 
 /** The script in `index.html` reads the same key, so the two must change together. */
 const storageKey = "theme";
@@ -7,6 +10,7 @@ const darkDevice = () => window.matchMedia("(prefers-color-scheme: dark)");
 
 // Held here as well as saved, so a choice still counts on this page when saving fails.
 let choice: ThemeChoice | undefined;
+const listeners = new Set<() => void>();
 
 function savedChoice(): ThemeChoice {
   let saved: string | null = null;
@@ -18,9 +22,13 @@ function savedChoice(): ThemeChoice {
   return saved === "light" || saved === "dark" ? saved : "device";
 }
 
+function themeChoice(): ThemeChoice {
+  return (choice ??= savedChoice());
+}
+
 function applyTheme(): void {
-  choice ??= savedChoice();
-  const dark = choice === "dark" || (choice === "device" && darkDevice().matches);
+  const current = themeChoice();
+  const dark = current === "dark" || (current === "device" && darkDevice().matches);
   document.documentElement.classList.toggle("dark", dark);
 }
 
@@ -40,4 +48,14 @@ export function chooseTheme(next: ThemeChoice): void {
     // Blocked storage: the choice lasts until this page is closed.
   }
   applyTheme();
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useThemeChoice(): ThemeChoice {
+  return useSyncExternalStore(subscribe, themeChoice);
 }

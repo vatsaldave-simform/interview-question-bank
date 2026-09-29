@@ -2,11 +2,16 @@ import { Link, Outlet, type LinkComponentProps } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { CheckingTheSession } from "@/platform/checking-the-session";
 import { useSession } from "@/platform/session";
+import { chooseTheme, themeChoices, useThemeChoice, type ThemeChoice } from "@/platform/theme";
 import { Button } from "@/ui/shadcn/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/shadcn/dropdown-menu";
 
@@ -15,6 +20,7 @@ import {
  * belongs to `features/auth/` (ADR-0030). */
 export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   const session = useSession();
+  const theme = useThemeChoice();
   // The check let "unknown" through instead of bouncing anyone, so this is the wait while
   // the silent sign-in answers, and "signed-out" is the instant before its redirect lands.
   if (session.status === "unknown") return <CheckingTheSession />;
@@ -53,6 +59,25 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
               <DropdownMenuItem asChild>
                 <Link to="/account">Your account</Link>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel id="theme-choice-label" className="text-muted-foreground text-xs">
+                Theme
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                aria-labelledby="theme-choice-label"
+                value={theme}
+                onValueChange={(value) => {
+                  const picked = themeChoices.find((one) => one === value);
+                  if (picked) chooseTheme(picked);
+                }}
+              >
+                {themeChoices.map((choice) => (
+                  <DropdownMenuRadioItem key={choice} value={choice}>
+                    {themeWording[choice]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onSignOut}>Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -64,6 +89,12 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
     </div>
   );
 }
+
+const themeWording: Record<ThemeChoice, string> = {
+  light: "Light",
+  dark: "Dark",
+  device: "Match my device",
+};
 
 /** The underline on the current page follows the `aria-current` the router sets on it. */
 function PageLink(props: Omit<LinkComponentProps, "className">) {
