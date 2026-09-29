@@ -68,8 +68,10 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
     <ul className="flex flex-col gap-4" aria-label="Your Questions">
       {page.questions.map((question) => (
         <li key={question.id}>
-          <QuestionCard question={question}>
-            <PublicationStateBadge state={question.publicationState} />
+          <QuestionCard
+            question={question}
+            badges={<PublicationStateBadge state={question.publicationState} />}
+          >
             {question.reason !== null && <RejectionReason reason={question.reason} />}
             {question.publicationState === "rejected" && (
               <RejectedActs question={question} onRefusal={onRefusal} />

@@ -10,10 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
 type QuestionCardProps = {
   question: Question;
+  /** More badges for the row under the Tags, such as the Publication State. */
+  badges?: ReactNode;
   children?: ReactNode;
 };
 
-export function QuestionCard({ question, children }: QuestionCardProps) {
+export function QuestionCard({ question, badges, children }: QuestionCardProps) {
   return (
     <article>
       <Card>
@@ -29,11 +31,13 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm whitespace-pre-line">
+          {/* Cut short so a page of cards can be read at a glance; the Question page shows it all. */}
+          <p className="text-muted-foreground line-clamp-3 text-sm whitespace-pre-line">
             {question.answerNotes}
           </p>
           <QuestionTags tags={question.tags} />
           <div className="flex flex-wrap items-center gap-3 text-sm">
+            {badges}
             <Badge variant="outline">
               <span className="sr-only">Where it came from: </span>
               {provenanceWording[question.provenance].name}
