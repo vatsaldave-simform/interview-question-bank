@@ -1,6 +1,5 @@
 import type { CategoryName } from "@iqb/shared";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { CategoryTags } from "@/features/questions/category-tags";
 import {
   draftFields,
   type DraftProblems,
@@ -8,6 +7,7 @@ import {
 } from "@/features/questions/question-problems";
 import { useCategories } from "@/features/questions/questions.queries";
 import { ScreenSection } from "@/features/questions/screen-section";
+import { TagChips } from "@/features/questions/tag-chips";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -146,11 +146,10 @@ function TagsField({ labelledBy, chosen, problem, onChange }: TagsFieldProps) {
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="flex flex-col gap-6">
           {categories.data.map((category) => (
-            <CategoryTags
+            <TagChips
               key={category.name}
-              idPrefix="question"
               category={category}
               chosen={chosen.filter((one) => one.category === category.name).map(({ tag }) => tag)}
               onChange={(tags) => setTagsIn(category.name, tags)}
