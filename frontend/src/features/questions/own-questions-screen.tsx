@@ -9,13 +9,13 @@ import {
 } from "@/features/questions/publication-acts";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
-import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 
 type OwnQuestionsScreenProps = { offset: number; onMove: (offset: number) => void };
 

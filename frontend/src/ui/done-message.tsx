@@ -1,7 +1,6 @@
 import { CircleCheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-/** Says an act worked, right where it happened. */
 export function DoneMessage({ children }: { children: ReactNode }) {
   return (
     <p role="status" className="flex items-start gap-2 text-sm">

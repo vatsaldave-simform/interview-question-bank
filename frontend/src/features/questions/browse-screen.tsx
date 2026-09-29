@@ -4,13 +4,13 @@ import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.s
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { QuestionCard } from "@/features/questions/question-card";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { PageHeader } from "@/ui/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
-import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 
 type BrowseScreenProps = {
   search: BrowseSearch;

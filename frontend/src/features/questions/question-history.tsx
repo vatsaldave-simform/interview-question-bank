@@ -4,11 +4,11 @@ import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import { useQuestionHistory } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
+import { RowsLoading } from "@/ui/rows-loading";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/shadcn/collapsible";
-import { RowsLoading } from "@/ui/rows-loading";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -22,7 +22,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
           History
         </h2>
         {history.isPending ? (
-          <RowsLoading label="Loading the history…" />
+          <RowsLoading label="Loading the history…" onCard />
         ) : history.isError ? (
           <Alert variant="destructive">
             <AlertTitle>The history could not be loaded</AlertTitle>

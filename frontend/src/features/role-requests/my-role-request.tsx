@@ -14,9 +14,9 @@ import { roleWording } from "@/features/viewers/role-wording";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowsLoading } from "@/ui/rows-loading";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
-import { RowsLoading } from "@/ui/rows-loading";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
