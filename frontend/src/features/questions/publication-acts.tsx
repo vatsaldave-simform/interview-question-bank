@@ -1,5 +1,5 @@
 import type { NearDuplicate, Question } from "@iqb/shared";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { useMoveQuestion, type PublicationMove } from "@/features/questions/questions.queries";
 import { ReasonForm } from "@/features/questions/reason-form";
@@ -119,10 +119,13 @@ const reasonActWording = {
   },
 };
 
-type ReasonActProps = ActProps & { act: keyof typeof reasonActWording };
+type ReasonActProps = ActProps & {
+  act: keyof typeof reasonActWording;
+  variant?: ComponentProps<typeof Button>["variant"];
+};
 
 /** A button that opens a reason box, since the act is refused without one. */
-export function ReasonAct({ act, question, onRefusal }: ReasonActProps) {
+export function ReasonAct({ act, question, onRefusal, variant = "outline" }: ReasonActProps) {
   const move = useMoveQuestion(question.id);
   const [writing, setWriting] = useState(false);
   const wording = reasonActWording[act];
@@ -130,7 +133,7 @@ export function ReasonAct({ act, question, onRefusal }: ReasonActProps) {
   return (
     <Dialog open={writing} onOpenChange={setWriting}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant={variant} size="sm">
           {wording.open}
         </Button>
       </DialogTrigger>

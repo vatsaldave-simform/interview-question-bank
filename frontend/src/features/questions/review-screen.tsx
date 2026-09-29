@@ -83,14 +83,15 @@ function PendingList({ page, onRefusal }: PendingListProps) {
 function PendingCard({ question, onRefusal }: ActProps) {
   return (
     <QuestionCard question={question}>
+      {/* Publish is the one filled button, so a page of cards does not read as a wall of them. */}
       <div className="flex flex-wrap items-start gap-2">
         <PublishButton question={question} onRefusal={onRefusal} />
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="ghost" size="sm">
           <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
             Edit
           </Link>
         </Button>
-        <ReasonAct act="reject" question={question} onRefusal={onRefusal} />
+        <ReasonAct act="reject" variant="ghost" question={question} onRefusal={onRefusal} />
       </div>
     </QuestionCard>
   );
