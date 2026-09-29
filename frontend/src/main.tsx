@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "@/App";
 import { recoverSession } from "@/features/auth/sign-in";
+import { startFollowingTheme } from "@/platform/theme";
 import "@/index.css";
 
 const root = document.getElementById("root");
@@ -11,6 +12,8 @@ if (!root) throw new Error("No #root element in index.html");
 // effects twice in development, and a second refresh would present a cookie the first one
 // already spent, which the API treats as a stolen session and revokes (ADR-0023).
 void recoverSession();
+
+startFollowingTheme();
 
 createRoot(root).render(
   <StrictMode>
