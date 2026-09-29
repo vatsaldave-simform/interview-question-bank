@@ -15,6 +15,7 @@ import { RejectionReason } from "@/features/questions/rejection-reason";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 
 type OwnQuestionsScreenProps = { offset: number; onMove: (offset: number) => void };
 
@@ -30,9 +31,7 @@ export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) 
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {own.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading your Questions…
-        </p>
+        <QuestionCardsLoading label="Loading your Questions…" />
       ) : own.isError ? (
         <ListNotLoaded what="Questions" reason={own.error} onRetry={() => void own.refetch()} />
       ) : (

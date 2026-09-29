@@ -14,6 +14,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
+import { RowsLoading } from "@/ui/rows-loading";
 
 export function ClientGrants({ clientId }: { clientId: string }) {
   // The API has no address for one Client, so the name comes from the list of them all.
@@ -43,11 +44,7 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
   const [confirming, setConfirming] = useState(false);
 
   if (grants.isPending) {
-    return (
-      <p role="status" className="text-muted-foreground text-sm">
-        Loading the Grants…
-      </p>
-    );
+    return <RowsLoading label="Loading the Grants…" />;
   }
   if (grants.isError) {
     return (

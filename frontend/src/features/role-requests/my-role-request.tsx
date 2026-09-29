@@ -16,6 +16,7 @@ import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
+import { RowsLoading } from "@/ui/rows-loading";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
@@ -36,9 +37,7 @@ export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
         Role Request
       </h2>
       {mine.isPending ? (
-        <p role="status" className="text-muted-foreground text-sm">
-          Loading your Role Requests…
-        </p>
+        <RowsLoading label="Loading your Role Requests…" rows={1} />
       ) : mine.isError ? (
         <ListNotLoaded
           what="Role Requests"

@@ -14,6 +14,7 @@ import { useReviewQueue } from "@/features/questions/questions.queries";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 
 type ReviewScreenProps = { offset: number; onMove: (offset: number) => void };
 
@@ -31,9 +32,7 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {queue.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading the Pending Questions…
-        </p>
+        <QuestionCardsLoading label="Loading the Pending Questions…" />
       ) : queue.isError ? (
         <ListNotLoaded
           what="Pending Questions"

@@ -10,6 +10,7 @@ import { whatWentWrong } from "@/platform/api-client";
 import { PageHeader } from "@/ui/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
+import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 
 type BrowseScreenProps = {
   search: BrowseSearch;
@@ -60,9 +61,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
               </AlertDescription>
             </Alert>
           ) : list.isPending ? (
-            <p role="status" className="text-muted-foreground">
-              Loading Questions…
-            </p>
+            <QuestionCardsLoading label="Loading Questions…" />
           ) : list.isError ? (
             <Alert variant="destructive">
               <AlertTitle>The Questions could not be loaded</AlertTitle>

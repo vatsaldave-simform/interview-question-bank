@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/shadcn/collapsible";
+import { RowsLoading } from "@/ui/rows-loading";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -21,9 +22,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
           History
         </h2>
         {history.isPending ? (
-          <p role="status" className="text-muted-foreground text-sm">
-            Loading the history…
-          </p>
+          <RowsLoading label="Loading the history…" />
         ) : history.isError ? (
           <Alert variant="destructive">
             <AlertTitle>The history could not be loaded</AlertTitle>

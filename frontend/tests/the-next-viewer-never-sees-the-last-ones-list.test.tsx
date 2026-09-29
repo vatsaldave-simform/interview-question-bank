@@ -47,7 +47,7 @@ describe("two Viewers taking turns in one tab", () => {
     await screen.findByRole("button", { name: "Sign in" });
     await signInOnScreen(aReader.email, "reader-password");
 
-    expect(await screen.findByText("Loading Questions…")).toBeVisible();
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading Questions…");
     expect(screen.queryByText("Only the first Viewer may see this")).not.toBeInTheDocument();
     answerTheReader!();
     expect(await screen.findByText("The reader's own")).toBeVisible();

@@ -6,6 +6,7 @@ import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { AddDialog } from "@/ui/add-dialog";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
+import { RowsLoading } from "@/ui/rows-loading";
 import {
   Table,
   TableBody,
@@ -51,9 +52,7 @@ export function ViewerList() {
         </p>
       )}
       {viewers.isPending ? (
-        <p role="status" className="text-muted-foreground text-sm">
-          Loading the Viewers…
-        </p>
+        <RowsLoading label="Loading the Viewers…" />
       ) : viewers.isError ? (
         <ListNotLoaded
           what="Viewers"
