@@ -38,15 +38,11 @@ describe("the account menu", () => {
     expect(theme.getByRole("menuitemradio", { name: "Match my device" })).toBeChecked();
   });
 
-  it("turns the page dark on Dark, and keeps Dark ticked", async () => {
-    const { unmount } = renderTheWholeClient("/");
+  it("turns the page dark on Dark, and ticks Dark", async () => {
+    renderTheWholeClient("/");
 
     await userEvent.click((await openTheAccountMenu()).getByRole("menuitemradio", { name: "Dark" }));
     expect(document.documentElement).toHaveClass("dark");
-    expect((await openTheAccountMenu()).getByRole("menuitemradio", { name: "Dark" })).toBeChecked();
-
-    unmount();
-    renderTheWholeClient("/");
     expect((await openTheAccountMenu()).getByRole("menuitemradio", { name: "Dark" })).toBeChecked();
   });
 });

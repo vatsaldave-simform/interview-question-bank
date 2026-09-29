@@ -6,11 +6,11 @@ export type ThemeChoice = (typeof themeChoices)[number];
 /** The script in `index.html` reads the same key, so the two must change together. */
 const storageKey = "theme";
 
-const darkDevice = () => window.matchMedia("(prefers-color-scheme: dark)");
+const darkDeviceQuery = () => window.matchMedia("(prefers-color-scheme: dark)");
 
 // Held here as well as saved, so a choice still counts on this page when saving fails.
 let choice: ThemeChoice | undefined;
-const listeners = new Set<() => void>();
+const watchers = new Set<() => void>();
 
 function savedChoice(): ThemeChoice {
   let saved: string | null = null;
@@ -28,14 +28,14 @@ function themeChoice(): ThemeChoice {
 
 function applyTheme(): void {
   const current = themeChoice();
-  const dark = current === "dark" || (current === "device" && darkDevice().matches);
+  const dark = current === "dark" || (current === "device" && darkDeviceQuery().matches);
   document.documentElement.classList.toggle("dark", dark);
 }
 
-/** Once per page load. */
+/** `main.tsx` calls this once, because each call adds another device listener. */
 export function startFollowingTheme(): void {
   applyTheme();
-  darkDevice().addEventListener("change", applyTheme);
+  darkDeviceQuery().addEventListener("change", applyTheme);
 }
 
 /** Only this writes to storage, so a Viewer who never picks leaves nothing behind. */
@@ -48,14 +48,14 @@ export function chooseTheme(next: ThemeChoice): void {
     // Blocked storage: the choice lasts until this page is closed.
   }
   applyTheme();
-  for (const listener of listeners) listener();
+  for (const watcher of watchers) watcher();
 }
 
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+function watch(watcher: () => void): () => void {
+  watchers.add(watcher);
+  return () => watchers.delete(watcher);
 }
 
 export function useThemeChoice(): ThemeChoice {
-  return useSyncExternalStore(subscribe, themeChoice);
+  return useSyncExternalStore(watch, themeChoice);
 }
