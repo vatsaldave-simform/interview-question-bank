@@ -7,7 +7,6 @@ import {
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ClientRestriction } from "@/features/questions/client-restriction";
 import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
@@ -127,7 +126,6 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
 
   return (
     <>
-      <ClientRestriction client={question.client} />
       <QuestionForm
         initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
         problems={problems}
