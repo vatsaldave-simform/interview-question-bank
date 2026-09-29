@@ -33,6 +33,11 @@ const rejected = aQuestion({
   reason: "Too easy to tell anyone apart.",
 });
 
+const published = aQuestion({
+  id: "a0000000-0000-4000-8000-000000000033",
+  text: "What does `satisfies` check?",
+});
+
 async function detailsOf(question: { text: string }) {
   await screen.findByRole("heading", { level: 1, name: question.text });
   return within(screen.getByRole("region", { name: "About this Question" }));
@@ -51,6 +56,15 @@ describe("the Question page", () => {
     expect(details.getByRole("button", { name: "Publish" })).toBeVisible();
     expect(details.getByRole("button", { name: "Reject" })).toBeVisible();
     expect(details.queryByText(pending.answerNotes)).not.toBeInTheDocument();
+  });
+
+  it("offers Return to its Author with the details of a Published Question", async () => {
+    aBankHolding([published]);
+    renderTheWholeClient(`/questions/${published.id}`);
+
+    const details = await detailsOf(published);
+    expect(details.getByText("Published")).toBeVisible();
+    expect(details.getByRole("button", { name: "Return to its Author" })).toBeVisible();
   });
 
   it("offers Resubmit with the details, and shows the reason in a section of its own", async () => {

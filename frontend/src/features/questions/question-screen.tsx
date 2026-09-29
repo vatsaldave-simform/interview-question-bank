@@ -75,9 +75,9 @@ function QuestionInFull({ question }: { question: Question }) {
   );
 }
 
-type ScreenSectionProps = { id: string; title: string; children: ReactNode };
+type TitledProps = { id: string; title: string; children: ReactNode };
 
-function ScreenSection({ id, title, children }: ScreenSectionProps) {
+function ScreenSection({ id, title, children }: TitledProps) {
   return (
     <section aria-labelledby={id}>
       <Card className="gap-3 px-6">
@@ -101,17 +101,17 @@ function AboutThisQuestion({ question }: { question: Question }) {
         <h2 id="about-this-question" className="text-lg font-semibold">
           About this Question
         </h2>
-        <Detail id="publication-state" title="Publication State">
+        <QuestionDetail id="publication-state" title="Publication State">
           <PublicationStateBadge state={question.publicationState} />
           <p className="text-muted-foreground">{state.meaning}</p>
-        </Detail>
+        </QuestionDetail>
         {question.client !== null && (
-          <Detail id="who-can-see-it" title="Who can see it">
+          <QuestionDetail id="who-can-see-it" title="Who can see it">
             <ClientRestriction client={question.client} />
             <p className="text-muted-foreground">
               Only Viewers with a Grant for {question.client.name} can see this Question.
             </p>
-          </Detail>
+          </QuestionDetail>
         )}
         <WhereItCameFrom question={question} />
         <Separator />
@@ -121,9 +121,7 @@ function AboutThisQuestion({ question }: { question: Question }) {
   );
 }
 
-type DetailProps = { id: string; title: string; children: ReactNode };
-
-function Detail({ id, title, children }: DetailProps) {
+function QuestionDetail({ id, title, children }: TitledProps) {
   return (
     <section className="flex flex-col items-start gap-1.5 text-sm" aria-labelledby={id}>
       <h3 id={id} className="font-medium">
@@ -137,7 +135,7 @@ function Detail({ id, title, children }: DetailProps) {
 function WhereItCameFrom({ question }: { question: Question }) {
   const { name, meaning } = provenanceWording[question.provenance];
   return (
-    <Detail id="where-it-came-from" title="Where it came from">
+    <QuestionDetail id="where-it-came-from" title="Where it came from">
       <p>
         {name}. {meaning}
       </p>
@@ -149,7 +147,7 @@ function WhereItCameFrom({ question }: { question: Question }) {
             Source: <cite>{question.source}</cite>
           </p>
         ))}
-    </Detail>
+    </QuestionDetail>
   );
 }
 

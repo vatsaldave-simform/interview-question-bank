@@ -133,7 +133,6 @@ describe("publishing from the review queue", () => {
   });
 });
 
-/** The reason form, which opens in a dialog rather than inside the card. */
 function rejectDialog() {
   return within(screen.getByRole("dialog", { name: "Reject the Question" }));
 }
