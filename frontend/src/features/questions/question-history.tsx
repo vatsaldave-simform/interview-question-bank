@@ -1,9 +1,13 @@
 import type { ChangeEvent, NearDuplicate, QuestionEdited, QuestionTag } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { ChevronRightIcon } from "lucide-react";
+import { useState } from "react";
 import { useQuestionHistory } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
+import { Card } from "@/ui/shadcn/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/shadcn/collapsible";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -11,49 +15,51 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
   const history = useQuestionHistory(questionId);
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="history">
-      <h2 id="history" className="text-lg font-semibold">
-        History
-      </h2>
-      {history.isPending ? (
-        <p role="status" className="text-muted-foreground text-sm">
-          Loading the history…
-        </p>
-      ) : history.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>The history could not be loaded</AlertTitle>
-          <AlertDescription className="flex flex-col items-start gap-3">
-            <p>{whatWentWrong(history.error)}</p>
-            <Button variant="outline" size="sm" onClick={() => void history.refetch()}>
-              Try again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : history.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No changes have been recorded.</p>
-      ) : (
-        <ol aria-labelledby="history" className="flex flex-col gap-3">
-          {history.data.map((event) => (
-            <li key={event.id} className="flex flex-col gap-1 text-sm">
-              <p>
-                {event.viewerEmail} {whatHappened(event)}
-                {" · "}
-                <time dateTime={event.at} className="text-muted-foreground">
-                  {whenWording.format(new Date(event.at))}
-                </time>
-              </p>
-              {event.type === "question_edited" && <WhatAnEditChanged edit={event.payload} />}
-              {event.type === "near_duplicate_refused" && (
-                <TextSent text={event.payload.attempted.text} />
-              )}
-              {(event.type === "near_duplicate_overridden" ||
-                event.type === "near_duplicate_refused") && (
-                <NearDuplicatesNamed nearDuplicates={event.payload.nearDuplicates} />
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
+    <section aria-labelledby="history">
+      <Card className="gap-4 px-6">
+        <h2 id="history" className="text-lg font-semibold">
+          History
+        </h2>
+        {history.isPending ? (
+          <p role="status" className="text-muted-foreground text-sm">
+            Loading the history…
+          </p>
+        ) : history.isError ? (
+          <Alert variant="destructive">
+            <AlertTitle>The history could not be loaded</AlertTitle>
+            <AlertDescription className="flex flex-col items-start gap-3">
+              <p>{whatWentWrong(history.error)}</p>
+              <Button variant="outline" size="sm" onClick={() => void history.refetch()}>
+                Try again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : history.data.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No changes have been recorded.</p>
+        ) : (
+          <ol aria-labelledby="history" className="flex flex-col divide-y">
+            {history.data.map((event) => (
+              <li key={event.id} className="flex flex-col gap-1 py-3 text-sm first:pt-0 last:pb-0">
+                <p>
+                  {event.viewerEmail} {whatHappened(event)}
+                  {" · "}
+                  <time dateTime={event.at} className="text-muted-foreground">
+                    {whenWording.format(new Date(event.at))}
+                  </time>
+                </p>
+                {event.type === "question_edited" && <WhatAnEditChanged edit={event.payload} />}
+                {event.type === "near_duplicate_refused" && (
+                  <TextSent text={event.payload.attempted.text} />
+                )}
+                {(event.type === "near_duplicate_overridden" ||
+                  event.type === "near_duplicate_refused") && (
+                  <NearDuplicatesNamed nearDuplicates={event.payload.nearDuplicates} />
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </Card>
     </section>
   );
 }
@@ -120,8 +126,26 @@ function whatHappened(event: ChangeEvent): string {
 const tagsWording = (tags: readonly QuestionTag[]) =>
   tags.length === 0 ? "no Tags" : tags.map(({ tag }) => tag).join(", ");
 
-/** Only the fields the event names: one the edit left alone is absent from it. */
+/** Closed at first, because an edit can carry whole paragraphs of Answer Notes. */
 function WhatAnEditChanged({ edit }: { edit: QuestionEdited }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="flex flex-col items-start gap-1">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="-ml-2">
+          <ChevronRightIcon aria-hidden="true" className={open ? "rotate-90" : undefined} />
+          {open ? "Hide changes" : "Show changes"}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="self-stretch">
+        <EditChanges edit={edit} />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/** Only the fields the event names: one the edit left alone is absent from it. */
+function EditChanges({ edit }: { edit: QuestionEdited }) {
   const changes = [
     edit.text && { field: "Text", before: edit.text.before, after: edit.text.after },
     edit.answerNotes && {
