@@ -20,7 +20,9 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useAddQuestion } from "@/features/questions/questions.queries";
+import { ScreenSection } from "@/features/questions/screen-section";
 import { PageHeader } from "@/ui/page-header";
+import { FieldGroup } from "@/ui/shadcn/field";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
 
@@ -116,12 +118,16 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
         submit={{ label: "Add the Question", sendingLabel: "Adding…" }}
         onSubmit={submit}
       >
-        <ContributeProvenanceFields
-          choice={provenanceChoice}
-          problems={problems}
-          onChange={setProvenanceChoice}
-        />
-        <QuestionClientChoice clientId={clientId} onChange={setClientId} />
+        <ScreenSection id="where-it-came-from" title="Where it came from and who can see it">
+          <FieldGroup>
+            <ContributeProvenanceFields
+              choice={provenanceChoice}
+              problems={problems}
+              onChange={setProvenanceChoice}
+            />
+            <QuestionClientChoice clientId={clientId} onChange={setClientId} />
+          </FieldGroup>
+        </ScreenSection>
       </QuestionForm>
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog
