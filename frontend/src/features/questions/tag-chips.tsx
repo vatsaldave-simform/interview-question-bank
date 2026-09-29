@@ -1,5 +1,6 @@
 import type { CategoryWithTags } from "@iqb/shared";
 import { CheckIcon } from "lucide-react";
+import { chosenAfter } from "@/features/questions/category-tags";
 import { Checkbox } from "@/ui/shadcn/checkbox";
 import { FieldLegend, FieldSet } from "@/ui/shadcn/field";
 import { Skeleton } from "@/ui/shadcn/skeleton";
@@ -30,9 +31,7 @@ export function TagChips({ category, chosen, onChange }: TagChipsProps) {
                 id={id}
                 className="absolute inset-0 size-full cursor-pointer rounded-full opacity-0"
                 checked={checked}
-                onCheckedChange={(state) =>
-                  onChange(state === true ? [...chosen, tag] : chosen.filter((one) => one !== tag))
-                }
+                onCheckedChange={(state) => onChange(chosenAfter(chosen, tag, state))}
               />
               {/* The colour alone would not tell everyone which Tags are chosen. */}
               {checked && <CheckIcon aria-hidden="true" className="size-3.5" />}
@@ -47,7 +46,7 @@ export function TagChips({ category, chosen, onChange }: TagChipsProps) {
 
 const chipWidths = ["w-24", "w-16", "w-28", "w-20", "w-24", "w-14", "w-20"];
 
-/** Grey chips in place of the Tags, for a screen that says it is loading. */
+/** Shaped like the chips, so the card does not jump when the Tags arrive. */
 export function TagChipShapes() {
   return (
     <div className="flex flex-wrap gap-2">

@@ -95,7 +95,6 @@ export function QuestionForm(props: QuestionFormProps) {
       </ScreenSection>
       <ScreenSection id="question-tags" title="Tags">
         <TagsField
-          labelledBy="question-tags"
           chosen={draft.tags}
           problem={problems.tags}
           onChange={(tags) => setDraft({ ...draft, tags })}
@@ -110,14 +109,12 @@ export function QuestionForm(props: QuestionFormProps) {
 }
 
 type TagsFieldProps = {
-  /** The id of the card's heading, which names the Tags so they need no second title. */
-  labelledBy: string;
   chosen: QuestionDraft["tags"];
   problem: string | undefined;
   onChange: (tags: QuestionDraft["tags"]) => void;
 };
 
-function TagsField({ labelledBy, chosen, problem, onChange }: TagsFieldProps) {
+function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
   const categories = useCategories();
 
   function setTagsIn(category: CategoryName, tags: string[]) {
@@ -128,7 +125,7 @@ function TagsField({ labelledBy, chosen, problem, onChange }: TagsFieldProps) {
   }
 
   return (
-    <FieldSet data-invalid={problem !== undefined} aria-labelledby={labelledBy}>
+    <FieldSet data-invalid={problem !== undefined}>
       {categories.isPending ? (
         <div role="status">
           <span className="sr-only">Loading the Tags…</span>

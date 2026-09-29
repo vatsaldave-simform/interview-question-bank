@@ -37,11 +37,14 @@ export function EditRestrictionForm({ question }: { question: Question }) {
   if (clients.data?.length === 0 && question.client === null) return null;
 
   return (
-    <ScreenSection id="who-can-see-it" title="Who can see it">
+    <ScreenSection
+      id="who-can-see-it"
+      title="Who can see it"
+      beside={<ClientRestriction client={question.client} />}
+    >
       <p className="text-muted-foreground text-sm">
         This changes straight away. It is not part of Save.
       </p>
-      <ClientRestriction client={question.client} />
       {refusal !== null && (
         <ActNotDone title="The restriction was not changed." reason={refusal} />
       )}
