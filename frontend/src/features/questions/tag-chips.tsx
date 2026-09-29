@@ -2,6 +2,7 @@ import type { CategoryWithTags } from "@iqb/shared";
 import { CheckIcon } from "lucide-react";
 import { Checkbox } from "@/ui/shadcn/checkbox";
 import { FieldLegend, FieldSet } from "@/ui/shadcn/field";
+import { Skeleton } from "@/ui/shadcn/skeleton";
 
 type TagChipsProps = {
   category: CategoryWithTags;
@@ -41,5 +42,18 @@ export function TagChips({ category, chosen, onChange }: TagChipsProps) {
         })}
       </div>
     </FieldSet>
+  );
+}
+
+const chipWidths = ["w-24", "w-16", "w-28", "w-20", "w-24", "w-14", "w-20"];
+
+/** Grey chips in place of the Tags, for a screen that says it is loading. */
+export function TagChipShapes() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chipWidths.map((width, chip) => (
+        <Skeleton key={chip} className={`bg-muted h-7 rounded-full ${width}`} />
+      ))}
+    </div>
   );
 }

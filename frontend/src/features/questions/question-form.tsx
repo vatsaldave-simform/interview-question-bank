@@ -7,7 +7,7 @@ import {
 } from "@/features/questions/question-problems";
 import { useCategories } from "@/features/questions/questions.queries";
 import { ScreenSection } from "@/features/questions/screen-section";
-import { TagChips } from "@/features/questions/tag-chips";
+import { TagChipShapes, TagChips } from "@/features/questions/tag-chips";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -130,7 +130,10 @@ function TagsField({ labelledBy, chosen, problem, onChange }: TagsFieldProps) {
   return (
     <FieldSet data-invalid={problem !== undefined} aria-labelledby={labelledBy}>
       {categories.isPending ? (
-        <p className="text-muted-foreground text-sm">Loading the Tags…</p>
+        <div role="status">
+          <span className="sr-only">Loading the Tags…</span>
+          <TagChipShapes />
+        </div>
       ) : categories.isError ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-col items-start gap-3">
