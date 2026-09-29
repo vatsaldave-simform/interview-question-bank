@@ -86,6 +86,8 @@ Tailwind classes in the component. `src/index.css` is the only stylesheet: it ho
 directives and the theme variables shadcn reads. No CSS modules, no CSS-in-JS, and no second
 stylesheet.
 
+Colours that carry meaning are theme variables in `index.css`, never Tailwind colour classes, so the dark palette only has to give each one a new value.
+
 ## Tests
 
 Tests live in `frontend/tests/`, flat, as on the backend. They are named after the behaviour they
