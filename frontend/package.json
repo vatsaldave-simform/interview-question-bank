@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
     "@iqb/shared": "workspace:*",
     "@tanstack/react-query": "^5.103.2",
     "@tanstack/react-router": "^1.170.38",

@@ -1,12 +1,18 @@
-/* The only stylesheet (ADR-0030): the Tailwind import, and the theme variables the
-   generated components read. Everything else is Tailwind classes in the component. */
+/* The only stylesheet (ADR-0030): the Tailwind and font imports, and the theme variables
+   the generated components read. Everything else is Tailwind classes in the component. */
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
 
 /* shadcn's components ask for dark styling with a `dark` class on an ancestor rather
    than the media query, so the two can be told apart later. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Geist for every screen, with Tailwind's own system list behind it while it loads. */
+  --font-sans:
+    "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
