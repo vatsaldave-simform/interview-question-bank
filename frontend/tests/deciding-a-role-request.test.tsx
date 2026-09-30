@@ -13,6 +13,7 @@ import {
 } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -102,6 +103,7 @@ describe("deciding a Role Request from the administration console", () => {
 
     const table = within(screen.getByRole("table", { name: "Open Role Requests" }));
     await vi.waitFor(() => expect(table.queryByText("reader@iqb.test")).not.toBeInTheDocument());
+    expect(await theToastSaying("reader@iqb.test was granted the Reviewer role.")).toBeVisible();
     expect(table.getByText("author@iqb.test")).toBeVisible();
     const [sent] = decisionsSent(api);
     expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
@@ -138,6 +140,7 @@ describe("deciding a Role Request from the administration console", () => {
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
     expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(await theToastSaying("reader@iqb.test's Role Request was denied.")).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const [sent] = decisionsSent(api);
     expect(await sent!.json()).toEqual({ outcome: "denied", reason: "Not on a project yet." });
@@ -157,6 +160,7 @@ describe("deciding a Role Request from the administration console", () => {
     const alert = within(await queue.findByRole("alert"));
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("asks again after a refusal, and keeps the refusal on screen", async () => {
@@ -179,6 +183,7 @@ describe("deciding a Role Request from the administration console", () => {
     const table = within(queue.getByRole("table"));
     await vi.waitFor(() => expect(table.queryByText("reader@iqb.test")).not.toBeInTheDocument());
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("changes the header of an Administrator who grants their own Role Request", async () => {

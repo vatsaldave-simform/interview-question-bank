@@ -1,6 +1,7 @@
 import type { NamedViewer, PermissionGrant } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useEveryClient } from "@/features/clients/clients.queries";
 import {
   useActOnGrants,
@@ -80,7 +81,17 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
         clientId={clientId}
         grants={grants.data}
         pending={act.isPending}
-        onIssue={(viewerId, done) => act.mutate({ act: "issue", viewerId }, { onSuccess: done })}
+        onIssue={(viewer, done) =>
+          act.mutate(
+            { act: "issue", viewerId: viewer.id },
+            {
+              onSuccess: () => {
+                done();
+                toast.success(`${viewer.email} now holds a Grant against this Client.`);
+              },
+            },
+          )
+        }
       />
       {act.isError && <ActNotDone title="That was not done." reason={whatWentWrong(act.error)} />}
       <ConfirmAct
@@ -89,7 +100,13 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
         title="Revoke the Grant?"
         description={`${toRevoke?.email} can no longer see this Client's Questions.`}
         act="Revoke"
-        onConfirm={() => toRevoke !== null && act.mutate({ act: "revoke", viewerId: toRevoke.id })}
+        onConfirm={() =>
+          toRevoke !== null &&
+          act.mutate(
+            { act: "revoke", viewerId: toRevoke.id },
+            { onSuccess: () => toast.success(`${toRevoke.email}'s Grant was revoked.`) },
+          )
+        }
       />
     </div>
   );
@@ -99,7 +116,7 @@ type IssueGrantProps = {
   clientId: string;
   grants: PermissionGrant[];
   pending: boolean;
-  onIssue: (viewerId: string, done: () => void) => void;
+  onIssue: (viewer: NamedViewer, done: () => void) => void;
 };
 
 function IssueGrant({ clientId, grants, pending, onIssue }: IssueGrantProps) {
@@ -117,6 +134,7 @@ function IssueGrant({ clientId, grants, pending, onIssue }: IssueGrantProps) {
   const withoutGrant = viewers.data.filter(
     (viewer) => !grants.some((grant) => grant.viewer.id === viewer.id),
   );
+  const pickedViewer = withoutGrant.find((viewer) => viewer.id === picked);
   const pickerId = `grant-viewer-${clientId}`;
 
   return (
@@ -140,8 +158,8 @@ function IssueGrant({ clientId, grants, pending, onIssue }: IssueGrantProps) {
       <Button
         variant="outline"
         size="sm"
-        disabled={pending || picked === ""}
-        onClick={() => onIssue(picked, () => setPicked(""))}
+        disabled={pending || pickedViewer === undefined}
+        onClick={() => pickedViewer !== undefined && onIssue(pickedViewer, () => setPicked(""))}
       >
         Issue a Grant
       </Button>

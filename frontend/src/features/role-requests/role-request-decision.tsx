@@ -4,6 +4,7 @@ import {
   type RoleRequest,
 } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { useDecideRoleRequest } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
 import {
@@ -46,8 +47,16 @@ export function RoleRequestDecision({ roleRequest, onRefusal }: RoleRequestDecis
 
   function send(decision: DecideRoleRequestRequest, form?: HTMLFormElement): void {
     onRefusal(null);
-    decide.mutate(decision, {
-      onError: (reason) => {
+    const { email } = roleRequest.viewer;
+    // Not `mutate`'s own callback, which is dropped once the row has left the queue.
+    decide.mutateAsync(decision).then(
+      () =>
+        toast.success(
+          decision.outcome === "granted"
+            ? `${email} was granted the ${roleWording[roleRequest.role]} role.`
+            : `${email}'s Role Request was denied.`,
+        ),
+      (reason: Error) => {
         const refused = refusalOf(problemWording, reason);
         setProblems(refused.problems);
         if (refused.message !== null) {
@@ -57,7 +66,7 @@ export function RoleRequestDecision({ roleRequest, onRefusal }: RoleRequestDecis
         }
         if (form !== undefined) focusFirstProblem(form, refused.problems);
       },
-    });
+    );
   }
 
   function stopDenying(): void {

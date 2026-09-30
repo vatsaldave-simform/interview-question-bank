@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aViewer, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -110,6 +111,8 @@ describe("acting on one Viewer from the administration console", () => {
     const row = await rowFor("reader@iqb.test");
     expect(await row.findByRole("cell", { name: "Author" })).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The new role shows in the row that was acted on, so it needs no toast.
+    expect(toastsShown()).toHaveLength(0);
     expect(actsSent(api)).toEqual([`PATCH /api/viewers/${reader.id}/role`]);
     const [sent] = api.sent.filter((request) => request.method === "PATCH");
     expect(await sent?.json()).toEqual({ role: "author" });
@@ -143,6 +146,7 @@ describe("acting on one Viewer from the administration console", () => {
 
     await pick("Withdraw Administrator", "reader@iqb.test");
     expect(await row.findByRole("cell", { name: "No" })).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
     expect(await actsOfferedTo("reader@iqb.test")).toContain("Appoint as Administrator");
     expect(actsSent(api)).toEqual([
       `POST /api/viewers/${reader.id}/administrator`,
@@ -158,9 +162,11 @@ describe("acting on one Viewer from the administration console", () => {
     await pick("Deactivate", "reader@iqb.test");
     await confirm("Deactivate");
     expect(await row.findByRole("cell", { name: "Deactivated" })).toBeVisible();
+    expect(await theToastSaying("reader@iqb.test was Deactivated.")).toBeVisible();
 
     await pick("Reactivate", "reader@iqb.test");
     expect(await row.findByRole("cell", { name: "Active" })).toBeVisible();
+    expect(await theToastSaying("reader@iqb.test was Reactivated.")).toBeVisible();
     expect(await actsOfferedTo("reader@iqb.test")).toContain("Deactivate");
     expect(actsSent(api)).toEqual([
       `POST /api/viewers/${reader.id}/deactivation`,
@@ -215,6 +221,7 @@ describe("acting on one Viewer from the administration console", () => {
     expect(row.getByRole("cell", { name: "Yes" })).toBeVisible();
     expect(row.getByRole("cell", { name: "Active" })).toBeVisible();
     expect((await rowFor("reader@iqb.test")).queryByRole("alert")).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("takes the console link away from an Administrator who withdraws their own authority", async () => {

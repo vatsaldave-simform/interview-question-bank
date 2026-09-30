@@ -1,6 +1,7 @@
 import { viewerRoles, viewerRoleSchema, type Viewer, type ViewerRole } from "@iqb/shared";
 import { EllipsisIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { roleWording } from "@/features/viewers/role-wording";
 import { useActOnViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
@@ -51,7 +52,14 @@ export function ViewerActs({ viewer }: { viewer: Viewer }) {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {viewer.isDeactivated ? (
-            <DropdownMenuItem onSelect={() => act.mutate({ act: "reactivate" })}>
+            <DropdownMenuItem
+              onSelect={() =>
+                act.mutate(
+                  { act: "reactivate" },
+                  { onSuccess: () => toast.success(`${viewer.email} was Reactivated.`) },
+                )
+              }
+            >
               Reactivate
             </DropdownMenuItem>
           ) : (
@@ -82,7 +90,12 @@ export function ViewerActs({ viewer }: { viewer: Viewer }) {
           "Reactivate them later."
         }
         act="Deactivate"
-        onConfirm={() => act.mutate({ act: "deactivate" })}
+        onConfirm={() =>
+          act.mutate(
+            { act: "deactivate" },
+            { onSuccess: () => toast.success(`${viewer.email} was Deactivated.`) },
+          )
+        }
       />
       {act.isError && <ActNotDone title="That was not done." reason={whatWentWrong(act.error)} />}
     </div>
