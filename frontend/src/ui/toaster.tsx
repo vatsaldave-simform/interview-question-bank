@@ -1,6 +1,6 @@
 import { CircleCheckIcon } from "lucide-react";
-import type { CSSProperties } from "react";
-import { Toaster as Sonner } from "sonner";
+import { useEffect, type CSSProperties } from "react";
+import { Toaster as Sonner, toast } from "sonner";
 import { useThemeChoice, type ThemeChoice } from "@/platform/theme";
 
 const toasterTheme: Record<ThemeChoice, "light" | "dark" | "system"> = {
@@ -13,6 +13,14 @@ const toasterTheme: Record<ThemeChoice, "light" | "dark" | "system"> = {
  * theme instead of `platform/theme.ts`. */
 export function Toaster() {
   const theme = useThemeChoice();
+  // Sonner shows a new toaster every toast still held, so one left over after logging out
+  // would show to the next Viewer to sign in.
+  useEffect(
+    () => () => {
+      toast.dismiss();
+    },
+    [],
+  );
 
   return (
     <Sonner
@@ -23,6 +31,8 @@ export function Toaster() {
       icons={{ success: <CircleCheckIcon className="size-4" /> }}
       style={
         {
+          // Sonner's own stylesheet names a font for the toaster, and would win over a class.
+          fontFamily: "inherit",
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
