@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interview Question Bank</title>
+    <script>
+      // This runs before the page is drawn, because waiting for React's code to download
+      // would flash a white page on every reload in dark mode.
+      (function () {
+        var saved = null;
+        try {
+          saved = localStorage.getItem("theme");
+        } catch (blocked) {}
+        if (
+          saved === "dark" ||
+          (saved !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
