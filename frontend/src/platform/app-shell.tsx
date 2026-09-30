@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/shadcn/dropdown-menu";
+import { Toaster } from "@/ui/toaster";
 
 /** The frame every signed-in screen sits inside. It is told how to end the session rather
  * than reaching for it: nothing in `platform/` may import a feature, and logging out
@@ -86,6 +87,8 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
       <main className="flex-1 p-6">
         <Outlet />
       </main>
+      {/* Here, so a toast outlives the screen that raised it when the act moves to another. */}
+      <Toaster />
     </div>
   );
 }

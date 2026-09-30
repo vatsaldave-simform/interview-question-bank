@@ -17,3 +17,13 @@ window.ResizeObserver = class {
   unobserve(): void {}
   disconnect(): void {}
 };
+
+// jsdom has no matchMedia, and the toaster asks it whether the device is dark. `aDevice`
+// replaces this in the tests that care.
+window.matchMedia = (media: string) =>
+  ({
+    media,
+    matches: false,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }) as unknown as MediaQueryList;
