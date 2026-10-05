@@ -142,7 +142,7 @@ describe("resubmitting a Rejected Question", () => {
 
     expect(await within(list).findByText("Pending")).toBeVisible();
     expect(within(list).queryByRole("button", { name: "Resubmit" })).not.toBeInTheDocument();
-    // Not on the ticket's list, and the card shows it as Pending right where it was pressed.
+    // The card shows it as Pending right where it was pressed, so it needs no toast.
     expect(toastsShown()).toHaveLength(0);
     const [sent] = actsSent(api, "/resubmit");
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${rejected.id}/resubmit`);

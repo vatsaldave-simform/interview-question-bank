@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { expect } from "vitest";
 
-/** A test helper listing the toasts on screen. Sonner marks each one with this attribute. */
+/** A test helper listing the toasts on screen, by the attribute sonner puts on each one. */
 export function toastsShown(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>("[data-sonner-toast]")];
 }

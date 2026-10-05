@@ -3,6 +3,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { CheckingTheSession } from "@/platform/checking-the-session";
 import { useSession } from "@/platform/session";
 import { chooseTheme, themeChoices, useThemeChoice, type ThemeChoice } from "@/platform/theme";
+import { Toaster } from "@/platform/toaster";
 import { Button } from "@/ui/shadcn/button";
 import {
   DropdownMenu,
@@ -14,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/shadcn/dropdown-menu";
-import { Toaster } from "@/ui/toaster";
 
 /** The frame every signed-in screen sits inside. It is told how to end the session rather
  * than reaching for it: nothing in `platform/` may import a feature, and logging out

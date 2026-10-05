@@ -9,8 +9,8 @@ const toasterTheme: Record<ThemeChoice, "light" | "dark" | "system"> = {
   device: "system",
 };
 
-/** Written by hand rather than by `shadcn add`, whose version asks `next-themes` for the
- * theme instead of `platform/theme.ts`. */
+/** Written by hand because the file `shadcn add` writes fails this repo's typecheck, and
+ * `ui/shadcn/` is never edited. */
 export function Toaster() {
   const theme = useThemeChoice();
   // Sonner shows a new toaster every toast still held, so one left over after logging out
@@ -28,7 +28,7 @@ export function Toaster() {
       position="bottom-right"
       closeButton
       duration={4000}
-      icons={{ success: <CircleCheckIcon className="size-4" /> }}
+      icons={{ success: <CircleCheckIcon aria-hidden="true" className="size-4" /> }}
       style={
         {
           // Sonner's own stylesheet names a font for the toaster, and would win over a class.
