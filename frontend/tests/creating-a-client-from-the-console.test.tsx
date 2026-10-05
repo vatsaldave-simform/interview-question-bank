@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aClient, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -60,7 +61,7 @@ describe("creating a Client from the administration console", () => {
     await userEvent.type(form.getByLabelText("Name"), "  Kingsbridge Health ");
     await userEvent.click(form.getByRole("button", { name: "Create" }));
 
-    expect(await screen.findByText("Kingsbridge Health was created.")).toBeVisible();
+    expect(await theToastSaying("Kingsbridge Health was created.")).toBeVisible();
     expect(screen.queryByRole("form", { name: "Create a Client" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ name: "Kingsbridge Health" });
@@ -96,7 +97,7 @@ describe("creating a Client from the administration console", () => {
     const refusal = within(await form.findByRole("alert"));
     expect(refusal.getByText("The Client was not created.")).toBeVisible();
     expect(refusal.getByText("A Client with that name already exists.")).toBeVisible();
-    expect(form.queryByRole("status")).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
     expect(form.getByLabelText("Name")).toHaveValue("Northwind Trading");
   });
 

@@ -1,5 +1,6 @@
 import type { NearDuplicate, Question } from "@iqb/shared";
 import { useState, type ComponentProps } from "react";
+import { toast } from "sonner";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { useMoveQuestion, type PublicationMove } from "@/features/questions/questions.queries";
 import { ReasonForm } from "@/features/questions/reason-form";
@@ -53,16 +54,17 @@ export function PublishButton({ question, onRefusal }: ActProps) {
     onRefusal(null);
     setRefusedAsNearDuplicate(null);
     // Not `mutate`'s own callback, which is dropped once the card has left the list.
-    move
-      .mutateAsync({ act: "publish", request: { confirmedNotANearDuplicate } })
-      .catch((reason: Error) => {
+    move.mutateAsync({ act: "publish", request: { confirmedNotANearDuplicate } }).then(
+      () => toast.success(`"${question.text}" was Published.`),
+      (reason: Error) => {
         const nearDuplicates = nearDuplicatesIn(reason);
         if (nearDuplicates !== null) {
           setRefusedAsNearDuplicate({ message: reason.message, nearDuplicates });
           return;
         }
         onRefusal(refusedAs("publish", question, whatWentWrong(reason)));
-      });
+      },
+    );
   }
 
   return (
@@ -110,12 +112,14 @@ const reasonActWording = {
     title: "Reject the Question",
     label: "Why it is Rejected",
     send: "Send the rejection",
+    done: "was Rejected",
   },
   return: {
     open: "Return to its Author",
     title: "Return it to its Author",
     label: "Why it is returned",
     send: "Return it",
+    done: "was returned to its Author",
   },
 };
 
@@ -152,7 +156,10 @@ export function ReasonAct({ act, question, onRefusal, variant = "outline" }: Rea
           sending={move.isPending}
           onSend={(request) => {
             onRefusal(null);
-            return move.mutateAsync({ act, request }).then(() => setWriting(false));
+            return move.mutateAsync({ act, request }).then(() => {
+              setWriting(false);
+              toast.success(`"${question.text}" ${wording.done}.`);
+            });
           }}
           onRefusal={(message) => {
             onRefusal(refusedAs(act, question, message));

@@ -1,5 +1,6 @@
 import type { Question } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { useGrantedClients } from "@/features/clients/clients.queries";
 import { ClientRestriction } from "@/features/questions/client-restriction";
 import { QuestionClientChoice } from "@/features/questions/question-client-choice";
@@ -23,7 +24,14 @@ export function EditRestrictionForm({ question }: { question: Question }) {
   function send(restrictionChange: RestrictionChange): void {
     setRefusal(null);
     change.mutate(restrictionChange, {
-      onSuccess: ({ question: changed }) => setClientId(changed.client?.id ?? null),
+      onSuccess: ({ question: changed }) => {
+        setClientId(changed.client?.id ?? null);
+        toast.success(
+          changed.client === null
+            ? "The restriction was removed."
+            : `It is now restricted to ${changed.client.name}.`,
+        );
+      },
       onError: (reason) => setRefusal(whatWentWrong(reason)),
     });
   }

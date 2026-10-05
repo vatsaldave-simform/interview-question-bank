@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aViewer, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -62,7 +63,11 @@ describe("creating a Viewer from the administration console", () => {
     await userEvent.selectOptions(form.getByLabelText("Role"), "Reviewer");
     await userEvent.click(form.getByRole("button", { name: "Create" }));
 
-    expect(await screen.findByText(/newcomer@iqb\.test was created/)).toBeVisible();
+    expect(
+      await theToastSaying(
+        "newcomer@iqb.test was created, and was emailed a link to set their password.",
+      ),
+    ).toBeVisible();
     expect(screen.queryByRole("form", { name: "Create a Viewer" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ email: "newcomer@iqb.test", role: "reviewer" });
@@ -99,7 +104,7 @@ describe("creating a Viewer from the administration console", () => {
     const refusal = within(await form.findByRole("alert"));
     expect(refusal.getByText("The Viewer was not created.")).toBeVisible();
     expect(refusal.getByText("A Viewer with that email address already exists.")).toBeVisible();
-    expect(form.queryByRole("status")).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
     expect(form.getByLabelText("Email")).toHaveValue("reviewer@iqb.test");
   });
 

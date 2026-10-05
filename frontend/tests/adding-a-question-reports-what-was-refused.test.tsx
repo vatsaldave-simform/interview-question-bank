@@ -6,6 +6,7 @@ import { replaceSession } from "@/platform/session";
 import { refusesWith, type FakeApi } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -128,6 +129,7 @@ describe("adding a Question that is refused", () => {
 
     expect(await screen.findByText("The Question was not added")).toBeVisible();
     expect(screen.getByText("You may not do that.")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
     // What they wrote is still there, so nothing is lost to the refusal.
     expect(screen.getByLabelText("Question")).toHaveValue("How would you find a slow query?");
   });

@@ -1,18 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
-import { useState } from "react";
+import { toast } from "sonner";
 import { CreateClientForm } from "@/features/clients/create-client-form";
 import { useEveryClient } from "@/features/clients/clients.queries";
 import { AddDialog } from "@/ui/add-dialog";
-import { DoneMessage } from "@/ui/done-message";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
 
 export function ClientList() {
   const clients = useEveryClient();
-  // Here and not in the form, because the dialog closes once the Client is created.
-  const [created, setCreated] = useState<string | null>(null);
 
   return (
     <section className="flex flex-col gap-6" aria-labelledby="clients">
@@ -25,13 +22,12 @@ export function ClientList() {
             label="Add a Client"
             title="Create a Client"
             description="Questions can then be restricted to it."
-            onOpen={() => setCreated(null)}
           >
             {(close) => (
               <CreateClientForm
                 onCreated={(client) => {
                   close();
-                  setCreated(client.name);
+                  toast.success(`${client.name} was created.`);
                 }}
                 onCancel={close}
               />
@@ -39,9 +35,6 @@ export function ClientList() {
           </AddDialog>
         }
       />
-      {created !== null && (
-        <DoneMessage>{created} was created.</DoneMessage>
-      )}
       {clients.isPending ? (
         <RowsLoading label="Loading the Clients…" />
       ) : clients.isError ? (

@@ -3,6 +3,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { CheckingTheSession } from "@/platform/checking-the-session";
 import { useSession } from "@/platform/session";
 import { chooseTheme, themeChoices, useThemeChoice, type ThemeChoice } from "@/platform/theme";
+import { Toaster } from "@/platform/toaster";
 import { Button } from "@/ui/shadcn/button";
 import {
   DropdownMenu,
@@ -86,6 +87,8 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
       <main className="flex-1 p-6">
         <Outlet />
       </main>
+      {/* Here, so a toast outlives the screen that raised it when the act moves to another. */}
+      <Toaster />
     </div>
   );
 }

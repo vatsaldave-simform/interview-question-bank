@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, aSignedInAuthor, answersWith, type FakeApi } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -92,6 +93,7 @@ describe("editing a Question", () => {
       await screen.findByRole("heading", { name: "What does `satisfies` check?" }),
     ).toBeVisible();
     expect(window.location.pathname).toBe(`/questions/${original.id}`);
+    expect(await theToastSaying("Your changes were saved.")).toBeVisible();
     expect(await editsSent(api)).toEqual([{ text: "What does `satisfies` check?" }]);
 
     const history = await screen.findByRole("list", { name: "History" });

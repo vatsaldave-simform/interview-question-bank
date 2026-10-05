@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, answersWith, refusesWith, type FakeApi } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 const aReviewer = aViewer({
   id: "7c3b4a1e-0000-4000-8000-000000000006",
@@ -106,6 +107,7 @@ describe("returning a Published Question to its Author", () => {
     expect(await screen.findByText("Restricted to the wrong Client.")).toBeVisible();
     expect(screen.getByText("Rejected")).toBeVisible();
     expect(screen.getByRole("button", { name: "Resubmit" })).toBeVisible();
+    expect(await theToastSaying(`"${published.text}" was returned to its Author.`)).toBeVisible();
     const [sent] = actsSent(api, "/return");
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${published.id}/return`);
     expect(await sent!.json()).toEqual({ reason: "Restricted to the wrong Client." });
@@ -125,6 +127,7 @@ describe("returning a Published Question to its Author", () => {
     expect(alert.getByText("Only a Reviewer may do that.")).toBeVisible();
     // Closed, so the refusal is not hidden behind it.
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
   });
 });
 
@@ -139,6 +142,8 @@ describe("resubmitting a Rejected Question", () => {
 
     expect(await within(list).findByText("Pending")).toBeVisible();
     expect(within(list).queryByRole("button", { name: "Resubmit" })).not.toBeInTheDocument();
+    // The card shows it as Pending right where it was pressed, so it needs no toast.
+    expect(toastsShown()).toHaveLength(0);
     const [sent] = actsSent(api, "/resubmit");
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${rejected.id}/resubmit`);
     expect(await sent!.text()).toBe("");
@@ -202,6 +207,7 @@ describe("the acts on the Question page", () => {
 
     expect(await screen.findByText("Published")).toBeVisible();
     expect(screen.getByRole("button", { name: "Return to its Author" })).toBeVisible();
+    expect(await theToastSaying(`"${pending.text}" was Published.`)).toBeVisible();
     const [, again] = actsSent(api, "/publish");
     expect(await again!.json()).toEqual({ confirmedNotANearDuplicate: true });
   });

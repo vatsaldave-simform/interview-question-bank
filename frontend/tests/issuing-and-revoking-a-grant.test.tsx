@@ -7,6 +7,7 @@ import { replaceSession } from "@/platform/session";
 import { aClient, aViewer, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -103,6 +104,9 @@ describe("issuing and revoking a Grant from the administration console", () => {
 
     const holders = within(await section.findByRole("list", { name: "Viewers holding a Grant" }));
     expect(await holders.findByText("reader@iqb.test")).toBeVisible();
+    expect(
+      await theToastSaying("reader@iqb.test now holds a Grant against this Client."),
+    ).toBeVisible();
     expect(optionsIn(section.getByLabelText("Viewer"))).toEqual([
       "Choose a Viewer",
       "reviewer@iqb.test",
@@ -123,6 +127,7 @@ describe("issuing and revoking a Grant from the administration console", () => {
     await confirmTheRevoke();
 
     expect(await section.findByText("Nobody holds a Grant against this Client.")).toBeVisible();
+    expect(await theToastSaying("author@iqb.test's Grant was revoked.")).toBeVisible();
     expect(optionsIn(section.getByLabelText("Viewer"))).toContain("author@iqb.test");
     expect(grantActsSent(api)).toEqual([`DELETE /api/clients/${northwind.id}/grants/${author.id}`]);
   });
@@ -177,5 +182,6 @@ describe("issuing and revoking a Grant from the administration console", () => {
     expect(alert.getByText("That was not done.")).toBeVisible();
     expect(alert.getByText(message)).toBeVisible();
     expect(section.getByText("author@iqb.test")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
   });
 });
