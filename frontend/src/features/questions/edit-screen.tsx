@@ -7,6 +7,7 @@ import {
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
@@ -106,7 +107,10 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
 
   function send(request: EditQuestionRequest): void {
     edit.mutate(request, {
-      onSuccess: onSaved,
+      onSuccess: () => {
+        toast.success("Your changes were saved.");
+        onSaved();
+      },
       onError: (reason) => {
         const nearDuplicates = nearDuplicatesIn(reason);
         if (nearDuplicates !== null) {

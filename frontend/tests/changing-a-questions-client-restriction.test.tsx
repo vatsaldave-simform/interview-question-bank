@@ -8,6 +8,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, answersWith, refusesWith, type FakeApi } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -113,6 +114,7 @@ describe("changing a Question's Client restriction", () => {
     await restrictTo("Acme");
 
     expect(await screen.findByText("Restricted to Acme")).toBeVisible();
+    expect(await theToastSaying("It is now restricted to Acme.")).toBeVisible();
     expect(await changesSent(api)).toEqual([{ act: "classify", body: { clientId: acme.id } }]);
 
     await userEvent.click(screen.getByRole("link", { name: "← Back to the Question" }));
@@ -141,6 +143,7 @@ describe("changing a Question's Client restriction", () => {
 
     await waitFor(() => expect(screen.queryByText("Restricted to Acme")).toBeNull());
     expect(await changesSent(api)).toEqual([{ act: "declassify", body: undefined }]);
+    expect(await theToastSaying("The restriction was removed.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Remove the restriction" })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Restrict to a Client" })).toHaveDisplayValue(
       "No restriction",
@@ -162,6 +165,7 @@ describe("changing a Question's Client restriction", () => {
     expect(refusal).toHaveTextContent("The restriction was not changed.");
     expect(refusal).toHaveTextContent("Only a Reviewer may remove a Client restriction.");
     expect(screen.getByText("Restricted to Acme")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("shows the API's refusal to move a Published Question to another Client", async () => {
@@ -181,6 +185,7 @@ describe("changing a Question's Client restriction", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(moveRefused);
     expect(screen.getByText("Restricted to Acme")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("shows no Client section on an unrestricted Question to a Viewer with no Grant", async () => {

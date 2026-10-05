@@ -8,6 +8,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying, toastsShown } from "./helpers/toasts";
 
 const aReviewer = aViewer({
   id: "7c3b4a1e-0000-4000-8000-000000000006",
@@ -94,6 +95,7 @@ describe("publishing from the review queue", () => {
     const queue = within(screen.getByRole("list", { name: "Pending Questions" }));
     await vi.waitFor(() => expect(queue.queryByText(waiting.text)).not.toBeInTheDocument());
     expect(queue.getByText(alsoWaiting.text)).toBeVisible();
+    expect(await theToastSaying(`"${waiting.text}" was Published.`)).toBeVisible();
     const [sent] = actsSent(api);
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${waiting.id}/publish`);
     expect(await sent!.json()).toEqual({ confirmedNotANearDuplicate: false });
@@ -118,6 +120,7 @@ describe("publishing from the review queue", () => {
     const queue = within(screen.getByRole("list", { name: "Pending Questions" }));
     await vi.waitFor(() => expect(queue.queryByText(waiting.text)).not.toBeInTheDocument());
     expect(alert.getByText("Only a Pending Question can be Published.")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
   });
 
   it("reports a permission refusal as the API words it", async () => {
@@ -219,6 +222,7 @@ describe("rejecting from the review queue", () => {
 
     const queue = within(screen.getByRole("list", { name: "Pending Questions" }));
     await vi.waitFor(() => expect(queue.queryByText(waiting.text)).not.toBeInTheDocument());
+    expect(await theToastSaying(`"${waiting.text}" was Rejected.`)).toBeVisible();
     const [sent] = actsSent(api);
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${waiting.id}/reject`);
     expect(await sent!.json()).toEqual({ reason: "Too close to one we have." });
@@ -241,5 +245,6 @@ describe("rejecting from the review queue", () => {
     const problem = "Say why, so the Author can put it right, in 2,000 characters or fewer.";
     expect(await rejectDialog().findByText(problem)).toBeVisible();
     expect(screen.queryByText(`"${waiting.text}" was not Rejected.`)).not.toBeInTheDocument();
+    expect(toastsShown()).toHaveLength(0);
   });
 });

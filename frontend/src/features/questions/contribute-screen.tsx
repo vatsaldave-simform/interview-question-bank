@@ -6,6 +6,7 @@ import {
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   ContributeProvenanceFields,
   type ProvenanceChoice,
@@ -57,7 +58,10 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
 
   function send(request: AddQuestionRequest): void {
     add.mutate(request, {
-      onSuccess: ({ question }) => onAdded(question),
+      onSuccess: ({ question }) => {
+        toast.success("The Question was added.");
+        onAdded(question);
+      },
       onError: (reason) => {
         const nearDuplicates = nearDuplicatesIn(reason);
         if (nearDuplicates !== null) {

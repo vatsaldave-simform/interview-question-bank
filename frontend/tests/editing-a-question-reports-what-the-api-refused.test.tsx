@@ -6,6 +6,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { toastsShown } from "./helpers/toasts";
 
 const aReader = {
   id: "7c3b4a1e-0000-4000-8000-000000000002",
@@ -66,6 +67,7 @@ describe("an edit the API refused", () => {
 
     expect(await screen.findByText("The Question was not saved")).toBeVisible();
     expect(screen.getByText("You may not do that.")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
     // Still on the form, with what they typed, rather than sent back as if it had worked.
     expect(window.location.pathname).toBe(`/questions/${someoneElses.id}/edit`);
     expect(screen.getByLabelText("Question")).toHaveValue("What does satisfies do? In TypeScript.");

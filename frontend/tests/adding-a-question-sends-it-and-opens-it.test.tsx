@@ -6,6 +6,7 @@ import { replaceSession } from "@/platform/session";
 import { aQuestion, answersWith, type FakeApi } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+import { theToastSaying } from "./helpers/toasts";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -74,6 +75,7 @@ describe("adding a Question", () => {
       await screen.findByRole("heading", { name: "How would you find a slow query?" }),
     ).toBeVisible();
     expect(window.location.pathname).toBe(`/questions/${added.id}`);
+    expect(await theToastSaying("The Question was added.")).toBeVisible();
     expect(await additionsSent(api)).toEqual([
       {
         text: "How would you find a slow query?",
