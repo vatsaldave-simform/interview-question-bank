@@ -1,5 +1,10 @@
 import {
   categoryNames,
+  mayEdit,
+  mayPublish,
+  mayReject,
+  mayResubmit,
+  mayReturn,
   type AddQuestionRequest,
   type CategoryName,
   type EditQuestionRequest,
@@ -31,9 +36,7 @@ import {
   type TagsInCategory,
 } from "./questions.repository.ts";
 import { mayClassify, mayDeclassify, mayMoveToAnotherClient } from "./may-classify.ts";
-import { mayEdit } from "./may-edit.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
-import { mayPublish, mayReject, mayResubmit, mayReturn } from "./may-review.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,

@@ -1,5 +1,4 @@
-import type { PublicationState, Viewer } from "@iqb/shared";
-import { mayPublish, mayResubmit } from "./may-review.ts";
+import { mayPublish, mayResubmit, type PublicationState, type Viewer } from "@iqb/shared";
 
 /** Its own Author only, Reviewers included, because another Viewer's restriction could hide
  * the Question from its Author, which to them is deletion (ADR-0018). */
