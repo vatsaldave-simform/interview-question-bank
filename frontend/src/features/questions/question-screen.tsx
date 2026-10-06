@@ -1,4 +1,12 @@
-import type { Question } from "@iqb/shared";
+import {
+  mayEdit,
+  mayPublish,
+  mayReject,
+  mayResubmit,
+  mayReturn,
+  type Question,
+  type Viewer,
+} from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
@@ -18,6 +26,7 @@ import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { ScreenSection } from "@/features/questions/screen-section";
+import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
@@ -67,7 +76,8 @@ function QuestionInFull({ question }: { question: Question }) {
         {ratingIsShown(question) && (
           <ScreenSection id="rating" title="Rating">
             <AverageRating rating={question.rating} />
-            {/* Offered by the Publication State alone, like the acts (ADR-0002). */}
+            {/* Offered by the Publication State alone: whether this Viewer may rate is the
+                API's answer (ADR-0002). */}
             {question.publicationState === "published" && <RatingControl question={question} />}
           </ScreenSection>
         )}
@@ -102,7 +112,6 @@ function AboutThisQuestion({ question }: { question: Question }) {
           </QuestionDetail>
         )}
         <WhereItCameFrom question={question} />
-        <Separator />
         <PublicationActs question={question} />
       </Card>
     </section>
@@ -139,38 +148,48 @@ function WhereItCameFrom({ question }: { question: Question }) {
   );
 }
 
-/** Offered by the Publication State alone, because whether this Viewer may act is the API's
- * answer, as it is for Edit (ADR-0002). */
+/** Shows only the acts the API would let this Viewer do, by the same rules it uses
+ * (ADR-0045). */
 function PublicationActs({ question }: { question: Question }) {
+  const session = useSession();
+  // The sign-in check already stands in front of this screen.
+  if (session.status !== "signed-in") return null;
+  return <PublicationActsFor viewer={session.viewer} question={question} />;
+}
+
+function PublicationActsFor({ viewer, question }: { viewer: Viewer; question: Question }) {
   const [refusal, setRefusal] = useState<ActRefused | null>(null);
   const { publicationState } = question;
+  const acts = {
+    edit: mayEdit(viewer, question),
+    publish: publicationState === "pending" && mayPublish(viewer),
+    reject: publicationState === "pending" && mayReject(viewer, question),
+    return: publicationState === "published" && mayReturn(viewer),
+    resubmit: publicationState === "rejected" && mayResubmit(viewer, question),
+  };
+  if (!Object.values(acts).some(Boolean)) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      {refusal !== null && (
-        <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
-      )}
-      <div className="flex flex-wrap items-start gap-2">
-        {/* Shown to every Viewer: whether this one may edit is the API's answer, and it gives
-            it when they save (ADR-0002). */}
-        <Button asChild variant="outline" size="sm">
-          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-            Edit
-          </Link>
-        </Button>
-        {publicationState === "pending" && (
-          <>
-            <PublishButton question={question} onRefusal={setRefusal} />
-            <ReasonAct act="reject" question={question} onRefusal={setRefusal} />
-          </>
+    <>
+      <Separator />
+      <div className="flex flex-col gap-3">
+        {refusal !== null && (
+          <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
         )}
-        {publicationState === "published" && (
-          <ReasonAct act="return" question={question} onRefusal={setRefusal} />
-        )}
-        {publicationState === "rejected" && (
-          <ResubmitButton question={question} onRefusal={setRefusal} />
-        )}
+        <div className="flex flex-wrap items-start gap-2">
+          {acts.edit && (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+                Edit
+              </Link>
+            </Button>
+          )}
+          {acts.publish && <PublishButton question={question} onRefusal={setRefusal} />}
+          {acts.reject && <ReasonAct act="reject" question={question} onRefusal={setRefusal} />}
+          {acts.return && <ReasonAct act="return" question={question} onRefusal={setRefusal} />}
+          {acts.resubmit && <ResubmitButton question={question} onRefusal={setRefusal} />}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

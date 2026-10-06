@@ -106,16 +106,19 @@ describe("returning a Published Question to its Author", () => {
 
     expect(await screen.findByText("Restricted to the wrong Client.")).toBeVisible();
     expect(screen.getByText("Rejected")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Resubmit" })).toBeVisible();
+    // Its Author's to resubmit, not the Reviewer's.
+    expect(screen.queryByRole("button", { name: "Resubmit" })).not.toBeInTheDocument();
     expect(await theToastSaying(`"${published.text}" was returned to its Author.`)).toBeVisible();
     const [sent] = actsSent(api, "/return");
     expect(new URL(sent!.url).pathname).toBe(`/api/questions/${published.id}/return`);
     expect(await sent!.json()).toEqual({ reason: "Restricted to the wrong Client." });
   });
 
-  it("reports the API's refusal to a Reader who presses it", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    aBankHolding([published], () => refusesWith(403, "forbidden", "Only a Reviewer may do that."));
+  it("reports the API's refusal in its own words", async () => {
+    signInAs(aReviewer);
+    aBankHolding([published], () =>
+      refusesWith(409, "conflict", "Only a Published Question can be returned."),
+    );
     renderTheWholeClient(`/questions/${published.id}`);
 
     await userEvent.click(await screen.findByRole("button", { name: "Return to its Author" }));
@@ -124,7 +127,7 @@ describe("returning a Published Question to its Author", () => {
 
     const alert = within(await screen.findByRole("alert"));
     expect(alert.getByText("This Question was not returned.")).toBeVisible();
-    expect(alert.getByText("Only a Reviewer may do that.")).toBeVisible();
+    expect(alert.getByText("Only a Published Question can be returned.")).toBeVisible();
     // Closed, so the refusal is not hidden behind it.
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(toastsShown()).toHaveLength(0);

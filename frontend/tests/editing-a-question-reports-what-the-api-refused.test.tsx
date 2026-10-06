@@ -52,17 +52,14 @@ async function changeTheTextAndSave(): Promise<void> {
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
 }
 
-/**
- * Whether a Viewer may edit is the API's answer. The client offers Edit to everyone and
- * reports the refusal, because hiding it would be the client answering too (ADR-0002).
- */
+/** The page hides Edit from whoever the API would refuse, but the API still decides, so
+ * the edit address reports its refusal to anyone who reaches it anyway (ADR-0045). */
 describe("an edit the API refused", () => {
-  it("offers a Reader the Edit link, and shows the API's refusal when they save", async () => {
+  it("shows a Reader the API's refusal when they save at the edit address", async () => {
     signInAs(aReader);
     aBankThatRefusesEdits(() => refusesWith(403, "forbidden", "You may not do that."));
-    renderTheWholeClient(`/questions/${someoneElses.id}`);
+    renderTheWholeClient(`/questions/${someoneElses.id}/edit`);
 
-    await userEvent.click(await screen.findByRole("link", { name: "Edit" }));
     await changeTheTextAndSave();
 
     expect(await screen.findByText("The Question was not saved")).toBeVisible();
