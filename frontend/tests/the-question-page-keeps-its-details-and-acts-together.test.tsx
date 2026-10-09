@@ -2,9 +2,11 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion } from "./helpers/fake-api";
+import { aQuestion, aViewer } from "./helpers/fake-api";
 import { aBankHolding, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
+
+const aReviewer = aViewer({ role: "reviewer" });
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -45,6 +47,7 @@ async function detailsOf(question: { text: string }) {
 
 describe("the Question page", () => {
   it("keeps the Question's details in one place, with the buttons that act on it", async () => {
+    signInAs(aReviewer);
     aBankHolding([pending]);
     renderTheWholeClient(`/questions/${pending.id}`);
 
@@ -59,6 +62,7 @@ describe("the Question page", () => {
   });
 
   it("offers Return to its Author with the details of a Published Question", async () => {
+    signInAs(aReviewer);
     aBankHolding([published]);
     renderTheWholeClient(`/questions/${published.id}`);
 

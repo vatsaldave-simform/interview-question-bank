@@ -77,8 +77,9 @@ local types, and their zod schemas go in the feature's `.schema.ts`.
 
 There is no file here that decides what a Viewer may see or do. Visibility and permission are
 answered by the API and reflected by the interface: render what the API returned, and report the
-refusal it sends. `backend/src/features/questions/may-edit.ts` has no counterpart on this side, and
-adding one would mean two answers to the same question.
+refusal it sends. The one exception is hiding a button the API would refuse. For that, the page
+asks the rules in `@iqb/shared` (`mayEdit`, `mayPublish`, …), the same functions the API uses, and
+never writes a rule of its own (ADR-0045).
 
 ## Styling
 
