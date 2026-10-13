@@ -1,4 +1,4 @@
-import type { ClassifyQuestionRequest, Client, Question } from "@iqb/shared";
+import type { Client, Question, RestrictQuestionRequest } from "@iqb/shared";
 import { screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,7 +77,7 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
       if (act === "declassify") {
         current = { ...current, client: null };
       } else {
-        const { clientId } = (await request.json()) as ClassifyQuestionRequest;
+        const { clientId } = (await request.json()) as RestrictQuestionRequest;
         current = { ...current, client: granted.find(({ id }) => id === clientId) ?? null };
       }
       return answersWith({ question: current });

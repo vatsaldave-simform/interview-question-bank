@@ -1,11 +1,11 @@
 import {
   addQuestionRequestSchema,
-  classifyQuestionRequestSchema,
   editQuestionRequestSchema,
   listQuestionsRequestSchema,
   publishQuestionRequestSchema,
   questionPageRequestSchema,
   rejectQuestionRequestSchema,
+  restrictQuestionRequestSchema,
   returnQuestionRequestSchema,
   type ChangeEvent,
   type Question,
@@ -195,7 +195,7 @@ export function questionRoutes(database: Database): Router {
   router.post("/:id/classify", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
-    const request = classifyQuestionRequestSchema.parse(req.body);
+    const request = restrictQuestionRequestSchema.parse(req.body);
 
     const question = await actOnQuestion(database, viewer, id, { act: "restrict", ...request });
 

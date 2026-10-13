@@ -10,7 +10,6 @@ import {
   mayReturn,
   type AddQuestionRequest,
   type CategoryName,
-  type ClassifyQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
   type NearDuplicate,
@@ -19,6 +18,7 @@ import {
   type QuestionAdded,
   type QuestionTag,
   type RejectQuestionRequest,
+  type RestrictQuestionRequest,
   type ReturnQuestionRequest,
   type UnknownTags,
   type Viewer,
@@ -260,7 +260,7 @@ export type QuestionAct =
   // Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013).
   | { act: "resubmit" }
   | ({ act: "return" } & ReturnQuestionRequest)
-  | ({ act: "restrict" } & ClassifyQuestionRequest)
+  | ({ act: "restrict" } & RestrictQuestionRequest)
   // Its own act rather than a restrict naming no Client, because only a Reviewer may do it
   // (ADR-0018).
   | { act: "remove-restriction" };
