@@ -18,17 +18,7 @@ import {
 import { Router } from "express";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireRole } from "../auth/require-role.middleware.ts";
-import {
-  addQuestion,
-  classifyQuestion,
-  declassifyQuestion,
-  editQuestion,
-  listQuestions,
-  publishQuestion,
-  rejectQuestion,
-  resubmitQuestion,
-  returnQuestion,
-} from "./questions.service.ts";
+import { actOnQuestion, addQuestion, listQuestions } from "./questions.service.ts";
 import {
   findEventsAboutVisibleQuestion,
   findOwnUnpublishedQuestions,
@@ -150,7 +140,7 @@ export function questionRoutes(database: Database): Router {
     const id = questionIdNamed(req);
     const request = editQuestionRequestSchema.parse(req.body);
 
-    const question = await editQuestion(database, viewer, id, request);
+    const question = await actOnQuestion(database, viewer, id, { act: "edit", ...request });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -164,7 +154,7 @@ export function questionRoutes(database: Database): Router {
     // Express leaves the body undefined when none was sent, and that is a publish too.
     const request = publishQuestionRequestSchema.parse(req.body ?? {});
 
-    const question = await publishQuestion(database, viewer, id, request);
+    const question = await actOnQuestion(database, viewer, id, { act: "publish", ...request });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -173,9 +163,9 @@ export function questionRoutes(database: Database): Router {
   router.post("/:id/reject", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
-    const { reason } = rejectQuestionRequestSchema.parse(req.body);
+    const request = rejectQuestionRequestSchema.parse(req.body);
 
-    const question = await rejectQuestion(database, viewer, id, reason);
+    const question = await actOnQuestion(database, viewer, id, { act: "reject", ...request });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -185,7 +175,7 @@ export function questionRoutes(database: Database): Router {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
 
-    const question = await resubmitQuestion(database, viewer, id);
+    const question = await actOnQuestion(database, viewer, id, { act: "resubmit" });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -194,9 +184,9 @@ export function questionRoutes(database: Database): Router {
   router.post("/:id/return", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
-    const { reason } = returnQuestionRequestSchema.parse(req.body);
+    const request = returnQuestionRequestSchema.parse(req.body);
 
-    const question = await returnQuestion(database, viewer, id, reason);
+    const question = await actOnQuestion(database, viewer, id, { act: "return", ...request });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -205,9 +195,9 @@ export function questionRoutes(database: Database): Router {
   router.post("/:id/classify", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
-    const { clientId } = classifyQuestionRequestSchema.parse(req.body);
+    const request = classifyQuestionRequestSchema.parse(req.body);
 
-    const question = await classifyQuestion(database, viewer, id, clientId);
+    const question = await actOnQuestion(database, viewer, id, { act: "restrict", ...request });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
@@ -217,7 +207,7 @@ export function questionRoutes(database: Database): Router {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
 
-    const question = await declassifyQuestion(database, viewer, id);
+    const question = await actOnQuestion(database, viewer, id, { act: "remove-restriction" });
 
     const body = await toResponse(database, viewer, question);
     res.json(body);
