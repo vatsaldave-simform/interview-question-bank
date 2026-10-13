@@ -1,8 +1,11 @@
 import {
   categoryNames,
   mayEdit,
+  mayMoveToAnotherClient,
   mayPublish,
   mayReject,
+  mayRemoveRestriction,
+  mayRestrict,
   mayResubmit,
   mayReturn,
   type AddQuestionRequest,
@@ -35,7 +38,6 @@ import {
   type RestrictionChange,
   type TagsInCategory,
 } from "./questions.repository.ts";
-import { mayClassify, mayDeclassify, mayMoveToAnotherClient } from "./may-classify.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
@@ -395,7 +397,7 @@ export async function classifyQuestion(
 ): Promise<QuestionFromDb> {
   const question = await findVisibleQuestionById(database, viewer, id);
   if (question === null) throw new NotFoundError();
-  if (!mayClassify(viewer, question)) throw new ForbiddenError();
+  if (!mayRestrict(viewer, question)) throw new ForbiddenError();
   await checkGrantedClient(database, viewer, clientId);
 
   if (question.client?.id === clientId) return question;
@@ -421,7 +423,7 @@ export async function declassifyQuestion(
 ): Promise<QuestionFromDb> {
   const question = await findVisibleQuestionById(database, viewer, id);
   if (question === null) throw new NotFoundError();
-  if (!mayDeclassify(viewer)) {
+  if (!mayRemoveRestriction(viewer)) {
     throw new ForbiddenError("Only a Reviewer may remove a Client restriction.");
   }
   if (question.client === null) {
