@@ -21,7 +21,6 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import {
-  changeVisibleRestriction,
   findNearDuplicates,
   findNearDuplicatesForEdit,
   findNearDuplicatesForPublication,
@@ -29,20 +28,20 @@ import {
   findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
-  moveVisibleQuestion,
   recordRefusedAsNearDuplicate,
   searchVisibleQuestions,
-  updateVisibleQuestion,
-  type PublicationMove,
+  writeVisibleQuestion,
   type QuestionFromDb,
-  type RestrictionChange,
+  type QuestionWrite,
   type TagsInCategory,
+  type WriteRefused,
 } from "./questions.repository.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
   ForbiddenError,
+  type AppError,
   InvalidRequestError,
   NotFoundError,
 } from "../../platform/errors.ts";
@@ -268,22 +267,38 @@ export async function editQuestion(
   const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
   const overridden = await checkEditedText(database, viewer, question, request);
 
-  const edited = await updateVisibleQuestion(
+  const edited = await writeVisibleQuestion(
     database,
     viewer,
     id,
     {
+      act: "edit",
       ...(request.text === undefined ? {} : { text: request.text }),
       ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
       ...(tagIds === undefined ? {} : { tagIds }),
     },
     overridden,
   );
-  // A Permission Grant can be revoked between the look-up and the write, and a write
-  // that no longer reaches the Question answers as a missing one rather than raising.
-  if (edited === null) throw new NotFoundError();
-  return edited;
+  // An edit starts from any state and names no Client, so a Permission Grant revoked since
+  // the look-up is the only thing that can stop it.
+  if ("refused" in edited) throw new NotFoundError();
+  return edited.question;
 }
+
+/** A Permission Grant can be revoked between the look-up and the write, and the write says
+ * which check that made it fail, in the order the look-up asks them (ADR-0002). */
+function refusal(refused: WriteRefused, wrongState: string): AppError {
+  switch (refused) {
+    case "not-visible":
+      return new NotFoundError();
+    case "client-not-granted":
+      return new InvalidRequestError("No such Client.");
+    case "wrong-state":
+      return new ConflictError(wrongState);
+  }
+}
+
+type PublicationMove = Extract<QuestionWrite, { act: "publish" | "reject" | "resubmit" | "return" }>;
 
 /** What a 409 says, by the act that found the Question in the wrong state. */
 const refusedFor: Record<PublicationMove["act"], string> = {
@@ -313,11 +328,9 @@ async function moveQuestion(
   if (!mayMove(viewer, question)) throw new ForbiddenError();
 
   const overridden = await checkNearDuplicates(question);
-  const moved = await moveVisibleQuestion(database, viewer, id, move, overridden);
-  if (moved !== null) return moved;
-  // Asked again because a Permission Grant revoked since the first look makes it a 404.
-  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  throw new ConflictError(refusedFor[move.act]);
+  const moved = await writeVisibleQuestion(database, viewer, id, move, overridden);
+  if ("refused" in moved) throw refusal(moved.refused, refusedFor[move.act]);
+  return moved.question;
 }
 
 export function publishQuestion(
@@ -367,24 +380,24 @@ export function returnQuestion(
   return moveQuestion(database, viewer, id, { act: "return", reason }, mayReturn);
 }
 
+type RestrictionChange = Extract<QuestionWrite, { act: "restrict" | "move" | "remove-restriction" }>;
+
 /** What a 409 says, by the act that found the restriction changed under it. */
 const restrictionChangedFor: Record<RestrictionChange["act"], string> = {
-  classify: "This Question's Client restriction changed meanwhile. Load it again.",
+  restrict: "This Question's Client restriction changed meanwhile. Load it again.",
   move: "This Question's Client restriction or Publication State changed meanwhile. Load it again.",
-  declassify: "This Question's Client restriction changed meanwhile. Load it again.",
+  "remove-restriction": "This Question's Client restriction changed meanwhile. Load it again.",
 };
 
-/** The write found nothing to change, so the checks are asked again in order: a Permission
- * Grant revoked since the first look makes it a 404 or a 400 rather than a 409. */
-async function refuseUnchangedRestriction(
+async function changeRestriction(
   database: Database,
   viewer: Viewer,
   id: string,
   change: RestrictionChange,
-): Promise<never> {
-  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  if (change.act !== "declassify") await checkGrantedClient(database, viewer, change.to);
-  throw new ConflictError(restrictionChangedFor[change.act]);
+): Promise<QuestionFromDb> {
+  const changed = await writeVisibleQuestion(database, viewer, id, change);
+  if ("refused" in changed) throw refusal(changed.refused, restrictionChangedFor[change.act]);
+  return changed.question;
 }
 
 /** The Client is looked up only after the role rule, or its 400 would answer a Viewer who may
@@ -410,10 +423,9 @@ export async function classifyQuestion(
 
   const change: RestrictionChange =
     question.client === null
-      ? { act: "classify", to: clientId }
+      ? { act: "restrict", clientId }
       : { act: "move", from: question.client.id, to: clientId };
-  const changed = await changeVisibleRestriction(database, viewer, id, change);
-  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
+  return changeRestriction(database, viewer, id, change);
 }
 
 export async function declassifyQuestion(
@@ -430,7 +442,8 @@ export async function declassifyQuestion(
     throw new ConflictError("This Question has no Client restriction to remove.");
   }
 
-  const change: RestrictionChange = { act: "declassify", from: question.client.id };
-  const changed = await changeVisibleRestriction(database, viewer, id, change);
-  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
+  return changeRestriction(database, viewer, id, {
+    act: "remove-restriction",
+    from: question.client.id,
+  });
 }
