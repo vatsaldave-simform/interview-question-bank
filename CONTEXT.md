@@ -98,6 +98,12 @@ _Avoid_: customer, account, organisation, org
 The authority for one Viewer to see one Client's Questions.
 _Avoid_: permission, access, share, entitlement
 
+**Restriction**:
+The Client a Question is limited to, if any. A restricted Question is Visible only to Viewers
+holding a Permission Grant for that Client. An Author restricts their own Question; only a
+Reviewer removes a Restriction.
+_Avoid_: classification, classify, declassify
+
 **Visible**:
 A Question is Visible to a Viewer when it is not restricted to a Client, or is restricted to a
 Client the Viewer holds a Permission Grant for. Visibility is evaluated before anything else,

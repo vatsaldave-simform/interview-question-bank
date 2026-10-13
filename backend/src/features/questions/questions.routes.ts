@@ -192,7 +192,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  router.post("/:id/classify", async (req, res) => {
+  router.post("/:id/restrict", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
     const request = restrictQuestionRequestSchema.parse(req.body);
@@ -203,7 +203,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  router.post("/:id/declassify", async (req, res) => {
+  router.post("/:id/remove-restriction", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
 

@@ -143,8 +143,8 @@ export function useMoveQuestion(id: string) {
 /** Removing is its own act rather than a restrict naming no Client, because only a Reviewer
  * may do it (ADR-0018). */
 export type RestrictionChange =
-  | { act: "classify"; request: RestrictQuestionRequest }
-  | { act: "declassify" };
+  | { act: "restrict"; request: RestrictQuestionRequest }
+  | { act: "remove-restriction" };
 
 export function useChangeRestriction(id: string) {
   const queryClient = useQueryClient();

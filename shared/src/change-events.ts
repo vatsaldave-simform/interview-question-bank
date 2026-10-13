@@ -24,6 +24,8 @@ export const changeEventTypes = [
   "question_rejected",
   "question_resubmitted",
   "question_returned",
+  // The old words for restricting and removing a Restriction, kept because the log is
+  // append-only and its rows already say them (ADR-0027).
   "question_classified",
   "question_declassified",
 ] as const;

@@ -36,3 +36,10 @@ is theirs; removing one is not.
 
 If the Author of a misclassified Question has been Deactivated, nobody can correct it and it stays
 Rejected indefinitely — out of the bank and not leaking, which is an acceptable place to be stuck.
+
+## A note on the word
+
+This ADR says "classify" and "declassify". The code and `CONTEXT.md` now say **restrict** and
+**remove a Restriction**, because "classified" already means sorted by Category. The stored event
+types `question_classified` and `question_declassified` keep the old word, because the log is
+append-only (ADR-0027).
