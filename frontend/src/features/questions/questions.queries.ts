@@ -6,13 +6,13 @@ import {
   questionResponseSchema,
   ratingResponseSchema,
   type AddQuestionRequest,
-  type ClassifyQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
   type PublishQuestionRequest,
   type QuestionResponse,
   type RateQuestionRequest,
   type RejectQuestionRequest,
+  type RestrictQuestionRequest,
   type ReturnQuestionRequest,
 } from "@iqb/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -140,11 +140,11 @@ export function useMoveQuestion(id: string) {
   });
 }
 
-/** Removing is its own act rather than a classify naming no Client, because only a Reviewer
+/** Removing is its own act rather than a restrict naming no Client, because only a Reviewer
  * may do it (ADR-0018). */
 export type RestrictionChange =
-  | { act: "classify"; request: ClassifyQuestionRequest }
-  | { act: "declassify" };
+  | { act: "restrict"; request: RestrictQuestionRequest }
+  | { act: "remove-restriction" };
 
 export function useChangeRestriction(id: string) {
   const queryClient = useQueryClient();

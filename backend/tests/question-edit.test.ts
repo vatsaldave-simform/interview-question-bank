@@ -11,7 +11,7 @@ import {
   unknownQuestionId,
   viewerByRole,
 } from "./helpers/question-bank.ts";
-import { updateVisibleQuestion } from "../src/features/questions/questions.repository.ts";
+import { writeVisibleQuestion } from "../src/features/questions/questions.repository.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
 /**
@@ -414,22 +414,24 @@ describe("the edit's own visibility check", () => {
     const before = await textOf(restricted);
     const reviewer = await viewerByRole(api.database, "reviewer");
 
-    const edited = await updateVisibleQuestion(api.database, reviewer, restricted, {
+    const edited = await writeVisibleQuestion(api.database, reviewer, restricted, {
+      act: "edit",
       text: rewritten,
     });
 
-    expect(edited).toBeNull();
+    expect(edited).toEqual({ refused: "not-visible" });
     expect(await textOf(restricted)).toBe(before);
   });
 
-  it("writes for a Viewer who does hold it, so the null above is not a no-op", async () => {
+  it("writes for a Viewer who does hold it, so the refusal above is not a no-op", async () => {
     const author = await viewerByRole(api.database, "author");
 
-    const edited = await updateVisibleQuestion(api.database, author, restricted, {
+    const edited = await writeVisibleQuestion(api.database, author, restricted, {
+      act: "edit",
       text: rewritten,
     });
 
-    expect(edited?.text).toBe(rewritten);
+    expect(edited).toMatchObject({ question: { text: rewritten } });
     expect(await textOf(restricted)).toBe(rewritten);
   });
 
@@ -437,7 +439,7 @@ describe("the edit's own visibility check", () => {
     const before = await api.database.questionTag.count({ where: { questionId: restricted } });
     const reviewer = await viewerByRole(api.database, "reviewer");
 
-    await updateVisibleQuestion(api.database, reviewer, restricted, { tagIds: [] });
+    await writeVisibleQuestion(api.database, reviewer, restricted, { act: "edit", tagIds: [] });
 
     expect(await api.database.questionTag.count({ where: { questionId: restricted } })).toBe(before);
   });

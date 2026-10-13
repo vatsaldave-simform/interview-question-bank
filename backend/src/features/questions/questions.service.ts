@@ -1,8 +1,11 @@
 import {
   categoryNames,
   mayEdit,
+  mayMoveToAnotherClient,
   mayPublish,
   mayReject,
+  mayRemoveRestriction,
+  mayRestrict,
   mayResubmit,
   mayReturn,
   type AddQuestionRequest,
@@ -14,11 +17,13 @@ import {
   type PublishQuestionRequest,
   type QuestionAdded,
   type QuestionTag,
+  type RejectQuestionRequest,
+  type RestrictQuestionRequest,
+  type ReturnQuestionRequest,
   type UnknownTags,
   type Viewer,
 } from "@iqb/shared";
 import {
-  changeVisibleRestriction,
   findNearDuplicates,
   findNearDuplicatesForEdit,
   findNearDuplicatesForPublication,
@@ -26,16 +31,14 @@ import {
   findVisibleQuestionById,
   findVisibleQuestions,
   insertQuestion,
-  moveVisibleQuestion,
   recordRefusedAsNearDuplicate,
   searchVisibleQuestions,
-  updateVisibleQuestion,
-  type PublicationMove,
+  writeVisibleQuestion,
   type QuestionFromDb,
-  type RestrictionChange,
+  type QuestionWrite,
   type TagsInCategory,
+  type WriteRefused,
 } from "./questions.repository.ts";
-import { mayClassify, mayDeclassify, mayMoveToAnotherClient } from "./may-classify.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
@@ -43,6 +46,7 @@ import {
   ForbiddenError,
   InvalidRequestError,
   NotFoundError,
+  type AppError,
 } from "../../platform/errors.ts";
 
 /** The spelling both sides of the lookup agree on. */
@@ -248,187 +252,183 @@ async function checkEditedText(
   });
 }
 
-/**
- * The order here is the rule. The Question is looked up through the same function every
- * read goes through, so an id that is not Visible is answered as one that names nothing;
- * only then does the role rule run, and only then is its 403 honest (ADR-0002).
- */
-export async function editQuestion(
+type QuestionAct =
+  | ({ act: "edit" } & EditQuestionRequest)
+  | ({ act: "publish" } & PublishQuestionRequest)
+  | ({ act: "reject" } & RejectQuestionRequest)
+  // Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013).
+  | { act: "resubmit" }
+  | ({ act: "return" } & ReturnQuestionRequest)
+  | ({ act: "restrict" } & RestrictQuestionRequest)
+  // Its own act rather than a restrict naming no Client, because only a Reviewer may do it
+  // (ADR-0018).
+  | { act: "remove-restriction" };
+
+type ActRule = {
+  may: (viewer: Viewer, question: QuestionFromDb) => boolean;
+  /** Said with the 403, where a bare refusal would leave the Viewer guessing. */
+  forbidden?: string;
+  /** Said with the 409 when the write finds the Question changed since the look-up. */
+  wrongState: string;
+};
+
+const restrictionChanged = "This Question's Client restriction changed meanwhile. Load it again.";
+
+/** One row per write, so a missing one does not compile. */
+const actRules: Record<QuestionWrite["act"], ActRule> = {
+  // Never said today, because an edit starts from any state.
+  edit: { may: mayEdit, wrongState: "This Question changed meanwhile. Load it again." },
+  publish: { may: mayPublish, wrongState: "Only a Pending Question can be Published." },
+  reject: { may: mayReject, wrongState: "Only a Pending Question can be Rejected." },
+  resubmit: { may: mayResubmit, wrongState: "Only a Rejected Question can be resubmitted." },
+  return: { may: mayReturn, wrongState: "Only a Published Question can be returned." },
+  restrict: { may: mayRestrict, wrongState: restrictionChanged },
+  // Whether it may leave its Client is asked further in, in `restrictionFor`.
+  move: {
+    may: mayRestrict,
+    wrongState:
+      "This Question's Client restriction or Publication State changed meanwhile. Load it again.",
+  },
+  "remove-restriction": {
+    may: mayRemoveRestriction,
+    forbidden: "Only a Reviewer may remove a Client restriction.",
+    wrongState: restrictionChanged,
+  },
+};
+
+/** Which write an act becomes. Restricting a Question that already has a Client moves it. */
+function writeActFor(act: QuestionAct, question: QuestionFromDb): QuestionWrite["act"] {
+  if (act.act !== "restrict") return act.act;
+  return question.client === null ? "restrict" : "move";
+}
+
+type PreparedWrite = { write: QuestionWrite; overridden: NearDuplicate[] };
+
+async function editFor(
   database: Database,
   viewer: Viewer,
-  id: string,
+  question: QuestionFromDb,
   request: EditQuestionRequest,
-): Promise<QuestionFromDb> {
-  const question = await findVisibleQuestionById(database, viewer, id);
-  if (question === null) throw new NotFoundError();
-  if (!mayEdit(viewer, question)) throw new ForbiddenError();
-
+): Promise<PreparedWrite> {
   const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
   const overridden = await checkEditedText(database, viewer, question, request);
-
-  const edited = await updateVisibleQuestion(
-    database,
-    viewer,
-    id,
-    {
+  return {
+    write: {
+      act: "edit",
       ...(request.text === undefined ? {} : { text: request.text }),
       ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
       ...(tagIds === undefined ? {} : { tagIds }),
     },
     overridden,
-  );
-  // A Permission Grant can be revoked between the look-up and the write, and a write
-  // that no longer reaches the Question answers as a missing one rather than raising.
-  if (edited === null) throw new NotFoundError();
-  return edited;
+  };
 }
 
-/** What a 409 says, by the act that found the Question in the wrong state. */
-const refusedFor: Record<PublicationMove["act"], string> = {
-  publish: "Only a Pending Question can be Published.",
-  reject: "Only a Pending Question can be Rejected.",
-  resubmit: "Only a Rejected Question can be resubmitted.",
-  return: "Only a Published Question can be returned.",
-};
-
-/** What an act overrides once detection has looked at the Question it is about. */
-type NearDuplicateCheck = (question: QuestionFromDb) => Promise<NearDuplicate[]>;
-
-const noNearDuplicateCheck: NearDuplicateCheck = async () => [];
-
-/** In the order `editQuestion` checks, for the same reason: not Visible is a 404, then the
- * role rule is a 403, and only then can the state be wrong, as a 409 (ADR-0002). */
-async function moveQuestion(
+async function publicationFor(
   database: Database,
   viewer: Viewer,
-  id: string,
-  move: PublicationMove,
-  mayMove: (viewer: Viewer, question: QuestionFromDb) => boolean,
-  checkNearDuplicates: NearDuplicateCheck = noNearDuplicateCheck,
-): Promise<QuestionFromDb> {
-  const question = await findVisibleQuestionById(database, viewer, id);
-  if (question === null) throw new NotFoundError();
-  if (!mayMove(viewer, question)) throw new ForbiddenError();
-
-  const overridden = await checkNearDuplicates(question);
-  const moved = await moveVisibleQuestion(database, viewer, id, move, overridden);
-  if (moved !== null) return moved;
-  // Asked again because a Permission Grant revoked since the first look makes it a 404.
-  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  throw new ConflictError(refusedFor[move.act]);
-}
-
-export function publishQuestion(
-  database: Database,
-  viewer: Viewer,
-  id: string,
+  question: QuestionFromDb,
   request: PublishQuestionRequest,
-): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { act: "publish" }, mayPublish, async (question) => {
-    // A Question that is not Pending cannot be Published, and hearing that is more use
-    // than a list of Near-Duplicates for an act that would fail anyway.
-    if (question.publicationState !== "pending") return [];
-    return overrideOrRefuse(database, viewer, {
-      act: "publish",
-      questionId: question.id,
-      attempted: attemptOn(question),
-      nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
-      confirmed: request.confirmedNotANearDuplicate,
-    });
+): Promise<PreparedWrite> {
+  const write: QuestionWrite = { act: "publish" };
+  // A Question that is not Pending cannot be Published, and hearing that is more use
+  // than a list of Near-Duplicates for an act that would fail anyway.
+  if (question.publicationState !== "pending") return { write, overridden: [] };
+
+  const overridden = await overrideOrRefuse(database, viewer, {
+    act: "publish",
+    questionId: question.id,
+    attempted: attemptOn(question),
+    nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
+    confirmed: request.confirmedNotANearDuplicate,
   });
+  return { write, overridden };
 }
 
-export function rejectQuestion(
+/** Null when it is already restricted to that Client, which changes nothing and records
+ * nothing. */
+async function restrictionFor(
   database: Database,
   viewer: Viewer,
-  id: string,
-  reason: string,
-): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { act: "reject", reason }, mayReject);
-}
-
-/** Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013). */
-export function resubmitQuestion(
-  database: Database,
-  viewer: Viewer,
-  id: string,
-): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { act: "resubmit" }, mayResubmit);
-}
-
-export function returnQuestion(
-  database: Database,
-  viewer: Viewer,
-  id: string,
-  reason: string,
-): Promise<QuestionFromDb> {
-  return moveQuestion(database, viewer, id, { act: "return", reason }, mayReturn);
-}
-
-/** What a 409 says, by the act that found the restriction changed under it. */
-const restrictionChangedFor: Record<RestrictionChange["act"], string> = {
-  classify: "This Question's Client restriction changed meanwhile. Load it again.",
-  move: "This Question's Client restriction or Publication State changed meanwhile. Load it again.",
-  declassify: "This Question's Client restriction changed meanwhile. Load it again.",
-};
-
-/** The write found nothing to change, so the checks are asked again in order: a Permission
- * Grant revoked since the first look makes it a 404 or a 400 rather than a 409. */
-async function refuseUnchangedRestriction(
-  database: Database,
-  viewer: Viewer,
-  id: string,
-  change: RestrictionChange,
-): Promise<never> {
-  if ((await findVisibleQuestionById(database, viewer, id)) === null) throw new NotFoundError();
-  if (change.act !== "declassify") await checkGrantedClient(database, viewer, change.to);
-  throw new ConflictError(restrictionChangedFor[change.act]);
-}
-
-/** The Client is looked up only after the role rule, or its 400 would answer a Viewer who may
- * not act at all (ADR-0002). */
-export async function classifyQuestion(
-  database: Database,
-  viewer: Viewer,
-  id: string,
+  question: QuestionFromDb,
   clientId: string,
-): Promise<QuestionFromDb> {
-  const question = await findVisibleQuestionById(database, viewer, id);
-  if (question === null) throw new NotFoundError();
-  if (!mayClassify(viewer, question)) throw new ForbiddenError();
+): Promise<PreparedWrite | null> {
   await checkGrantedClient(database, viewer, clientId);
 
-  if (question.client?.id === clientId) return question;
-  if (question.client !== null && !mayMoveToAnotherClient(viewer, question)) {
+  if (question.client === null) return { write: { act: "restrict", clientId }, overridden: [] };
+  if (question.client.id === clientId) return null;
+  // After the Client, because the advice is only worth giving when the move could then work.
+  if (!mayMoveToAnotherClient(viewer, question)) {
     throw new ForbiddenError(
       "A Published Question cannot be moved to another Client. A Reviewer can return it to " +
         "you, and you can move it then.",
     );
   }
-
-  const change: RestrictionChange =
-    question.client === null
-      ? { act: "classify", to: clientId }
-      : { act: "move", from: question.client.id, to: clientId };
-  const changed = await changeVisibleRestriction(database, viewer, id, change);
-  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
+  return { write: { act: "move", from: question.client.id, to: clientId }, overridden: [] };
 }
 
-export async function declassifyQuestion(
+/** Null when there is nothing to write. */
+async function prepareWrite(
+  database: Database,
+  viewer: Viewer,
+  question: QuestionFromDb,
+  act: QuestionAct,
+): Promise<PreparedWrite | null> {
+  switch (act.act) {
+    case "edit":
+      return editFor(database, viewer, question, act);
+    case "publish":
+      return publicationFor(database, viewer, question, act);
+    case "reject":
+    case "return":
+      return { write: { act: act.act, reason: act.reason }, overridden: [] };
+    case "resubmit":
+      return { write: { act: "resubmit" }, overridden: [] };
+    case "restrict":
+      return restrictionFor(database, viewer, question, act.clientId);
+    case "remove-restriction":
+      if (question.client === null) {
+        throw new ConflictError("This Question has no Client restriction to remove.");
+      }
+      return { write: { act: "remove-restriction", from: question.client.id }, overridden: [] };
+  }
+}
+
+/** A Permission Grant can be revoked between the look-up and the write, and the write says
+ * which check that made it fail, in the order the look-up asks them (ADR-0002). */
+function refusal(refused: WriteRefused, wrongState: string): AppError {
+  switch (refused) {
+    case "not-visible":
+      return new NotFoundError();
+    case "client-not-granted":
+      return new InvalidRequestError("No such Client.");
+    case "wrong-state":
+      return new ConflictError(wrongState);
+  }
+}
+
+/** Not Visible is a 404 before the role rule runs, because a 403 would say the Question
+ * exists (ADR-0002). */
+export async function actOnQuestion(
   database: Database,
   viewer: Viewer,
   id: string,
+  act: QuestionAct,
 ): Promise<QuestionFromDb> {
   const question = await findVisibleQuestionById(database, viewer, id);
   if (question === null) throw new NotFoundError();
-  if (!mayDeclassify(viewer)) {
-    throw new ForbiddenError("Only a Reviewer may remove a Client restriction.");
-  }
-  if (question.client === null) {
-    throw new ConflictError("This Question has no Client restriction to remove.");
-  }
+  const rule = actRules[writeActFor(act, question)];
+  if (!rule.may(viewer, question)) throw new ForbiddenError(rule.forbidden);
 
-  const change: RestrictionChange = { act: "declassify", from: question.client.id };
-  const changed = await changeVisibleRestriction(database, viewer, id, change);
-  return changed ?? refuseUnchangedRestriction(database, viewer, id, change);
+  const prepared = await prepareWrite(database, viewer, question, act);
+  if (prepared === null) return question;
+
+  const written = await writeVisibleQuestion(
+    database,
+    viewer,
+    id,
+    prepared.write,
+    prepared.overridden,
+  );
+  if ("refused" in written) throw refusal(written.refused, rule.wrongState);
+  return written.question;
 }

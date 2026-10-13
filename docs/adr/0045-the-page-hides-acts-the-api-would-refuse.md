@@ -34,5 +34,5 @@ what it already has: the Viewer's role and id, and the Question's Author.
 
 - A Reader sees no buttons on a Question. An Author sees them only on their own.
 - The edit screen still reports the API's refusal to anyone who opens its address directly.
-- The rule for removing a Client restriction (`may-classify.ts`) stays in the backend, and the edit
-  screen still offers that to everyone who reaches it. It can move the same way when it is needed.
+- The rules for a Client restriction moved to `question-acts.ts` too (#135), but the edit screen
+  still offers removing one to everyone who reaches it.

@@ -38,7 +38,7 @@ export function EditRestrictionForm({ question }: { question: Question }) {
 
   function restrict(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (clientId !== null) send({ act: "classify", request: { clientId } });
+    if (clientId !== null) send({ act: "restrict", request: { clientId } });
   }
 
   // Nothing to choose and nothing to remove, and an unrestricted Question shows no badge.
@@ -79,7 +79,7 @@ export function EditRestrictionForm({ question }: { question: Question }) {
           size="sm"
           className="self-start"
           disabled={change.isPending}
-          onClick={() => send({ act: "declassify" })}
+          onClick={() => send({ act: "remove-restriction" })}
         >
           Remove the restriction
         </Button>

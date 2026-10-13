@@ -1,4 +1,4 @@
-import type { ClassifyQuestionRequest, Client, Question } from "@iqb/shared";
+import type { Client, Question, RestrictQuestionRequest } from "@iqb/shared";
 import { screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,16 +68,16 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
       if (asked.pathname === `/api/questions/${question.id}`) {
         return answersWith({ question: current });
       }
-      const act = /^\/api\/questions\/[^/]+\/(classify|declassify)$/.exec(asked.pathname)?.[1] as
-        | RestrictionChange["act"]
-        | undefined;
+      const act = /^\/api\/questions\/[^/]+\/(restrict|remove-restriction)$/.exec(
+        asked.pathname,
+      )?.[1] as RestrictionChange["act"] | undefined;
       if (act === undefined || request.method !== "POST") return undefined;
       const refused = refuse?.(act, changeElsewhere);
       if (refused !== undefined) return refused;
-      if (act === "declassify") {
+      if (act === "remove-restriction") {
         current = { ...current, client: null };
       } else {
-        const { clientId } = (await request.json()) as ClassifyQuestionRequest;
+        const { clientId } = (await request.json()) as RestrictQuestionRequest;
         current = { ...current, client: granted.find(({ id }) => id === clientId) ?? null };
       }
       return answersWith({ question: current });
@@ -88,7 +88,7 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
 /** The restriction changes the page sent, as the act and the body it sent. */
 async function changesSent(api: FakeApi): Promise<unknown[]> {
   const changes = api.sent.filter(
-    (request) => request.method === "POST" && /classify$/.test(request.url),
+    (request) => request.method === "POST" && /\/(restrict|remove-restriction)$/.test(request.url),
   );
   return Promise.all(
     changes.map(async (request) => ({
@@ -115,7 +115,7 @@ describe("changing a Question's Client restriction", () => {
 
     expect(await screen.findByText("Restricted to Acme")).toBeVisible();
     expect(await theToastSaying("It is now restricted to Acme.")).toBeVisible();
-    expect(await changesSent(api)).toEqual([{ act: "classify", body: { clientId: acme.id } }]);
+    expect(await changesSent(api)).toEqual([{ act: "restrict", body: { clientId: acme.id } }]);
 
     await userEvent.click(screen.getByRole("link", { name: "← Back to the Question" }));
     expect(
@@ -142,7 +142,7 @@ describe("changing a Question's Client restriction", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Remove the restriction" }));
 
     await waitFor(() => expect(screen.queryByText("Restricted to Acme")).toBeNull());
-    expect(await changesSent(api)).toEqual([{ act: "declassify", body: undefined }]);
+    expect(await changesSent(api)).toEqual([{ act: "remove-restriction", body: undefined }]);
     expect(await theToastSaying("The restriction was removed.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Remove the restriction" })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Restrict to a Client" })).toHaveDisplayValue(
@@ -153,7 +153,7 @@ describe("changing a Question's Client restriction", () => {
   it("shows the API's refusal when an Author tries to remove a restriction", async () => {
     aBankHolding(restricted, {
       refuse: (act) =>
-        act === "declassify"
+        act === "remove-restriction"
           ? refusesWith(403, "forbidden", "Only a Reviewer may remove a Client restriction.")
           : undefined,
     });
@@ -174,7 +174,7 @@ describe("changing a Question's Client restriction", () => {
       "you, and you can move it then.";
     aBankHolding(restricted, {
       refuse: (act) =>
-        act === "classify" ? refusesWith(403, "forbidden", moveRefused) : undefined,
+        act === "restrict" ? refusesWith(403, "forbidden", moveRefused) : undefined,
     });
     renderTheWholeClient(`/questions/${restricted.id}/edit`);
 
@@ -204,7 +204,7 @@ describe("changing a Question's Client restriction", () => {
     const removedFirst = "This Question has no Client restriction to remove.";
     aBankHolding(restricted, {
       refuse: (act, changeElsewhere) => {
-        if (act !== "declassify") return undefined;
+        if (act !== "remove-restriction") return undefined;
         changeElsewhere({ client: null });
         return refusesWith(409, "conflict", removedFirst);
       },

@@ -131,8 +131,8 @@ export const rejectQuestionRequestSchema = z
 export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
 
 /** Only a Client the Viewer holds a Grant for is accepted, and that is checked further in. */
-export const classifyQuestionRequestSchema = z.object({ clientId: z.uuid() }).strict();
-export type ClassifyQuestionRequest = z.infer<typeof classifyQuestionRequestSchema>;
+export const restrictQuestionRequestSchema = z.object({ clientId: z.uuid() }).strict();
+export type RestrictQuestionRequest = z.infer<typeof restrictQuestionRequestSchema>;
 
 /** The same as Rejecting asks for, because a returned Question is Rejected and its Author
  * reads the reason the same way (ADR-0013). */

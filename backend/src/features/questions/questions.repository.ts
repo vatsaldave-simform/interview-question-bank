@@ -534,211 +534,198 @@ function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdi
   return Object.keys(changed).length === 0 ? null : changed;
 }
 
-/**
- * Null for a Question that is not Visible and one that does not exist alike, exactly as
- * the fetch answers (ADR-0002). The write is checked by the same `visibleQuestions` as the
- * reads, so a caller does not become the second way to the questions table (ADR-0003).
- */
-export async function updateVisibleQuestion(
-  database: Database,
+type ChangeDetails = {
+  publish: Record<never, never>;
+  reject: { reason: string };
+  resubmit: Record<never, never>;
+  return: { reason: string };
+  restrict: { clientId: string };
+  move: { from: string; to: string };
+  "remove-restriction": { from: string };
+};
+
+type ChangeAct = keyof ChangeDetails;
+
+/** Named by the act rather than by what it ends in, because Rejecting and returning both end
+ * in Rejected and each writes its own Change Event. */
+type Change<A extends ChangeAct = ChangeAct> = { [K in A]: { act: K } & ChangeDetails[K] }[A];
+
+export type QuestionWrite = Change | ({ act: "edit" } & QuestionEdit);
+
+/** Why a write wrote nothing, decided inside its transaction, so nobody has to look the
+ * Question up again to find out. */
+export type WriteRefused = "not-visible" | "wrong-state" | "client-not-granted";
+
+export type QuestionWritten = { question: QuestionFromDb } | { refused: WriteRefused };
+
+type QuestionAndViewer = { questionId: string; viewerId: string };
+
+type ChangePlan = {
+  /** Part of the `where`, so of two acts at once only one lands. */
+  startsFrom: Prisma.QuestionWhereInput;
+  writes: Prisma.QuestionUncheckedUpdateManyInput;
+  event: NewChangeEvent;
+  /** The Client the Viewer must still hold a Grant for when the write lands. */
+  grantedClient?: string;
+};
+
+const changePlans: {
+  [A in ChangeAct]: (change: Change<A>, happened: QuestionAndViewer) => ChangePlan;
+} = {
+  publish: (_, happened) => ({
+    startsFrom: { publicationState: "pending" },
+    writes: { publicationState: "published", reason: null },
+    event: { ...happened, type: "question_published", payload: {} },
+  }),
+  reject: ({ reason }, happened) => ({
+    startsFrom: { publicationState: "pending" },
+    writes: { publicationState: "rejected", reason },
+    event: { ...happened, type: "question_rejected", payload: { reason } },
+  }),
+  resubmit: (_, happened) => ({
+    startsFrom: { publicationState: "rejected" },
+    writes: { publicationState: "pending", reason: null },
+    event: { ...happened, type: "question_resubmitted", payload: {} },
+  }),
+  // Rejected, so it waits for its Author rather than in the Reviewer's queue (ADR-0013).
+  return: ({ reason }, happened) => ({
+    startsFrom: { publicationState: "published" },
+    writes: { publicationState: "rejected", reason },
+    event: { ...happened, type: "question_returned", payload: { reason } },
+  }),
+  // The event types keep the old word "classified" (ADR-0027).
+  restrict: ({ clientId }, happened) => ({
+    startsFrom: { clientId: null },
+    writes: { clientId },
+    event: {
+      ...happened,
+      type: "question_classified",
+      payload: { clientId: { before: null, after: clientId } },
+    },
+    grantedClient: clientId,
+  }),
+  // A Question Published since the caller looked is no longer its Author's to move.
+  move: ({ from, to }, happened) => ({
+    startsFrom: { clientId: from, publicationState: { not: "published" } },
+    writes: { clientId: to },
+    event: {
+      ...happened,
+      type: "question_classified",
+      payload: { clientId: { before: from, after: to } },
+    },
+    grantedClient: to,
+  }),
+  "remove-restriction": ({ from }, happened) => ({
+    startsFrom: { clientId: from },
+    writes: { clientId: null },
+    event: { ...happened, type: "question_declassified", payload: { clientId: from } },
+  }),
+};
+
+// Generic, because TypeScript cannot match a union of changes to a union of plans directly.
+function changePlanFor<A extends ChangeAct>(
+  change: Change<A>,
+  happened: QuestionAndViewer,
+): ChangePlan {
+  return changePlans[change.act](change, happened);
+}
+
+/** By id, not checked again: the lock already found it Visible, and a Permission Grant revoked
+ * since then would make a checked read lose a write that is already made. */
+async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
+  const written = await transaction.question.findUniqueOrThrow({
+    where: { id },
+    select: questionFieldsToRead,
+  });
+  return toQuestionFromDb(written);
+}
+
+async function editLockedQuestion(
+  transaction: Transaction,
   viewer: Viewer,
   id: string,
   edit: QuestionEdit,
+  overridden: readonly NearDuplicate[],
+): Promise<QuestionFromDb> {
+  // Read before the write, because the event carries what each changed field was.
+  const before = await readLockedQuestion(transaction, id);
+
+  await transaction.question.updateMany({
+    where: { id },
+    data: {
+      ...(edit.text === undefined ? {} : { text: edit.text }),
+      ...(edit.answerNotes === undefined ? {} : { answerNotes: edit.answerNotes }),
+    },
+  });
+
+  if (edit.tagIds !== undefined) {
+    await transaction.questionTag.deleteMany({ where: { questionId: id } });
+    await transaction.questionTag.createMany({
+      data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
+    });
+  }
+
+  const after = await readLockedQuestion(transaction, id);
+  const changed = whatChanged(before, after);
+  if (changed !== null) {
+    await insertChangeEvent(transaction, {
+      type: "question_edited",
+      questionId: id,
+      viewerId: viewer.id,
+      payload: changed,
+    });
+    await recordOverride(transaction, viewer, id, overridden);
+  }
+  return after;
+}
+
+async function changeLockedQuestion(
+  transaction: Transaction,
+  viewer: Viewer,
+  id: string,
+  change: Change,
+  overridden: readonly NearDuplicate[],
+): Promise<QuestionWritten> {
+  const plan = changePlanFor(change, { questionId: id, viewerId: viewer.id });
+  // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
+  // restricted to a Client its Author no longer holds.
+  if (
+    plan.grantedClient !== undefined &&
+    (await findClientGrantedTo(transaction, viewer.id, plan.grantedClient)) === null
+  ) {
+    return { refused: "client-not-granted" };
+  }
+
+  const { count } = await transaction.question.updateMany({
+    where: { AND: [{ id }, plan.startsFrom] },
+    data: plan.writes,
+  });
+  if (count === 0) return { refused: "wrong-state" };
+
+  await insertChangeEvent(transaction, plan.event);
+  await recordOverride(transaction, viewer, id, overridden);
+  return { question: await readLockedQuestion(transaction, id) };
+}
+
+/** Checked by the same `visibleQuestions` as the reads, so a caller does not become the
+ * second way to the questions table (ADR-0003). */
+export async function writeVisibleQuestion(
+  database: Database,
+  viewer: Viewer,
+  id: string,
+  write: QuestionWrite,
   overridden: readonly NearDuplicate[] = [],
-): Promise<QuestionFromDb | null> {
+): Promise<QuestionWritten> {
   return database.$transaction(async (transaction) => {
-    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
+    if (!(await lockVisibleQuestion(transaction, viewer, id))) return { refused: "not-visible" };
 
     // From here on the Question is named by id alone, which is safe only because the
     // lock above found it Visible to this Viewer.
 
-    // Read before the write, because the event carries what each changed field was.
-    const before = await transaction.question.findUniqueOrThrow({
-      where: { id },
-      select: questionFieldsToRead,
-    });
-
-    await transaction.question.updateMany({
-      where: { id },
-      data: {
-        ...(edit.text === undefined ? {} : { text: edit.text }),
-        ...(edit.answerNotes === undefined ? {} : { answerNotes: edit.answerNotes }),
-      },
-    });
-
-    if (edit.tagIds !== undefined) {
-      await transaction.questionTag.deleteMany({ where: { questionId: id } });
-      await transaction.questionTag.createMany({
-        data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
-      });
+    if (write.act === "edit") {
+      return { question: await editLockedQuestion(transaction, viewer, id, write, overridden) };
     }
-
-    // Read by id, not checked again. A Permission Grant revoked since the write would
-    // make that second read find nothing, and the edit is already committed by then:
-    // the Change Event would be the thing lost.
-    const updated = await transaction.question.findUniqueOrThrow({
-      where: { id },
-      select: questionFieldsToRead,
-    });
-
-    const after = toQuestionFromDb(updated);
-    const changed = whatChanged(toQuestionFromDb(before), after);
-    if (changed !== null) {
-      await insertChangeEvent(transaction, {
-        type: "question_edited",
-        questionId: id,
-        viewerId: viewer.id,
-        payload: changed,
-      });
-      await recordOverride(transaction, viewer, id, overridden);
-    }
-    return after;
-  });
-}
-
-/** Named by the act rather than by the state it ends in, because Rejecting and returning
- * both end in Rejected and each writes its own Change Event. */
-export type PublicationMove =
-  | { act: "publish" }
-  | { act: "reject"; reason: string }
-  | { act: "resubmit" }
-  | { act: "return"; reason: string };
-
-/** Each names the state it starts from, so the same act twice finds nothing to move the
- * second time. */
-const statesFor: Record<
-  PublicationMove["act"],
-  { from: PublicationState; to: PublicationState }
-> = {
-  publish: { from: "pending", to: "published" },
-  reject: { from: "pending", to: "rejected" },
-  resubmit: { from: "rejected", to: "pending" },
-  // Rejected, so it waits for its Author rather than in the Reviewer's queue (ADR-0013).
-  return: { from: "published", to: "rejected" },
-};
-
-function eventFor(move: PublicationMove, questionId: string, viewer: Viewer): NewChangeEvent {
-  const happened = { questionId, viewerId: viewer.id };
-  switch (move.act) {
-    case "publish":
-      return { ...happened, type: "question_published", payload: {} };
-    case "reject":
-      return { ...happened, type: "question_rejected", payload: { reason: move.reason } };
-    case "resubmit":
-      return { ...happened, type: "question_resubmitted", payload: {} };
-    case "return":
-      return { ...happened, type: "question_returned", payload: { reason: move.reason } };
-  }
-}
-
-/** Null when nothing moved, and the state is in the `where`, so of two moves at once only
- * one finds the row and only one Change Event is written. */
-export async function moveVisibleQuestion(
-  database: Database,
-  viewer: Viewer,
-  id: string,
-  move: PublicationMove,
-  overridden: readonly NearDuplicate[] = [],
-): Promise<QuestionFromDb | null> {
-  const { from, to } = statesFor[move.act];
-  return database.$transaction(async (transaction) => {
-    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
-
-    const { count } = await transaction.question.updateMany({
-      where: { id, publicationState: from },
-      data: { publicationState: to, reason: "reason" in move ? move.reason : null },
-    });
-    if (count === 0) return null;
-
-    await insertChangeEvent(transaction, eventFor(move, id, viewer));
-    await recordOverride(transaction, viewer, id, overridden);
-
-    // By id, because a Permission Grant revoked since the write would hide the committed move.
-    const moved = await transaction.question.findUniqueOrThrow({
-      where: { id },
-      select: questionFieldsToRead,
-    });
-    return toQuestionFromDb(moved);
-  });
-}
-
-/** Named by the act, as `PublicationMove` is, because each act expects a different Client to
- * be there and writes its own Change Event. */
-export type RestrictionChange =
-  | { act: "classify"; to: string }
-  | { act: "move"; from: string; to: string }
-  | { act: "declassify"; from: string };
-
-function restrictionEventFor(
-  change: RestrictionChange,
-  questionId: string,
-  viewer: Viewer,
-): NewChangeEvent {
-  const happened = { questionId, viewerId: viewer.id };
-  switch (change.act) {
-    case "classify":
-      return {
-        ...happened,
-        type: "question_classified",
-        payload: { clientId: { before: null, after: change.to } },
-      };
-    case "move":
-      return {
-        ...happened,
-        type: "question_classified",
-        payload: { clientId: { before: change.from, after: change.to } },
-      };
-    case "declassify":
-      return { ...happened, type: "question_declassified", payload: { clientId: change.from } };
-  }
-}
-
-/** What the row has to hold for the act to land, so of two acts at once only one does. */
-function expectedBefore(change: RestrictionChange): Prisma.QuestionWhereInput {
-  switch (change.act) {
-    case "classify":
-      return { clientId: null };
-    // A Question Published since the caller looked is no longer the Author's to move.
-    case "move":
-      return { clientId: change.from, publicationState: { not: "published" } };
-    case "declassify":
-      return { clientId: change.from };
-  }
-}
-
-/** Null when nothing changed, for the same reasons `moveVisibleQuestion` gives. */
-export async function changeVisibleRestriction(
-  database: Database,
-  viewer: Viewer,
-  id: string,
-  change: RestrictionChange,
-): Promise<QuestionFromDb | null> {
-  return database.$transaction(async (transaction) => {
-    // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
-    // restricted to a Client its Author no longer holds.
-    if (
-      change.act !== "declassify" &&
-      (await findClientGrantedTo(transaction, viewer.id, change.to)) === null
-    ) {
-      return null;
-    }
-
-    if (!(await lockVisibleQuestion(transaction, viewer, id))) return null;
-
-    const { count } = await transaction.question.updateMany({
-      where: { AND: [{ id }, expectedBefore(change)] },
-      data: { clientId: change.act === "declassify" ? null : change.to },
-    });
-    if (count === 0) return null;
-
-    await insertChangeEvent(transaction, restrictionEventFor(change, id, viewer));
-
-    // By id, because a Permission Grant revoked since the write would hide the committed change.
-    const changed = await transaction.question.findUniqueOrThrow({
-      where: { id },
-      select: questionFieldsToRead,
-    });
-    return toQuestionFromDb(changed);
+    return changeLockedQuestion(transaction, viewer, id, write, overridden);
   });
 }
 
