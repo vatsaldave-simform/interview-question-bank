@@ -534,7 +534,6 @@ function whatChanged(before: QuestionFromDb, after: QuestionFromDb): QuestionEdi
   return Object.keys(changed).length === 0 ? null : changed;
 }
 
-/** What each act other than an edit carries beside its name. */
 type ChangeDetails = {
   publish: Record<never, never>;
   reject: { reason: string };
@@ -551,7 +550,6 @@ type ChangeAct = keyof ChangeDetails;
  * in Rejected and each writes its own Change Event. */
 type Change<A extends ChangeAct = ChangeAct> = { [K in A]: { act: K } & ChangeDetails[K] }[A];
 
-/** Every write on a Question that already exists. */
 export type QuestionWrite = Change | ({ act: "edit" } & QuestionEdit);
 
 /** Why a write wrote nothing, decided inside its transaction, so nobody has to look the
@@ -560,11 +558,10 @@ export type WriteRefused = "not-visible" | "wrong-state" | "client-not-granted";
 
 export type QuestionWritten = { question: QuestionFromDb } | { refused: WriteRefused };
 
-type Happened = { questionId: string; viewerId: string };
+type QuestionAndViewer = { questionId: string; viewerId: string };
 
-/** One act: the state it starts from, what it writes, and its Change Event. */
-type ChangeRow = {
-  /** Part of the `where`, so of two acts at once only one finds the row it expects. */
+type ChangePlan = {
+  /** Part of the `where`, so of two acts at once only one lands. */
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
   event: NewChangeEvent;
@@ -572,7 +569,9 @@ type ChangeRow = {
   grantedClient?: string;
 };
 
-const changeRows: { [A in ChangeAct]: (change: Change<A>, happened: Happened) => ChangeRow } = {
+const changePlans: {
+  [A in ChangeAct]: (change: Change<A>, happened: QuestionAndViewer) => ChangePlan;
+} = {
   publish: (_, happened) => ({
     startsFrom: { publicationState: "pending" },
     writes: { publicationState: "published", reason: null },
@@ -594,6 +593,7 @@ const changeRows: { [A in ChangeAct]: (change: Change<A>, happened: Happened) =>
     writes: { publicationState: "rejected", reason },
     event: { ...happened, type: "question_returned", payload: { reason } },
   }),
+  // The event types keep the old word "classified" (ADR-0027).
   restrict: ({ clientId }, happened) => ({
     startsFrom: { clientId: null },
     writes: { clientId },
@@ -622,8 +622,12 @@ const changeRows: { [A in ChangeAct]: (change: Change<A>, happened: Happened) =>
   }),
 };
 
-function changeRowFor<A extends ChangeAct>(change: Change<A>, happened: Happened): ChangeRow {
-  return changeRows[change.act](change, happened);
+// Generic, because TypeScript cannot match a union of changes to a union of plans directly.
+function changePlanFor<A extends ChangeAct>(
+  change: Change<A>,
+  happened: QuestionAndViewer,
+): ChangePlan {
+  return changePlans[change.act](change, happened);
 }
 
 /** By id, not checked again: the lock already found it Visible, and a Permission Grant revoked
@@ -682,33 +686,29 @@ async function changeLockedQuestion(
   change: Change,
   overridden: readonly NearDuplicate[],
 ): Promise<QuestionWritten> {
-  const row = changeRowFor(change, { questionId: id, viewerId: viewer.id });
+  const plan = changePlanFor(change, { questionId: id, viewerId: viewer.id });
   // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
   // restricted to a Client its Author no longer holds.
   if (
-    row.grantedClient !== undefined &&
-    (await findClientGrantedTo(transaction, viewer.id, row.grantedClient)) === null
+    plan.grantedClient !== undefined &&
+    (await findClientGrantedTo(transaction, viewer.id, plan.grantedClient)) === null
   ) {
     return { refused: "client-not-granted" };
   }
 
   const { count } = await transaction.question.updateMany({
-    where: { AND: [{ id }, row.startsFrom] },
-    data: row.writes,
+    where: { AND: [{ id }, plan.startsFrom] },
+    data: plan.writes,
   });
   if (count === 0) return { refused: "wrong-state" };
 
-  await insertChangeEvent(transaction, row.event);
+  await insertChangeEvent(transaction, plan.event);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
 }
 
-/**
- * The one write on a Question that already exists. It is checked by the same
- * `visibleQuestions` as the reads, so a caller does not become the second way to the
- * questions table (ADR-0003), and a Question that is not Visible is refused exactly as one
- * that does not exist (ADR-0002).
- */
+/** Checked by the same `visibleQuestions` as the reads, so a caller does not become the
+ * second way to the questions table (ADR-0003). */
 export async function writeVisibleQuestion(
   database: Database,
   viewer: Viewer,

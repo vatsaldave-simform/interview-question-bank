@@ -252,8 +252,7 @@ async function checkEditedText(
   });
 }
 
-/** Every act on a Question that already exists, carrying what its request carries. */
-export type QuestionAct =
+type QuestionAct =
   | ({ act: "edit" } & EditQuestionRequest)
   | ({ act: "publish" } & PublishQuestionRequest)
   | ({ act: "reject" } & RejectQuestionRequest)
@@ -303,7 +302,6 @@ function writeActFor(act: QuestionAct, question: QuestionFromDb): QuestionWrite[
   return question.client === null ? "restrict" : "move";
 }
 
-/** A write, and the Near-Duplicates it goes ahead in spite of. */
 type PreparedWrite = { write: QuestionWrite; overridden: NearDuplicate[] };
 
 async function editFor(
@@ -368,8 +366,7 @@ async function restrictionFor(
   return { write: { act: "move", from: question.client.id, to: clientId }, overridden: [] };
 }
 
-/** An act's own checks, which run only once the Viewer is known to be allowed it. Null when
- * there is nothing to write. */
+/** Null when there is nothing to write. */
 async function prepareWrite(
   database: Database,
   viewer: Viewer,
@@ -398,23 +395,19 @@ async function prepareWrite(
 
 /** A Permission Grant can be revoked between the look-up and the write, and the write says
  * which check that made it fail, in the order the look-up asks them (ADR-0002). */
-function refusal(refused: WriteRefused, rule: ActRule): AppError {
+function refusal(refused: WriteRefused, wrongState: string): AppError {
   switch (refused) {
     case "not-visible":
       return new NotFoundError();
     case "client-not-granted":
       return new InvalidRequestError("No such Client.");
     case "wrong-state":
-      return new ConflictError(rule.wrongState);
+      return new ConflictError(wrongState);
   }
 }
 
-/**
- * The order here is the rule. The Question is looked up through the same function every
- * read goes through, so an id that is not Visible is answered as one that names nothing;
- * only then does the role rule run, and only then is its 403 honest. Anything the act
- * itself checks, a Client or a Near-Duplicate, comes after both (ADR-0002).
- */
+/** Not Visible is a 404 before the role rule runs, because a 403 would say the Question
+ * exists (ADR-0002). */
 export async function actOnQuestion(
   database: Database,
   viewer: Viewer,
@@ -436,6 +429,6 @@ export async function actOnQuestion(
     prepared.write,
     prepared.overridden,
   );
-  if ("refused" in written) throw refusal(written.refused, rule);
+  if ("refused" in written) throw refusal(written.refused, rule.wrongState);
   return written.question;
 }
