@@ -64,7 +64,7 @@ can guess what a function does without opening it.
 |---|---|---|
 | `viewer` | the Viewer the request acts as | `rateQuestion(database, viewer, …)` |
 | `target` | the Viewer an act is done to | `deactivateViewer(database, viewer, targetId)` |
-| `find…` | reads one row, or null when there is none | `findViewerById` |
+| `find…` | reads rows, and may find none: null for one row, empty for a list | `findViewerById` |
 | `get…` | reads one row, or throws Not Found | `getViewer` |
 | `findEvery…` | reads every row | `findEveryCategoryWithTags` |
 | `list…` | a service that builds a list | `listQuestions` |

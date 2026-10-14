@@ -53,8 +53,8 @@ async function lockAdministratorsAndGetViewer(
 
 /** Every administrative act, whatever it does to the target Viewer, in the shape the
  * Change Event names it (ADR-0035). */
-function affectedViewer(viewer: Viewer) {
-  return { id: viewer.id, email: viewer.email };
+function affectedViewer(target: Viewer) {
+  return { id: target.id, email: target.email };
 }
 
 /** Called after `lockAdministratorsAndGetViewer` in the transaction of the write it guards,
