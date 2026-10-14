@@ -29,22 +29,22 @@ async function getClient(database: Database, id: string): Promise<Client> {
  * naming them as the one who issued it (ADR-0015). */
 export async function issuePermissionGrant(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   clientId: string,
-  viewerId: string,
+  targetId: string,
 ): Promise<PermissionGrant> {
   const client = await getClient(database, clientId);
-  const viewer = await findViewerById(database, viewerId);
-  if (viewer === null) throw new InvalidRequestError("No Viewer has that id.");
+  const target = await findViewerById(database, targetId);
+  if (target === null) throw new InvalidRequestError("No Viewer has that id.");
 
   try {
     return await database.$transaction(async (transaction) => {
-      const grant = await insertPermissionGrant(transaction, client.id, viewer.id);
+      const grant = await insertPermissionGrant(transaction, client.id, target.id);
       const payload: PermissionGrantIssued = { grant };
       await insertChangeEvent(transaction, {
         type: "permission_grant_issued",
         questionId: null,
-        viewerId: actingViewer.id,
+        viewerId: viewer.id,
         payload,
       });
       return grant;
@@ -71,18 +71,18 @@ export async function listPermissionGrants(
  * copy of who holds which Grant. */
 export async function revokePermissionGrant(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   clientId: string,
-  viewerId: string,
+  targetId: string,
 ): Promise<void> {
   try {
     await database.$transaction(async (transaction) => {
-      const grant = await deletePermissionGrant(transaction, clientId, viewerId);
+      const grant = await deletePermissionGrant(transaction, clientId, targetId);
       const payload: PermissionGrantRevoked = { grant };
       await insertChangeEvent(transaction, {
         type: "permission_grant_revoked",
         questionId: null,
-        viewerId: actingViewer.id,
+        viewerId: viewer.id,
         payload,
       });
     });

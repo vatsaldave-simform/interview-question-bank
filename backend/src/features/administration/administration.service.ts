@@ -76,7 +76,7 @@ async function refuseLastActiveAdministrator(
  */
 export async function appointAdministrator(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
@@ -88,7 +88,7 @@ export async function appointAdministrator(
     await insertChangeEvent(transaction, {
       type: "administrator_appointed",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return appointed;
@@ -101,7 +101,7 @@ export async function appointAdministrator(
  */
 export async function withdrawAdministrator(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
@@ -119,7 +119,7 @@ export async function withdrawAdministrator(
     await insertChangeEvent(transaction, {
       type: "administrator_withdrawn",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return withdrawn;
@@ -130,7 +130,7 @@ export async function withdrawAdministrator(
  * directly (spec #20). */
 export async function changeRole(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
   role: ViewerRole,
 ): Promise<Viewer> {
@@ -146,7 +146,7 @@ export async function changeRole(
     await insertChangeEvent(transaction, {
       type: "role_changed",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return changed;
@@ -157,7 +157,7 @@ export async function changeRole(
  * rotation (ADR-0017). */
 export async function deactivateViewer(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
@@ -176,7 +176,7 @@ export async function deactivateViewer(
     await insertChangeEvent(transaction, {
       type: "viewer_deactivated",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return deactivated;
@@ -187,7 +187,7 @@ export async function deactivateViewer(
  * (ADR-0017). */
 export async function reactivateViewer(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
@@ -199,7 +199,7 @@ export async function reactivateViewer(
     await insertChangeEvent(transaction, {
       type: "viewer_reactivated",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return reactivated;
@@ -213,7 +213,7 @@ export async function reactivateViewer(
 export async function createViewer(
   database: Database,
   { mailer, settings }: PasswordMailDependencies,
-  actingViewer: Viewer,
+  viewer: Viewer,
   email: string,
   role: ViewerRole,
 ): Promise<Viewer> {
@@ -225,7 +225,7 @@ export async function createViewer(
         await insertChangeEvent(transaction, {
           type: "viewer_created",
           questionId: null,
-          viewerId: actingViewer.id,
+          viewerId: viewer.id,
           payload,
         });
         const issued = await issuePasswordToken(transaction, inserted.id, settings);

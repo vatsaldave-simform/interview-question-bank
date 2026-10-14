@@ -52,7 +52,7 @@ export function administrationRoutes(
   router.post("/", async (req, res) => {
     const request = createViewerRequestSchema.parse(req.body);
 
-    const viewer = await createViewer(
+    const created = await createViewer(
       database,
       setPasswordMail,
       authenticatedViewer(req),
@@ -60,16 +60,16 @@ export function administrationRoutes(
       request.role,
     );
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: created };
     res.status(201).json(body);
   });
 
   router.post("/:id/administrator", async (req, res) => {
     const id = viewerIdNamed(req);
 
-    const viewer = await appointAdministrator(database, authenticatedViewer(req), id);
+    const target = await appointAdministrator(database, authenticatedViewer(req), id);
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: target };
     res.json(body);
   });
 
@@ -77,9 +77,9 @@ export function administrationRoutes(
   router.delete("/:id/administrator", async (req, res) => {
     const id = viewerIdNamed(req);
 
-    const viewer = await withdrawAdministrator(database, authenticatedViewer(req), id);
+    const target = await withdrawAdministrator(database, authenticatedViewer(req), id);
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: target };
     res.json(body);
   });
 
@@ -87,9 +87,9 @@ export function administrationRoutes(
     const id = viewerIdNamed(req);
     const request = changeRoleRequestSchema.parse(req.body);
 
-    const viewer = await changeRole(database, authenticatedViewer(req), id, request.role);
+    const target = await changeRole(database, authenticatedViewer(req), id, request.role);
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: target };
     res.json(body);
   });
 
@@ -97,9 +97,9 @@ export function administrationRoutes(
   router.post("/:id/deactivation", async (req, res) => {
     const id = viewerIdNamed(req);
 
-    const viewer = await deactivateViewer(database, authenticatedViewer(req), id);
+    const target = await deactivateViewer(database, authenticatedViewer(req), id);
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: target };
     res.json(body);
   });
 
@@ -107,9 +107,9 @@ export function administrationRoutes(
   router.delete("/:id/deactivation", async (req, res) => {
     const id = viewerIdNamed(req);
 
-    const viewer = await reactivateViewer(database, authenticatedViewer(req), id);
+    const target = await reactivateViewer(database, authenticatedViewer(req), id);
 
-    const body: ViewerResponse = { viewer };
+    const body: ViewerResponse = { viewer: target };
     res.json(body);
   });
 

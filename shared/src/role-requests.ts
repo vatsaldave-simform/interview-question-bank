@@ -5,8 +5,8 @@ export const roleRequestStates = ["open", "granted", "denied"] as const;
 export const roleRequestStateSchema = z.enum(roleRequestStates);
 export type RoleRequestState = z.infer<typeof roleRequestStateSchema>;
 
-/** The same shape to the requester and to an Administrator, so the reason a requester
- * reads is exactly the one the Administrator wrote. */
+/** The same shape to the Viewer who asked and to an Administrator, so the reason they read
+ * is exactly the one the Administrator wrote. */
 export const roleRequestSchema = z
   .object({
     id: z.uuid(),
@@ -38,7 +38,7 @@ export type RoleRequestListResponse = z.infer<typeof roleRequestListResponseSche
 /** Trimmed before it is measured, so whitespace alone is no reason. */
 const reasonSchema = z.string().trim().min(1).max(2_000);
 
-/** A denial has to say why, so the requester can act on it; a grant may. */
+/** A denial has to say why, so the Viewer who asked can act on it; a grant may. */
 export const decideRoleRequestRequestSchema = z.discriminatedUnion("outcome", [
   z.object({ outcome: z.literal("granted"), reason: reasonSchema.optional() }).strict(),
   z.object({ outcome: z.literal("denied"), reason: reasonSchema }).strict(),
