@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import type { Express } from "express";
 import type { Logger } from "pino";
 
-export type ServerOptions = {
+export type ServerConfig = {
   app: Express;
   port: number;
   logger: Logger;
@@ -29,7 +29,7 @@ export async function startServer({
   logger,
   onShutdown,
   shutdownTimeoutMs,
-}: ServerOptions): Promise<RunningServer> {
+}: ServerConfig): Promise<RunningServer> {
   const server = createServer(app);
 
   await new Promise<void>((resolve, reject) => {

@@ -10,7 +10,7 @@ const judgeableFields = {
   revokedAt: true,
 } as const;
 
-export type StoredRefreshToken = {
+export type RefreshTokenFromDb = {
   id: string;
   familyId: string;
   viewerId: string;
@@ -30,14 +30,14 @@ export type NewRefreshToken = {
 export function insertRefreshToken(
   database: Database,
   token: NewRefreshToken,
-): Promise<StoredRefreshToken> {
+): Promise<RefreshTokenFromDb> {
   return database.refreshToken.create({ data: token, select: judgeableFields });
 }
 
 export function findRefreshTokenByHash(
   database: Database,
   tokenHash: string,
-): Promise<StoredRefreshToken | null> {
+): Promise<RefreshTokenFromDb | null> {
   return database.refreshToken.findUnique({ where: { tokenHash }, select: judgeableFields });
 }
 
