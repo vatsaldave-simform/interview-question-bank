@@ -4,7 +4,7 @@ import {
   bankVocabulary,
   bulkTagPrefix,
   seedBulkBank,
-  type BulkBankOptions,
+  type BulkBankConfig,
 } from "../src/features/questions/bulk-bank.seed.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
@@ -12,7 +12,7 @@ import { seedTheBank } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
-const bulk: BulkBankOptions = { count: 600, seed: "a-test-of-the-bulk-bank" };
+const bulk: BulkBankConfig = { count: 600, seed: "a-test-of-the-bulk-bank" };
 
 /** The small seed writes a handful of Questions of its own, which would answer several
  * of the assertions below on their own, so every one of them asks about these rows only. */
@@ -198,7 +198,7 @@ describe("seeding the bulk bank again", () => {
 
   /** An empty database, the small seed, then the bulk bank, as a run of the command
    * does it. */
-  async function seedAfresh(options: BulkBankOptions = bulk): Promise<BankRow[]> {
+  async function seedAfresh(options: BulkBankConfig = bulk): Promise<BankRow[]> {
     await seedTheBank(database);
     await seedBulkBank(database, options);
     return bulkBankRows(database);

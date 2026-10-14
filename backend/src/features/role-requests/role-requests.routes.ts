@@ -65,12 +65,12 @@ export function roleRequestRoutes(database: Database): Router {
   router.post("/:id/decision", requireAdministrator(), async (req, res) => {
     const id = roleRequestIdNamed(req);
     const decision = decideRoleRequestRequestSchema.parse(req.body);
-    const actingViewer = authenticatedViewer(req);
+    const viewer = authenticatedViewer(req);
 
     const roleRequest =
       decision.outcome === "granted"
-        ? await grantRoleRequest(database, actingViewer, id, decision.reason ?? null)
-        : await denyRoleRequest(database, actingViewer, id, decision.reason);
+        ? await grantRoleRequest(database, viewer, id, decision.reason ?? null)
+        : await denyRoleRequest(database, viewer, id, decision.reason);
 
     const body: RoleRequestResponse = { roleRequest: toRoleRequest(roleRequest) };
     res.json(body);

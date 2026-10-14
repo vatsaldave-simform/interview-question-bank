@@ -11,7 +11,7 @@ import { ConflictError } from "../../platform/errors.ts";
  */
 export async function createClient(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   name: string,
 ): Promise<Client> {
   try {
@@ -21,7 +21,7 @@ export async function createClient(
       await insertChangeEvent(transaction, {
         type: "client_created",
         questionId: null,
-        viewerId: actingViewer.id,
+        viewerId: viewer.id,
         payload,
       });
       return client;

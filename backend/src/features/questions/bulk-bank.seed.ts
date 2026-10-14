@@ -4,7 +4,7 @@ import type { Database } from "../../platform/database.ts";
 import { seedClient } from "../clients/clients.seed.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
 
-export type BulkBankOptions = {
+export type BulkBankConfig = {
   count: number;
   /** Every choice below comes from this and not from `Math.random`, so the same value
    * writes the same bank again. */
@@ -12,7 +12,7 @@ export type BulkBankOptions = {
 };
 
 /** Ten thousand Questions is the size ADR-0011 timed both SQL shapes at. */
-export const defaultBulkBank: BulkBankOptions = { count: 10_000, seed: "bulk-bank" };
+export const defaultBulkBank: BulkBankConfig = { count: 10_000, seed: "bulk-bank" };
 
 /** What this file's own Tag values start with, so nobody reads one as curated. */
 export const bulkTagPrefix = "bulk-";
@@ -112,7 +112,7 @@ type TagRow = { id: string; value: string };
  */
 export async function seedBulkBank(
   database: Database,
-  { count, seed }: BulkBankOptions,
+  { count, seed }: BulkBankConfig,
 ): Promise<BulkBankSummary> {
   const tagsPerCategory = await seedBulkTags(database, seed);
   const author = await database.viewer.findUniqueOrThrow({

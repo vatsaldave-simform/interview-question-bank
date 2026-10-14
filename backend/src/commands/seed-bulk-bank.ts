@@ -7,13 +7,13 @@ import { seedQuestionBank } from "../features/questions/questions.seed.ts";
 import {
   defaultBulkBank,
   seedBulkBank,
-  type BulkBankOptions,
+  type BulkBankConfig,
 } from "../features/questions/bulk-bank.seed.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
 
 /** `pnpm db:seed:bulk [questions] [seed value]`, both optional. */
-function readArguments(): BulkBankOptions {
+function readArguments(): BulkBankConfig {
   const [wanted, seed] = process.argv.slice(2);
   const count = wanted === undefined ? defaultBulkBank.count : Number(wanted);
   if (!Number.isInteger(count) || count <= 0) {

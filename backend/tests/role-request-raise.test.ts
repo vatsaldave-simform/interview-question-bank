@@ -41,7 +41,7 @@ describe("raising a Role Request", () => {
     });
   });
 
-  it("leaves the requester's role as it was until an Administrator decides", async () => {
+  it("leaves the Viewer's role as it was until an Administrator decides", async () => {
     await postRoleRequest(api, { role: "reviewer" }, readerToken);
 
     expect((await viewerByRole(api.database, "reader")).role).toBe("reader");

@@ -48,7 +48,7 @@ _Avoid_: score, vote, review, feedback
 ### People and access
 
 **Viewer**:
-The authenticated person a request acts as. Every request has exactly one; there is no anonymous path.
+A person with an account. Every request acts as exactly one Viewer; there is no anonymous path.
 _Avoid_: user, actor, principal, requester
 
 **Author**:
@@ -87,7 +87,7 @@ _Avoid_: reset token, set-password token, reset link, magic link
 
 **Role Request**:
 A Viewer's request to hold a different role, granted or denied by an Administrator with a reason
-the requester can read. A Viewer holds at most one open Role Request.
+the Viewer who asked can read. A Viewer holds at most one open Role Request.
 _Avoid_: application, promotion, access request
 
 **Client**:
@@ -101,7 +101,7 @@ _Avoid_: permission, access, share, entitlement
 **Restriction**:
 The Client a Question is limited to, if any. A restricted Question is Visible only to Viewers
 holding a Permission Grant for that Client. An Author restricts their own Question; only a
-Reviewer removes a Restriction.
+Reviewer removes a Restriction. Changing it from one Client to another is moving the Question.
 _Avoid_: classification, classify, declassify
 
 **Visible**:

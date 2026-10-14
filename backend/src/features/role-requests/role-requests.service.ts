@@ -15,13 +15,13 @@ import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 /** Any role other than the one held, so a Reader may ask for Reviewer directly (ADR-0016). */
 export async function raiseRoleRequest(
   database: Database,
-  requestingViewer: Viewer,
+  viewer: Viewer,
   role: ViewerRole,
 ): Promise<RoleRequestFromDb> {
-  if (requestingViewer.role === role) throw new ConflictError("You already hold that role.");
+  if (viewer.role === role) throw new ConflictError("You already hold that role.");
 
   try {
-    return await insertRoleRequest(database, requestingViewer.id, role);
+    return await insertRoleRequest(database, viewer.id, role);
   } catch (error) {
     // Caught from the partial unique index rather than checked first, so two requests at
     // once cannot both get in (ADR-0041).
@@ -34,7 +34,7 @@ export async function raiseRoleRequest(
 
 /** Only an Administrator gets here, and they may know every Role Request exists, so a 404
  * for one that does not is no leak. */
-async function decidedWhileOpen(
+async function decideIfStillOpen(
   transaction: Transaction,
   id: string,
   decision: RoleRequestDecision,
@@ -46,39 +46,39 @@ async function decidedWhileOpen(
 }
 
 /**
- * Granted even when the requester already holds the role, because an Administrator set it
- * directly in the meantime: the decision still happened, so it is still recorded.
+ * Granted even when the Viewer who asked already holds the role, because an Administrator
+ * set it directly in the meantime: the decision still happened, so it is still recorded.
  */
 export async function grantRoleRequest(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   id: string,
   reason: string | null,
 ): Promise<RoleRequestFromDb> {
   return database.$transaction(async (transaction) => {
-    const granted = await decidedWhileOpen(transaction, id, { state: "granted", reason });
+    const granted = await decideIfStillOpen(transaction, id, { state: "granted", reason });
 
     // Read after the lock, so a direct role change at the same moment cannot make the
     // event's "before" wrong (ADR-0039).
     await lockViewer(transaction, granted.viewer.id);
-    const requestingViewer = await findViewerById(transaction, granted.viewer.id);
-    if (requestingViewer === null) {
+    const target = await findViewerById(transaction, granted.viewer.id);
+    if (target === null) {
       throw new Error("A Role Request names a Viewer that is not there.");
     }
-    if (requestingViewer.role !== granted.role) {
-      await setRole(transaction, requestingViewer.id, granted.role);
+    if (target.role !== granted.role) {
+      await setRole(transaction, target.id, granted.role);
     }
 
     const payload: RoleRequestGranted = {
       roleRequestId: granted.id,
       viewer: granted.viewer,
-      role: { before: requestingViewer.role, after: granted.role },
+      role: { before: target.role, after: granted.role },
       reason,
     };
     await insertChangeEvent(transaction, {
       type: "role_request_granted",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return granted;
@@ -87,12 +87,12 @@ export async function grantRoleRequest(
 
 export async function denyRoleRequest(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   id: string,
   reason: string,
 ): Promise<RoleRequestFromDb> {
   return database.$transaction(async (transaction) => {
-    const denied = await decidedWhileOpen(transaction, id, { state: "denied", reason });
+    const denied = await decideIfStillOpen(transaction, id, { state: "denied", reason });
 
     const payload: RoleRequestDenied = {
       roleRequestId: denied.id,
@@ -103,7 +103,7 @@ export async function denyRoleRequest(
     await insertChangeEvent(transaction, {
       type: "role_request_denied",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return denied;

@@ -154,7 +154,7 @@ type CheckedText = {
   confirmed: boolean;
 };
 
-async function overrideOrRefuse(
+async function refuseUnlessConfirmed(
   database: Database,
   viewer: Viewer,
   { act, questionId, attempted, nearDuplicates, confirmed }: CheckedText,
@@ -187,7 +187,7 @@ export async function addQuestion(
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
   if (request.clientId !== undefined) await checkGrantedClient(database, viewer, request.clientId);
-  const overridden = await overrideOrRefuse(database, viewer, {
+  const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "add",
     questionId: null,
     attempted: {
@@ -217,7 +217,7 @@ export async function addQuestion(
 }
 
 /** A stored Question as a refusal records it, with whatever the refused act was changing. */
-function attemptOn(
+function questionAfter(
   question: QuestionFromDb,
   changes: Pick<EditQuestionRequest, "text" | "answerNotes" | "tags"> = {},
 ): QuestionAdded {
@@ -243,10 +243,10 @@ async function checkEditedText(
     return [];
   }
 
-  return overrideOrRefuse(database, viewer, {
+  return refuseUnlessConfirmed(database, viewer, {
     act: "edit",
     questionId: question.id,
-    attempted: attemptOn(question, request),
+    attempted: questionAfter(question, request),
     nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
     confirmed: request.confirmedNotANearDuplicate === true,
   });
@@ -334,10 +334,10 @@ async function publicationFor(
   // than a list of Near-Duplicates for an act that would fail anyway.
   if (question.publicationState !== "pending") return { write, overridden: [] };
 
-  const overridden = await overrideOrRefuse(database, viewer, {
+  const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "publish",
     questionId: question.id,
-    attempted: attemptOn(question),
+    attempted: questionAfter(question),
     nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
     confirmed: request.confirmedNotANearDuplicate,
   });

@@ -11,7 +11,7 @@ export type Transaction = Prisma.TransactionClient;
  * describes it cannot happen without each other. */
 export type DatabaseOrTransaction = Database | Transaction;
 
-export type DatabaseOptions = {
+export type DatabaseConfig = {
   /**
    * How many connections this process may hold open. Required, so the default lives in
    * the environment schema alone. It has to stay well under the server's limit, and
@@ -21,6 +21,6 @@ export type DatabaseOptions = {
 };
 
 /** Prisma 7 talks to PostgreSQL through a driver adapter rather than its own engine. */
-export function createDatabase(connectionString: string, { poolMax }: DatabaseOptions): Database {
+export function createDatabase(connectionString: string, { poolMax }: DatabaseConfig): Database {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString, max: poolMax }) });
 }

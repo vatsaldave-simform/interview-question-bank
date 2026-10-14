@@ -1,13 +1,13 @@
 import { pino, type DestinationStream, type Logger } from "pino";
 import { currentRequestContext } from "./request-context.ts";
 
-export type LoggerOptions = {
+export type LoggerConfig = {
   level: string;
   /** Pretty output is deliberately absent: the logs are JSON everywhere, including dev. */
   destination?: DestinationStream;
 };
 
-export function createLogger({ level, destination }: LoggerOptions): Logger {
+export function createLogger({ level, destination }: LoggerConfig): Logger {
   return destination ? pino({ level }, destination) : pino({ level });
 }
 

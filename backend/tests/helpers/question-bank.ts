@@ -11,7 +11,7 @@ import {
 import {
   bankVocabulary,
   seedBulkBank,
-  type BulkBankOptions,
+  type BulkBankConfig,
 } from "../../src/features/questions/bulk-bank.seed.ts";
 import type { TagsInCategory } from "../../src/features/questions/questions.repository.ts";
 import { seedClientsAndGrants } from "../../src/features/clients/clients.seed.ts";
@@ -50,7 +50,7 @@ export async function resetTheQuestions(database: Database): Promise<void> {
 /** The fixtures plus a bulk bank, for a test that needs more than five Questions. */
 export async function seedTheBulkBank(
   database: Database,
-  options: BulkBankOptions,
+  options: BulkBankConfig,
 ): Promise<void> {
   await seedTheBank(database);
   await seedBulkBank(database, options);

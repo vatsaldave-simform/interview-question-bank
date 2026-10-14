@@ -6,7 +6,7 @@ import {
   refreshTokenFamilyIsRevoked,
   revokeRefreshTokenFamily,
   spendRefreshToken,
-  type StoredRefreshToken,
+  type RefreshTokenFromDb,
 } from "./refresh-token.repository.ts";
 import { hashRandomToken, mintRandomToken } from "./random-token.ts";
 import { log } from "../../platform/logger.ts";
@@ -30,7 +30,7 @@ export type RotationResult =
 function findPresented(
   database: Database,
   presented: string,
-): Promise<StoredRefreshToken | null> {
+): Promise<RefreshTokenFromDb | null> {
   return findRefreshTokenByHash(database, hashRandomToken(presented));
 }
 
@@ -62,7 +62,7 @@ export function issueRefreshToken(
 
 async function endFamily(
   database: Database,
-  stored: StoredRefreshToken,
+  stored: RefreshTokenFromDb,
   reason: RotationRefusal,
 ): Promise<RotationResult> {
   log().warn({ familyId: stored.familyId, viewerId: stored.viewerId }, "refresh token family revoked");

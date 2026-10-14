@@ -28,7 +28,7 @@ import type { Database, DatabaseOrTransaction, Transaction } from "../../platfor
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 
-async function targetNamed(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
+async function getViewer(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
   const target = await findViewerById(database, id);
   if (target === null) throw new NotFoundError();
   return target;
@@ -36,28 +36,28 @@ async function targetNamed(database: DatabaseOrTransaction, id: string): Promise
 
 /** Read after the lock, so the "already done?" check sees what a racing request just
  * committed (ADR-0039). */
-async function lockedTarget(transaction: Transaction, id: string): Promise<Viewer> {
+async function lockAndGetViewer(transaction: Transaction, id: string): Promise<Viewer> {
   await lockViewer(transaction, id);
-  return targetNamed(transaction, id);
+  return getViewer(transaction, id);
 }
 
-/** As `lockedTarget`, and also locks every active Administrator, for the acts that must
+/** As `lockAndGetViewer`, and also locks every active Administrator, for the acts that must
  * not remove the last one (ADR-0039). */
-async function lockedTargetAndAdministrators(
+async function lockAdministratorsAndGetViewer(
   transaction: Transaction,
   id: string,
 ): Promise<Viewer> {
   await lockViewerAndActiveAdministrators(transaction, id);
-  return targetNamed(transaction, id);
+  return getViewer(transaction, id);
 }
 
 /** Every administrative act, whatever it does to the target Viewer, in the shape the
  * Change Event names it (ADR-0035). */
-function affectedViewer(viewer: Viewer) {
-  return { id: viewer.id, email: viewer.email };
+function affectedViewer(target: Viewer) {
+  return { id: target.id, email: target.email };
 }
 
-/** Called after `lockedTargetAndAdministrators` in the transaction of the write it guards,
+/** Called after `lockAdministratorsAndGetViewer` in the transaction of the write it guards,
  * so no other request can remove an Administrator between the count and the write (ADR-0039). */
 async function refuseLastActiveAdministrator(
   transaction: DatabaseOrTransaction,
@@ -76,11 +76,11 @@ async function refuseLastActiveAdministrator(
  */
 export async function appointAdministrator(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (target.isAdministrator) return target;
 
     const appointed = await setIsAdministrator(transaction, target.id, true);
@@ -88,7 +88,7 @@ export async function appointAdministrator(
     await insertChangeEvent(transaction, {
       type: "administrator_appointed",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return appointed;
@@ -101,11 +101,11 @@ export async function appointAdministrator(
  */
 export async function withdrawAdministrator(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTargetAndAdministrators(transaction, targetId);
+    const target = await lockAdministratorsAndGetViewer(transaction, targetId);
     if (!target.isAdministrator) return target;
 
     await refuseLastActiveAdministrator(
@@ -119,7 +119,7 @@ export async function withdrawAdministrator(
     await insertChangeEvent(transaction, {
       type: "administrator_withdrawn",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return withdrawn;
@@ -130,12 +130,12 @@ export async function withdrawAdministrator(
  * directly (spec #20). */
 export async function changeRole(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
   role: ViewerRole,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (target.role === role) return target;
 
     const changed = await setRole(transaction, target.id, role);
@@ -146,7 +146,7 @@ export async function changeRole(
     await insertChangeEvent(transaction, {
       type: "role_changed",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return changed;
@@ -157,11 +157,11 @@ export async function changeRole(
  * rotation (ADR-0017). */
 export async function deactivateViewer(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTargetAndAdministrators(transaction, targetId);
+    const target = await lockAdministratorsAndGetViewer(transaction, targetId);
     if (target.isDeactivated) return target;
 
     await refuseLastActiveAdministrator(
@@ -176,7 +176,7 @@ export async function deactivateViewer(
     await insertChangeEvent(transaction, {
       type: "viewer_deactivated",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return deactivated;
@@ -187,11 +187,11 @@ export async function deactivateViewer(
  * (ADR-0017). */
 export async function reactivateViewer(
   database: Database,
-  actingViewer: Viewer,
+  viewer: Viewer,
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (!target.isDeactivated) return target;
 
     const reactivated = await setIsDeactivated(transaction, target.id, false);
@@ -199,7 +199,7 @@ export async function reactivateViewer(
     await insertChangeEvent(transaction, {
       type: "viewer_reactivated",
       questionId: null,
-      viewerId: actingViewer.id,
+      viewerId: viewer.id,
       payload,
     });
     return reactivated;
@@ -213,7 +213,7 @@ export async function reactivateViewer(
 export async function createViewer(
   database: Database,
   { mailer, settings }: PasswordMailDependencies,
-  actingViewer: Viewer,
+  viewer: Viewer,
   email: string,
   role: ViewerRole,
 ): Promise<Viewer> {
@@ -225,7 +225,7 @@ export async function createViewer(
         await insertChangeEvent(transaction, {
           type: "viewer_created",
           questionId: null,
-          viewerId: actingViewer.id,
+          viewerId: viewer.id,
           payload,
         });
         const issued = await issuePasswordToken(transaction, inserted.id, settings);
