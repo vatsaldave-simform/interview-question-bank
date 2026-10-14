@@ -34,7 +34,7 @@ export async function raiseRoleRequest(
 
 /** Only an Administrator gets here, and they may know every Role Request exists, so a 404
  * for one that does not is no leak. */
-async function decidedWhileOpen(
+async function decideIfStillOpen(
   transaction: Transaction,
   id: string,
   decision: RoleRequestDecision,
@@ -56,7 +56,7 @@ export async function grantRoleRequest(
   reason: string | null,
 ): Promise<RoleRequestFromDb> {
   return database.$transaction(async (transaction) => {
-    const granted = await decidedWhileOpen(transaction, id, { state: "granted", reason });
+    const granted = await decideIfStillOpen(transaction, id, { state: "granted", reason });
 
     // Read after the lock, so a direct role change at the same moment cannot make the
     // event's "before" wrong (ADR-0039).
@@ -92,7 +92,7 @@ export async function denyRoleRequest(
   reason: string,
 ): Promise<RoleRequestFromDb> {
   return database.$transaction(async (transaction) => {
-    const denied = await decidedWhileOpen(transaction, id, { state: "denied", reason });
+    const denied = await decideIfStillOpen(transaction, id, { state: "denied", reason });
 
     const payload: RoleRequestDenied = {
       roleRequestId: denied.id,
