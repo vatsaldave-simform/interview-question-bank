@@ -28,7 +28,7 @@ import type { Database, DatabaseOrTransaction, Transaction } from "../../platfor
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 
-async function targetNamed(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
+async function getViewer(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
   const target = await findViewerById(database, id);
   if (target === null) throw new NotFoundError();
   return target;
@@ -36,19 +36,19 @@ async function targetNamed(database: DatabaseOrTransaction, id: string): Promise
 
 /** Read after the lock, so the "already done?" check sees what a racing request just
  * committed (ADR-0039). */
-async function lockedTarget(transaction: Transaction, id: string): Promise<Viewer> {
+async function lockAndGetViewer(transaction: Transaction, id: string): Promise<Viewer> {
   await lockViewer(transaction, id);
-  return targetNamed(transaction, id);
+  return getViewer(transaction, id);
 }
 
-/** As `lockedTarget`, and also locks every active Administrator, for the acts that must
+/** As `lockAndGetViewer`, and also locks every active Administrator, for the acts that must
  * not remove the last one (ADR-0039). */
-async function lockedTargetAndAdministrators(
+async function lockAdministratorsAndGetViewer(
   transaction: Transaction,
   id: string,
 ): Promise<Viewer> {
   await lockViewerAndActiveAdministrators(transaction, id);
-  return targetNamed(transaction, id);
+  return getViewer(transaction, id);
 }
 
 /** Every administrative act, whatever it does to the target Viewer, in the shape the
@@ -57,7 +57,7 @@ function affectedViewer(viewer: Viewer) {
   return { id: viewer.id, email: viewer.email };
 }
 
-/** Called after `lockedTargetAndAdministrators` in the transaction of the write it guards,
+/** Called after `lockAdministratorsAndGetViewer` in the transaction of the write it guards,
  * so no other request can remove an Administrator between the count and the write (ADR-0039). */
 async function refuseLastActiveAdministrator(
   transaction: DatabaseOrTransaction,
@@ -80,7 +80,7 @@ export async function appointAdministrator(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (target.isAdministrator) return target;
 
     const appointed = await setIsAdministrator(transaction, target.id, true);
@@ -105,7 +105,7 @@ export async function withdrawAdministrator(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTargetAndAdministrators(transaction, targetId);
+    const target = await lockAdministratorsAndGetViewer(transaction, targetId);
     if (!target.isAdministrator) return target;
 
     await refuseLastActiveAdministrator(
@@ -135,7 +135,7 @@ export async function changeRole(
   role: ViewerRole,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (target.role === role) return target;
 
     const changed = await setRole(transaction, target.id, role);
@@ -161,7 +161,7 @@ export async function deactivateViewer(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTargetAndAdministrators(transaction, targetId);
+    const target = await lockAdministratorsAndGetViewer(transaction, targetId);
     if (target.isDeactivated) return target;
 
     await refuseLastActiveAdministrator(
@@ -191,7 +191,7 @@ export async function reactivateViewer(
   targetId: string,
 ): Promise<Viewer> {
   return database.$transaction(async (transaction) => {
-    const target = await lockedTarget(transaction, targetId);
+    const target = await lockAndGetViewer(transaction, targetId);
     if (!target.isDeactivated) return target;
 
     const reactivated = await setIsDeactivated(transaction, target.id, false);

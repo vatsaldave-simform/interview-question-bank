@@ -19,7 +19,7 @@ import { ConflictError, InvalidRequestError, NotFoundError } from "../../platfor
 
 /** Only an Administrator gets here, and an Administrator may know every Client exists, so
  * a 404 for one that does not is no leak. */
-async function clientNamed(database: Database, id: string): Promise<Client> {
+async function getClient(database: Database, id: string): Promise<Client> {
   const client = await findClientById(database, id);
   if (client === null) throw new NotFoundError();
   return client;
@@ -33,7 +33,7 @@ export async function issuePermissionGrant(
   clientId: string,
   viewerId: string,
 ): Promise<PermissionGrant> {
-  const client = await clientNamed(database, clientId);
+  const client = await getClient(database, clientId);
   const viewer = await findViewerById(database, viewerId);
   if (viewer === null) throw new InvalidRequestError("No Viewer has that id.");
 
@@ -63,7 +63,7 @@ export async function listPermissionGrants(
   database: Database,
   clientId: string,
 ): Promise<PermissionGrant[]> {
-  const client = await clientNamed(database, clientId);
+  const client = await getClient(database, clientId);
   return findPermissionGrantsForClient(database, client.id);
 }
 
