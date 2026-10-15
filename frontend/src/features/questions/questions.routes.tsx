@@ -11,7 +11,7 @@ import { signedInRoute } from "@/platform/signed-in-route";
 
 const browseRoute = createRoute({
   getParentRoute: () => signedInRoute,
-  path: "/",
+  path: "/questions",
   validateSearch: browseSearchSchema,
   component: Browse,
 });

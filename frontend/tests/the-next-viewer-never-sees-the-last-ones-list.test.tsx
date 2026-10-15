@@ -39,7 +39,7 @@ describe("two Viewers taking turns in one tab", () => {
       });
     });
     signInAs(aSignedInAuthor.viewer);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
     await screen.findByText("Only the first Viewer may see this");
 
     await userEvent.click(screen.getByRole("button", { name: "author@iqb.test" }));

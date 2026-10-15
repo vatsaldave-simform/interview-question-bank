@@ -66,7 +66,7 @@ describe("where a Question came from", () => {
 
   it("shows each card's Provenance in the list", async () => {
     aBankHolding([adapted, inherited]);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const cards = await screen.findAllByRole("article");
     expect(cards[0]).toHaveTextContent("Where it came from: Adapted");

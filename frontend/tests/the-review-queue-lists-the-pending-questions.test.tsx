@@ -100,7 +100,7 @@ describe("the Reviewer's Pending queue", () => {
 describe("the link to the Pending queue", () => {
   it("is in the header for a Reviewer, and opens the queue", async () => {
     aBankAnsweringTheQueue((asked) => aPageOf([], asked));
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("link", { name: "Review queue" }));
 
@@ -110,7 +110,7 @@ describe("the link to the Pending queue", () => {
   it.each(["reader", "author"] as const)("is not in the header for a %s", async (role) => {
     signInAs(aViewer({ role }));
     aBankAnsweringTheQueue((asked) => aPageOf([], asked));
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await screen.findByRole("heading", { name: "Questions" });
 

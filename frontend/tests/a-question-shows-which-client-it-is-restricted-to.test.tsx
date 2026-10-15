@@ -30,7 +30,7 @@ const unrestricted = aQuestion({
 describe("which Client a Question is restricted to", () => {
   it("shows the Client on a restricted card and nothing on an unrestricted one", async () => {
     aBankHolding([restricted, unrestricted]);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const [restrictedCard, unrestrictedCard] = await screen.findAllByRole("article");
     expect(within(restrictedCard!).getByText("Restricted to Acme")).toBeVisible();
@@ -39,7 +39,7 @@ describe("which Client a Question is restricted to", () => {
 
   it("hides the lock from a screen reader, so the words carry the meaning", async () => {
     aBankHolding([restricted]);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const badge = await screen.findByText("Restricted to Acme");
     expect(badge.querySelector("svg")).toHaveAttribute("aria-hidden", "true");

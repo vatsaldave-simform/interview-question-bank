@@ -55,7 +55,7 @@ async function theRoleRequestSection() {
 describe("a Viewer's own Role Request on their account page", () => {
   it("opens from the menu under the email in the header, and shows who is signed in", async () => {
     aBankHoldingMine([]);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("button", { name: "author@iqb.test" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Your account" }));

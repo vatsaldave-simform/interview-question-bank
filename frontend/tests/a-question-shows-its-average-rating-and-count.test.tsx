@@ -68,7 +68,7 @@ describe("a Question's average Rating and count", () => {
       aQuestion({ rating: { average: 3.5, count: 4, mine: null } }),
       aQuestion({ id: "a0000000-0000-4000-8000-000000000002" }),
     ]);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const cards = await screen.findAllByRole("article");
     expect(within(cards[0]!).getByText("3.5 out of 5 from 4 Ratings")).toBeVisible();

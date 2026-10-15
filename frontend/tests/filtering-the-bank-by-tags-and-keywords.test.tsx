@@ -29,7 +29,7 @@ async function tick(tag: string): Promise<void> {
 describe("filtering the bank", () => {
   it("offers the Tags the API listed, under each Category's own name", async () => {
     aBankWithOneQuestion();
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const technology = await screen.findByRole("group", { name: "Technology" });
     expect(technology).toContainElement(screen.getByRole("checkbox", { name: "react" }));
@@ -40,7 +40,7 @@ describe("filtering the bank", () => {
 
   it("sends several Tags in one Category and one in another together", async () => {
     const api = aBankWithOneQuestion();
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await tick("react");
     await tick("node");
@@ -58,7 +58,7 @@ describe("filtering the bank", () => {
 
   it("stops sending a Tag once it is unticked", async () => {
     const api = aBankWithOneQuestion();
-    renderTheWholeClient("/?technology=react&technology=node");
+    renderTheWholeClient("/questions?technology=react&technology=node");
 
     await tick("react");
 
@@ -70,7 +70,7 @@ describe("filtering the bank", () => {
 
   it("sends a submitted search with the Tags already chosen, in one request", async () => {
     const api = aBankWithOneQuestion();
-    renderTheWholeClient("/?technology=react");
+    renderTheWholeClient("/questions?technology=react");
     await screen.findByText(aQuestion().text);
     const before = listRequests(api).length;
 
@@ -85,7 +85,7 @@ describe("filtering the bank", () => {
 
   it("shows what the address names when the page is opened", async () => {
     aBankWithOneQuestion();
-    renderTheWholeClient("/?technology=node&seniority=junior&keywords=closures");
+    renderTheWholeClient("/questions?technology=node&seniority=junior&keywords=closures");
 
     expect(await screen.findByRole("checkbox", { name: "node" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "junior" })).toBeChecked();
@@ -96,7 +96,7 @@ describe("filtering the bank", () => {
   // Page three of the old filter is not page three of the new one.
   it("goes back to the first page when the filter changes", async () => {
     const api = aBankWithOneQuestion();
-    renderTheWholeClient("/?technology=react&offset=40");
+    renderTheWholeClient("/questions?technology=react&offset=40");
 
     await tick("node");
 
@@ -106,7 +106,7 @@ describe("filtering the bank", () => {
 
   it("clears every Tag and the search at once", async () => {
     aBankWithOneQuestion();
-    renderTheWholeClient("/?technology=cobol&seniority=senior&keywords=cache");
+    renderTheWholeClient("/questions?technology=cobol&seniority=senior&keywords=cache");
 
     await userEvent.click(await screen.findByRole("button", { name: "Clear filters" }));
 
@@ -117,7 +117,7 @@ describe("filtering the bank", () => {
 
   it("keeps the controls in step when the browser goes Back and Forward", async () => {
     const api = aBankWithOneQuestion();
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
     await tick("react");
     await waitFor(() => expect(window.location.search).toBe("?technology=react"));
     await userEvent.type(screen.getByRole("searchbox", { name: "Search" }), "cache{Enter}");

@@ -21,7 +21,7 @@ describe("opening a browse address someone shared", () => {
     const api = fakeBank((asked) => aPageOf([aQuestion()], asked));
 
     renderTheWholeClient(
-      "/?technology=react&technology=node&seniority=senior&keywords=cache&offset=20",
+      "/questions?technology=react&technology=node&seniority=senior&keywords=cache&offset=20",
     );
     await screen.findByText(aQuestion().text);
 
@@ -36,7 +36,7 @@ describe("opening a browse address someone shared", () => {
   it("leaves the address as it was written", async () => {
     fakeBank((asked) => aPageOf([aQuestion()], asked));
 
-    renderTheWholeClient("/?technology=react&technology=node");
+    renderTheWholeClient("/questions?technology=react&technology=node");
     await screen.findByText(aQuestion().text);
 
     expect(window.location.search).toBe("?technology=react&technology=node");
@@ -46,7 +46,7 @@ describe("opening a browse address someone shared", () => {
   it("refuses a misspelled Category rather than showing the whole bank", async () => {
     const api = fakeBank((asked) => aPageOf([aQuestion()], asked));
 
-    renderTheWholeClient("/?technolgy=react");
+    renderTheWholeClient("/questions?technolgy=react");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The address names technolgy, which is not a filter.",
@@ -58,7 +58,7 @@ describe("opening a browse address someone shared", () => {
   it("refuses a search named twice instead of breaking the page", async () => {
     const api = fakeBank((asked) => aPageOf([aQuestion()], asked));
 
-    renderTheWholeClient("/?keywords=cache&keywords=miss");
+    renderTheWholeClient("/questions?keywords=cache&keywords=miss");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The address gives keywords a value the bank cannot use.",
