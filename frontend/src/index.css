@@ -37,6 +37,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-red: var(--brand-red);
+  --color-brand-lavender: var(--brand-lavender);
+  --color-brand-purple: var(--brand-purple);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -56,6 +59,12 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
+  /* The organisation's three colours, as simform.com uses them: red for what to act on,
+     purple for dark surfaces and for headings on lavender, lavender for cards and for text
+     on purple. They do not change in dark mode. */
+  --brand-red: oklch(0.658 0.191 17.1);
+  --brand-lavender: oklch(0.855 0.085 301.4);
+  --brand-purple: oklch(0.302 0.15 295.3);
   --background: oklch(0.985 0.002 249);
   --foreground: oklch(0.133 0.02 263);
   --card: oklch(1 0 0);
@@ -63,7 +72,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.133 0.02 263);
   /* White text on this red is hard to read, and the design owners chose it anyway. */
-  --primary: oklch(0.658 0.191 17.1);
+  --primary: var(--brand-red);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.934 0.014 304.1);
   --secondary-foreground: oklch(0.302 0.15 295.3);
@@ -74,7 +83,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.924 0.012 264);
   --input: oklch(0.924 0.012 264);
-  --ring: oklch(0.658 0.191 17.1);
+  --ring: var(--brand-red);
   /* Pending and a Client restriction, because Rejected already uses `destructive`. */
   --pending: oklch(0.954 0.037 75.2);
   --pending-foreground: oklch(0.705 0.187 47.6);
@@ -83,15 +92,15 @@
   --restricted-foreground: oklch(0.302 0.15 295.3);
   --restricted-border: oklch(0.894 0.055 293.3);
   /* The frame around the screens: the side menu, and the header's gradient. */
-  --sidebar: oklch(0.95 0.01 299.2);
-  --sidebar-foreground: oklch(0.205 0 0);
-  --sidebar-primary: oklch(0.302 0.15 295.3);
+  --sidebar: var(--brand-lavender);
+  --sidebar-foreground: var(--brand-purple);
+  --sidebar-primary: var(--brand-purple);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.302 0.15 295.3);
+  --sidebar-accent: var(--brand-purple);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0 0 0 / 8%);
-  --sidebar-ring: oklch(0.302 0.15 295.3);
-  --sidebar-gradient-from: oklch(0.302 0.15 295.3);
+  --sidebar-ring: var(--brand-purple);
+  --sidebar-gradient-from: var(--brand-purple);
   --sidebar-gradient-to: oklch(0.439 0.128 301.8);
 }
 
@@ -123,15 +132,17 @@
   --restricted-foreground: oklch(0.78 0.12 300);
   --restricted-border: oklch(0.42 0.1 300);
   --sidebar: oklch(0.2 0.02 264);
-  --sidebar-foreground: oklch(0.92 0.005 264);
+  --sidebar-foreground: var(--brand-lavender);
   --sidebar-primary: oklch(0.45 0.14 300);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.45 0.14 300);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.45 0.14 300);
-  --sidebar-gradient-from: oklch(0.45 0.14 300);
-  --sidebar-gradient-to: oklch(0.55 0.13 300);
+  /* Starts at the brand purple and stays dark, so the lavender text and the red logo
+     keep their contrast across the header. */
+  --sidebar-gradient-from: var(--brand-purple);
+  --sidebar-gradient-to: oklch(0.42 0.13 300);
 }
 
 @layer base {

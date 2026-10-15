@@ -30,8 +30,11 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   const { viewer } = session;
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="from-sidebar-gradient-from to-sidebar-gradient-to text-sidebar-accent-foreground border-sidebar-border flex flex-wrap items-center gap-x-3 border-b bg-linear-to-r px-6 sm:gap-x-6">
-        <Link to="/" className="flex items-center gap-3 py-3 text-sm font-semibold sm:text-base">
+      <header className="from-sidebar-gradient-from to-sidebar-gradient-to text-brand-lavender border-sidebar-border flex flex-wrap items-center gap-x-3 border-b bg-linear-to-r px-6 sm:gap-x-6">
+        <Link
+          to="/"
+          className="text-sidebar-accent-foreground flex items-center gap-3 py-3 text-sm font-semibold sm:text-base"
+        >
           {/* The name beside it already says where the link goes, so the picture adds nothing to read out. */}
           <img src="/simform-logo.svg" alt="" className="h-6 w-auto shrink-0" />
           Interview Question Bank
@@ -56,7 +59,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-sidebar-accent-foreground hover:bg-sidebar-accent-foreground/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
+                className="text-brand-lavender hover:bg-brand-lavender/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
               >
                 <span className="min-w-0 truncate">{viewer.email}</span>
                 <ChevronDownIcon aria-hidden="true" />
@@ -106,12 +109,12 @@ const themeWording: Record<ThemeChoice, string> = {
 };
 
 /** The underline on the current page follows the `aria-current` the router sets on it. The
- * links sit on the header's gradient, so they take its text colour rather than the page's. */
+ * links sit on the header's gradient, so they are lavender and turn white on the current page. */
 function PageLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link
       {...props}
-      className="text-sidebar-accent-foreground/75 hover:text-sidebar-accent-foreground aria-[current=page]:border-sidebar-accent-foreground aria-[current=page]:text-sidebar-accent-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
+      className="text-brand-lavender hover:text-sidebar-accent-foreground aria-[current=page]:border-sidebar-accent-foreground aria-[current=page]:text-sidebar-accent-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
     />
   );
 }
