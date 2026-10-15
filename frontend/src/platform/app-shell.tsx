@@ -59,7 +59,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-brand-lavender hover:bg-brand-lavender/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
+                className="text-brand-lavender hover:bg-brand-lavender/15 dark:hover:bg-brand-lavender/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
               >
                 <span className="min-w-0 truncate">{viewer.email}</span>
                 <ChevronDownIcon aria-hidden="true" />
@@ -108,8 +108,7 @@ const themeWording: Record<ThemeChoice, string> = {
   device: "Match my device",
 };
 
-/** The underline on the current page follows the `aria-current` the router sets on it. The
- * links sit on the header's gradient, so they are lavender and turn white on the current page. */
+/** The underline on the current page follows the `aria-current` the router sets on it. */
 function PageLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link

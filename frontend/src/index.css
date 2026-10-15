@@ -59,9 +59,7 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  /* The organisation's three colours, as simform.com uses them: red for what to act on,
-     purple for dark surfaces and for headings on lavender, lavender for cards and for text
-     on purple. They do not change in dark mode. */
+  /* The organisation's three colours. They stay the same in dark mode. */
   --brand-red: oklch(0.658 0.191 17.1);
   --brand-lavender: oklch(0.855 0.085 301.4);
   --brand-purple: oklch(0.302 0.15 295.3);
@@ -75,7 +73,7 @@
   --primary: var(--brand-red);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.934 0.014 304.1);
-  --secondary-foreground: oklch(0.302 0.15 295.3);
+  --secondary-foreground: var(--brand-purple);
   --muted: oklch(0.968 0.004 264);
   --muted-foreground: oklch(0.55 0.022 264);
   --accent: oklch(0.968 0.004 264);
@@ -91,7 +89,6 @@
   --restricted: oklch(0.943 0.028 294.6);
   --restricted-foreground: oklch(0.302 0.15 295.3);
   --restricted-border: oklch(0.894 0.055 293.3);
-  /* The frame around the screens: the side menu, and the header's gradient. */
   --sidebar: var(--brand-lavender);
   --sidebar-foreground: var(--brand-purple);
   --sidebar-primary: var(--brand-purple);
