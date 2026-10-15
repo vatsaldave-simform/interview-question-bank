@@ -9,7 +9,7 @@ type BadgeLook = { variant: VariantProps<typeof badgeVariants>["variant"]; class
 const lookOf: Record<PublicationState, BadgeLook> = {
   pending: {
     variant: "outline",
-    className: "bg-pending text-pending-foreground border-transparent",
+    className: "border-pending-border bg-pending text-pending-foreground",
   },
   published: { variant: "outline" },
   rejected: { variant: "destructive" },
