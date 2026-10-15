@@ -30,7 +30,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   const { viewer } = session;
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="bg-card flex flex-wrap items-center gap-x-3 border-b px-6 sm:gap-x-6">
+      <header className="from-sidebar-gradient-from to-sidebar-gradient-to text-sidebar-accent-foreground border-sidebar-border flex flex-wrap items-center gap-x-3 border-b bg-linear-to-r px-6 sm:gap-x-6">
         <Link to="/" className="py-3 text-sm font-semibold sm:text-base">
           Interview Question Bank
         </Link>
@@ -51,7 +51,11 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
         <div className="flex min-w-0 flex-1 basis-0 justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="max-w-full px-2 has-[>svg]:px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sidebar-accent-foreground hover:bg-sidebar-accent-foreground/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
+              >
                 <span className="min-w-0 truncate">{viewer.email}</span>
                 <ChevronDownIcon aria-hidden="true" />
               </Button>
@@ -99,12 +103,13 @@ const themeWording: Record<ThemeChoice, string> = {
   device: "Match my device",
 };
 
-/** The underline on the current page follows the `aria-current` the router sets on it. */
+/** The underline on the current page follows the `aria-current` the router sets on it. The
+ * links sit on the header's gradient, so they take its text colour rather than the page's. */
 function PageLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link
       {...props}
-      className="text-muted-foreground hover:text-foreground aria-[current=page]:border-primary aria-[current=page]:text-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
+      className="text-sidebar-accent-foreground/75 hover:text-sidebar-accent-foreground aria-[current=page]:border-sidebar-accent-foreground aria-[current=page]:text-sidebar-accent-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
     />
   );
 }
