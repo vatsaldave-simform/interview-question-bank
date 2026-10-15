@@ -30,8 +30,13 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   const { viewer } = session;
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="bg-card flex flex-wrap items-center gap-x-3 border-b px-6 sm:gap-x-6">
-        <Link to="/" className="py-3 text-sm font-semibold sm:text-base">
+      <header className="from-sidebar-gradient-from to-sidebar-gradient-to text-brand-lavender border-sidebar-border flex flex-wrap items-center gap-x-3 border-b bg-linear-to-r px-6 sm:gap-x-6">
+        <Link
+          to="/"
+          className="text-sidebar-accent-foreground flex items-center gap-3 py-3 text-sm font-semibold sm:text-base"
+        >
+          {/* The name beside it already says where the link goes, so the picture adds nothing to read out. */}
+          <img src="/simform-logo.svg" alt="" className="h-6 w-auto shrink-0" />
           Interview Question Bank
         </Link>
         <nav
@@ -51,7 +56,11 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
         <div className="flex min-w-0 flex-1 basis-0 justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="max-w-full px-2 has-[>svg]:px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-brand-lavender hover:bg-brand-lavender/15 dark:hover:bg-brand-lavender/15 hover:text-sidebar-accent-foreground max-w-full px-2 has-[>svg]:px-2"
+              >
                 <span className="min-w-0 truncate">{viewer.email}</span>
                 <ChevronDownIcon aria-hidden="true" />
               </Button>
@@ -104,7 +113,7 @@ function PageLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link
       {...props}
-      className="text-muted-foreground hover:text-foreground aria-[current=page]:border-primary aria-[current=page]:text-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
+      className="text-brand-lavender hover:text-sidebar-accent-foreground aria-[current=page]:border-sidebar-accent-foreground aria-[current=page]:text-sidebar-accent-foreground border-b-2 border-transparent py-2 text-sm whitespace-nowrap sm:py-3"
     />
   );
 }

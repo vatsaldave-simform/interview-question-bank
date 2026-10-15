@@ -27,8 +27,11 @@ export const administrationStartRoute = createRoute({
 function AdministrationFrame() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 md:flex-row md:gap-10">
-      <nav aria-label="Administration" className="md:w-44 md:shrink-0">
-        <ul className="flex flex-wrap gap-x-4 border-b md:flex-col md:gap-1 md:border-b-0">
+      <nav
+        aria-label="Administration"
+        className="bg-sidebar text-sidebar-foreground border-sidebar-border rounded-lg border p-2 md:w-44 md:shrink-0 md:self-start"
+      >
+        <ul className="flex flex-wrap gap-1 md:flex-col">
           <li>
             <MenuLink to="/administration/role-requests">Role Requests</MenuLink>
           </li>
@@ -47,13 +50,13 @@ function AdministrationFrame() {
   );
 }
 
-/** The mark on the current page follows the `aria-current` the router sets on it, which
+/** The fill on the current page follows the `aria-current` the router sets on it, which
  * stays on Clients while one Client's page is open. */
 function MenuLink(props: Omit<LinkComponentProps, "className">) {
   return (
     <Link
       {...props}
-      className="text-muted-foreground hover:text-foreground aria-[current=page]:border-primary aria-[current=page]:text-foreground -mb-px block border-b-2 border-transparent py-2 text-sm md:mb-0 md:rounded-md md:border-b-0 md:border-l-2 md:rounded-l-none md:px-3 md:aria-[current=page]:bg-accent"
+      className="hover:bg-sidebar-accent/10 aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring block rounded-md px-3 py-2 text-sm outline-none focus-visible:ring-2"
     />
   );
 }
