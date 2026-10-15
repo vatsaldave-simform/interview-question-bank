@@ -52,10 +52,9 @@
   --card-foreground: oklch(0.133 0.02 263);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.133 0.02 263);
-  /* The brand red, #ef5366. White on it is below the AA contrast; the design owners know. */
+  /* White text on this red is hard to read, and the design owners chose it anyway. */
   --primary: oklch(0.658 0.191 17.1);
   --primary-foreground: oklch(1 0 0);
-  /* The second brand colour, violet. */
   --secondary: oklch(0.934 0.014 304.1);
   --secondary-foreground: oklch(0.302 0.15 295.3);
   --muted: oklch(0.968 0.004 264);
