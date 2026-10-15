@@ -37,6 +37,16 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-gradient-from: var(--sidebar-gradient-from);
+  --color-sidebar-gradient-to: var(--sidebar-gradient-to);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -72,6 +82,17 @@
   --restricted: oklch(0.943 0.028 294.6);
   --restricted-foreground: oklch(0.302 0.15 295.3);
   --restricted-border: oklch(0.894 0.055 293.3);
+  /* The frame around the screens: the side menu, and the header's gradient. */
+  --sidebar: oklch(0.95 0.01 299.2);
+  --sidebar-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.302 0.15 295.3);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.302 0.15 295.3);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0 0 0 / 8%);
+  --sidebar-ring: oklch(0.302 0.15 295.3);
+  --sidebar-gradient-from: oklch(0.302 0.15 295.3);
+  --sidebar-gradient-to: oklch(0.439 0.128 301.8);
 }
 
 .dark {
@@ -101,6 +122,16 @@
   --restricted: oklch(0.28 0.07 300);
   --restricted-foreground: oklch(0.78 0.12 300);
   --restricted-border: oklch(0.42 0.1 300);
+  --sidebar: oklch(0.2 0.02 264);
+  --sidebar-foreground: oklch(0.92 0.005 264);
+  --sidebar-primary: oklch(0.45 0.14 300);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.45 0.14 300);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.45 0.14 300);
+  --sidebar-gradient-from: oklch(0.45 0.14 300);
+  --sidebar-gradient-to: oklch(0.55 0.13 300);
 }
 
 @layer base {
