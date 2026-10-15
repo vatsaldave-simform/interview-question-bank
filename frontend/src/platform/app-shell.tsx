@@ -31,7 +31,9 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="from-sidebar-gradient-from to-sidebar-gradient-to text-sidebar-accent-foreground border-sidebar-border flex flex-wrap items-center gap-x-3 border-b bg-linear-to-r px-6 sm:gap-x-6">
-        <Link to="/" className="py-3 text-sm font-semibold sm:text-base">
+        <Link to="/" className="flex items-center gap-3 py-3 text-sm font-semibold sm:text-base">
+          {/* The name beside it already says where the link goes, so the picture adds nothing to read out. */}
+          <img src="/simform-logo.svg" alt="" className="h-6 w-auto shrink-0" />
           Interview Question Bank
         </Link>
         <nav
