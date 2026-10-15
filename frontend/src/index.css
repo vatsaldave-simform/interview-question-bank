@@ -30,8 +30,10 @@
   --color-destructive: var(--destructive);
   --color-pending: var(--pending);
   --color-pending-foreground: var(--pending-foreground);
+  --color-pending-border: var(--pending-border);
   --color-restricted: var(--restricted);
   --color-restricted-foreground: var(--restricted-foreground);
+  --color-restricted-border: var(--restricted-border);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -44,29 +46,33 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  --background: oklch(0.975 0.007 195);
-  --foreground: oklch(0.18 0.015 230);
+  --background: oklch(0.985 0.002 249);
+  --foreground: oklch(0.133 0.02 263);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.015 230);
+  --card-foreground: oklch(0.133 0.02 263);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.015 230);
-  --primary: oklch(0.52 0.095 188);
-  --primary-foreground: oklch(0.985 0.005 190);
-  --secondary: oklch(0.955 0.01 200);
-  --secondary-foreground: oklch(0.25 0.02 220);
-  --muted: oklch(0.955 0.008 210);
-  --muted-foreground: oklch(0.5 0.018 230);
-  --accent: oklch(0.95 0.02 190);
-  --accent-foreground: oklch(0.3 0.05 190);
+  --popover-foreground: oklch(0.133 0.02 263);
+  /* The brand red, #ef5366. White on it is below the AA contrast; the design owners know. */
+  --primary: oklch(0.658 0.191 17.1);
+  --primary-foreground: oklch(1 0 0);
+  /* The second brand colour, violet. */
+  --secondary: oklch(0.934 0.014 304.1);
+  --secondary-foreground: oklch(0.302 0.15 295.3);
+  --muted: oklch(0.968 0.004 264);
+  --muted-foreground: oklch(0.55 0.022 264);
+  --accent: oklch(0.968 0.004 264);
+  --accent-foreground: oklch(0.133 0.02 263);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.01 210);
-  --input: oklch(0.89 0.012 210);
-  --ring: oklch(0.6 0.1 188);
+  --border: oklch(0.924 0.012 264);
+  --input: oklch(0.924 0.012 264);
+  --ring: oklch(0.658 0.191 17.1);
   /* Pending and a Client restriction, because Rejected already uses `destructive`. */
-  --pending: oklch(0.962 0.059 95.617);
-  --pending-foreground: oklch(0.473 0.137 46.201);
-  --restricted: oklch(0.943 0.029 294.588);
-  --restricted-foreground: oklch(0.432 0.232 292.759);
+  --pending: oklch(0.954 0.037 75.2);
+  --pending-foreground: oklch(0.705 0.187 47.6);
+  --pending-border: oklch(0.901 0.073 70.7);
+  --restricted: oklch(0.943 0.028 294.6);
+  --restricted-foreground: oklch(0.302 0.15 295.3);
+  --restricted-border: oklch(0.894 0.055 293.3);
 }
 
 .dark {
