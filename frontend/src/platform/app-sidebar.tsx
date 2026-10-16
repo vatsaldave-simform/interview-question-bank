@@ -49,6 +49,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/shadcn/tooltip";
 export type SidebarMarks = {
   /** Whether the first page of the Review queue holds anything. It is not a count. */
   useAnyQuestionWaiting: () => boolean;
+  useOpenRoleRequestCount: () => number;
 };
 
 type AppSidebarProps = { viewer: Viewer; onSignOut: () => void; marks: SidebarMarks };
@@ -101,7 +102,11 @@ export function AppSidebar({ viewer, onSignOut, marks }: AppSidebarProps) {
           )}
           {viewer.isAdministrator && (
             <PageGroup label="Administration">
-              <PageLink to="/administration/role-requests" icon={UserPlusIcon}>
+              <PageLink
+                to="/administration/role-requests"
+                icon={UserPlusIcon}
+                mark={<WaitingCount useCount={marks.useOpenRoleRequestCount} label="open" />}
+              >
                 Role Requests
               </PageLink>
               <PageLink to="/administration/viewers" icon={UsersIcon}>
@@ -250,6 +255,23 @@ function WaitingDot({ useWaiting, label }: { useWaiting: () => boolean; label: s
     <>
       <span aria-hidden="true" className={`${markPlace} bg-primary size-2 rounded-full`} />
       <span className="sr-only">{`, ${label}`}</span>
+    </>
+  );
+}
+
+/** The shrunk strip has no room for digits, so there it is a dot like the other mark. */
+function WaitingCount({ useCount, label }: { useCount: () => number; label: string }) {
+  const count = useCount();
+  if (count === 0) return null;
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={`${markPlace} bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums group-data-[collapsible=icon]:size-2 group-data-[collapsible=icon]:min-w-0 group-data-[collapsible=icon]:p-0`}
+      >
+        <span className="group-data-[collapsible=icon]:hidden">{count}</span>
+      </span>
+      <span className="sr-only">{`, ${count} ${label}`}</span>
     </>
   );
 }

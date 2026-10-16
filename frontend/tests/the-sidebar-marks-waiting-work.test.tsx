@@ -1,10 +1,17 @@
-import type { Question, Viewer } from "@iqb/shared";
+import type { Question, RoleRequest, Viewer } from "@iqb/shared";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion, aViewer, answersWith, type FakeApi } from "./helpers/fake-api";
+import {
+  aQuestion,
+  aRoleRequest,
+  aViewer,
+  anAdministrator,
+  answersWith,
+  type FakeApi,
+} from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -50,8 +57,12 @@ async function theSidebar() {
   return within(await screen.findByRole("navigation", { name: "Main menu" }));
 }
 
+function requestsFor(path: string, api: FakeApi): Request[] {
+  return api.sent.filter((request) => new URL(request.url).pathname === path);
+}
+
 function pendingListRequests(api: FakeApi): Request[] {
-  return api.sent.filter((request) => new URL(request.url).pathname === "/api/questions/pending");
+  return requestsFor("/api/questions/pending", api);
 }
 
 describe("the dot on Review queue", () => {
@@ -100,5 +111,85 @@ describe("the dot on Review queue", () => {
     await userEvent.click(within(queue).getByRole("button", { name: "Publish" }));
 
     expect(await sidebar.findByRole("link", { name: "Review queue" })).toBeVisible();
+  });
+});
+
+const openRequests = [
+  aRoleRequest({ id: "d0000000-0000-4000-8000-000000000021" }),
+  aRoleRequest({ id: "d0000000-0000-4000-8000-000000000022" }),
+  aRoleRequest({ id: "d0000000-0000-4000-8000-000000000023" }),
+];
+
+/** A bank whose open Role Request list holds `open`, and which takes each decided one out of it. */
+function aBankWithOpenRoleRequests(open: RoleRequest[]): FakeApi {
+  return fakeBank(
+    (asked) => aPageOf([], asked),
+    (request, asked) => {
+      if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: open });
+      const decided = /^\/api\/role-requests\/([^/]+)\/decision$/.exec(asked.pathname);
+      if (decided === null || request.method !== "POST") return undefined;
+      const index = open.findIndex(({ id }) => id === decided[1]);
+      if (index === -1) throw new Error(`The open list does not hold ${decided[1]}.`);
+      const [roleRequest] = open.splice(index, 1);
+      return answersWith({
+        roleRequest: { ...roleRequest, state: "granted", decidedAt: "2026-09-03T09:00:00.000Z" },
+      });
+    },
+  );
+}
+
+describe("the number beside Role Requests", () => {
+  beforeEach(() => {
+    signInAs(anAdministrator);
+  });
+
+  it("shows how many are open, and says so to a screen reader", async () => {
+    aBankWithOpenRoleRequests([...openRequests]);
+    renderTheWholeClient("/questions");
+
+    const sidebar = await theSidebar();
+    const link = await sidebar.findByRole("link", { name: "Role Requests, 3 open" });
+    expect(within(link).getByText("3")).toBeVisible();
+  });
+
+  it("does not show when none is open", async () => {
+    const api = aBankWithOpenRoleRequests([]);
+    renderTheWholeClient("/questions");
+
+    const sidebar = await theSidebar();
+    await vi.waitFor(() => expect(requestsFor("/api/role-requests", api)).toHaveLength(1));
+    await screen.findByText("No Questions match.");
+    expect(sidebar.getByRole("link", { name: "Role Requests" })).toBeVisible();
+  });
+
+  it.each<[string, Viewer]>([
+    ["a Reader", aViewer({ role: "reader" })],
+    ["an Author", aViewer({ role: "author" })],
+    ["a Reviewer who is not an Administrator", aReviewer],
+  ])("is not asked for by %s", async (_who, viewer) => {
+    signInAs(viewer);
+    const api = aBankWithOpenRoleRequests([...openRequests]);
+    renderTheWholeClient("/questions");
+
+    const sidebar = await theSidebar();
+    await sidebar.findByRole("link", { name: "Browse" });
+    await screen.findByText("No Questions match.");
+    expect(requestsFor("/api/role-requests", api)).toHaveLength(0);
+  });
+
+  it("follows the list down, and clears without a reload when the last is decided", async () => {
+    aBankWithOpenRoleRequests([openRequests[0]!, openRequests[1]!]);
+    renderTheWholeClient("/administration/role-requests");
+
+    const sidebar = await theSidebar();
+    await sidebar.findByRole("link", { name: "Role Requests, 2 open" });
+    const table = await screen.findByRole("table", { name: "Open Role Requests" });
+    const [firstGrant] = within(table).getAllByRole("button", { name: "Grant" });
+    await userEvent.click(firstGrant!);
+
+    await sidebar.findByRole("link", { name: "Role Requests, 1 open" });
+    await userEvent.click(within(table).getByRole("button", { name: "Grant" }));
+
+    expect(await sidebar.findByRole("link", { name: "Role Requests" })).toBeVisible();
   });
 });

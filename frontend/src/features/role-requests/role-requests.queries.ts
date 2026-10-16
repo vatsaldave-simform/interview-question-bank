@@ -4,18 +4,27 @@ import {
   type DecideRoleRequestRequest,
   type RaiseRoleRequestRequest,
 } from "@iqb/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callApi } from "@/platform/api-client";
 import { currentViewerQuery } from "@/platform/current-viewer";
 
+const openRoleRequestsQuery = queryOptions({
+  queryKey: ["role-requests", "open"],
+  queryFn: ({ signal }) => callApi("/api/role-requests", roleRequestListResponseSchema, { signal }),
+});
+
 /** Oldest first, as the API sends them, so the one waiting longest is at the top. */
 export function useOpenRoleRequests() {
-  return useQuery({
-    queryKey: ["role-requests", "open"],
-    queryFn: ({ signal }) =>
-      callApi("/api/role-requests", roleRequestListResponseSchema, { signal }),
-    select: (answer) => answer.roleRequests,
+  return useQuery({ ...openRoleRequestsQuery, select: (answer) => answer.roleRequests });
+}
+
+/** Exact, because the list arrives whole. */
+export function useOpenRoleRequestCount(): number {
+  const { data } = useQuery({
+    ...openRoleRequestsQuery,
+    select: (answer) => answer.roleRequests.length,
   });
+  return data ?? 0;
 }
 
 /** Newest first, as the API sends them, so the first one is what became of the latest. */
