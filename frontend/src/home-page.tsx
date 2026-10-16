@@ -8,8 +8,7 @@ type HomePageProps = {
   onSearch: (keywords: string | undefined) => void;
 };
 
-/** Beside the route assembly and not in a feature, because like it, Home is put together
- * from the panels of several features (ADR-0047). */
+/** Not in a feature, because its panels come from several features (ADR-0047). */
 export function HomePage({ onSearch }: HomePageProps) {
   const session = useSession();
   // The shell renders nothing until there is a signed-in Viewer, so this is never shown.

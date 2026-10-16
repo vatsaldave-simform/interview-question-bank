@@ -1,22 +1,14 @@
 import type { Viewer } from "@iqb/shared";
-import { Link, type LinkComponentProps } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
-  Building2Icon,
   ChevronsUpDownIcon,
   CircleUserRoundIcon,
-  ClipboardCheckIcon,
-  FileTextIcon,
-  HouseIcon,
-  LibraryIcon,
   MenuIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
-  SquarePlusIcon,
-  UserPlusIcon,
-  UsersIcon,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { pageGroups, pagesShownTo, type ShownPage } from "@/platform/app-pages";
 import { chooseSidebarShrunk, useSidebarShrunk } from "@/platform/sidebar-choice";
 import { chooseTheme, themeChoices, useThemeChoice, type ThemeChoice } from "@/platform/theme";
 import { Button } from "@/ui/shadcn/button";
@@ -64,45 +56,17 @@ export function AppSidebar({ viewer, onSignOut, marks }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <nav aria-label="Main menu">
-          {/* Hiding these links keeps nobody out: the API refuses their pages anyway. */}
-          <PageGroup label="Questions">
-            <PageLink to="/" activeOptions={{ exact: true, includeSearch: false }} icon={HouseIcon}>
-              Home
-            </PageLink>
-            <PageLink
-              to="/questions"
-              activeOptions={{ exact: true, includeSearch: false }}
-              icon={LibraryIcon}
-            >
-              Browse
-            </PageLink>
-            {viewer.role !== "reader" && (
-              <>
-                <PageLink to="/questions/new" icon={SquarePlusIcon}>
-                  Add a Question
-                </PageLink>
-                <PageLink to="/questions/own" icon={FileTextIcon}>
-                  Your Questions
-                </PageLink>
-              </>
-            )}
-          </PageGroup>
-          {viewer.role === "reviewer" && (
-            <PageGroup label="Review">
-              <ReviewQueueLink useAnyQuestionWaiting={marks.useAnyQuestionWaiting} />
-            </PageGroup>
-          )}
-          {viewer.isAdministrator && (
-            <PageGroup label="Administration">
-              <RoleRequestsLink useOpenRoleRequestCount={marks.useOpenRoleRequestCount} />
-              <PageLink to="/administration/viewers" icon={UsersIcon}>
-                Viewers
-              </PageLink>
-              <PageLink to="/administration/clients" icon={Building2Icon}>
-                Clients
-              </PageLink>
-            </PageGroup>
-          )}
+          {pageGroups.map((group) => {
+            const shown = pagesShownTo(viewer).filter((page) => page.group === group);
+            if (shown.length === 0) return null;
+            return (
+              <PageGroup key={group} label={group}>
+                {shown.map((page) => (
+                  <LinkToPage key={page.id} page={page} marks={marks} />
+                ))}
+              </PageGroup>
+            );
+          })}
         </nav>
       </SidebarContent>
       <SidebarFooter>
@@ -200,21 +164,28 @@ function PageGroup({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-type PageLinkProps = Omit<LinkComponentProps, "className" | "children"> & {
-  icon: LucideIcon;
-  children: string;
-  mark?: Mark | null;
-};
-
 /** How a mark looks, and the words a screen reader and the shrunk strip's tooltip give for it. */
 type Mark = { look: ReactNode; words: string };
 
+/** The two marked links are components of their own, so each hook runs only while its link
+ * shows, and a Viewer it is hidden from never asks for the list behind it. */
+function LinkToPage({ page, marks }: { page: ShownPage; marks: SidebarMarks }) {
+  if (page.id === "review-queue") {
+    return <ReviewQueueLink page={page} useAnyQuestionWaiting={marks.useAnyQuestionWaiting} />;
+  }
+  if (page.id === "role-requests") {
+    return <RoleRequestsLink page={page} useOpenRoleRequestCount={marks.useOpenRoleRequestCount} />;
+  }
+  return <PageLink page={page} />;
+}
+
 /** The fill on the current page follows the `aria-current` the router sets on it, which
  * stays on a section's link on the pages inside it, such as one Client's page. */
-function PageLink({ icon: Icon, children, mark, ...props }: PageLinkProps) {
+function PageLink({ page, mark }: { page: ShownPage; mark?: Mark | null }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const { to, name, icon: Icon } = page;
   // A comma, because a screen reader joins the hidden words to the link's name without a space.
-  const named = mark ? `${children}, ${mark.words}` : children;
+  const named = mark ? `${name}, ${mark.words}` : name;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -223,9 +194,13 @@ function PageLink({ icon: Icon, children, mark, ...props }: PageLinkProps) {
         {...(isMobile ? {} : { tooltip: named })}
         className="relative aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
       >
-        <Link {...props} onClick={() => setOpenMobile(false)}>
+        <Link
+          to={to}
+          {...("exact" in page ? { activeOptions: { exact: true, includeSearch: false } } : {})}
+          onClick={() => setOpenMobile(false)}
+        >
           <Icon aria-hidden="true" />
-          <span className="truncate">{children}</span>
+          <span className="truncate">{name}</span>
           {mark && (
             <>
               <span
@@ -244,25 +219,23 @@ function PageLink({ icon: Icon, children, mark, ...props }: PageLinkProps) {
   );
 }
 
-/** Its own component, like the Role Requests link, so the hook runs only while the link
- * shows, and a Viewer it is hidden from never asks for the list behind it. */
-function ReviewQueueLink({ useAnyQuestionWaiting }: Pick<SidebarMarks, "useAnyQuestionWaiting">) {
+function ReviewQueueLink({
+  page,
+  useAnyQuestionWaiting,
+}: { page: ShownPage } & Pick<SidebarMarks, "useAnyQuestionWaiting">) {
   const mark = useAnyQuestionWaiting()
     ? {
         look: <span className="bg-primary size-2 rounded-full" />,
         words: "Pending Questions waiting",
       }
     : null;
-  return (
-    <PageLink to="/review" icon={ClipboardCheckIcon} mark={mark}>
-      Review queue
-    </PageLink>
-  );
+  return <PageLink page={page} mark={mark} />;
 }
 
 function RoleRequestsLink({
+  page,
   useOpenRoleRequestCount,
-}: Pick<SidebarMarks, "useOpenRoleRequestCount">) {
+}: { page: ShownPage } & Pick<SidebarMarks, "useOpenRoleRequestCount">) {
   const count = useOpenRoleRequestCount();
   const mark =
     count === 0
@@ -276,11 +249,7 @@ function RoleRequestsLink({
           ),
           words: `${count} open`,
         };
-  return (
-    <PageLink to="/administration/role-requests" icon={UserPlusIcon} mark={mark}>
-      Role Requests
-    </PageLink>
-  );
+  return <PageLink page={page} mark={mark} />;
 }
 
 function AccountMenu({ email, onSignOut }: { email: string; onSignOut: () => void }) {

@@ -5,7 +5,6 @@ import { Input } from "@/ui/shadcn/input";
 type BrowseSearchBoxProps = {
   keywords: string | undefined;
   onSearch: (keywords: string | undefined) => void;
-  /** Set on Home, where searching is the first thing a Viewer is offered. */
   large?: boolean;
 };
 

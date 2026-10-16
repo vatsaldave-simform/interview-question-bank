@@ -37,7 +37,7 @@ has to import several.
 
 - A new Home panel goes in the feature whose list it shows, and `home-page.tsx` places it.
 - The shortcuts read only the Viewer's role and link to addresses, like the sidebar. So they
-  sit in `platform/` beside it.
+  sit in `platform/` beside it, and both read one list of pages, `platform/app-pages.ts`.
 - Browse lived at `/` before Home. A `/` address that carries a filter still goes to
   `/questions` with the same filter, so links saved then keep working.
 - `docs/agents/frontend-structure.md` lists `home-page.tsx` in its tree.

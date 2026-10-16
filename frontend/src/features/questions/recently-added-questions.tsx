@@ -7,8 +7,7 @@ import { ScreenSection } from "@/features/questions/screen-section";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
 
-/** The first page of Browse cut to five, so Home shows what Browse would, unpublished
- * Questions a Viewer may see included, and decides nothing about who sees what. */
+/** Browse's own first page, cut to five, so only Questions Visible to the Viewer appear. */
 const newestFive: ListQuestionsRequest = { keywords: undefined, limit: 5, offset: 0 };
 
 export function RecentlyAddedQuestions() {

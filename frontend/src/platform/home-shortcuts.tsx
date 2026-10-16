@@ -1,87 +1,19 @@
 import type { Viewer } from "@iqb/shared";
-import { Link, type LinkProps } from "@tanstack/react-router";
-import {
-  Building2Icon,
-  ClipboardCheckIcon,
-  FileTextIcon,
-  LibraryIcon,
-  SquarePlusIcon,
-  UserPlusIcon,
-  UsersIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useId } from "react";
+import { pagesShownTo, type PageId, type ShownPage } from "@/platform/app-pages";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
-type Shortcut = {
-  to: NonNullable<LinkProps["to"]>;
-  name: string;
-  icon: LucideIcon;
-  description: string;
+/** Keyed on every page but Home, so a page added to the list cannot be left without one. */
+const whatEachPageIsFor: Record<Exclude<PageId, "home">, string> = {
+  browse: "Search and filter every Question you may see.",
+  "add-a-question": "A Reviewer reads it before it is in the bank.",
+  "your-questions": "Your Pending and Rejected Questions, with the reason.",
+  "review-queue": "Pending Questions waiting on a Reviewer.",
+  "role-requests": "Viewers asking for a different role.",
+  viewers: "Everyone who can log in, or could before they were Deactivated.",
+  clients: "Who holds a Grant against each Client.",
 };
-
-const browse: Shortcut = {
-  to: "/questions",
-  name: "Browse",
-  icon: LibraryIcon,
-  description: "Search and filter every Question you may see.",
-};
-
-const forAuthors: Shortcut[] = [
-  {
-    to: "/questions/new",
-    name: "Add a Question",
-    icon: SquarePlusIcon,
-    description: "A Reviewer reads it before it is in the bank.",
-  },
-  {
-    to: "/questions/own",
-    name: "Your Questions",
-    icon: FileTextIcon,
-    description: "Your Pending and Rejected Questions, with the reason.",
-  },
-];
-
-const forReviewers: Shortcut[] = [
-  {
-    to: "/review",
-    name: "Review queue",
-    icon: ClipboardCheckIcon,
-    description: "Pending Questions waiting on a Reviewer.",
-  },
-];
-
-const forAdministrators: Shortcut[] = [
-  {
-    to: "/administration/role-requests",
-    name: "Role Requests",
-    icon: UserPlusIcon,
-    description: "Viewers asking for a different role.",
-  },
-  {
-    to: "/administration/viewers",
-    name: "Viewers",
-    icon: UsersIcon,
-    description: "Everyone who can log in, or could before they were Deactivated.",
-  },
-  {
-    to: "/administration/clients",
-    name: "Clients",
-    icon: Building2Icon,
-    description: "Who holds a Grant against each Client.",
-  },
-];
-
-/** The same pages the sidebar lists for the role, because hiding one keeps nobody out: the
- * API refuses its page anyway. */
-function shortcutsFor(viewer: Viewer): Shortcut[] {
-  return [
-    browse,
-    ...(viewer.role === "reader" ? [] : forAuthors),
-    ...(viewer.role === "reviewer" ? forReviewers : []),
-    ...(viewer.isAdministrator ? forAdministrators : []),
-  ];
-}
 
 export function HomeShortcuts({ viewer }: { viewer: Viewer }) {
   return (
@@ -90,18 +22,21 @@ export function HomeShortcuts({ viewer }: { viewer: Viewer }) {
         Shortcuts
       </h2>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {shortcutsFor(viewer).map((shortcut) => (
-          <li key={shortcut.name} className="flex">
-            <ShortcutCard shortcut={shortcut} />
-          </li>
-        ))}
+        {pagesShownTo(viewer)
+          .filter((page): page is Exclude<ShownPage, { id: "home" }> => page.id !== "home")
+          .map((page) => (
+            <li key={page.id} className="flex">
+              <ShortcutCard page={page} description={whatEachPageIsFor[page.id]} />
+            </li>
+          ))}
       </ul>
     </section>
   );
 }
 
-function ShortcutCard({ shortcut: { to, name, icon: Icon, description } }: { shortcut: Shortcut }) {
+function ShortcutCard({ page, description }: { page: ShownPage; description: string }) {
   const descriptionId = useId();
+  const { to, name, icon: Icon } = page;
   return (
     <Card className="flex-1">
       <CardHeader className="gap-2">

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, aQuestion, refusesWith } from "./helpers/fake-api";
+import { aQuestion, refusesWith } from "./helpers/fake-api";
 import { aBankHolding, aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -42,13 +42,7 @@ describe("the newest Questions on Home", () => {
   });
 
   it("are only what the API sent, in its order", async () => {
-    // The API leaves out a Question restricted to a Client the Viewer holds no Grant for, so
-    // the page shows exactly what came back and decides nothing of its own.
-    const restricted = aQuestion({
-      id: "a0000000-0000-4000-8000-000000000003",
-      text: "Only Northwind's interviewers may see this",
-      client: aClient(),
-    });
+    // The API has already left out what the Viewer may not see, so the page adds nothing.
     fakeBank((asked) => aPageOf([newest, older], asked));
     renderTheWholeClient("/");
 
@@ -58,7 +52,6 @@ describe("the newest Questions on Home", () => {
       newest.text,
       older.text,
     ]);
-    expect(screen.queryByText(restricted.text)).not.toBeInTheDocument();
   });
 
   it("mark one that is not Published with its state", async () => {
