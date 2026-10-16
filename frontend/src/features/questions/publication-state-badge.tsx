@@ -12,7 +12,10 @@ const lookOf: Record<PublicationState, BadgeLook> = {
     className: "border-pending-border bg-pending text-pending-foreground",
   },
   published: { variant: "outline" },
-  rejected: { variant: "destructive" },
+  rejected: {
+    variant: "outline",
+    className: "border-transparent bg-rejected text-rejected-foreground",
+  },
 };
 
 export function PublicationStateBadge({ state }: { state: PublicationState }) {
