@@ -84,8 +84,11 @@ never writes a rule of its own (ADR-0045).
 ## Styling
 
 Tailwind classes in the component. `src/index.css` is the only stylesheet: it holds the Tailwind
-directives and the theme variables shadcn reads. No CSS modules, no CSS-in-JS, and no second
-stylesheet.
+directives, theme variables, plus base rules keyed on the generated components' slot names, such
+as `[data-slot="card"]` (ADR-0046). No CSS modules, no CSS-in-JS, and no second stylesheet.
+
+A base rule is for a look every copy of a generated component shares, like the frosted glass and
+its fallbacks. It never keys on a generated class name, and it uses only theme variables.
 
 Colours that carry meaning are theme variables in `index.css`, never Tailwind colour classes, so the dark palette only has to give each one a new value.
 
