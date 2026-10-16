@@ -10,6 +10,6 @@ export type RouterContext = {
   signOut: () => void;
 };
 
-/** No header of its own: the signed-in shell is a route underneath, so the login screen
+/** No frame of its own: the signed-in shell is a route underneath, so the login screen
  * is not wrapped in one belonging to a session that does not exist. */
 export const rootRoute = createRootRouteWithContext<RouterContext>()({ component: Outlet });

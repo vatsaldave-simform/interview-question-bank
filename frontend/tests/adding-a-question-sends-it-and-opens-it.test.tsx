@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
@@ -59,7 +59,9 @@ describe("adding a Question", () => {
     const api = aBankThatAddsIt();
     renderTheWholeClient("/questions");
 
-    await userEvent.click(await screen.findByRole("link", { name: "Add a Question" }));
+    // Browse's own button, not the sidebar's link to the same page.
+    const browse = within(await screen.findByRole("main"));
+    await userEvent.click(await browse.findByRole("link", { name: "Add a Question" }));
     const questionBox = await screen.findByLabelText("Question");
     await userEvent.type(questionBox, "How would you find a slow query?");
     await userEvent.type(

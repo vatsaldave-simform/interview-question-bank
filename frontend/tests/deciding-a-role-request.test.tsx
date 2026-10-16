@@ -109,8 +109,8 @@ describe("deciding a Role Request from the administration console", () => {
     expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
     expect(await sent!.json()).toEqual({ outcome: "granted" });
 
-    const menu = within(screen.getByRole("navigation", { name: "Administration" }));
-    await userEvent.click(menu.getByRole("link", { name: "Viewers" }));
+    const sidebar = within(screen.getByRole("navigation", { name: "Main menu" }));
+    await userEvent.click(sidebar.getByRole("link", { name: "Viewers" }));
     const viewers = within(await screen.findByRole("table", { name: "Viewers" }));
     expect(await viewers.findByRole("cell", { name: "Reviewer" })).toBeVisible();
   });
@@ -186,7 +186,7 @@ describe("deciding a Role Request from the administration console", () => {
     expect(toastsShown()).toHaveLength(0);
   });
 
-  it("changes the header of an Administrator who grants their own Role Request", async () => {
+  it("changes the sidebar of an Administrator who grants their own Role Request", async () => {
     const own = aRoleRequest({
       viewer: { id: anAdministrator.id, email: anAdministrator.email },
       role: "author",
@@ -195,13 +195,13 @@ describe("deciding a Role Request from the administration console", () => {
     renderTheWholeClient("/administration/role-requests");
 
     // The Review queue link is shown to a Reviewer only, so it goes with the role.
-    const header = within(await screen.findByRole("banner"));
-    expect(header.getByRole("link", { name: "Review queue" })).toBeVisible();
+    const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
+    expect(sidebar.getByRole("link", { name: "Review queue" })).toBeVisible();
     const row = await rowFor("reviewer@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Grant" }));
 
     await vi.waitFor(() =>
-      expect(header.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument(),
+      expect(sidebar.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument(),
     );
   });
 });

@@ -21,7 +21,7 @@ function blurAndBackgroundOpacity(panel: Locator) {
   });
 }
 
-test("a card and a menu are frosted glass, and solid when the device asks for less see-through", async ({
+test("a card, a menu and the sidebar are frosted glass, and solid when the device asks for less see-through", async ({
   page,
 }) => {
   await signInAs(page, "reader@iqb.test", "reader-password");
@@ -43,6 +43,12 @@ test("a card and a menu are frosted glass, and solid when the device asks for le
   expect(glassMenu.backgroundOpacity).toBeLessThan(1);
   await page.keyboard.press("Escape");
 
+  const sidebar = page.locator('[data-slot="sidebar-inner"]');
+  await expect(sidebar.getByRole("navigation", { name: "Main menu" })).toBeVisible();
+  const glassSidebar = await blurAndBackgroundOpacity(sidebar);
+  expect(glassSidebar.blur).toMatch(/blur\(/);
+  expect(glassSidebar.backgroundOpacity).toBeLessThan(1);
+
   // Playwright has no option for this setting, but Chromium's own DevTools protocol does.
   const devTools = await page.context().newCDPSession(page);
   await devTools.send("Emulation.setEmulatedMedia", {
@@ -52,4 +58,7 @@ test("a card and a menu are frosted glass, and solid when the device asks for le
   const solidCard = await blurAndBackgroundOpacity(card);
   expect(solidCard.blur).toBe("none");
   expect(solidCard.backgroundOpacity).toBe(1);
+  const solidSidebar = await blurAndBackgroundOpacity(sidebar);
+  expect(solidSidebar.blur).toBe("none");
+  expect(solidSidebar.backgroundOpacity).toBe(1);
 });

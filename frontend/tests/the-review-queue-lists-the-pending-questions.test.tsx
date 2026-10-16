@@ -98,7 +98,7 @@ describe("the Reviewer's Pending queue", () => {
 });
 
 describe("the link to the Pending queue", () => {
-  it("is in the header for a Reviewer, and opens the queue", async () => {
+  it("is in the sidebar for a Reviewer, and opens the queue", async () => {
     aBankAnsweringTheQueue((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");
 
@@ -107,7 +107,7 @@ describe("the link to the Pending queue", () => {
     expect(await screen.findByRole("heading", { name: "Review queue" })).toBeVisible();
   });
 
-  it.each(["reader", "author"] as const)("is not in the header for a %s", async (role) => {
+  it.each(["reader", "author"] as const)("is not in the sidebar for a %s", async (role) => {
     signInAs(aViewer({ role }));
     aBankAnsweringTheQueue((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");

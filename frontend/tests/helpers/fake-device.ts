@@ -9,10 +9,12 @@ export function aDevice({ dark }: { dark: boolean }) {
     },
     addEventListener: (_type: "change", listener: () => void) => listeners.add(listener),
   };
-  vi.stubGlobal("matchMedia", (text: string) => {
-    if (text !== "(prefers-color-scheme: dark)") throw new Error(`Unexpected query: ${text}`);
-    return query;
-  });
+  // Any other question, such as the phone width the sidebar asks about, gets the light
+  // stand-in's answer from `test-dom.ts`, so only the dark setting is under the test's control.
+  const otherwise = window.matchMedia;
+  vi.stubGlobal("matchMedia", (text: string) =>
+    text === "(prefers-color-scheme: dark)" ? query : otherwise(text),
+  );
   return {
     setDark(next: boolean) {
       dark = next;

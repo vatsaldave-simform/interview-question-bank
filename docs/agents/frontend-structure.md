@@ -29,8 +29,9 @@ Decide with these, in order:
 Features are named after the bank, not after the screens. Browse, contribute, review and ratings are
 four views of one concern and share `features/questions/`. The administration console is a route,
 not a feature (ADR-0015).
-Its frame, the side menu around an `<Outlet/>`, is `platform/administration-route.tsx`, which only
-links to addresses, and each feature adds its own page under it through its `.routes.tsx`.
+Its route is `platform/administration-route.tsx`, and each feature adds its own page under it
+through its `.routes.tsx`. It has no menu of its own: its pages are listed in the sidebar, which
+only links to addresses.
 
 `platform/` holds the API client, the access token, the query client, the app shell, the sign-in
 check and the error boundary. `features/auth/` holds the login screen, logging out, and the silent

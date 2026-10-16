@@ -23,8 +23,7 @@ afterEach(() => {
 });
 
 async function openTheAccountMenu() {
-  const header = within(await screen.findByRole("banner"));
-  await userEvent.click(header.getByRole("button", { name: "author@iqb.test" }));
+  await userEvent.click(await screen.findByRole("button", { name: "author@iqb.test" }));
   return within(await screen.findByRole("menu"));
 }
 

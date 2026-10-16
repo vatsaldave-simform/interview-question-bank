@@ -109,7 +109,7 @@ describe("a Rejected Question's own page", () => {
 
 describe("the link to an Author's own list", () => {
   it.each(["author", "reviewer"] as const)(
-    "is in the header for a %s, and opens the list",
+    "is in the sidebar for a %s, and opens the list",
     async (role) => {
       signInAs(aViewer({ role }));
       aBankAnswering((asked) => aPageOf([], asked));
@@ -121,7 +121,7 @@ describe("the link to an Author's own list", () => {
     },
   );
 
-  it("is not in the header for a Reader", async () => {
+  it("is not in the sidebar for a Reader", async () => {
     signInAs(aViewer({ role: "reader" }));
     aBankAnswering((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");

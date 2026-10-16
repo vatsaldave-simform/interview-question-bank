@@ -224,7 +224,7 @@ describe("acting on one Viewer from the administration console", () => {
     expect(toastsShown()).toHaveLength(0);
   });
 
-  it("takes the console link away from an Administrator who withdraws their own authority", async () => {
+  it("takes the console's links away from an Administrator who withdraws their own authority", async () => {
     const another = aViewer({
       id: "7c3b4a1e-0000-4000-8000-000000000006",
       email: "other@iqb.test",
@@ -233,12 +233,12 @@ describe("acting on one Viewer from the administration console", () => {
     aBankHolding([anAdministrator, another]);
     renderTheWholeClient("/administration/viewers");
 
-    const header = within(await screen.findByRole("banner"));
-    expect(header.getByRole("link", { name: "Administration" })).toBeVisible();
+    const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
+    expect(sidebar.getByRole("group", { name: "Administration" })).toBeVisible();
     const row = await rowFor("reviewer@iqb.test");
     await pick("Withdraw Administrator", "reviewer@iqb.test");
 
     expect(await row.findByRole("cell", { name: "No" })).toBeVisible();
-    expect(header.queryByRole("link", { name: "Administration" })).not.toBeInTheDocument();
+    expect(sidebar.queryByRole("group", { name: "Administration" })).not.toBeInTheDocument();
   });
 });
