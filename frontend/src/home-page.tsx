@@ -1,4 +1,5 @@
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
+import { RecentlyAddedQuestions } from "@/features/questions/recently-added-questions";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 
@@ -24,6 +25,7 @@ export function HomePage({ onSearch }: HomePageProps) {
       <section aria-label="Search the bank">
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
+      <RecentlyAddedQuestions />
     </div>
   );
 }
