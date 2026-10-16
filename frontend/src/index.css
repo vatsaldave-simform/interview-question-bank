@@ -1,5 +1,6 @@
-/* The only stylesheet (ADR-0030): the Tailwind and font imports, and the theme variables
-   the generated components read. Everything else is Tailwind classes in the component. */
+/* The only stylesheet (ADR-0030): the Tailwind and font imports, the theme variables the
+   generated components read, and base rules keyed on their slot names (ADR-0046). Everything
+   else is Tailwind classes in the component. */
 @import "tailwindcss";
 @import "@fontsource-variable/figtree";
 
@@ -31,6 +32,8 @@
   --color-pending: var(--pending);
   --color-pending-foreground: var(--pending-foreground);
   --color-pending-border: var(--pending-border);
+  --color-rejected: var(--rejected);
+  --color-rejected-foreground: var(--rejected-foreground);
   --color-restricted: var(--restricted);
   --color-restricted-foreground: var(--restricted-foreground);
   --color-restricted-border: var(--restricted-border);
@@ -64,31 +67,56 @@
   --brand-lavender: oklch(0.855 0.085 301.4);
   --brand-purple: oklch(0.302 0.15 295.3);
   --background: oklch(0.985 0.002 249);
-  --foreground: oklch(0.133 0.02 263);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.133 0.02 263);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.133 0.02 263);
+  --text: color-mix(in oklch, var(--brand-purple) 72%, oklch(0 0 0));
+  --foreground: var(--text);
+  /* How see-through each glass is was measured, so its text keeps the contrast it had when solid. */
+  --card: var(--card-glass);
+  --card-glass: oklch(1 0 0 / 82%);
+  --card-solid: oklch(1 0 0);
+  --card-foreground: var(--text);
+  --popover: var(--popover-glass);
+  --popover-glass: oklch(1 0 0 / 82%);
+  --popover-solid: oklch(1 0 0);
+  /* More cover than a menu, because a dialog sits on the dark layer that dims the page. */
+  --dialog: var(--dialog-glass);
+  --dialog-glass: oklch(1 0 0 / 92%);
+  --popover-foreground: var(--text);
+  --glass-edge: oklch(1 0 0 / 70%);
+  --glass-blur-card: blur(14px) saturate(1.3);
+  --glass-blur-popover: blur(26px) saturate(1.6);
+  --glow: color-mix(in oklch, var(--brand-lavender) 85%, transparent);
+  --backdrop:
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 30%, transparent), transparent 70%),
+    radial-gradient(38% 42% at 100% 0%, color-mix(in oklch, var(--brand-red) 20%, transparent), transparent 72%),
+    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-lavender) 90%, transparent), transparent 72%),
+    radial-gradient(40% 40% at 25% 100%, color-mix(in oklch, var(--brand-red) 10%, transparent), transparent 70%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--brand-lavender) 40%, oklch(1 0 0)),
+      color-mix(in oklch, var(--brand-lavender) 68%, oklch(1 0 0))
+    );
   /* White text on this red is hard to read, and the design owners chose it anyway. */
   --primary: var(--brand-red);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.934 0.014 304.1);
   --secondary-foreground: var(--brand-purple);
   --muted: oklch(0.968 0.004 264);
-  --muted-foreground: oklch(0.55 0.022 264);
+  --muted-foreground: color-mix(in oklch, var(--brand-purple) 78%, oklch(1 0 0));
   --accent: oklch(0.968 0.004 264);
-  --accent-foreground: oklch(0.133 0.02 263);
-  --destructive: oklch(0.577 0.245 27.325);
+  --accent-foreground: var(--text);
+  /* The brand red darkened, because the brand red itself is too light to read as text. */
+  --destructive: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
   --border: oklch(0.924 0.012 264);
   --input: oklch(0.924 0.012 264);
   --ring: var(--brand-red);
-  /* Pending and a Client restriction, because Rejected already uses `destructive`. */
-  --pending: oklch(0.954 0.037 75.2);
-  --pending-foreground: oklch(0.705 0.187 47.6);
-  --pending-border: oklch(0.901 0.073 70.7);
-  --restricted: oklch(0.943 0.028 294.6);
-  --restricted-foreground: oklch(0.302 0.15 295.3);
-  --restricted-border: oklch(0.894 0.055 293.3);
+  --pending: transparent;
+  --pending-foreground: var(--brand-purple);
+  --pending-border: color-mix(in oklch, var(--brand-purple) 45%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-red) 15%, transparent);
+  --rejected-foreground: var(--destructive);
+  --restricted: var(--brand-purple);
+  --restricted-foreground: oklch(1 0 0);
+  --restricted-border: var(--brand-purple);
   --sidebar: var(--brand-lavender);
   --sidebar-foreground: var(--brand-purple);
   --sidebar-primary: var(--brand-purple);
@@ -105,29 +133,47 @@
   /* The browser's own parts, such as scroll bars and the native select, turn dark too. */
   color-scheme: dark;
   --background: oklch(0.16 0.014 264);
-  --foreground: oklch(0.94 0.004 264);
-  --card: oklch(0.2 0.014 264);
-  --card-foreground: oklch(0.94 0.004 264);
-  --popover: oklch(0.22 0.014 264);
-  --popover-foreground: oklch(0.94 0.004 264);
+  --text: color-mix(in oklch, var(--brand-lavender) 20%, oklch(1 0 0));
+  --foreground: var(--text);
+  --card-glass: color-mix(in oklch, var(--card-solid) 78%, transparent);
+  --card-solid: color-mix(in oklch, var(--brand-purple) 58%, oklch(0 0 0));
+  --card-foreground: var(--text);
+  --popover-glass: color-mix(in oklch, var(--popover-solid) 78%, transparent);
+  --popover-solid: color-mix(in oklch, var(--brand-purple) 62%, oklch(0 0 0));
+  --dialog-glass: var(--popover-glass);
+  --glow: color-mix(in oklch, var(--brand-lavender) 35%, transparent);
+  --popover-foreground: var(--text);
+  --glass-edge: color-mix(in oklch, var(--brand-lavender) 16%, transparent);
+  --backdrop:
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 90%, transparent), transparent 70%),
+    radial-gradient(40% 45% at 100% 0%, color-mix(in oklch, var(--brand-red) 20%, transparent), transparent 72%),
+    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-lavender) 22%, transparent), transparent 72%),
+    radial-gradient(40% 40% at 20% 100%, color-mix(in oklch, var(--brand-red) 10%, transparent), transparent 70%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--brand-purple) 55%, oklch(0 0 0)),
+      color-mix(in oklch, var(--brand-purple) 30%, oklch(0 0 0))
+    );
   --primary: oklch(0.68 0.19 15.6);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.26 0.05 300);
   --secondary-foreground: oklch(0.88 0.05 300);
   --muted: oklch(0.24 0.012 264);
-  --muted-foreground: oklch(0.65 0.02 264);
+  --muted-foreground: color-mix(in oklch, var(--brand-lavender) 88%, oklch(1 0 0));
   --accent: oklch(0.26 0.014 264);
-  --accent-foreground: oklch(0.94 0.004 264);
-  --destructive: oklch(0.62 0.21 27);
+  --accent-foreground: var(--text);
+  --destructive: var(--brand-red);
   --border: oklch(0.3 0.014 264);
   --input: oklch(0.3 0.014 264);
   --ring: oklch(0.68 0.19 15.6);
-  --pending: oklch(0.28 0.07 55);
-  --pending-foreground: oklch(0.78 0.14 55);
-  --pending-border: oklch(0.42 0.12 55);
-  --restricted: oklch(0.28 0.07 300);
-  --restricted-foreground: oklch(0.78 0.12 300);
-  --restricted-border: oklch(0.42 0.1 300);
+  --pending: transparent;
+  --pending-foreground: var(--brand-lavender);
+  --pending-border: color-mix(in oklch, var(--brand-lavender) 55%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-red) 24%, transparent);
+  --rejected-foreground: color-mix(in oklch, var(--brand-red) 50%, oklch(1 0 0));
+  --restricted: var(--brand-lavender);
+  --restricted-foreground: var(--brand-purple);
+  --restricted-border: var(--brand-lavender);
   --sidebar: oklch(0.2 0.02 264);
   --sidebar-foreground: var(--brand-lavender);
   --sidebar-primary: oklch(0.45 0.14 300);
@@ -142,11 +188,96 @@
   --sidebar-gradient-to: oklch(0.42 0.13 300);
 }
 
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --card: var(--card-solid);
+    --popover: var(--popover-solid);
+    --dialog: var(--popover-solid);
+    --glass-blur-card: none;
+    --glass-blur-popover: none;
+  }
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Fixed, so the backdrop stays still while the page scrolls over it. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--backdrop);
+  }
+  [data-slot="card"] {
+    border-color: var(--glass-edge);
+    backdrop-filter: var(--glass-blur-card);
+  }
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-sonner-toast] {
+    border-color: var(--glass-edge);
+    backdrop-filter: var(--glass-blur-popover);
+  }
+  /* Only a card whose title is a link lifts, so the lift tells the Viewer it opens something. */
+  [data-slot="card"]:has([data-slot="card-title"] a[href]) {
+    position: relative;
+    transition: translate 0.18s ease;
+    &:hover {
+      translate: 0 -2px;
+    }
+    /* The glow is its own layer, because the card's shadow comes from a class that would win. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow:
+        0 0 0 1px var(--glow),
+        0 8px 28px -6px var(--glow);
+      transition: opacity 0.18s ease;
+    }
+    &:hover::after {
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      &:hover {
+        translate: none;
+      }
+      &:hover::after {
+        opacity: 0;
+      }
+    }
+  }
+  main > * {
+    animation: page-fade-in 0.26s ease both;
+  }
+  /* Every element, so a motion the generated components or Sonner bring is stopped too. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+  /* A dialog paints itself in `--background`, so here that colour is the glass. */
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"] {
+    --background: var(--dialog);
   }
 }
