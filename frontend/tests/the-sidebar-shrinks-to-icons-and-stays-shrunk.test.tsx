@@ -55,6 +55,7 @@ describe("shrinking the sidebar", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Expand the sidebar" }));
     expect(await isShrunk()).toBe(false);
+    expect(document.cookie).not.toContain("sidebar");
   });
 
   it("is still shrunk when the page is opened again", async () => {

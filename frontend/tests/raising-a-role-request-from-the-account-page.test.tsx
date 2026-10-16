@@ -53,7 +53,7 @@ async function theRoleRequestSection() {
 }
 
 describe("a Viewer's own Role Request on their account page", () => {
-  it("opens from the menu under the email in the header, and shows who is signed in", async () => {
+  it("opens from the menu under the email in the sidebar, and shows who is signed in", async () => {
     aBankHoldingMine([]);
     renderTheWholeClient("/questions");
 

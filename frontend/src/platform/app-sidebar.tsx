@@ -44,8 +44,6 @@ import {
 } from "@/ui/shadcn/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/shadcn/tooltip";
 
-/** Every page the Viewer may use, grouped, with their account at the bottom. On a desktop it
- * shrinks to a strip of icons, and on a phone the library shows it as a drawer instead. */
 export function AppSidebar({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => void }) {
   useShortcutWithoutCookie();
   return (
@@ -206,8 +204,7 @@ function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        // The library shows it only while the sidebar is shrunk. Even hidden, an open tooltip
-        // takes the first Escape, which in the drawer would leave the drawer open.
+        // Left out on a phone, because even a hidden tooltip takes the first Escape in the drawer.
         {...(isMobile ? {} : { tooltip: children })}
         className="aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
       >
@@ -223,6 +220,7 @@ function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
 function AccountMenu({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   const theme = useThemeChoice();
   const { isMobile, state, setOpenMobile } = useSidebar();
+  const besideAStrip = state === "collapsed" && !isMobile;
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -240,8 +238,8 @@ function AccountMenu({ email, onSignOut }: { email: string; onSignOut: () => voi
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            side={state === "collapsed" && !isMobile ? "right" : "top"}
-            align={state === "collapsed" && !isMobile ? "end" : "start"}
+            side={besideAStrip ? "right" : "top"}
+            align={besideAStrip ? "end" : "start"}
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
           >
             <DropdownMenuItem asChild>
@@ -282,8 +280,8 @@ const themeWording: Record<ThemeChoice, string> = {
   device: "Match my device",
 };
 
-/** The library's own Ctrl+B saves the sidebar's state in a cookie, and this app shares its
- * address with the API, so that cookie would reach the server. The key is caught first. */
+/** The library's own Ctrl+B saves the sidebar's state in a cookie, which the API would receive
+ * because it shares this app's address, so the key is caught here before the library sees it. */
 function useShortcutWithoutCookie() {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const shrunk = useSidebarShrunk();
@@ -291,7 +289,7 @@ function useShortcutWithoutCookie() {
     const catchShortcut = (event: KeyboardEvent) => {
       if (event.key !== "b" || !(event.metaKey || event.ctrlKey)) return;
       event.preventDefault();
-      // Stopped on its way down, so the library's listener on the way back up never hears it.
+      // A listener added with `capture` runs before the library's, so stopping here stops it.
       event.stopPropagation();
       if (isMobile) setOpenMobile(!openMobile);
       else chooseSidebarShrunk(!shrunk);

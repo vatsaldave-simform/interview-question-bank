@@ -116,12 +116,11 @@
   --restricted: var(--brand-purple);
   --restricted-foreground: oklch(1 0 0);
   --restricted-border: var(--brand-purple);
-  /* Thinner than a card, because the sidebar holds short labels and no long reading. */
+  /* More see-through than a card, because the sidebar holds short labels and no long reading. */
   --sidebar: var(--sidebar-glass);
   --sidebar-glass: oklch(1 0 0 / 50%);
   --sidebar-solid: color-mix(in oklch, var(--brand-lavender) 24%, oklch(1 0 0));
   --sidebar-foreground: var(--text);
-  /* The current page. */
   --sidebar-primary: var(--brand-purple);
   --sidebar-primary-foreground: oklch(1 0 0);
   /* The library paints a pointed-at link in this, so it is only a faint tint. */

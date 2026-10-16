@@ -18,8 +18,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
   if (session.status === "signed-out") return null;
 
   return (
-    // Told whether it is open rather than left to keep track itself, because the library
-    // would save that in a cookie the API receives.
+    // Told whether it is open, because left to itself the library saves that in a cookie.
     <SidebarProvider open={!shrunk}>
       <AppSidebar viewer={session.viewer} onSignOut={onSignOut} />
       <div className="flex min-w-0 flex-1 flex-col">

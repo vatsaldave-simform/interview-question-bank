@@ -1,15 +1,14 @@
 import { useSyncExternalStore } from "react";
 
-/** Saved in this browser only. The library would save it in a cookie, which the API would
- * receive on every request, so the sidebar is told this instead of keeping its own. */
+/** In this browser's storage, never a cookie, for the reason on `useShortcutWithoutCookie`. */
 const storageKey = "sidebar";
 
 // Set once saving fails, so shrinking still works on this page when storage is blocked.
-let unsaved: boolean | undefined;
+let heldHereOnly: boolean | undefined;
 const watchers = new Set<() => void>();
 
 function sidebarShrunk(): boolean {
-  if (unsaved !== undefined) return unsaved;
+  if (heldHereOnly !== undefined) return heldHereOnly;
   try {
     return window.localStorage.getItem(storageKey) === "shrunk";
   } catch {
@@ -23,10 +22,10 @@ export function chooseSidebarShrunk(shrunk: boolean): void {
   try {
     if (shrunk) window.localStorage.setItem(storageKey, "shrunk");
     else window.localStorage.removeItem(storageKey);
-    unsaved = undefined;
+    heldHereOnly = undefined;
   } catch {
     // Blocked storage: the choice lasts until this page is closed.
-    unsaved = shrunk;
+    heldHereOnly = shrunk;
   }
   for (const watcher of watchers) watcher();
 }

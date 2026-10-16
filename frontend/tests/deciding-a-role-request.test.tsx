@@ -186,7 +186,7 @@ describe("deciding a Role Request from the administration console", () => {
     expect(toastsShown()).toHaveLength(0);
   });
 
-  it("changes the header of an Administrator who grants their own Role Request", async () => {
+  it("changes the sidebar of an Administrator who grants their own Role Request", async () => {
     const own = aRoleRequest({
       viewer: { id: anAdministrator.id, email: anAdministrator.email },
       role: "author",
