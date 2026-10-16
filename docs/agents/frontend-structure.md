@@ -10,6 +10,7 @@ frontend/src/
 ├── main.tsx            mounts the root element
 ├── App.tsx             the providers, and the order they wrap in
 ├── routes.tsx          the whole URL shape, assembled from the features
+├── home-page.tsx       Home, put together from several features' panels (ADR-0047)
 ├── features/<name>/    one domain concern, end to end
 ├── platform/           what belongs to no feature
 ├── ui/                 hand-written components more than one feature uses
@@ -34,7 +35,8 @@ through its `.routes.tsx`. It has no menu of its own: its pages are listed in th
 only links to addresses.
 
 `platform/` holds the API client, the access token, the query client, the app shell, the sign-in
-check and the error boundary. `features/auth/` holds the login screen, logging out, and the silent
+check and the error boundary. It also holds the list of pages, which the sidebar and Home's shortcuts both
+read, because those only link to addresses and read the Viewer's role. `features/auth/` holds the login screen, logging out, and the silent
 sign-in on load.
 
 **Features may import from `platform/` and `ui/`, and from another feature where the domain depends

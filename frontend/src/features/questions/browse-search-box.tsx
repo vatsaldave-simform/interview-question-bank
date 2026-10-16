@@ -5,11 +5,12 @@ import { Input } from "@/ui/shadcn/input";
 type BrowseSearchBoxProps = {
   keywords: string | undefined;
   onSearch: (keywords: string | undefined) => void;
+  large?: boolean;
 };
 
 /** Sends the search on submit rather than on every key, so a half-typed word never
  * becomes a request or an entry in the browser's history. */
-export function BrowseSearchBox({ keywords, onSearch }: BrowseSearchBoxProps) {
+export function BrowseSearchBox({ keywords, onSearch, large = false }: BrowseSearchBoxProps) {
   const [typed, setTyped] = useState(keywords ?? "");
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -26,8 +27,11 @@ export function BrowseSearchBox({ keywords, onSearch }: BrowseSearchBoxProps) {
         placeholder="Search Question text and Answer Notes"
         value={typed}
         onChange={(event) => setTyped(event.target.value)}
+        className={large ? "h-12 px-4 md:text-base" : undefined}
       />
-      <Button type="submit">Search</Button>
+      <Button type="submit" className={large ? "h-12 px-6" : undefined}>
+        Search
+      </Button>
     </form>
   );
 }

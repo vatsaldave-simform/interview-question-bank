@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
@@ -46,6 +46,12 @@ describe("two Viewers taking turns in one tab", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
     await screen.findByRole("button", { name: "Sign in" });
     await signInOnScreen(aReader.email, "reader-password");
+    await screen.findByRole("heading", { level: 1, name: "Welcome back" });
+    await userEvent.click(
+      within(screen.getByRole("navigation", { name: "Main menu" })).getByRole("link", {
+        name: "Browse",
+      }),
+    );
 
     expect(await screen.findByRole("status")).toHaveTextContent("Loading Questions…");
     expect(screen.queryByText("Only the first Viewer may see this")).not.toBeInTheDocument();

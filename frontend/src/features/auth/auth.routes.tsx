@@ -15,7 +15,7 @@ const loginRoute = createRoute({
   // The other direction is here instead, and it is also what moves a Viewer on the
   // moment their sign-in succeeds.
   beforeLoad: ({ context }) => {
-    if (context.session.status === "signed-in") throw redirect({ to: "/questions" });
+    if (context.session.status === "signed-in") throw redirect({ to: "/" });
   },
   component: Login,
 });

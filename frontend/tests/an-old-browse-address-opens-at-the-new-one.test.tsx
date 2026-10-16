@@ -33,14 +33,13 @@ describe("an address from before Browse moved", () => {
     expect(asked!.searchParams.get("offset")).toBe("20");
   });
 
-  it("opens Browse unfiltered when it names no filter", async () => {
+  it("opens Home when it names no filter, because Home lives there now", async () => {
     fakeBank((asked) => aPageOf([aQuestion()], asked));
 
     renderTheWholeClient("/");
-    await screen.findByText(aQuestion().text);
 
-    expect(window.location.pathname).toBe("/questions");
-    expect(window.location.search).toBe("");
+    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    expect(window.location.pathname).toBe("/");
   });
 
   it("is replaced, so Back returns to the page before it", async () => {
