@@ -33,7 +33,10 @@ test("the client reaches the API", async ({ page }) => {
   await expect(page.getByRole("link", { name: typeScriptQuestion })).toBeVisible();
   await expect(page.getByRole("link", { name: behaviouralQuestion })).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Add a Question" }).click();
+  await page
+    .getByRole("navigation", { name: "Main menu" })
+    .getByRole("link", { name: "Add a Question" })
+    .click();
 
   const newQuestionText =
     `How would you explain what run ${Date.now()} of the browser test checks?`;

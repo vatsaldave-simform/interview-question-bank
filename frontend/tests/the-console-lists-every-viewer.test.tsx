@@ -91,25 +91,27 @@ describe("the administration console", () => {
   });
 });
 
-describe("the link to the administration console", () => {
-  it("is shown to an Administrator, and opens the console", async () => {
+describe("the administration console's links in the sidebar", () => {
+  it("are shown to an Administrator, and open the console", async () => {
     signInAs(anAdministrator);
     aBankAnsweringTheViewers(() => undefined);
     renderTheWholeClient("/questions");
 
-    await userEvent.click(await screen.findByRole("link", { name: "Administration" }));
+    const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
+    await userEvent.click(sidebar.getByRole("link", { name: "Role Requests" }));
 
     expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
     expect(window.location.pathname).toBe("/administration/role-requests");
   });
 
-  it("is not shown to a Viewer without the Administrator authority", async () => {
+  it("are not shown to a Viewer without the Administrator authority", async () => {
     signInAs();
     aBankAnsweringTheViewers(() => undefined);
 
     renderTheWholeClient("/questions");
 
-    expect(await screen.findByRole("banner")).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Administration" })).not.toBeInTheDocument();
+    const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
+    expect(sidebar.getByRole("link", { name: "Browse" })).toBeVisible();
+    expect(sidebar.queryByRole("group", { name: "Administration" })).not.toBeInTheDocument();
   });
 });

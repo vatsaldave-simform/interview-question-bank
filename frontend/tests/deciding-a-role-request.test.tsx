@@ -195,13 +195,13 @@ describe("deciding a Role Request from the administration console", () => {
     renderTheWholeClient("/administration/role-requests");
 
     // The Review queue link is shown to a Reviewer only, so it goes with the role.
-    const header = within(await screen.findByRole("banner"));
-    expect(header.getByRole("link", { name: "Review queue" })).toBeVisible();
+    const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
+    expect(sidebar.getByRole("link", { name: "Review queue" })).toBeVisible();
     const row = await rowFor("reviewer@iqb.test");
     await userEvent.click(row.getByRole("button", { name: "Grant" }));
 
     await vi.waitFor(() =>
-      expect(header.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument(),
+      expect(sidebar.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument(),
     );
   });
 });
