@@ -109,8 +109,8 @@ describe("deciding a Role Request from the administration console", () => {
     expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
     expect(await sent!.json()).toEqual({ outcome: "granted" });
 
-    const menu = within(screen.getByRole("navigation", { name: "Administration" }));
-    await userEvent.click(menu.getByRole("link", { name: "Viewers" }));
+    const sidebar = within(screen.getByRole("navigation", { name: "Main menu" }));
+    await userEvent.click(sidebar.getByRole("link", { name: "Viewers" }));
     const viewers = within(await screen.findByRole("table", { name: "Viewers" }));
     expect(await viewers.findByRole("cell", { name: "Reviewer" })).toBeVisible();
   });
