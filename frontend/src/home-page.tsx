@@ -1,5 +1,6 @@
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { RecentlyAddedQuestions } from "@/features/questions/recently-added-questions";
+import { HomeShortcuts } from "@/platform/home-shortcuts";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 
@@ -26,6 +27,7 @@ export function HomePage({ onSearch }: HomePageProps) {
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
       <RecentlyAddedQuestions />
+      <HomeShortcuts viewer={session.viewer} />
     </div>
   );
 }
