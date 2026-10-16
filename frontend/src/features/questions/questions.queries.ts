@@ -60,11 +60,23 @@ export function useAnyQuestionWaiting(): boolean {
   return data === true;
 }
 
-export function useOwnQuestions(offset: number) {
+function ownQuestionsQuery(offset: number) {
   const path = `/api/questions/own${stringifySearch({ limit: questionPageSize, offset })}`;
-  return useQuery({
+  return queryOptions({
     queryKey: ["questions", "own", offset],
     queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
+  });
+}
+
+export function useOwnQuestions(offset: number) {
+  return useQuery(ownQuestionsQuery(offset));
+}
+
+/** Cut from the first page of Your Questions, so Home asks the API nothing new. */
+export function useOwnQuestionsWaiting(count: number) {
+  return useQuery({
+    ...ownQuestionsQuery(0),
+    select: (page) => page.questions.slice(0, count),
   });
 }
 

@@ -107,3 +107,8 @@ export type PageId = ShownPage["id"];
 export function pagesShownTo(viewer: Viewer): ShownPage[] {
   return appPages.filter((page) => page.shownTo(viewer));
 }
+
+/** Home shows a page's waiting work to whoever the page is shown to, so the two agree. */
+export function isPageShownTo(viewer: Viewer, id: PageId): boolean {
+  return appPages.some((page) => page.id === id && page.shownTo(viewer));
+}

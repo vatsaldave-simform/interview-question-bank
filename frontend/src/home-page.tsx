@@ -1,5 +1,7 @@
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
+import { OwnQuestionsWaiting } from "@/features/questions/own-questions-waiting";
 import { RecentlyAddedQuestions } from "@/features/questions/recently-added-questions";
+import { isPageShownTo } from "@/platform/app-pages";
 import { HomeShortcuts } from "@/platform/home-shortcuts";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
@@ -25,6 +27,7 @@ export function HomePage({ onSearch }: HomePageProps) {
       <section aria-label="Search the bank">
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
+      {isPageShownTo(session.viewer, "your-questions") && <OwnQuestionsWaiting />}
       <RecentlyAddedQuestions />
       <HomeShortcuts viewer={session.viewer} />
     </div>

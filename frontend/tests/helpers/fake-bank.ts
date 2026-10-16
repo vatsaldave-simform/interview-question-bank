@@ -34,6 +34,7 @@ export function fakeBank(
     if (answered !== undefined) return answered;
     if (asked.pathname === "/api/questions") return answerTheList(asked);
     if (asked.pathname === "/api/questions/pending") return aPageOf([], asked);
+    if (asked.pathname === "/api/questions/own") return aPageOf([], asked);
     if (asked.pathname === "/api/categories") return answersWith(theCategories);
     if (asked.pathname === "/api/viewers") return answersWith({ viewers: [] });
     if (asked.pathname === "/api/clients") return answersWith({ clients: [] });
