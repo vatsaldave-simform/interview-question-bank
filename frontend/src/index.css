@@ -51,8 +51,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-gradient-from: var(--sidebar-gradient-from);
-  --color-sidebar-gradient-to: var(--sidebar-gradient-to);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -84,6 +82,7 @@
   --glass-edge: oklch(1 0 0 / 70%);
   --glass-blur-card: blur(14px) saturate(1.3);
   --glass-blur-popover: blur(26px) saturate(1.6);
+  --glass-blur-sidebar: blur(22px) saturate(1.5);
   --glow: color-mix(in oklch, var(--brand-lavender) 85%, transparent);
   --backdrop:
     radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 30%, transparent), transparent 70%),
@@ -117,16 +116,19 @@
   --restricted: var(--brand-purple);
   --restricted-foreground: oklch(1 0 0);
   --restricted-border: var(--brand-purple);
-  --sidebar: var(--brand-lavender);
-  --sidebar-foreground: var(--brand-purple);
+  /* Thinner than a card, because the sidebar holds short labels and no long reading. */
+  --sidebar: var(--sidebar-glass);
+  --sidebar-glass: oklch(1 0 0 / 50%);
+  --sidebar-solid: color-mix(in oklch, var(--brand-lavender) 24%, oklch(1 0 0));
+  --sidebar-foreground: var(--text);
+  /* The current page. */
   --sidebar-primary: var(--brand-purple);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: var(--brand-purple);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0 0 0 / 8%);
-  --sidebar-ring: var(--brand-purple);
-  --sidebar-gradient-from: var(--brand-purple);
-  --sidebar-gradient-to: oklch(0.439 0.128 301.8);
+  /* The library paints a pointed-at link in this, so it is only a faint tint. */
+  --sidebar-accent: color-mix(in oklch, var(--brand-purple) 7%, transparent);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--glass-edge);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -174,18 +176,17 @@
   --restricted: var(--brand-lavender);
   --restricted-foreground: var(--brand-purple);
   --restricted-border: var(--brand-lavender);
-  --sidebar: oklch(0.2 0.02 264);
-  --sidebar-foreground: var(--brand-lavender);
-  --sidebar-primary: oklch(0.45 0.14 300);
+  --sidebar-glass: color-mix(
+    in oklch,
+    color-mix(in oklch, var(--brand-purple) 55%, oklch(0 0 0)) 52%,
+    transparent
+  );
+  --sidebar-solid: color-mix(in oklch, var(--brand-purple) 48%, oklch(0 0 0));
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: color-mix(in oklch, var(--brand-lavender) 22%, transparent);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.45 0.14 300);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.45 0.14 300);
-  /* Starts at the brand purple and stays dark, so the lavender text and the red logo
-     keep their contrast across the header. */
-  --sidebar-gradient-from: var(--brand-purple);
-  --sidebar-gradient-to: oklch(0.42 0.13 300);
+  --sidebar-accent: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
+  --sidebar-accent-foreground: var(--text);
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -193,8 +194,10 @@
     --card: var(--card-solid);
     --popover: var(--popover-solid);
     --dialog: var(--popover-solid);
+    --sidebar: var(--sidebar-solid);
     --glass-blur-card: none;
     --glass-blur-popover: none;
+    --glass-blur-sidebar: none;
   }
 }
 
@@ -228,6 +231,18 @@
   [data-slot="alert-dialog-content"],
   [data-slot="dropdown-menu-content"],
   [data-sonner-toast] {
+    border-color: var(--glass-edge);
+    backdrop-filter: var(--glass-blur-popover);
+  }
+  [data-slot="sidebar-inner"] {
+    backdrop-filter: var(--glass-blur-sidebar);
+  }
+  [data-slot="sidebar-container"] {
+    border-color: var(--sidebar-border);
+  }
+  /* On a phone the sidebar is a drawer over a dimmed page, so it is glass like a menu. */
+  [data-slot="sidebar"][data-mobile="true"] {
+    --sidebar: var(--popover);
     border-color: var(--glass-edge);
     backdrop-filter: var(--glass-blur-popover);
   }

@@ -117,7 +117,7 @@ export function PhoneBar() {
   }, [openMobile]);
   if (!isMobile) return null;
   return (
-    <div className="border-sidebar-border flex items-center gap-2 border-b px-4 py-2">
+    <div className="bg-sidebar border-sidebar-border flex items-center gap-2 border-b px-4 py-2">
       <Button
         ref={opener}
         variant="ghost"
@@ -209,7 +209,7 @@ function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
         // The library shows it only while the sidebar is shrunk. Even hidden, an open tooltip
         // takes the first Escape, which in the drawer would leave the drawer open.
         {...(isMobile ? {} : { tooltip: children })}
-        className="aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:font-medium"
+        className="aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
       >
         <Link {...props} onClick={() => setOpenMobile(false)}>
           <Icon aria-hidden="true" />
