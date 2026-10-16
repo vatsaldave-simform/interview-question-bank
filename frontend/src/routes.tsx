@@ -3,8 +3,10 @@ import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
 import { clientRoutes } from "@/features/clients/clients.routes";
 import { permissionGrantRoutes } from "@/features/permission-grants/permission-grants.routes";
+import { useAnyQuestionWaiting } from "@/features/questions/questions.queries";
 import { questionRoutes } from "@/features/questions/questions.routes";
 import { MyRoleRequest } from "@/features/role-requests/my-role-request";
+import { useOpenRoleRequestCount } from "@/features/role-requests/role-requests.queries";
 import { roleRequestRoutes } from "@/features/role-requests/role-requests.routes";
 import { roleWording } from "@/features/viewers/role-wording";
 import { viewerRoutes } from "@/features/viewers/viewers.routes";
@@ -68,7 +70,11 @@ export function createAppRouter() {
     routeTree,
     // Unknown until the silent sign-in answers, which is the truth at the moment the
     // router is built. App replaces it on every render.
-    context: { session: { status: "unknown" }, signOut: () => void signOut() },
+    context: {
+      session: { status: "unknown" },
+      signOut: () => void signOut(),
+      sidebarMarks: { useAnyQuestionWaiting, useOpenRoleRequestCount },
+    },
     parseSearch,
     stringifySearch,
   });

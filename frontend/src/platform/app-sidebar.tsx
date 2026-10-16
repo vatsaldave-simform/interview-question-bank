@@ -44,7 +44,16 @@ import {
 } from "@/ui/shadcn/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/shadcn/tooltip";
 
-export function AppSidebar({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => void }) {
+/** Handed in from where the routes are put together, because the lists they count belong
+ * to features (ADR-0030). */
+export type SidebarMarks = {
+  useAnyQuestionWaiting: () => boolean;
+  useOpenRoleRequestCount: () => number;
+};
+
+type AppSidebarProps = { viewer: Viewer; onSignOut: () => void; marks: SidebarMarks };
+
+export function AppSidebar({ viewer, onSignOut, marks }: AppSidebarProps) {
   useShortcutWithoutCookie();
   return (
     <Sidebar collapsible="icon">
@@ -76,16 +85,12 @@ export function AppSidebar({ viewer, onSignOut }: { viewer: Viewer; onSignOut: (
           </PageGroup>
           {viewer.role === "reviewer" && (
             <PageGroup label="Review">
-              <PageLink to="/review" icon={ClipboardCheckIcon}>
-                Review queue
-              </PageLink>
+              <ReviewQueueLink useAnyQuestionWaiting={marks.useAnyQuestionWaiting} />
             </PageGroup>
           )}
           {viewer.isAdministrator && (
             <PageGroup label="Administration">
-              <PageLink to="/administration/role-requests" icon={UserPlusIcon}>
-                Role Requests
-              </PageLink>
+              <RoleRequestsLink useOpenRoleRequestCount={marks.useOpenRoleRequestCount} />
               <PageLink to="/administration/viewers" icon={UsersIcon}>
                 Viewers
               </PageLink>
@@ -194,26 +199,83 @@ function PageGroup({ label, children }: { label: string; children: ReactNode }) 
 type PageLinkProps = Omit<LinkComponentProps, "className" | "children"> & {
   icon: LucideIcon;
   children: string;
+  mark?: Mark | null;
 };
+
+/** How a mark looks, and the words a screen reader and the shrunk strip's tooltip give for it. */
+type Mark = { look: ReactNode; words: string };
 
 /** The fill on the current page follows the `aria-current` the router sets on it, which
  * stays on a section's link on the pages inside it, such as one Client's page. */
-function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
+function PageLink({ icon: Icon, children, mark, ...props }: PageLinkProps) {
   const { isMobile, setOpenMobile } = useSidebar();
+  // A comma, because a screen reader joins the hidden words to the link's name without a space.
+  const named = mark ? `${children}, ${mark.words}` : children;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
         // Left out on a phone, because even a hidden tooltip takes the first Escape in the drawer.
-        {...(isMobile ? {} : { tooltip: children })}
-        className="aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
+        {...(isMobile ? {} : { tooltip: named })}
+        className="relative aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
       >
         <Link {...props} onClick={() => setOpenMobile(false)}>
           <Icon aria-hidden="true" />
-          <span>{children}</span>
+          <span className="truncate">{children}</span>
+          {mark && (
+            <>
+              <span
+                aria-hidden="true"
+                // On the icon's corner in the shrunk strip, where the end of the link is cut off.
+                className="ml-auto flex shrink-0 group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:right-1"
+              >
+                {mark.look}
+              </span>
+              <span className="sr-only">{`, ${mark.words}`}</span>
+            </>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
+  );
+}
+
+/** Its own component, like the Role Requests link, so the hook runs only while the link
+ * shows, and a Viewer it is hidden from never asks for the list behind it. */
+function ReviewQueueLink({ useAnyQuestionWaiting }: Pick<SidebarMarks, "useAnyQuestionWaiting">) {
+  const mark = useAnyQuestionWaiting()
+    ? {
+        look: <span className="bg-primary size-2 rounded-full" />,
+        words: "Pending Questions waiting",
+      }
+    : null;
+  return (
+    <PageLink to="/review" icon={ClipboardCheckIcon} mark={mark}>
+      Review queue
+    </PageLink>
+  );
+}
+
+function RoleRequestsLink({
+  useOpenRoleRequestCount,
+}: Pick<SidebarMarks, "useOpenRoleRequestCount">) {
+  const count = useOpenRoleRequestCount();
+  const mark =
+    count === 0
+      ? null
+      : {
+          look: (
+            // The shrunk strip has no room for digits, so there it is a dot like the other mark.
+            <span className="bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums group-data-[collapsible=icon]:size-2 group-data-[collapsible=icon]:min-w-0 group-data-[collapsible=icon]:p-0">
+              <span className="group-data-[collapsible=icon]:hidden">{count}</span>
+            </span>
+          ),
+          words: `${count} open`,
+        };
+  return (
+    <PageLink to="/administration/role-requests" icon={UserPlusIcon} mark={mark}>
+      Role Requests
+    </PageLink>
   );
 }
 
