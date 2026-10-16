@@ -18,7 +18,6 @@ export function useOpenRoleRequests() {
   return useQuery({ ...openRoleRequestsQuery, select: (answer) => answer.roleRequests });
 }
 
-/** Exact, because the list arrives whole. */
 export function useOpenRoleRequestCount(): number {
   const { data } = useQuery({
     ...openRoleRequestsQuery,

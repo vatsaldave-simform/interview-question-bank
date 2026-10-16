@@ -51,8 +51,7 @@ export function useReviewQueue(offset: number) {
   return useQuery(reviewQueueQuery(offset));
 }
 
-/** Whether the first page of the queue holds anything. The list carries no total, so
- * this cannot say how many are waiting. */
+/** Only whether any wait, because the list carries no total to say how many. */
 export function useAnyQuestionWaiting(): boolean {
   const { data } = useQuery({
     ...reviewQueueQuery(0),

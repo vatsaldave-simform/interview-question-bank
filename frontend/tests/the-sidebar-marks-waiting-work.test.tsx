@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
+import { chooseSidebarShrunk } from "@/platform/sidebar-choice";
 import {
   aQuestion,
   aRoleRequest,
@@ -191,5 +192,40 @@ describe("the number beside Role Requests", () => {
     await userEvent.click(within(table).getByRole("button", { name: "Grant" }));
 
     expect(await sidebar.findByRole("link", { name: "Role Requests" })).toBeVisible();
+  });
+});
+
+describe("a mark in the shrunk strip", () => {
+  beforeEach(() => {
+    chooseSidebarShrunk(true);
+  });
+
+  afterEach(() => {
+    // The choice is kept in storage, and one jsdom serves every test here.
+    chooseSidebarShrunk(false);
+    window.localStorage.clear();
+  });
+
+  it("is named in the icon's tooltip", async () => {
+    aBankWaitingOn([waiting]);
+    renderTheWholeClient("/questions");
+
+    const sidebar = await theSidebar();
+    const name = "Review queue, Pending Questions waiting";
+    (await sidebar.findByRole("link", { name })).focus();
+
+    expect(await screen.findByRole("tooltip", { name })).toBeInTheDocument();
+  });
+
+  it("gives the number in the icon's tooltip, where there is no room for digits", async () => {
+    signInAs(anAdministrator);
+    aBankWithOpenRoleRequests([...openRequests]);
+    renderTheWholeClient("/questions");
+
+    const sidebar = await theSidebar();
+    const name = "Role Requests, 3 open";
+    (await sidebar.findByRole("link", { name })).focus();
+
+    expect(await screen.findByRole("tooltip", { name })).toBeInTheDocument();
   });
 });
