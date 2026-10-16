@@ -44,7 +44,16 @@ import {
 } from "@/ui/shadcn/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/shadcn/tooltip";
 
-export function AppSidebar({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => void }) {
+/** How much work waits behind a link. Each is a feature's hook, handed in from where the
+ * routes are put together, because the lists belong to features (ADR-0030). */
+export type SidebarMarks = {
+  /** Whether the first page of the Review queue holds anything. It is not a count. */
+  useAnyQuestionWaiting: () => boolean;
+};
+
+type AppSidebarProps = { viewer: Viewer; onSignOut: () => void; marks: SidebarMarks };
+
+export function AppSidebar({ viewer, onSignOut, marks }: AppSidebarProps) {
   useShortcutWithoutCookie();
   return (
     <Sidebar collapsible="icon">
@@ -76,7 +85,16 @@ export function AppSidebar({ viewer, onSignOut }: { viewer: Viewer; onSignOut: (
           </PageGroup>
           {viewer.role === "reviewer" && (
             <PageGroup label="Review">
-              <PageLink to="/review" icon={ClipboardCheckIcon}>
+              <PageLink
+                to="/review"
+                icon={ClipboardCheckIcon}
+                mark={
+                  <WaitingDot
+                    useWaiting={marks.useAnyQuestionWaiting}
+                    label="Pending Questions waiting"
+                  />
+                }
+              >
                 Review queue
               </PageLink>
             </PageGroup>
@@ -194,11 +212,12 @@ function PageGroup({ label, children }: { label: string; children: ReactNode }) 
 type PageLinkProps = Omit<LinkComponentProps, "className" | "children"> & {
   icon: LucideIcon;
   children: string;
+  mark?: ReactNode;
 };
 
 /** The fill on the current page follows the `aria-current` the router sets on it, which
  * stays on a section's link on the pages inside it, such as one Client's page. */
-function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
+function PageLink({ icon: Icon, children, mark, ...props }: PageLinkProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   return (
     <SidebarMenuItem>
@@ -206,14 +225,32 @@ function PageLink({ icon: Icon, children, ...props }: PageLinkProps) {
         asChild
         // Left out on a phone, because even a hidden tooltip takes the first Escape in the drawer.
         {...(isMobile ? {} : { tooltip: children })}
-        className="aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
+        className="relative aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground aria-[current=page]:font-medium"
       >
         <Link {...props} onClick={() => setOpenMobile(false)}>
           <Icon aria-hidden="true" />
-          <span>{children}</span>
+          <span className="truncate">{children}</span>
+          {mark}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
+  );
+}
+
+/** At the end of the link, or on the icon's corner in the shrunk strip, where the end is
+ * cut off. */
+const markPlace =
+  "ml-auto shrink-0 group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:right-1";
+
+/** Mounted only inside the link it marks, so a Viewer that link is hidden from never asks
+ * for the list behind it. */
+function WaitingDot({ useWaiting, label }: { useWaiting: () => boolean; label: string }) {
+  if (!useWaiting()) return null;
+  return (
+    <>
+      <span aria-hidden="true" className={`${markPlace} bg-primary size-2 rounded-full`} />
+      <span className="sr-only">{`, ${label}`}</span>
+    </>
   );
 }
 

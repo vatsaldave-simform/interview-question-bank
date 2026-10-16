@@ -15,6 +15,6 @@ export const signedInRoute = createRoute({
 });
 
 function SignedInShell() {
-  const { signOut } = signedInRoute.useRouteContext();
-  return <AppShell onSignOut={signOut} />;
+  const { signOut, sidebarMarks } = signedInRoute.useRouteContext();
+  return <AppShell onSignOut={signOut} marks={sidebarMarks} />;
 }

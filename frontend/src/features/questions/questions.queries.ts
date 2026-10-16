@@ -15,7 +15,7 @@ import {
   type RestrictQuestionRequest,
   type ReturnQuestionRequest,
 } from "@iqb/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { callApi } from "@/platform/api-client";
 import { stringifySearch } from "@/platform/search-params";
@@ -39,12 +39,26 @@ export function useQuestionList(request: ListQuestionsRequest | null) {
   });
 }
 
-export function useReviewQueue(offset: number) {
+function reviewQueueQuery(offset: number) {
   const path = `/api/questions/pending${stringifySearch({ limit: questionPageSize, offset })}`;
-  return useQuery({
+  return queryOptions({
     queryKey: ["questions", "pending", offset],
     queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
   });
+}
+
+export function useReviewQueue(offset: number) {
+  return useQuery(reviewQueueQuery(offset));
+}
+
+/** Whether the first page of the queue holds anything. The list carries no total, so
+ * this cannot say how many are waiting. */
+export function useAnyQuestionWaiting(): boolean {
+  const { data } = useQuery({
+    ...reviewQueueQuery(0),
+    select: (page) => page.questions.length > 0,
+  });
+  return data === true;
 }
 
 export function useOwnQuestions(offset: number) {
