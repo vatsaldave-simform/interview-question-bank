@@ -42,5 +42,10 @@ remember it.
   classes in a later layer. A screen can still set its own look where it must.
 - Colours stay theme variables. A base rule may use only theme variables, as a component does.
 - Toasts come from Sonner, not shadcn, and carry no slot name. The same rule keys on Sonner's own
-  `data-sonner-toast` attribute.
+  `data-sonner-toast` attribute. Sonner's own stylesheet still wins on the toast's border, so the
+  toaster sets that border colour itself.
+- Three more rules key on something other than a slot name, because no slot name reaches what they
+  style. The backdrop sits on `body`. The page fade keys on each page inside `<main>`. The
+  reduced-motion rule reaches every element, so a motion a generated component brings is stopped
+  too.
 - The rule is written in `docs/agents/frontend-structure.md`, under Styling.

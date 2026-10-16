@@ -90,6 +90,10 @@ as `[data-slot="card"]` (ADR-0046). No CSS modules, no CSS-in-JS, and no second 
 A base rule is for a look every copy of a generated component shares, like the frosted glass and
 its fallbacks. It never keys on a generated class name, and it uses only theme variables.
 
+Four base rules key on something other than a slot name, because no slot name reaches what they
+style: the backdrop on `body`, the page fade on each page inside `<main>`, the toasts on Sonner's
+own `data-sonner-toast`, and the reduced-motion rule, which has to reach every element.
+
 Colours that carry meaning are theme variables in `index.css`, never Tailwind colour classes, so the dark palette only has to give each one a new value.
 
 ## Tests

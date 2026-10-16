@@ -67,27 +67,24 @@
   --brand-lavender: oklch(0.855 0.085 301.4);
   --brand-purple: oklch(0.302 0.15 295.3);
   --background: oklch(0.985 0.002 249);
-  /* Text is the brand purple darkened, and quieter text the brand purple lightened. */
-  --ink: color-mix(in oklch, var(--brand-purple) 72%, oklch(0 0 0));
-  --foreground: var(--ink);
-  /* Glass over the backdrop. A device that asks for less see-through gets the solid ones.
-     How see-through each one is was measured, so its text keeps the contrast it had when solid. */
+  --text: color-mix(in oklch, var(--brand-purple) 72%, oklch(0 0 0));
+  --foreground: var(--text);
+  /* How see-through each glass is was measured, so its text keeps the contrast it had when solid. */
   --card: var(--card-glass);
   --card-glass: oklch(1 0 0 / 82%);
   --card-solid: oklch(1 0 0);
-  --card-foreground: var(--ink);
+  --card-foreground: var(--text);
   --popover: var(--popover-glass);
   --popover-glass: oklch(1 0 0 / 82%);
   --popover-solid: oklch(1 0 0);
   /* More cover than a menu, because a dialog sits on the dark layer that dims the page. */
   --dialog: var(--dialog-glass);
   --dialog-glass: oklch(1 0 0 / 92%);
-  --popover-foreground: var(--ink);
+  --popover-foreground: var(--text);
   --glass-edge: oklch(1 0 0 / 70%);
   --glass-blur-card: blur(14px) saturate(1.3);
   --glass-blur-popover: blur(26px) saturate(1.6);
   --glow: color-mix(in oklch, var(--brand-lavender) 85%, transparent);
-  /* Still, behind every screen: the brand purple and lavender, with soft red and lavender glows. */
   --backdrop:
     radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 30%, transparent), transparent 70%),
     radial-gradient(38% 42% at 100% 0%, color-mix(in oklch, var(--brand-red) 20%, transparent), transparent 72%),
@@ -106,13 +103,12 @@
   --muted: oklch(0.968 0.004 264);
   --muted-foreground: color-mix(in oklch, var(--brand-purple) 78%, oklch(1 0 0));
   --accent: oklch(0.968 0.004 264);
-  --accent-foreground: var(--ink);
+  --accent-foreground: var(--text);
   /* The brand red darkened, because the brand red itself is too light to read as text. */
   --destructive: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
   --border: oklch(0.924 0.012 264);
   --input: oklch(0.924 0.012 264);
   --ring: var(--brand-red);
-  /* The Publication States and a Client restriction, in the brand colours only. */
   --pending: transparent;
   --pending-foreground: var(--brand-purple);
   --pending-border: color-mix(in oklch, var(--brand-purple) 45%, transparent);
@@ -137,16 +133,16 @@
   /* The browser's own parts, such as scroll bars and the native select, turn dark too. */
   color-scheme: dark;
   --background: oklch(0.16 0.014 264);
-  --ink: color-mix(in oklch, var(--brand-lavender) 20%, oklch(1 0 0));
-  --foreground: var(--ink);
+  --text: color-mix(in oklch, var(--brand-lavender) 20%, oklch(1 0 0));
+  --foreground: var(--text);
   --card-glass: color-mix(in oklch, var(--card-solid) 78%, transparent);
   --card-solid: color-mix(in oklch, var(--brand-purple) 58%, oklch(0 0 0));
-  --card-foreground: var(--ink);
+  --card-foreground: var(--text);
   --popover-glass: color-mix(in oklch, var(--popover-solid) 78%, transparent);
   --popover-solid: color-mix(in oklch, var(--brand-purple) 62%, oklch(0 0 0));
   --dialog-glass: var(--popover-glass);
   --glow: color-mix(in oklch, var(--brand-lavender) 35%, transparent);
-  --popover-foreground: var(--ink);
+  --popover-foreground: var(--text);
   --glass-edge: color-mix(in oklch, var(--brand-lavender) 16%, transparent);
   --backdrop:
     radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 90%, transparent), transparent 70%),
@@ -165,7 +161,7 @@
   --muted: oklch(0.24 0.012 264);
   --muted-foreground: color-mix(in oklch, var(--brand-lavender) 88%, oklch(1 0 0));
   --accent: oklch(0.26 0.014 264);
-  --accent-foreground: var(--ink);
+  --accent-foreground: var(--text);
   --destructive: var(--brand-red);
   --border: oklch(0.3 0.014 264);
   --input: oklch(0.3 0.014 264);
@@ -231,7 +227,6 @@
   [data-slot="dialog-content"],
   [data-slot="alert-dialog-content"],
   [data-slot="dropdown-menu-content"],
-  [data-slot="dropdown-menu-sub-content"],
   [data-sonner-toast] {
     border-color: var(--glass-edge);
     backdrop-filter: var(--glass-blur-popover);
@@ -240,38 +235,44 @@
   [data-slot="card"]:has([data-slot="card-title"] a[href]) {
     position: relative;
     transition: translate 0.18s ease;
-  }
-  [data-slot="card"]:has([data-slot="card-title"] a[href]):hover {
-    translate: 0 -2px;
-  }
-  /* The glow is its own layer, because the card's shadow comes from a class that would win. */
-  [data-slot="card"]:has([data-slot="card-title"] a[href])::after {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0;
-    box-shadow:
-      0 0 0 1px var(--glow),
-      0 8px 28px -6px var(--glow);
-    transition: opacity 0.18s ease;
-  }
-  [data-slot="card"]:has([data-slot="card-title"] a[href]):hover::after {
-    opacity: 1;
+    &:hover {
+      translate: 0 -2px;
+    }
+    /* The glow is its own layer, because the card's shadow comes from a class that would win. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow:
+        0 0 0 1px var(--glow),
+        0 8px 28px -6px var(--glow);
+      transition: opacity 0.18s ease;
+    }
+    &:hover::after {
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      &:hover {
+        translate: none;
+      }
+      &:hover::after {
+        opacity: 0;
+      }
+    }
   }
   main > * {
     animation: page-fade-in 0.26s ease both;
   }
+  /* Every element, so a motion the generated components or Sonner bring is stopped too. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
       animation: none !important;
       transition: none !important;
-    }
-    [data-slot="card"]:has([data-slot="card-title"] a[href]):hover {
-      translate: none;
     }
   }
   /* A dialog paints itself in `--background`, so here that colour is the glass. */
