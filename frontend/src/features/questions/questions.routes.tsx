@@ -1,4 +1,4 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, redirect } from "@tanstack/react-router";
 import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { BrowseScreen } from "@/features/questions/browse-screen";
 import { ContributeScreen } from "@/features/questions/contribute-screen";
@@ -11,9 +11,19 @@ import { signedInRoute } from "@/platform/signed-in-route";
 
 const browseRoute = createRoute({
   getParentRoute: () => signedInRoute,
-  path: "/",
+  path: "/questions",
   validateSearch: browseSearchSchema,
   component: Browse,
+});
+
+// Browse used to live here, so a link saved then still opens the same filter.
+const oldBrowseRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/",
+  validateSearch: browseSearchSchema,
+  beforeLoad: ({ search }) => {
+    throw redirect({ to: "/questions", search, replace: true });
+  },
 });
 
 function Browse() {
@@ -106,6 +116,7 @@ function OwnQuestions() {
 }
 
 export const questionRoutes = [
+  oldBrowseRoute,
   browseRoute,
   contributeRoute,
   ownQuestionsRoute,

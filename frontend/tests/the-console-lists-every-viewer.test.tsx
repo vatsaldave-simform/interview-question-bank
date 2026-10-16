@@ -95,7 +95,7 @@ describe("the link to the administration console", () => {
   it("is shown to an Administrator, and opens the console", async () => {
     signInAs(anAdministrator);
     aBankAnsweringTheViewers(() => undefined);
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("link", { name: "Administration" }));
 
@@ -107,7 +107,7 @@ describe("the link to the administration console", () => {
     signInAs();
     aBankAnsweringTheViewers(() => undefined);
 
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     expect(await screen.findByRole("banner")).toBeVisible();
     expect(screen.queryByRole("link", { name: "Administration" })).not.toBeInTheDocument();

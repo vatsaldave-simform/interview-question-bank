@@ -30,7 +30,7 @@ async function openTheAccountMenu() {
 
 describe("the account menu", () => {
   it("offers Light, Dark and Match my device, with Match my device on", async () => {
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const theme = within((await openTheAccountMenu()).getByRole("group", { name: "Theme" }));
     expect(theme.getByRole("menuitemradio", { name: "Light" })).not.toBeChecked();
@@ -39,7 +39,7 @@ describe("the account menu", () => {
   });
 
   it("turns the page dark on Dark, and ticks Dark", async () => {
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click((await openTheAccountMenu()).getByRole("menuitemradio", { name: "Dark" }));
     expect(document.documentElement).toHaveClass("dark");

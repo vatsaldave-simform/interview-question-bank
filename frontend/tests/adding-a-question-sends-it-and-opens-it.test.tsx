@@ -57,7 +57,7 @@ async function additionsSent(api: FakeApi): Promise<unknown[]> {
 describe("adding a Question", () => {
   it("sends the text, Answer Notes, Tags and Provenance, then opens the new Question", async () => {
     const api = aBankThatAddsIt();
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("link", { name: "Add a Question" }));
     const questionBox = await screen.findByLabelText("Question");

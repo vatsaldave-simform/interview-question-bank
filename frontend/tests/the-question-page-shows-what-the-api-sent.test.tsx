@@ -94,7 +94,7 @@ describe("the Question page", () => {
 
   it("opens from the Question's title on the browse list", async () => {
     aBankHolding();
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("link", { name: question.text }));
 

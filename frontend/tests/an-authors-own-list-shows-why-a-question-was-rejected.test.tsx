@@ -113,7 +113,7 @@ describe("the link to an Author's own list", () => {
     async (role) => {
       signInAs(aViewer({ role }));
       aBankAnswering((asked) => aPageOf([], asked));
-      renderTheWholeClient("/");
+      renderTheWholeClient("/questions");
 
       await userEvent.click(await screen.findByRole("link", { name: "Your Questions" }));
 
@@ -124,7 +124,7 @@ describe("the link to an Author's own list", () => {
   it("is not in the header for a Reader", async () => {
     signInAs(aViewer({ role: "reader" }));
     aBankAnswering((asked) => aPageOf([], asked));
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     await screen.findByRole("heading", { name: "Questions" });
 

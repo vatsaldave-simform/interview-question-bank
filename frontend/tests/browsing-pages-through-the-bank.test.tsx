@@ -40,7 +40,7 @@ function aBankOf(size: number) {
 describe("paging through the bank", () => {
   it("moves to the next page, and the address says which page it is on", async () => {
     const api = fakeBank(aBankOf(questionPageSize * 2 + 5));
-    renderTheWholeClient("/?technology=react");
+    renderTheWholeClient("/questions?technology=react");
     await screen.findByText("Question number 1");
 
     await userEvent.click(screen.getByRole("button", { name: "Next page" }));
@@ -54,7 +54,7 @@ describe("paging through the bank", () => {
 
   it("moves back to the page before", async () => {
     fakeBank(aBankOf(questionPageSize * 2 + 5));
-    renderTheWholeClient(`/?offset=${questionPageSize}`);
+    renderTheWholeClient(`/questions?offset=${questionPageSize}`);
     await screen.findByText(`Question number ${questionPageSize + 1}`);
 
     await userEvent.click(screen.getByRole("button", { name: "Previous page" }));
@@ -64,7 +64,7 @@ describe("paging through the bank", () => {
 
   it("offers no page before the first", async () => {
     fakeBank(aBankOf(questionPageSize * 2));
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
     await screen.findByText("Question number 1");
 
     expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
@@ -75,7 +75,7 @@ describe("paging through the bank", () => {
   // there is nothing after it.
   it("offers no next page once a page comes back short", async () => {
     fakeBank(aBankOf(5));
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
     await screen.findByText("Question number 5");
 
     expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
@@ -83,7 +83,7 @@ describe("paging through the bank", () => {
 
   it("says there are no more when a full last page led to an empty one", async () => {
     fakeBank(aBankOf(questionPageSize));
-    renderTheWholeClient(`/?offset=${questionPageSize}`);
+    renderTheWholeClient(`/questions?offset=${questionPageSize}`);
 
     expect(await screen.findByText("There are no more Questions.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled();

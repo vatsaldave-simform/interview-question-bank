@@ -385,9 +385,9 @@ Both ends infer their types from the schemas in `shared`, so a shape cannot get 
 sync between client and server. The client signs a Viewer in, keeps them signed in across
 a reload, and logs them out. Once signed in, it lists the bank a page at a time. The Viewer
 can tick Tags in each Category and search by keyword. All of it goes into the address, so a
-link opens the same view: `/?technology=react&technology=node&keywords=cache`. Run it with
-`pnpm dev`, which serves it on port 5173 and proxies the API's paths through without
-rewriting them.
+link opens the same view: `/questions?technology=react&technology=node&keywords=cache`.
+Run it with `pnpm dev`, which serves it on port 5173 and proxies the API's paths through
+without rewriting them.
 
 The client shows the Questions the API sent and nothing else. It never hides a row itself,
 because what a Viewer may see is the API's answer alone. An address the API would refuse, such as a

@@ -21,7 +21,7 @@ describe("a list the API did not give", () => {
   it("reports what the API refused, in its own words", async () => {
     fakeBank(() => refusesWith(400, "invalid_request", "There is no Tag called cobol."));
 
-    renderTheWholeClient("/?technology=cobol");
+    renderTheWholeClient("/questions?technology=cobol");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("There is no Tag called cobol.");
   });
@@ -29,7 +29,7 @@ describe("a list the API did not give", () => {
   it("says the answer made no sense, rather than showing the parser's complaint", async () => {
     fakeBank(() => answersWith({ questions: "not a list" }));
 
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The bank answered, but not in a way this client understands.",
@@ -43,7 +43,7 @@ describe("a list the API did not give", () => {
         ? refusesWith(500, "internal_error", "Something went wrong.")
         : aPageOf([aQuestion()], asked),
     );
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
     await screen.findByRole("alert");
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));

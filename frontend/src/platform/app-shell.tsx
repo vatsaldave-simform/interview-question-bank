@@ -43,7 +43,7 @@ export function AppShell({ onSignOut }: { onSignOut: () => void }) {
           aria-label="Pages"
           className="order-last flex w-full flex-wrap gap-x-4 sm:order-none sm:w-auto sm:gap-x-5"
         >
-          <PageLink to="/" activeOptions={{ exact: true, includeSearch: false }}>
+          <PageLink to="/questions" activeOptions={{ exact: true, includeSearch: false }}>
             Questions
           </PageLink>
           {/* Hiding these links keeps nobody out: the API refuses their lists anyway. */}

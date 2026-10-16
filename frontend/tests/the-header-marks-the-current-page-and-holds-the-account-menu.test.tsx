@@ -34,21 +34,32 @@ describe("the header", () => {
     expect(header.getByRole("link", { name: "Questions" })).not.toHaveAttribute("aria-current");
   });
 
-  it("marks Questions on the bank itself", async () => {
-    renderTheWholeClient("/");
+  it("leaves Questions unmarked on the other pages under its address", async () => {
+    renderTheWholeClient("/questions/new");
 
     const header = await theHeader();
-    expect(await header.findByRole("link", { name: "Questions" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(header.getByRole("link", { name: "Your Questions" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    await screen.findByRole("heading", { level: 1, name: "Add a Question" });
+    expect(header.getByRole("link", { name: "Questions" })).not.toHaveAttribute("aria-current");
   });
 
+  it.each(["/questions", "/questions?technology=react", "/questions?offset=20"])(
+    "marks Questions on the bank at %s",
+    async (address) => {
+      renderTheWholeClient(address);
+
+      const header = await theHeader();
+      expect(await header.findByRole("link", { name: "Questions" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(header.getByRole("link", { name: "Your Questions" })).not.toHaveAttribute(
+        "aria-current",
+      );
+    },
+  );
+
   it("opens a menu from the Viewer's email holding their account and Log out", async () => {
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const header = await theHeader();
     await userEvent.click(header.getByRole("button", { name: "author@iqb.test" }));

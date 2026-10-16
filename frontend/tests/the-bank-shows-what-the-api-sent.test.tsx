@@ -28,7 +28,7 @@ describe("the browse screen", () => {
     });
     fakeBank((asked) => aPageOf([question], asked));
 
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     const card = (await screen.findByText("How would you find a slow query?")).closest("article")!;
     expect(within(card).getByText("Look for EXPLAIN ANALYZE before any guessing.")).toBeVisible();
@@ -54,7 +54,7 @@ describe("the browse screen", () => {
     ];
     fakeBank((asked) => aPageOf(questions, asked));
 
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     expect(await screen.findByText("In the open bank")).toBeVisible();
     expect(screen.getByText("Restricted to a Client")).toBeVisible();
@@ -65,7 +65,7 @@ describe("the browse screen", () => {
   it("says it is loading while the list has not answered", async () => {
     fakeBank(() => new Promise<Response>(() => {}));
 
-    renderTheWholeClient("/");
+    renderTheWholeClient("/questions");
 
     expect(await screen.findByRole("status")).toHaveTextContent("Loading Questions…");
   });
@@ -73,7 +73,7 @@ describe("the browse screen", () => {
   it("says so when nothing matches, rather than showing an empty page", async () => {
     fakeBank((asked) => aPageOf([], asked));
 
-    renderTheWholeClient("/?technology=react");
+    renderTheWholeClient("/questions?technology=react");
 
     expect(await screen.findByText("No Questions match.")).toBeVisible();
   });
