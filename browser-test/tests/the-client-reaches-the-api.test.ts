@@ -15,6 +15,12 @@ test("the client reaches the API", async ({ page }) => {
   await page.getByLabel("Password", { exact: true }).fill("author-password");
   await page.getByRole("button", { name: "Sign in" }).click();
 
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  const mainMenu = page.getByRole("navigation", { name: "Main menu" });
+  await mainMenu.getByRole("link", { name: "Browse" }).click();
+  await expect(page).toHaveURL(/\/questions$/);
+
   await expect(page.getByRole("link", { name: typeScriptQuestion })).toBeVisible();
   await expect(page.getByRole("link", { name: behaviouralQuestion })).toBeVisible();
 
@@ -33,10 +39,7 @@ test("the client reaches the API", async ({ page }) => {
   await expect(page.getByRole("link", { name: typeScriptQuestion })).toBeVisible();
   await expect(page.getByRole("link", { name: behaviouralQuestion })).toHaveCount(0);
 
-  await page
-    .getByRole("navigation", { name: "Main menu" })
-    .getByRole("link", { name: "Add a Question" })
-    .click();
+  await mainMenu.getByRole("link", { name: "Add a Question" }).click();
 
   const newQuestionText =
     `How would you explain what run ${Date.now()} of the browser test checks?`;

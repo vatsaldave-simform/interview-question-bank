@@ -1,8 +1,9 @@
-import { createRoute, createRouter } from "@tanstack/react-router";
+import { createRoute, createRouter, redirect } from "@tanstack/react-router";
 import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
 import { clientRoutes } from "@/features/clients/clients.routes";
 import { permissionGrantRoutes } from "@/features/permission-grants/permission-grants.routes";
+import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { useAnyQuestionWaiting } from "@/features/questions/questions.queries";
 import { questionRoutes } from "@/features/questions/questions.routes";
 import { MyRoleRequest } from "@/features/role-requests/my-role-request";
@@ -10,6 +11,7 @@ import { useOpenRoleRequestCount } from "@/features/role-requests/role-requests.
 import { roleRequestRoutes } from "@/features/role-requests/role-requests.routes";
 import { roleWording } from "@/features/viewers/role-wording";
 import { viewerRoutes } from "@/features/viewers/viewers.routes";
+import { HomePage } from "@/home-page";
 import { administrationRoute, administrationStartRoute } from "@/platform/administration-route";
 import { rootRoute } from "@/platform/root-route";
 import { useCurrentViewer } from "@/platform/current-viewer";
@@ -17,6 +19,25 @@ import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
 import { PageHeader } from "@/ui/page-header";
+
+const homeRoute = createRoute({
+  getParentRoute: () => signedInRoute,
+  path: "/",
+  validateSearch: browseSearchSchema,
+  beforeLoad: ({ search }) => {
+    // Browse lived here before Home, so a link saved then still opens its filter, and Back
+    // skips this address rather than being sent on again.
+    if (Object.keys(search).length > 0) throw redirect({ to: "/questions", search, replace: true });
+  },
+  component: Home,
+});
+
+function Home() {
+  const navigate = homeRoute.useNavigate();
+  return (
+    <HomePage onSearch={(keywords) => void navigate({ to: "/questions", search: { keywords } })} />
+  );
+}
 
 /** Here and not in a feature, so the Viewer feature need not depend on the Role Request
  * one. */
@@ -51,6 +72,7 @@ function AccountPage() {
 const routeTree = rootRoute.addChildren([
   ...authRoutes,
   signedInRoute.addChildren([
+    homeRoute,
     ...questionRoutes,
     administrationRoute.addChildren([
       administrationStartRoute,

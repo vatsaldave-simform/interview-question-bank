@@ -36,7 +36,7 @@ async function linksByGroup(): Promise<Record<string, string[]>> {
   return shown;
 }
 
-const everyQuestionPage = ["Browse", "Add a Question", "Your Questions"];
+const everyQuestionPage = ["Home", "Browse", "Add a Question", "Your Questions"];
 const everyAdministrationPage = ["Role Requests", "Viewers", "Clients"];
 
 describe("the sidebar", () => {
@@ -52,7 +52,7 @@ describe("the sidebar", () => {
   });
 
   it.each<[string, Viewer, Record<string, string[]>]>([
-    ["a Reader", aViewer({ role: "reader" }), { Questions: ["Browse"] }],
+    ["a Reader", aViewer({ role: "reader" }), { Questions: ["Home", "Browse"] }],
     ["an Author", aViewer({ role: "author" }), { Questions: everyQuestionPage }],
     [
       "a Reviewer",
@@ -71,7 +71,7 @@ describe("the sidebar", () => {
     [
       "an Administrator who is also a Reader",
       aViewer({ role: "reader", isAdministrator: true }),
-      { Questions: ["Browse"], Administration: everyAdministrationPage },
+      { Questions: ["Home", "Browse"], Administration: everyAdministrationPage },
     ],
   ])("shows %s exactly the links their role allows", async (_who, viewer, expected) => {
     signInAs(viewer);
@@ -114,6 +114,29 @@ describe("the sidebar", () => {
         "page",
       );
       expect(sidebar.getByRole("link", { name: "Your Questions" })).not.toHaveAttribute(
+        "aria-current",
+      );
+    },
+  );
+
+  it("marks Home on Home", async () => {
+    renderTheWholeClient("/");
+
+    const sidebar = await theSidebar();
+    expect(await sidebar.findByRole("link", { name: "Home" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(sidebar.getByRole("link", { name: "Browse" })).not.toHaveAttribute("aria-current");
+  });
+
+  it.each(["/questions", "/questions/own", "/account"])(
+    "leaves Home unmarked at %s",
+    async (address) => {
+      renderTheWholeClient(address);
+
+      const sidebar = await theSidebar();
+      expect(await sidebar.findByRole("link", { name: "Home" })).not.toHaveAttribute(
         "aria-current",
       );
     },
@@ -202,7 +225,7 @@ describe("the sidebar on a phone", () => {
     const drawer = await screen.findByRole("dialog");
     const pages = within(drawer).getByRole("navigation", { name: "Main menu" });
     const reached: string[] = [];
-    for (let press = 0; press < 5; press += 1) {
+    for (let press = 0; press < 6; press += 1) {
       await userEvent.tab();
       const focused = document.activeElement;
       if (focused && pages.contains(focused)) reached.push(focused.textContent);

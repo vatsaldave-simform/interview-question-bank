@@ -10,6 +10,7 @@ frontend/src/
 ├── main.tsx            mounts the root element
 ├── App.tsx             the providers, and the order they wrap in
 ├── routes.tsx          the whole URL shape, assembled from the features
+├── home-page.tsx       Home, put together from several features' panels (ADR-0047)
 ├── features/<name>/    one domain concern, end to end
 ├── platform/           what belongs to no feature
 ├── ui/                 hand-written components more than one feature uses

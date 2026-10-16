@@ -6,6 +6,7 @@ import {
   CircleUserRoundIcon,
   ClipboardCheckIcon,
   FileTextIcon,
+  HouseIcon,
   LibraryIcon,
   MenuIcon,
   PanelLeftCloseIcon,
@@ -65,6 +66,9 @@ export function AppSidebar({ viewer, onSignOut, marks }: AppSidebarProps) {
         <nav aria-label="Main menu">
           {/* Hiding these links keeps nobody out: the API refuses their pages anyway. */}
           <PageGroup label="Questions">
+            <PageLink to="/" activeOptions={{ exact: true, includeSearch: false }} icon={HouseIcon}>
+              Home
+            </PageLink>
             <PageLink
               to="/questions"
               activeOptions={{ exact: true, includeSearch: false }}
