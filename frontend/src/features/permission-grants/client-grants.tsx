@@ -1,5 +1,4 @@
 import type { NamedViewer, PermissionGrant } from "@iqb/shared";
-import { Link } from "@tanstack/react-router";
 import { LockIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,17 +21,18 @@ import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
 export function ClientGrants({ clientId }: { clientId: string }) {
   // The API has no address for one Client, so the name comes from the list of them all.
   const clients = useEveryClient();
-  const client = clients.data?.find(({ id }) => id === clientId);
+  const name = clients.data?.find(({ id }) => id === clientId)?.name ?? "Client";
 
   return (
     <section className="flex flex-col gap-6" aria-labelledby="client">
-      <Link to="/administration/clients" className="text-primary text-sm hover:underline">
-        ← All Clients
-      </Link>
       <PageHeader
-        title={client?.name ?? "Client"}
+        title={name}
         titleId="client"
         description="The Viewers who may see the Questions restricted to this Client."
+        trail={{
+          back: [{ name: "Administration", link: { to: "/administration" } }, { page: "clients" }],
+          here: name,
+        }}
       />
       <GrantsAgainst clientId={clientId} />
     </section>
