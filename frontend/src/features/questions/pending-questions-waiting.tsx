@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useReviewQueueStart } from "@/features/questions/questions.queries";
-import { ScreenSection } from "@/features/questions/screen-section";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
+import { ScreenSection } from "@/ui/screen-section";
 
 const shownOnHome = 5;
 

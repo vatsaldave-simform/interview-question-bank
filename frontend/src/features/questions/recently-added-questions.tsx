@@ -3,9 +3,9 @@ import { Link } from "@tanstack/react-router";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
-import { ScreenSection } from "@/features/questions/screen-section";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
+import { ScreenSection } from "@/ui/screen-section";
 
 /** Browse's own first page, cut to five, so only Questions Visible to the Viewer appear. */
 const newestFive: ListQuestionsRequest = { keywords: undefined, limit: 5, offset: 0 };

@@ -6,8 +6,8 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useCategories } from "@/features/questions/questions.queries";
-import { ScreenSection } from "@/features/questions/screen-section";
 import { TagChipShapes, TagChips } from "@/features/questions/tag-chips";
+import { ScreenSection } from "@/ui/screen-section";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import {
