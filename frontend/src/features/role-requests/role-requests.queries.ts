@@ -18,6 +18,14 @@ export function useOpenRoleRequests() {
   return useQuery({ ...openRoleRequestsQuery, select: (answer) => answer.roleRequests });
 }
 
+/** Cut from the list the sidebar count already asks for, so Home sends nothing new. */
+export function useFirstOpenRoleRequests(count: number) {
+  return useQuery({
+    ...openRoleRequestsQuery,
+    select: (answer) => answer.roleRequests.slice(0, count),
+  });
+}
+
 export function useOpenRoleRequestCount(): number {
   const { data } = useQuery({
     ...openRoleRequestsQuery,
