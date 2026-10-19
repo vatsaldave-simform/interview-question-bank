@@ -11,7 +11,7 @@ type SplitScreenProps = {
  * On a phone the brand half becomes a band above the form. */
 export function SplitScreen({ title, description, children }: SplitScreenProps) {
   return (
-    <main className="bg-form-half grid min-h-svh md:grid-cols-[1.1fr_1fr]">
+    <main className="bg-form-half grid min-h-svh grid-rows-[auto_1fr] md:grid-cols-[1.1fr_1fr] md:grid-rows-1">
       <section className="text-brand-half-foreground flex flex-col justify-between gap-5 overflow-hidden bg-(image:--brand-half) px-5 py-6 md:gap-8 md:px-12 md:py-10">
         <div className="flex items-center gap-3">
           <img src="/simform-logo.svg" alt="Simform" className="h-5 w-auto md:h-6.5" />
