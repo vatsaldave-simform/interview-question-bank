@@ -17,6 +17,7 @@ import {
   type DraftProblems,
   type QuestionDraft,
 } from "@/features/questions/question-problems";
+import { backToTheQuestion } from "@/features/questions/question-trail";
 import { useEditQuestion, useQuestion } from "@/features/questions/questions.queries";
 import { TagChipShapes } from "@/features/questions/tag-chips";
 import { PageHeader } from "@/ui/page-header";
@@ -33,16 +34,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
       <PageHeader
         title="Edit the Question"
         description="Change what the Question says, and its history keeps who changed it and when."
-        trail={{
-          back: [
-            { page: "browse" },
-            {
-              name: question.data?.text ?? "Question",
-              link: { to: "/questions/$questionId", params: { questionId } },
-            },
-          ],
-          here: "Edit",
-        }}
+        trail={{ back: backToTheQuestion(questionId, question.data?.text), here: "Edit" }}
       />
       {question.isPending ? (
         <EditFormLoading />

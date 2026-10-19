@@ -30,7 +30,8 @@ const everyone = () => true;
 const aReviewer = (viewer: Viewer) => viewer.role === "reviewer";
 const anAdministrator = (viewer: Viewer) => viewer.isAdministrator;
 
-/** The one list the sidebar and Home's shortcuts both read, so they cannot get out of sync. */
+/** The one list the sidebar, Home's shortcuts and the trail back from a page all read, so
+ * they cannot get out of sync. */
 export const appPages = [
   {
     id: "home",
@@ -107,7 +108,12 @@ export function pagesShownTo(viewer: Viewer): ShownPage[] {
   return appPages.filter((page) => page.shownTo(viewer));
 }
 
+export function pageById(id: PageId): ShownPage {
+  // Every id is one of the pages in the list, so one is always found.
+  return appPages.find((page) => page.id === id)!;
+}
+
 /** Home shows a page's waiting work to whoever the page is shown to, so the two agree. */
 export function isPageShownTo(viewer: Viewer, id: PageId): boolean {
-  return appPages.some((page) => page.id === id && page.shownTo(viewer));
+  return pageById(id).shownTo(viewer);
 }

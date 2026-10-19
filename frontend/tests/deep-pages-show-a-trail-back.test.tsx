@@ -2,7 +2,13 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, anAdministrator, answersWith, aQuestion } from "./helpers/fake-api";
+import {
+  aClient,
+  anAdministrator,
+  answersWith,
+  aQuestion,
+  refusesWith,
+} from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -36,7 +42,7 @@ async function theTrailUnder(title: string) {
   return trail.getAllByRole("listitem");
 }
 
-describe("a deep page", () => {
+describe("a page no sidebar link leads to", () => {
   it("shows a Question's page as Browse, then the Question", async () => {
     renderTheWholeClient(`/questions/${question.id}`);
 
@@ -45,8 +51,26 @@ describe("a deep page", () => {
       "href",
       "/questions",
     );
-    expect(here).toHaveTextContent(question.text);
-    expect(within(here!).getByText(question.text)).toHaveAttribute("aria-current", "page");
+    const current = within(here!).getByText(question.text);
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(current).not.toHaveAttribute("href");
+  });
+
+  it("still shows the way back to Browse when the Question cannot be shown", async () => {
+    const missing = aQuestion({ id: "a0000000-0000-4000-8000-000000000099" });
+    fakeBank(
+      (asked) => aPageOf([], asked),
+      (_request, asked) =>
+        asked.pathname === `/api/questions/${missing.id}`
+          ? refusesWith(404, "not_found", "Not found.")
+          : undefined,
+    );
+    renderTheWholeClient(`/questions/${missing.id}`);
+
+    await screen.findByText("Question not found");
+    const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
+    expect(trail.getByRole("link", { name: "Browse" })).toHaveAttribute("href", "/questions");
+    expect(trail.getByText("Question")).toHaveAttribute("aria-current", "page");
   });
 
   it("shows editing a Question as Browse, then the Question, then Edit", async () => {
@@ -96,6 +120,8 @@ describe("a deep page", () => {
 
     const [, here] = await theTrailUnder(long.text);
     expect(here).toHaveTextContent(/^How would you find a memory leak in a Node\.js…$/);
+    // Pointing at it shows the whole Question.
+    expect(within(here!).getByTitle(long.text)).toBeVisible();
   });
 });
 

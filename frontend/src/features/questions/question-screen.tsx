@@ -23,6 +23,7 @@ import { publicationStateWording } from "@/features/questions/publication-state-
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
+import { backToBrowse } from "@/features/questions/question-trail";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { useSession } from "@/platform/session";
@@ -34,25 +35,19 @@ import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Separator } from "@/ui/shadcn/separator";
 
-const backToBrowse = [{ page: "browse" }] as const;
-
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      {/* The header waits for the Question, so until then the trail stands on its own. */}
+      {!question.isSuccess && <PageTrail back={backToBrowse} here="Question" />}
       {question.isPending ? (
-        <>
-          <PageTrail back={backToBrowse} here="Question" />
-          <p role="status" className="text-muted-foreground">
-            Loading the Question…
-          </p>
-        </>
+        <p role="status" className="text-muted-foreground">
+          Loading the Question…
+        </p>
       ) : question.isError ? (
-        <>
-          <PageTrail back={backToBrowse} here="Question" />
-          <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
-        </>
+        <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
       ) : (
         <>
           <QuestionInFull question={question.data} />
