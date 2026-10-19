@@ -7,6 +7,7 @@ import {
   rejectQuestionRequestSchema,
   restrictQuestionRequestSchema,
   returnQuestionRequestSchema,
+  rolesThatMayAdd,
   type ChangeEvent,
   type Question,
   type QuestionHistoryResponse,
@@ -66,9 +67,8 @@ function toEventResponse({ createdAt, ...event }: ChangeEventFromDb): ChangeEven
 export function questionRoutes(database: Database): Router {
   const router = Router();
 
-  // A Reader may not add one: the constraint is on Question content, not on all writes
-  // (CONTEXT.md), so this sits on the route rather than on the router.
-  router.post("/", requireRole("author", "reviewer"), async (req, res) => {
+  // On the route rather than on the router, because a Reader may still read the bank.
+  router.post("/", requireRole(...rolesThatMayAdd), async (req, res) => {
     const viewer = authenticatedViewer(req);
     const request = addQuestionRequestSchema.parse(req.body);
 
@@ -97,9 +97,9 @@ export function questionRoutes(database: Database): Router {
     res.json(await toListResponse(database, viewer, questions, page));
   });
 
-  // The roles that may add a Question: a Reader may add none, so they are refused rather
-  // than handed a list that is always empty.
-  router.get("/own", requireRole("author", "reviewer"), async (req, res) => {
+  // A Viewer who may not add a Question is refused rather than handed a list that is always
+  // empty.
+  router.get("/own", requireRole(...rolesThatMayAdd), async (req, res) => {
     const viewer = authenticatedViewer(req);
     const page = questionPageRequestSchema.parse(req.query);
 

@@ -1,10 +1,18 @@
-import type { Viewer } from "./auth.js";
+import type { Viewer, ViewerRole } from "./auth.js";
 import type { PublicationState } from "./questions.js";
 
 /* The API refuses by these, and the page asks the same ones only to hide a button the API
  * would refuse (ADR-0045). */
 
 type Authored = { authorId: string };
+
+/** Everyone but a Reader, because the rule is about Question content, not every write
+ * (CONTEXT.md). A list of roles, so the API can refuse by role before reading anything. */
+export const rolesThatMayAdd = ["author", "reviewer"] as const satisfies readonly ViewerRole[];
+
+export function mayAdd(viewer: Viewer): boolean {
+  return (rolesThatMayAdd as readonly ViewerRole[]).includes(viewer.role);
+}
 
 /** Whether this Viewer may change this Question's content. Only ever asked about a Question
  * already known to be Visible, which is what makes "a Reviewer may edit any Question" mean any

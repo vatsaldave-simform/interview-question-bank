@@ -7,6 +7,7 @@ import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
+import { useMayAdd } from "@/features/questions/use-may-add";
 import { whatWentWrong } from "@/platform/api-client";
 import { PageHeader } from "@/ui/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
@@ -22,6 +23,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   const asked = listRequestFor(search);
   const request = "request" in asked ? asked.request : null;
   const list = useQuestionList(request);
+  const mayAdd = useMayAdd();
 
   const namesAFilter = Object.entries(search).some(
     ([name, value]) => name !== "offset" && value !== undefined,
@@ -33,9 +35,11 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         title="Questions"
         description="Every Published Question you can see. Search, or narrow it by Category."
         action={
-          <Button asChild>
-            <Link to="/questions/new">Add a Question</Link>
-          </Button>
+          mayAdd && (
+            <Button asChild>
+              <Link to="/questions/new">Add a Question</Link>
+            </Button>
+          )
         }
       />
       <div className="grid gap-8 md:grid-cols-[14rem_1fr]">
