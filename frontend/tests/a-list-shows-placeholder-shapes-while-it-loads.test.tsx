@@ -23,6 +23,7 @@ const client = aClient();
 const lists = [
   ["/", "/api/questions", "Loading the newest Questions…"],
   ["/", "/api/questions/own", "Loading your Questions…"],
+  ["/", "/api/questions/pending", "Loading the Pending Questions…"],
   ["/questions", "/api/questions", "Loading Questions…"],
   ["/questions/own", "/api/questions/own", "Loading your Questions…"],
   ["/review", "/api/questions/pending", "Loading the Pending Questions…"],

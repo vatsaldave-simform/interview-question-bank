@@ -51,6 +51,14 @@ export function useReviewQueue(offset: number) {
   return useQuery(reviewQueueQuery(offset));
 }
 
+/** Cut from the Review queue's first page, which the sidebar already asks for. */
+export function useReviewQueueStart(count: number) {
+  return useQuery({
+    ...reviewQueueQuery(0),
+    select: (page) => page.questions.slice(0, count),
+  });
+}
+
 /** Only whether any wait, because the list carries no total to say how many. */
 export function useAnyQuestionWaiting(): boolean {
   const { data } = useQuery({
