@@ -5,7 +5,6 @@ import {
   type Question,
   type QuestionTag,
 } from "@iqb/shared";
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
@@ -31,16 +30,19 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <Link
-        to="/questions/$questionId"
-        params={{ questionId }}
-        className="text-primary text-sm hover:underline"
-      >
-        ← Back to the Question
-      </Link>
       <PageHeader
         title="Edit the Question"
         description="Change what the Question says, and its history keeps who changed it and when."
+        trail={{
+          back: [
+            { page: "browse" },
+            {
+              name: question.data?.text ?? "Question",
+              link: { to: "/questions/$questionId", params: { questionId } },
+            },
+          ],
+          here: "Edit",
+        }}
       />
       {question.isPending ? (
         <EditFormLoading />

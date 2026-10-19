@@ -27,26 +27,32 @@ import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
+import { PageTrail } from "@/ui/page-trail";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Separator } from "@/ui/shadcn/separator";
 
+const backToBrowse = [{ page: "browse" }] as const;
+
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <Link to="/questions" className="text-primary text-sm hover:underline">
-        ← All Questions
-      </Link>
       {question.isPending ? (
-        <p role="status" className="text-muted-foreground">
-          Loading the Question…
-        </p>
+        <>
+          <PageTrail back={backToBrowse} here="Question" />
+          <p role="status" className="text-muted-foreground">
+            Loading the Question…
+          </p>
+        </>
       ) : question.isError ? (
-        <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
+        <>
+          <PageTrail back={backToBrowse} here="Question" />
+          <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
+        </>
       ) : (
         <>
           <QuestionInFull question={question.data} />
@@ -64,6 +70,7 @@ function QuestionInFull({ question }: { question: Question }) {
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
+        trail={{ back: backToBrowse, here: question.text }}
       />
       <AboutThisQuestion question={question} />
       <div className="flex flex-col gap-6 md:col-start-1">
