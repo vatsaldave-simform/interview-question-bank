@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
-import { useOwnQuestionsWaiting } from "@/features/questions/questions.queries";
+import { useFirstOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -9,7 +9,7 @@ import { ScreenSection } from "@/ui/screen-section";
 const shownOnHome = 5;
 
 export function OwnQuestionsWaiting() {
-  const own = useOwnQuestionsWaiting(shownOnHome);
+  const own = useFirstOwnQuestions(shownOnHome);
   return (
     <ScreenSection
       id="own-questions-waiting"

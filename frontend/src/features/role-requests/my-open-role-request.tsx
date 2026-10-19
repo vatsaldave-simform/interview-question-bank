@@ -6,13 +6,13 @@ import { ScreenSection } from "@/ui/screen-section";
 
 const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
-export function OwnOpenRoleRequest() {
+export function MyOpenRoleRequest() {
   const open = useMyOpenRoleRequest();
   // Nothing while it loads, so the panel never shows up and then vanishes.
   if (open.isPending || open.data === null) return null;
   return (
     <ScreenSection
-      id="own-open-role-request"
+      id="my-open-role-request"
       title="Your Role Request"
       beside={
         <Link to="/account" className="text-primary ml-auto text-sm hover:underline">

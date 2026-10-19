@@ -2,8 +2,8 @@ import { BrowseSearchBox } from "@/features/questions/browse-search-box";
 import { OwnQuestionsWaiting } from "@/features/questions/own-questions-waiting";
 import { PendingQuestionsWaiting } from "@/features/questions/pending-questions-waiting";
 import { RecentlyAddedQuestions } from "@/features/questions/recently-added-questions";
+import { MyOpenRoleRequest } from "@/features/role-requests/my-open-role-request";
 import { OpenRoleRequestsWaiting } from "@/features/role-requests/open-role-requests-waiting";
-import { OwnOpenRoleRequest } from "@/features/role-requests/own-open-role-request";
 import { isPageShownTo } from "@/platform/app-pages";
 import { HomeShortcuts } from "@/platform/home-shortcuts";
 import { useSession } from "@/platform/session";
@@ -30,7 +30,7 @@ export function HomePage({ onSearch }: HomePageProps) {
       <section aria-label="Search the bank">
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
-      <OwnOpenRoleRequest />
+      <MyOpenRoleRequest />
       {isPageShownTo(session.viewer, "your-questions") && <OwnQuestionsWaiting />}
       {isPageShownTo(session.viewer, "review-queue") && <PendingQuestionsWaiting />}
       {isPageShownTo(session.viewer, "role-requests") && <OpenRoleRequestsWaiting />}

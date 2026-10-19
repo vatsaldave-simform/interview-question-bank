@@ -52,7 +52,7 @@ export function useReviewQueue(offset: number) {
 }
 
 /** Cut from the Review queue's first page, which the sidebar already asks for. */
-export function useReviewQueueStart(count: number) {
+export function useFirstPendingQuestions(count: number) {
   return useQuery({
     ...reviewQueueQuery(0),
     select: (page) => page.questions.slice(0, count),
@@ -81,7 +81,7 @@ export function useOwnQuestions(offset: number) {
 }
 
 /** Cut from the first page of Your Questions, so Home asks the API nothing new. */
-export function useOwnQuestionsWaiting(count: number) {
+export function useFirstOwnQuestions(count: number) {
   return useQuery({
     ...ownQuestionsQuery(0),
     select: (page) => page.questions.slice(0, count),

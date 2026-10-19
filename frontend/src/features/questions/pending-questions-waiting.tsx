@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useReviewQueueStart } from "@/features/questions/questions.queries";
+import { useFirstPendingQuestions } from "@/features/questions/questions.queries";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
@@ -7,7 +7,7 @@ import { ScreenSection } from "@/ui/screen-section";
 const shownOnHome = 5;
 
 export function PendingQuestionsWaiting() {
-  const pending = useReviewQueueStart(shownOnHome);
+  const pending = useFirstPendingQuestions(shownOnHome);
   return (
     <ScreenSection
       id="pending-questions-waiting"
