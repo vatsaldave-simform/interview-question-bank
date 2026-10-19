@@ -1,9 +1,11 @@
+import { UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
 import { roleWording } from "@/features/viewers/role-wording";
 import { ViewerActs } from "@/features/viewers/viewer-acts";
 import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { AddDialog } from "@/ui/add-dialog";
+import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -18,6 +20,25 @@ import {
 
 export function ViewerList() {
   const viewers = useEveryViewer();
+  const addAViewer = (
+    <AddDialog
+      label="Add a Viewer"
+      title="Create a Viewer"
+      description="They are emailed a link to set their password."
+    >
+      {(close) => (
+        <CreateViewerForm
+          onCreated={(viewer) => {
+            close();
+            toast.success(
+              `${viewer.email} was created, and was emailed a link to set their password.`,
+            );
+          }}
+          onCancel={close}
+        />
+      )}
+    </AddDialog>
+  );
 
   return (
     <section className="flex flex-col gap-6" aria-labelledby="viewers">
@@ -25,25 +46,9 @@ export function ViewerList() {
         title="Viewers"
         titleId="viewers"
         description="Everyone who can log in, or could before they were Deactivated."
-        action={
-          <AddDialog
-            label="Add a Viewer"
-            title="Create a Viewer"
-            description="They are emailed a link to set their password."
-          >
-            {(close) => (
-              <CreateViewerForm
-                onCreated={(viewer) => {
-                  close();
-                  toast.success(
-                    `${viewer.email} was created, and was emailed a link to set their password.`,
-                  );
-                }}
-                onCancel={close}
-              />
-            )}
-          </AddDialog>
-        }
+        // Only beside a loaded list, because an empty one offers it in its place, and a button
+        // that moved there when the list came in would take its open dialog with it.
+        action={viewers.isSuccess && viewers.data.length > 0 ? addAViewer : undefined}
       />
       {viewers.isPending ? (
         <RowsLoading label="Loading the Viewers…" />
@@ -53,6 +58,10 @@ export function ViewerList() {
           reason={viewers.error}
           onRetry={() => void viewers.refetch()}
         />
+      ) : viewers.data.length === 0 ? (
+        <EmptyList icon={UsersIcon} title="Nobody can log in yet" action={addAViewer}>
+          Add a Viewer, and they are emailed a link to set their password.
+        </EmptyList>
       ) : (
         <Table aria-labelledby="viewers">
           <TableHeader>

@@ -1,5 +1,6 @@
 import type { NamedViewer, PermissionGrant } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { LockIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useEveryClient } from "@/features/clients/clients.queries";
@@ -11,6 +12,7 @@ import { useEveryViewer } from "@/features/viewers/viewers.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ConfirmAct } from "@/ui/confirm-act";
+import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -55,7 +57,10 @@ function GrantsAgainst({ clientId }: { clientId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {grants.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nobody holds a Grant against this Client.</p>
+        <EmptyList icon={LockIcon} title="Nobody can see this Client's Questions yet">
+          Questions restricted to this Client stay hidden until you give a Viewer a Permission
+          Grant for it, below.
+        </EmptyList>
       ) : (
         <ul aria-label="Viewers holding a Grant" className="flex flex-col gap-1 text-sm">
           {grants.data.map(({ viewer }) => (

@@ -56,7 +56,7 @@ describe("the open Role Requests on the administration console", () => {
 
     renderTheWholeClient("/administration/role-requests");
 
-    expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "No Role Request is open" })).toBeVisible();
   });
 
   it("reports the API's refusal, with no Try again", async () => {

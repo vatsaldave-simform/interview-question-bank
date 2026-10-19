@@ -139,7 +139,7 @@ describe("deciding a Role Request from the administration console", () => {
     await userEvent.type(denial.getByLabelText("Why it is denied"), "  Not on a project yet. ");
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
-    expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "No Role Request is open" })).toBeVisible();
     expect(await theToastSaying("reader@iqb.test's Role Request was denied.")).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const [sent] = decisionsSent(api);

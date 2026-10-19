@@ -1,8 +1,10 @@
+import { UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { RoleRequestDecision } from "@/features/role-requests/role-request-decision";
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
 import { ActNotDone } from "@/ui/act-not-done";
+import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -45,7 +47,9 @@ export function RoleRequestQueue() {
           onRetry={() => void roleRequests.refetch()}
         />
       ) : roleRequests.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No Role Request is waiting.</p>
+        <EmptyList icon={UserPlusIcon} title="No Role Request is open">
+          When a Viewer asks for a different role, it shows here for you to decide.
+        </EmptyList>
       ) : (
         <Table aria-labelledby="open-role-requests">
           <TableHeader>

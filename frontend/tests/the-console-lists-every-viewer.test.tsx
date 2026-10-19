@@ -100,7 +100,7 @@ describe("the administration console's links in the sidebar", () => {
     const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
     await userEvent.click(sidebar.getByRole("link", { name: "Role Requests" }));
 
-    expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "No Role Request is open" })).toBeVisible();
     expect(window.location.pathname).toBe("/administration/role-requests");
   });
 

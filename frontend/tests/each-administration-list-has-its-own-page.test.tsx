@@ -49,7 +49,7 @@ describe("the administration pages", () => {
     aBankWithOneClient();
     renderTheWholeClient("/administration");
 
-    expect(await screen.findByText("No Role Request is waiting.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "No Role Request is open" })).toBeVisible();
     expect(window.location.pathname).toBe("/administration/role-requests");
     const menu = await theAdministrationGroup();
     expect(menu.getByRole("link", { name: "Role Requests" })).toHaveAttribute(
@@ -63,7 +63,7 @@ describe("the administration pages", () => {
     aBankWithOneClient();
     renderTheWholeClient("/administration/viewers");
 
-    await screen.findByRole("table", { name: "Viewers" });
+    await screen.findByRole("heading", { level: 1, name: "Viewers" });
     const menus = screen.getAllByRole("navigation").map((menu) => menu.getAttribute("aria-label"));
     expect(menus).toEqual(["Main menu"]);
   });
@@ -75,7 +75,7 @@ describe("the administration pages", () => {
     const menu = await theAdministrationGroup();
     await userEvent.click(menu.getByRole("link", { name: "Viewers" }));
 
-    expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Viewers" })).toBeVisible();
     expect(window.location.pathname).toBe("/administration/viewers");
     expect(menu.getByRole("link", { name: "Viewers" })).toHaveAttribute("aria-current", "page");
     expect(menu.getByRole("link", { name: "Role Requests" })).not.toHaveAttribute(
@@ -100,7 +100,7 @@ describe("the administration pages", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: northwind.name }),
     ).toBeVisible();
-    expect(await screen.findByText("Nobody holds a Grant against this Client.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Nobody can see this Client's Questions yet" })).toBeVisible();
     expect(window.location.pathname).toBe(`/administration/clients/${northwind.id}`);
     expect(grantsAsked(api)).toEqual([`/api/clients/${northwind.id}/grants`]);
     const menu = await theAdministrationGroup();
