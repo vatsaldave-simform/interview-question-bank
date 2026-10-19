@@ -40,6 +40,7 @@ export function fakeBank(
     if (asked.pathname === "/api/clients") return answersWith({ clients: [] });
     if (asked.pathname === "/api/clients/all") return answersWith({ clients: [] });
     if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: [] });
+    if (asked.pathname === "/api/role-requests/mine") return answersWith({ roleRequests: [] });
     if (asked.pathname === "/api/auth/logout") return new Response(null, { status: 204 });
     if (asked.pathname === "/api/auth/me") {
       const session = currentSession();
