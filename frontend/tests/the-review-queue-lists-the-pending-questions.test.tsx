@@ -59,7 +59,9 @@ describe("the Reviewer's Pending queue", () => {
 
     renderTheWholeClient("/review");
 
-    expect(await screen.findByText("No Question is waiting for review.")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Nothing is waiting for review" }),
+    ).toBeVisible();
   });
 
   it("asks for the next page, and the address says which page it is on", async () => {

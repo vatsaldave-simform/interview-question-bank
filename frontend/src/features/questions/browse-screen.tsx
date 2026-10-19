@@ -1,5 +1,6 @@
 import type { QuestionListResponse } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { LibraryIcon, SearchXIcon } from "lucide-react";
 import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
@@ -9,6 +10,7 @@ import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
 import { useMayAdd } from "@/features/questions/use-may-add";
 import { whatWentWrong } from "@/platform/api-client";
+import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -78,7 +80,12 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
               </AlertDescription>
             </Alert>
           ) : (
-            <QuestionList page={list.data} />
+            <QuestionList
+              page={list.data}
+              namesAFilter={namesAFilter}
+              mayAdd={mayAdd}
+              onClearFilter={() => onSearchChange({})}
+            />
           )}
           {request !== null && (
             <QuestionPages
@@ -95,12 +102,49 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   );
 }
 
-function QuestionList({ page }: { page: QuestionListResponse }) {
+type QuestionListProps = {
+  page: QuestionListResponse;
+  namesAFilter: boolean;
+  mayAdd: boolean;
+  onClearFilter: () => void;
+};
+
+function QuestionList({ page, namesAFilter, mayAdd, onClearFilter }: QuestionListProps) {
+  if (page.questions.length === 0 && page.offset > 0) {
+    return <p className="text-muted-foreground">There are no more Questions.</p>;
+  }
+  if (page.questions.length === 0 && namesAFilter) {
+    return (
+      <EmptyList
+        icon={SearchXIcon}
+        title="No Question matches this filter"
+        action={
+          <Button variant="outline" onClick={onClearFilter}>
+            Clear the filter
+          </Button>
+        }
+      >
+        Try fewer Tags or words, or clear the filter to see every Question you can see.
+      </EmptyList>
+    );
+  }
   if (page.questions.length === 0) {
     return (
-      <p className="text-muted-foreground">
-        {page.offset === 0 ? "No Questions match." : "There are no more Questions."}
-      </p>
+      <EmptyList
+        icon={LibraryIcon}
+        title="The bank has no Questions yet"
+        action={
+          mayAdd ? (
+            <Button asChild>
+              <Link to="/questions/new">Add a Question</Link>
+            </Button>
+          ) : undefined
+        }
+      >
+        {mayAdd
+          ? "Add the first one. A Reviewer reads it before it is in the bank."
+          : "Questions appear here once a Reviewer Publishes them."}
+      </EmptyList>
     );
   }
   return (

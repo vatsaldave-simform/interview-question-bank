@@ -75,6 +75,8 @@ describe("the browse screen", () => {
 
     renderTheWholeClient("/questions?technology=react");
 
-    expect(await screen.findByText("No Questions match.")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "No Question matches this filter" }),
+    ).toBeVisible();
   });
 });

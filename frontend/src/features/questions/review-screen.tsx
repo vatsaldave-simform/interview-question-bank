@@ -1,5 +1,6 @@
 import type { QuestionListResponse } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { ClipboardCheckIcon } from "lucide-react";
 import { useState } from "react";
 import {
   ActRefusedInList,
@@ -12,6 +13,7 @@ import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useReviewQueue } from "@/features/questions/questions.queries";
+import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
@@ -59,14 +61,15 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
 type PendingListProps = { page: QuestionListResponse; onRefusal: ActProps["onRefusal"] };
 
 function PendingList({ page, onRefusal }: PendingListProps) {
-  if (page.questions.length === 0) {
+  if (page.questions.length === 0 && page.offset === 0) {
     return (
-      <p className="text-muted-foreground">
-        {page.offset === 0
-          ? "No Question is waiting for review."
-          : "There are no more Pending Questions."}
-      </p>
+      <EmptyList icon={ClipboardCheckIcon} title="Nothing is waiting for review">
+        You are done for now. New Questions appear here when an Author sends them.
+      </EmptyList>
     );
+  }
+  if (page.questions.length === 0) {
+    return <p className="text-muted-foreground">There are no more Pending Questions.</p>;
   }
   return (
     <ul className="flex flex-col gap-4" aria-label="Pending Questions">
