@@ -1,6 +1,8 @@
 import type { QuestionListResponse } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { FileTextIcon } from "lucide-react";
 import { useState } from "react";
+import { AddAQuestionButton } from "@/features/questions/add-a-question-button";
 import {
   ActRefusedInList,
   ResubmitButton,
@@ -13,6 +15,7 @@ import { QuestionCardsLoading } from "@/features/questions/question-cards-loadin
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { Button } from "@/ui/shadcn/button";
@@ -27,7 +30,7 @@ export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) 
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Your Questions"
-        description="The Questions you added that are not in the bank: Pending, waiting on a Reviewer, or Rejected, with the reason. The newest is first."
+        description="The Questions you added that are not in the bank yet: Pending, or Rejected with the reason."
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {own.isPending ? (
@@ -54,14 +57,20 @@ export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) 
 type OwnQuestionListProps = { page: QuestionListResponse; onRefusal: ActProps["onRefusal"] };
 
 function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
-  if (page.questions.length === 0) {
+  if (page.questions.length === 0 && page.offset === 0) {
     return (
-      <p className="text-muted-foreground">
-        {page.offset === 0
-          ? "You have no Pending or Rejected Question."
-          : "There are no more of your Questions."}
-      </p>
+      <EmptyList
+        icon={FileTextIcon}
+        title="You have no Pending or Rejected Questions"
+        // Offered to all, because the API shows this list only to a Viewer who may add one.
+        action={<AddAQuestionButton />}
+      >
+        Questions you add show here until a Reviewer Publishes them.
+      </EmptyList>
     );
+  }
+  if (page.questions.length === 0) {
+    return <p className="text-muted-foreground">There are no more of your Questions.</p>;
   }
   return (
     <ul className="flex flex-col gap-4" aria-label="Your Questions">

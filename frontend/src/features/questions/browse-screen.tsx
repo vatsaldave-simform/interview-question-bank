@@ -1,5 +1,7 @@
 import type { QuestionListResponse } from "@iqb/shared";
-import { Link } from "@tanstack/react-router";
+import { LibraryIcon, SearchXIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { AddAQuestionButton } from "@/features/questions/add-a-question-button";
 import { listRequestFor, type BrowseSearch } from "@/features/questions/browse.schema";
 import { BrowseFilters } from "@/features/questions/browse-filters";
 import { BrowseSearchBox } from "@/features/questions/browse-search-box";
@@ -7,7 +9,9 @@ import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
+import { useMayAddAQuestion } from "@/features/questions/use-may-add-a-question";
 import { whatWentWrong } from "@/platform/api-client";
+import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -22,6 +26,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   const asked = listRequestFor(search);
   const request = "request" in asked ? asked.request : null;
   const list = useQuestionList(request);
+  const mayAddAQuestion = useMayAddAQuestion();
 
   const namesAFilter = Object.entries(search).some(
     ([name, value]) => name !== "offset" && value !== undefined,
@@ -31,11 +36,8 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader
         title="Questions"
-        action={
-          <Button asChild>
-            <Link to="/questions/new">Add a Question</Link>
-          </Button>
-        }
+        description="Every Published Question you can see, to search or narrow by Category."
+        action={mayAddAQuestion && <AddAQuestionButton />}
       />
       <div className="grid gap-8 md:grid-cols-[14rem_1fr]">
         <aside className="flex flex-col gap-6" aria-label="Filters">
@@ -73,7 +75,15 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
               </AlertDescription>
             </Alert>
           ) : (
-            <QuestionList page={list.data} />
+            <QuestionList
+              page={list.data}
+              whenEmpty={
+                <NothingToShow
+                  namesAFilter={namesAFilter}
+                  onClearFilter={() => onSearchChange({})}
+                />
+              }
+            />
           )}
           {request !== null && (
             <QuestionPages
@@ -90,14 +100,17 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   );
 }
 
-function QuestionList({ page }: { page: QuestionListResponse }) {
-  if (page.questions.length === 0) {
-    return (
-      <p className="text-muted-foreground">
-        {page.offset === 0 ? "No Questions match." : "There are no more Questions."}
-      </p>
-    );
+type QuestionListProps = {
+  page: QuestionListResponse;
+  /** Shown in place of a first page with nothing on it. */
+  whenEmpty: ReactNode;
+};
+
+function QuestionList({ page, whenEmpty }: QuestionListProps) {
+  if (page.questions.length === 0 && page.offset > 0) {
+    return <p className="text-muted-foreground">There are no more Questions.</p>;
   }
+  if (page.questions.length === 0) return whenEmpty;
   return (
     <ul className="flex flex-col gap-4">
       {page.questions.map((question) => (
@@ -106,5 +119,39 @@ function QuestionList({ page }: { page: QuestionListResponse }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+type NothingToShowProps = { namesAFilter: boolean; onClearFilter: () => void };
+
+function NothingToShow({ namesAFilter, onClearFilter }: NothingToShowProps) {
+  const mayAddAQuestion = useMayAddAQuestion();
+  if (namesAFilter) {
+    return (
+      <EmptyList
+        icon={SearchXIcon}
+        title="No Question matches this filter"
+        action={
+          <Button variant="outline" onClick={onClearFilter}>
+            Clear the filter
+          </Button>
+        }
+      >
+        Try fewer Tags or words, or clear the filter to see every Question you can see.
+      </EmptyList>
+    );
+  }
+  return (
+    // Not "the bank is empty": it may hold Questions restricted to a Client this Viewer
+    // holds no Permission Grant for.
+    <EmptyList
+      icon={LibraryIcon}
+      title="No Question you can see yet"
+      action={mayAddAQuestion ? <AddAQuestionButton /> : undefined}
+    >
+      {mayAddAQuestion
+        ? "Add the first one. A Reviewer reads it before it is in the bank."
+        : "Questions appear here once a Reviewer Publishes them."}
+    </EmptyList>
   );
 }

@@ -126,7 +126,7 @@ describe("issuing and revoking a Grant from the administration console", () => {
     await userEvent.click(holder.getByRole("button", { name: "Revoke" }));
     await confirmTheRevoke();
 
-    expect(await section.findByText("Nobody holds a Grant against this Client.")).toBeVisible();
+    expect(await section.findByRole("heading", { name: "Nobody can see this Client's Questions yet" })).toBeVisible();
     expect(await theToastSaying("author@iqb.test's Grant was revoked.")).toBeVisible();
     expect(optionsIn(section.getByLabelText("Viewer"))).toContain("author@iqb.test");
     expect(grantActsSent(api)).toEqual([`DELETE /api/clients/${northwind.id}/grants/${author.id}`]);

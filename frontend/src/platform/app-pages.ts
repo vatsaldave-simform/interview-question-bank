@@ -1,4 +1,4 @@
-import type { Viewer } from "@iqb/shared";
+import { mayAddAQuestion, type Viewer } from "@iqb/shared";
 import type { LinkProps } from "@tanstack/react-router";
 import {
   Building2Icon,
@@ -27,7 +27,6 @@ type AppPage = {
 };
 
 const everyone = () => true;
-const anyoneButAReader = (viewer: Viewer) => viewer.role !== "reader";
 const aReviewer = (viewer: Viewer) => viewer.role === "reviewer";
 const anAdministrator = (viewer: Viewer) => viewer.isAdministrator;
 
@@ -57,7 +56,7 @@ export const appPages = [
     name: "Add a Question",
     icon: SquarePlusIcon,
     group: "Questions",
-    shownTo: anyoneButAReader,
+    shownTo: mayAddAQuestion,
   },
   {
     id: "your-questions",
@@ -65,7 +64,7 @@ export const appPages = [
     name: "Your Questions",
     icon: FileTextIcon,
     group: "Questions",
-    shownTo: anyoneButAReader,
+    shownTo: mayAddAQuestion,
   },
   {
     id: "review-queue",

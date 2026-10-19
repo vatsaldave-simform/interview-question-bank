@@ -83,7 +83,7 @@ describe("the Clients on the administration console", () => {
     await userEvent.click(await screen.findByRole("link", { name: kingsbridge.name }));
     const kingsbridgeGrants = within(await screen.findByRole("region", { name: kingsbridge.name }));
     expect(
-      await kingsbridgeGrants.findByText("Nobody holds a Grant against this Client."),
+      await kingsbridgeGrants.findByRole("heading", { name: "Nobody can see this Client's Questions yet" }),
     ).toBeVisible();
   });
 
@@ -92,7 +92,7 @@ describe("the Clients on the administration console", () => {
 
     renderTheWholeClient("/administration/clients");
 
-    expect(await screen.findByText("No Client has been created.")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "No Client yet" })).toBeVisible();
   });
 
   it("reports the API's refusal of the Client list, with no Try again", async () => {

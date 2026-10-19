@@ -116,7 +116,9 @@ describe("a Near-Duplicate found at publication", () => {
     const dialog = within(await screen.findByRole("dialog"));
     await userEvent.click(dialog.getByRole("button", { name: "It is different, Publish it" }));
 
-    expect(await screen.findByText("No Question is waiting for review.")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Nothing is waiting for review" }),
+    ).toBeVisible();
     const [first, again] = publicationsSent(api);
     expect(await first!.json()).toEqual({ confirmedNotANearDuplicate: false });
     expect(await again!.json()).toEqual({ confirmedNotANearDuplicate: true });

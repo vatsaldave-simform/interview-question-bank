@@ -11,32 +11,41 @@ import {
 } from "@/ui/shadcn/dialog";
 
 type AddDialogProps = {
-  label: string;
   title: string;
   description: ReactNode;
   /** The form, handed the way to close the dialog once it is done or cancelled. */
-  children: (close: () => void) => ReactNode;
+  form: (close: () => void) => ReactNode;
+  /** The page, which places an `AddDialogButton` wherever it offers the form. */
+  children: ReactNode;
 };
 
-/** A page's main button that opens a form, so the form is not always open on the page. */
-export function AddDialog({ label, title, description, children }: AddDialogProps) {
+/** Wraps the whole page, so the form stays open and keeps what was typed when the page
+ * moves its button, as it does into a list that comes back empty. */
+export function AddDialog({ title, description, form, children }: AddDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusIcon aria-hidden="true" />
-          {label}
-        </Button>
-      </DialogTrigger>
+      {children}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        {children(() => setOpen(false))}
+        {form(() => setOpen(false))}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** A page's main button, which opens the form so it is not always open on the page. */
+export function AddDialogButton({ label }: { label: string }) {
+  return (
+    <DialogTrigger asChild>
+      <Button>
+        <PlusIcon aria-hidden="true" />
+        {label}
+      </Button>
+    </DialogTrigger>
   );
 }
