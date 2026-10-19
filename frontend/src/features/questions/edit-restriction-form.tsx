@@ -8,9 +8,9 @@ import {
   useChangeRestriction,
   type RestrictionChange,
 } from "@/features/questions/questions.queries";
-import { ScreenSection } from "@/features/questions/screen-section";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
+import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
 
 /** Apart from the edit form, because an edit refuses a Client and a restriction change is

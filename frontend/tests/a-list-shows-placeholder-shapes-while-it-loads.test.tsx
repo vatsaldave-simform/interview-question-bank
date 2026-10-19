@@ -22,6 +22,9 @@ const client = aClient();
 // Each screen, the API path its list asks for, and what a screen reader hears meanwhile.
 const lists = [
   ["/", "/api/questions", "Loading the newest Questions…"],
+  ["/", "/api/questions/own", "Loading your Questions…"],
+  ["/", "/api/questions/pending", "Loading the Pending Questions…"],
+  ["/", "/api/role-requests", "Loading the Role Requests…"],
   ["/questions", "/api/questions", "Loading Questions…"],
   ["/questions/own", "/api/questions/own", "Loading your Questions…"],
   ["/review", "/api/questions/pending", "Loading the Pending Questions…"],

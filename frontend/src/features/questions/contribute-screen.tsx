@@ -21,8 +21,8 @@ import {
   type QuestionDraft,
 } from "@/features/questions/question-problems";
 import { useAddQuestion } from "@/features/questions/questions.queries";
-import { ScreenSection } from "@/features/questions/screen-section";
 import { PageHeader } from "@/ui/page-header";
+import { ScreenSection } from "@/ui/screen-section";
 import { FieldGroup } from "@/ui/shadcn/field";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };

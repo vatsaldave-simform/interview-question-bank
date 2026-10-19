@@ -18,6 +18,14 @@ export function useOpenRoleRequests() {
   return useQuery({ ...openRoleRequestsQuery, select: (answer) => answer.roleRequests });
 }
 
+/** Cut from the list the sidebar count already asks for, so Home sends nothing new. */
+export function useFirstOpenRoleRequests(count: number) {
+  return useQuery({
+    ...openRoleRequestsQuery,
+    select: (answer) => answer.roleRequests.slice(0, count),
+  });
+}
+
 export function useOpenRoleRequestCount(): number {
   const { data } = useQuery({
     ...openRoleRequestsQuery,
@@ -26,13 +34,22 @@ export function useOpenRoleRequestCount(): number {
   return data ?? 0;
 }
 
+const myRoleRequestsQuery = queryOptions({
+  queryKey: ["role-requests", "mine"],
+  queryFn: ({ signal }) =>
+    callApi("/api/role-requests/mine", roleRequestListResponseSchema, { signal }),
+});
+
 /** Newest first, as the API sends them, so the first one is what became of the latest. */
 export function useMyRoleRequests() {
+  return useQuery({ ...myRoleRequestsQuery, select: (answer) => answer.roleRequests });
+}
+
+/** Cut from the account page's list, so Home sends nothing new. */
+export function useMyOpenRoleRequest() {
   return useQuery({
-    queryKey: ["role-requests", "mine"],
-    queryFn: ({ signal }) =>
-      callApi("/api/role-requests/mine", roleRequestListResponseSchema, { signal }),
-    select: (answer) => answer.roleRequests,
+    ...myRoleRequestsQuery,
+    select: (answer) => answer.roleRequests.find(({ state }) => state === "open") ?? null,
   });
 }
 

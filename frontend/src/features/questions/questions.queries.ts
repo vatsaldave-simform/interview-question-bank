@@ -51,6 +51,14 @@ export function useReviewQueue(offset: number) {
   return useQuery(reviewQueueQuery(offset));
 }
 
+/** Cut from the Review queue's first page, which the sidebar already asks for. */
+export function useFirstPendingQuestions(count: number) {
+  return useQuery({
+    ...reviewQueueQuery(0),
+    select: (page) => page.questions.slice(0, count),
+  });
+}
+
 /** Only whether any wait, because the list carries no total to say how many. */
 export function useAnyQuestionWaiting(): boolean {
   const { data } = useQuery({
@@ -60,11 +68,23 @@ export function useAnyQuestionWaiting(): boolean {
   return data === true;
 }
 
-export function useOwnQuestions(offset: number) {
+function ownQuestionsQuery(offset: number) {
   const path = `/api/questions/own${stringifySearch({ limit: questionPageSize, offset })}`;
-  return useQuery({
+  return queryOptions({
     queryKey: ["questions", "own", offset],
     queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
+  });
+}
+
+export function useOwnQuestions(offset: number) {
+  return useQuery(ownQuestionsQuery(offset));
+}
+
+/** Cut from the first page of Your Questions, so Home asks the API nothing new. */
+export function useFirstOwnQuestions(count: number) {
+  return useQuery({
+    ...ownQuestionsQuery(0),
+    select: (page) => page.questions.slice(0, count),
   });
 }
 
