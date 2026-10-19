@@ -57,7 +57,10 @@ function AccountPage() {
   const { viewer } = session;
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
-      <PageHeader title="Your account" />
+      <PageHeader
+        title="Your account"
+        description="Your email, your role, and any Role Request you have made."
+      />
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Email</dt>
         <dd>{viewer.email}</dd>

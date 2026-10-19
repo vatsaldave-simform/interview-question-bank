@@ -61,7 +61,10 @@ function QuestionInFull({ question }: { question: Question }) {
   return (
     // The details come before the main column, so on a phone they sit just under the title.
     <article className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
-      <PageHeader title={question.text} />
+      <PageHeader
+        title={question.text}
+        description="One Question, with its Answer Notes and where it came from."
+      />
       <AboutThisQuestion question={question} />
       <div className="flex flex-col gap-6 md:col-start-1">
         {question.reason !== null && (

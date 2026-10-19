@@ -16,7 +16,7 @@ export function ClientList() {
       <PageHeader
         title="Clients"
         titleId="clients"
-        description="Open a Client to see and change who holds a Grant against it."
+        description="Open a Client to see and change who holds a Permission Grant for it."
         action={
           <AddDialog
             label="Add a Client"

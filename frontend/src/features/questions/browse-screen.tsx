@@ -31,6 +31,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader
         title="Questions"
+        description="Every Published Question you can see. Search, or narrow it by Category."
         action={
           <Button asChild>
             <Link to="/questions/new">Add a Question</Link>
