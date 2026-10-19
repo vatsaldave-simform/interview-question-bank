@@ -51,6 +51,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand-half-foreground: var(--brand-half-foreground);
+  --color-brand-half-muted: var(--brand-half-muted);
+  --color-brand-half-card: var(--brand-half-card);
+  --color-brand-half-card-border: var(--brand-half-card-border);
+  --color-brand-half-tag: var(--brand-half-tag);
+  --color-form-half: var(--form-half);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -128,6 +134,18 @@
   --sidebar-accent-foreground: var(--text);
   --sidebar-border: var(--glass-edge);
   --sidebar-ring: var(--ring);
+  /* The brand half of the signed-out screens is deep purple in light and in dark alike. */
+  --brand-half:
+    radial-gradient(50% 45% at 100% 0%, color-mix(in oklch, var(--brand-red) 42%, transparent), transparent 72%),
+    radial-gradient(60% 55% at 0% 100%, color-mix(in oklch, var(--brand-lavender) 45%, transparent), transparent 70%),
+    radial-gradient(40% 35% at 70% 70%, color-mix(in oklch, var(--brand-lavender) 22%, transparent), transparent 70%),
+    linear-gradient(155deg, var(--brand-purple), color-mix(in oklch, var(--brand-purple) 60%, oklch(0 0 0)));
+  --brand-half-foreground: oklch(1 0 0);
+  --brand-half-muted: color-mix(in oklch, var(--brand-lavender) 70%, oklch(1 0 0));
+  --brand-half-card: oklch(1 0 0 / 10%);
+  --brand-half-card-border: oklch(1 0 0 / 22%);
+  --brand-half-tag: color-mix(in oklch, var(--brand-lavender) 22%, transparent);
+  --form-half: color-mix(in oklch, var(--brand-lavender) 10%, oklch(1 0 0));
 }
 
 .dark {
@@ -186,6 +204,7 @@
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
   --sidebar-accent-foreground: var(--text);
+  --form-half: color-mix(in oklch, var(--brand-purple) 30%, oklch(0 0 0));
 }
 
 @media (prefers-reduced-transparency: reduce) {

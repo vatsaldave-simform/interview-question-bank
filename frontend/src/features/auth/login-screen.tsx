@@ -1,40 +1,27 @@
 import { Link } from "@tanstack/react-router";
 import { DemoCredentials } from "@/features/auth/demo-credentials";
 import { LoginForm } from "@/features/auth/login-form";
+import { SplitScreen } from "@/features/auth/split-screen";
 import { ColdStartNotice } from "@/platform/cold-start-notice";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
 /** The whole of what someone who is not signed in sees: the form, why the first load is
  * slow, and the credentials to get in with. */
 export function LoginScreen({ passwordJustSet }: { passwordJustSet: boolean }) {
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Interview Question Bank</CardTitle>
-            <CardDescription>Sign in to browse and contribute Questions.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            {passwordJustSet && (
-              <Alert>
-                <AlertTitle>Your password is set.</AlertTitle>
-                <AlertDescription>Sign in with it below.</AlertDescription>
-              </Alert>
-            )}
-            <LoginForm />
-            <Link
-              to="/forgotten-password"
-              className="text-primary text-sm hover:underline"
-            >
-              Forgotten your password?
-            </Link>
-          </CardContent>
-        </Card>
-        <DemoCredentials />
-        <ColdStartNotice />
-      </div>
-    </main>
+    <SplitScreen title="Sign in" description="Use the email an Administrator added you with.">
+      {passwordJustSet && (
+        <Alert>
+          <AlertTitle>Your password is set.</AlertTitle>
+          <AlertDescription>Sign in with it below.</AlertDescription>
+        </Alert>
+      )}
+      <LoginForm />
+      <Link to="/forgotten-password" className="text-primary self-start text-sm hover:underline">
+        Forgotten your password?
+      </Link>
+      <DemoCredentials />
+      <ColdStartNotice />
+    </SplitScreen>
   );
 }
