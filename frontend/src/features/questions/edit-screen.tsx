@@ -40,7 +40,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
       </Link>
       <PageHeader
         title="Edit the Question"
-        description="Change what the Question says. Its history keeps who changed it and when."
+        description="Change what the Question says, and its history keeps who changed it and when."
       />
       {question.isPending ? (
         <EditFormLoading />

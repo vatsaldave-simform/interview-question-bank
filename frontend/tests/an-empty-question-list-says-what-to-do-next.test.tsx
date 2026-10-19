@@ -27,7 +27,7 @@ describe("an empty Your Questions", () => {
     fakeBank((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions/own");
 
-    const empty = within(await theEmptyList("You have no Questions waiting or refused"));
+    const empty = within(await theEmptyList("You have no Pending or Rejected Questions"));
     expect(
       empty.getByText("Questions you add show here until a Reviewer Publishes them."),
     ).toBeVisible();
@@ -44,7 +44,7 @@ describe("an empty Review queue", () => {
 
     const empty = within(await theEmptyList("Nothing is waiting for review"));
     expect(
-      empty.getByText("You are done for now. New Questions appear here when an Author sends them."),
+      empty.getByText("You are done for now. New Questions appear here when they are submitted."),
     ).toBeVisible();
     expect(empty.queryByRole("button")).not.toBeInTheDocument();
     expect(empty.queryByRole("link")).not.toBeInTheDocument();
@@ -74,13 +74,13 @@ describe("Browse with a filter that matches nothing", () => {
   });
 });
 
-describe("Browse with no filter, when the bank is empty", () => {
+describe("Browse with no filter, when there is nothing to see", () => {
   it("says so, and offers Add a Question to a Viewer who may add one", async () => {
     signInAs();
     fakeBank((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");
 
-    const empty = within(await theEmptyList("The bank has no Questions yet"));
+    const empty = within(await theEmptyList("No Question you can see yet"));
     expect(
       empty.getByText("Add the first one. A Reviewer reads it before it is in the bank."),
     ).toBeVisible();
@@ -92,7 +92,7 @@ describe("Browse with no filter, when the bank is empty", () => {
     fakeBank((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");
 
-    const empty = within(await theEmptyList("The bank has no Questions yet"));
+    const empty = within(await theEmptyList("No Question you can see yet"));
     expect(empty.getByText("Questions appear here once a Reviewer Publishes them.")).toBeVisible();
     expect(empty.queryByRole("link")).not.toBeInTheDocument();
   });

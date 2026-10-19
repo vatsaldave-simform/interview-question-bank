@@ -81,7 +81,7 @@ describe("an Author's own Pending and Rejected Questions", () => {
     renderTheWholeClient("/questions/own");
 
     expect(
-      await screen.findByRole("heading", { name: "You have no Questions waiting or refused" }),
+      await screen.findByRole("heading", { name: "You have no Pending or Rejected Questions" }),
     ).toBeVisible();
   });
 

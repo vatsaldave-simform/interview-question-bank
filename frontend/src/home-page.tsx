@@ -24,7 +24,7 @@ export function HomePage({ onSearch }: HomePageProps) {
       <PageHeader
         title="Welcome back"
         description={
-          `Signed in as ${session.viewer.email}. Search the bank, or start from what is new.`
+          `Signed in as ${session.viewer.email}: search the bank, or start from what is new.`
         }
       />
       <section aria-label="Search the bank">

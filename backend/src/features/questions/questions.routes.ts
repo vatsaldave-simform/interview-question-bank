@@ -7,7 +7,7 @@ import {
   rejectQuestionRequestSchema,
   restrictQuestionRequestSchema,
   returnQuestionRequestSchema,
-  rolesThatMayAdd,
+  rolesThatMayAddAQuestion,
   type ChangeEvent,
   type Question,
   type QuestionHistoryResponse,
@@ -68,7 +68,7 @@ export function questionRoutes(database: Database): Router {
   const router = Router();
 
   // On the route rather than on the router, because a Reader may still read the bank.
-  router.post("/", requireRole(...rolesThatMayAdd), async (req, res) => {
+  router.post("/", requireRole(...rolesThatMayAddAQuestion), async (req, res) => {
     const viewer = authenticatedViewer(req);
     const request = addQuestionRequestSchema.parse(req.body);
 
@@ -99,7 +99,7 @@ export function questionRoutes(database: Database): Router {
 
   // A Viewer who may not add a Question is refused rather than handed a list that is always
   // empty.
-  router.get("/own", requireRole(...rolesThatMayAdd), async (req, res) => {
+  router.get("/own", requireRole(...rolesThatMayAddAQuestion), async (req, res) => {
     const viewer = authenticatedViewer(req);
     const page = questionPageRequestSchema.parse(req.query);
 

@@ -64,7 +64,7 @@ function PendingList({ page, onRefusal }: PendingListProps) {
   if (page.questions.length === 0 && page.offset === 0) {
     return (
       <EmptyList icon={ClipboardCheckIcon} title="Nothing is waiting for review">
-        You are done for now. New Questions appear here when an Author sends them.
+        You are done for now. New Questions appear here when they are submitted.
       </EmptyList>
     );
   }

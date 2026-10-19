@@ -30,7 +30,9 @@ describe("two Viewers taking turns in one tab", () => {
     signInAs(anAdministrator);
     renderTheWholeClient("/administration/clients");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add a Client" }));
+    // The list comes back empty, which takes the button into its own card.
+    await screen.findByRole("region", { name: "No Client yet" });
+    await userEvent.click(screen.getByRole("button", { name: "Add a Client" }));
     const form = within(await screen.findByRole("form", { name: "Create a Client" }));
     await userEvent.type(form.getByLabelText("Name"), "Kingsbridge Health");
     await userEvent.click(form.getByRole("button", { name: "Create" }));

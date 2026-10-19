@@ -45,7 +45,12 @@ function creations(api: ReturnType<typeof fakeBank>): Request[] {
   );
 }
 
+/** Waits for the list first, because an empty one takes the button into its own card. */
 async function theCreateForm() {
+  await screen.findByRole("heading", { level: 1, name: "Clients" });
+  await vi.waitFor(() =>
+    expect(screen.queryByText("Loading the Clients…")).not.toBeInTheDocument(),
+  );
   await userEvent.click(await screen.findByRole("button", { name: "Add a Client" }));
   return within(await screen.findByRole("form", { name: "Create a Client" }));
 }
@@ -118,5 +123,41 @@ describe("creating a Client from the administration console", () => {
       await form.findByText("Enter the Client's name, in 200 characters or fewer."),
     ).toBeVisible();
     expect(form.queryByText("The Client was not created.")).not.toBeInTheDocument();
+  });
+
+  it("can still be started when the Client list fails to load", async () => {
+    fakeBank(
+      (asked) => aPageOf([], asked),
+      (_request, asked) =>
+        asked.pathname === "/api/clients/all"
+          ? refusesWith(500, "internal_error", "Something went wrong on our side.")
+          : undefined,
+    );
+    renderTheWholeClient("/administration/clients");
+
+    expect(await screen.findByText("Something went wrong on our side.")).toBeVisible();
+    expect(await theCreateForm()).toBeDefined();
+  });
+
+  it("stays open when the list comes in empty while it is open", async () => {
+    let answerTheList: (answer: Response) => void = () => {};
+    fakeBank(
+      (asked) => aPageOf([], asked),
+      (_request, asked) =>
+        asked.pathname === "/api/clients/all"
+          ? new Promise<Response>((answer) => (answerTheList = answer))
+          : undefined,
+    );
+    renderTheWholeClient("/administration/clients");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Add a Client" }));
+    const form = within(await screen.findByRole("form", { name: "Create a Client" }));
+    await userEvent.type(form.getByLabelText("Name"), "Kingsbridge");
+    answerTheList(answersWith({ clients: [] }));
+    await screen.findByText("No Client yet");
+
+    expect(form.getByLabelText("Name")).toHaveValue("Kingsbridge");
+    await userEvent.keyboard("{Escape}");
+    expect(await screen.findByRole("region", { name: "No Client yet" })).toBeVisible();
   });
 });

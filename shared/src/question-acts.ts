@@ -6,12 +6,14 @@ import type { PublicationState } from "./questions.js";
 
 type Authored = { authorId: string };
 
-/** Everyone but a Reader, because the rule is about Question content, not every write
- * (CONTEXT.md). A list of roles, so the API can refuse by role before reading anything. */
-export const rolesThatMayAdd = ["author", "reviewer"] as const satisfies readonly ViewerRole[];
+/** Every role but Reader, as a list so the API can refuse by role before reading anything. */
+export const rolesThatMayAddAQuestion = [
+  "author",
+  "reviewer",
+] as const satisfies readonly ViewerRole[];
 
-export function mayAdd(viewer: Viewer): boolean {
-  return (rolesThatMayAdd as readonly ViewerRole[]).includes(viewer.role);
+export function mayAddAQuestion(viewer: Viewer): boolean {
+  return (rolesThatMayAddAQuestion as readonly ViewerRole[]).includes(viewer.role);
 }
 
 /** Whether this Viewer may change this Question's content. Only ever asked about a Question

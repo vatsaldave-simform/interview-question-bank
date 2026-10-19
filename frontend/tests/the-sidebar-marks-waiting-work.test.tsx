@@ -83,7 +83,7 @@ describe("the dot on Review queue", () => {
 
     const sidebar = await theSidebar();
     await vi.waitFor(() => expect(pendingListRequests(api)).toHaveLength(1));
-    await screen.findByText("The bank has no Questions yet");
+    await screen.findByText("No Question you can see yet");
     expect(sidebar.getByRole("link", { name: "Review queue" })).toBeVisible();
   });
 
@@ -98,7 +98,7 @@ describe("the dot on Review queue", () => {
 
     const sidebar = await theSidebar();
     await sidebar.findByRole("link", { name: "Browse" });
-    await screen.findByText("The bank has no Questions yet");
+    await screen.findByText("No Question you can see yet");
     expect(pendingListRequests(api)).toHaveLength(0);
   });
 
@@ -159,7 +159,7 @@ describe("the number beside Role Requests", () => {
 
     const sidebar = await theSidebar();
     await vi.waitFor(() => expect(requestsFor("/api/role-requests", api)).toHaveLength(1));
-    await screen.findByText("The bank has no Questions yet");
+    await screen.findByText("No Question you can see yet");
     expect(sidebar.getByRole("link", { name: "Role Requests" })).toBeVisible();
   });
 
@@ -174,7 +174,7 @@ describe("the number beside Role Requests", () => {
 
     const sidebar = await theSidebar();
     await sidebar.findByRole("link", { name: "Browse" });
-    await screen.findByText("The bank has no Questions yet");
+    await screen.findByText("No Question you can see yet");
     expect(requestsFor("/api/role-requests", api)).toHaveLength(0);
   });
 
