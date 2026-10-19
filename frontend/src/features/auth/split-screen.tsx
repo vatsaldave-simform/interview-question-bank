@@ -7,11 +7,10 @@ type SplitScreenProps = {
   children: ReactNode;
 };
 
-/** The frame every signed-out screen shares: the brand on one half, the form on the other.
- * On a phone the brand half becomes a band above the form. */
+/** The frame every signed-out screen shares: the brand on one side, the form on the other. */
 export function SplitScreen({ title, description, children }: SplitScreenProps) {
   return (
-    <main className="bg-form-half grid min-h-svh grid-rows-[auto_1fr] md:grid-cols-[1.1fr_1fr] md:grid-rows-1">
+    <main className="bg-form-half grid min-h-svh grid-rows-[auto_1fr] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:grid-rows-1">
       <section className="text-brand-half-foreground flex flex-col justify-between gap-5 overflow-hidden bg-(image:--brand-half) px-5 py-6 md:gap-8 md:px-12 md:py-10">
         <div className="flex items-center gap-3">
           <img src="/simform-logo.svg" alt="Simform" className="h-5 w-auto md:h-6.5" />
@@ -44,11 +43,11 @@ export function SplitScreen({ title, description, children }: SplitScreenProps) 
 
 /** A picture of what the bank holds, not a Question in it, so it is hidden from screen readers. */
 function SampleCards() {
-  const card =
+  const cardClasses =
     "bg-brand-half-card border-brand-half-card-border absolute flex flex-col gap-2.5 rounded-2xl border px-4.5 py-4 shadow-xl";
   return (
     <div aria-hidden="true" className="relative hidden h-52 md:block">
-      <div className={`${card} top-0 left-0 w-[min(380px,92%)]`}>
+      <div className={`${cardClasses} top-0 left-0 w-[min(380px,92%)]`}>
         <small className="text-brand-lavender text-xs">Recently added</small>
         <b className="leading-snug">
           What happens between typing an address into a browser and the page appearing?
@@ -61,7 +60,7 @@ function SampleCards() {
           ))}
         </div>
       </div>
-      <div className={`${card} top-30 left-[min(220px,40%)] w-60`}>
+      <div className={`${cardClasses} top-30 left-[min(220px,40%)] w-60`}>
         <span className="flex items-center gap-1 text-xs">
           <StarIcon className="fill-brand-red text-brand-red size-3.5" />
           <b>4.6</b> out of 5 from 18 Ratings

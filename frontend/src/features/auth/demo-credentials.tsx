@@ -14,8 +14,8 @@ const demoViewers: readonly (LoginRequest & { role: ViewerRole })[] = [
  * what a Reader, an Author and a Reviewer are each shown (ADR-0012). */
 export function DemoCredentials() {
   return (
-    // Folded, so the form comes first. A closed `<details>` still holds them, where a
-    // closed Collapsible would remove them from the page.
+    // `<details>` rather than Collapsible, because a closed Collapsible takes the accounts
+    // out of the page and the browser's find no longer reaches them.
     <details className="rounded-xl border px-4 text-sm">
       <summary className="focus-visible:ring-ring cursor-pointer rounded-md py-3 font-semibold outline-none focus-visible:ring-2">
         Accounts to try
