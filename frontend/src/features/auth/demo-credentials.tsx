@@ -1,5 +1,4 @@
 import type { LoginRequest, ViewerRole } from "@iqb/shared";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/shadcn/card";
 
 // Written out here rather than imported. `@iqb/shared` carries the request and response
 // shapes both ends parse with (ADR-0010), and nothing in the client may reach into the
@@ -15,26 +14,26 @@ const demoViewers: readonly (LoginRequest & { role: ViewerRole })[] = [
  * what a Reader, an Author and a Reviewer are each shown (ADR-0012). */
 export function DemoCredentials() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Accounts to try</CardTitle>
-        <CardDescription>
-          One per role, so you can see what each of them is shown. They are demonstration
-          data, and the bank holds nothing private.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col gap-3 text-sm">
-          {demoViewers.map((viewer) => (
-            <li key={viewer.email} className="flex flex-col gap-0.5">
-              <span className="font-medium capitalize">{viewer.role}</span>
-              <span className="text-muted-foreground">
-                <code>{viewer.email}</code> · <code>{viewer.password}</code>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    // `<details>` rather than Collapsible, because a closed Collapsible takes the accounts
+    // out of the page and the browser's find no longer reaches them.
+    <details className="rounded-xl border px-4 text-sm">
+      <summary className="focus-visible:ring-ring cursor-pointer rounded-md py-3 font-semibold outline-none focus-visible:ring-2">
+        Accounts to try
+      </summary>
+      <p className="text-muted-foreground mb-3">
+        One per role, so you can see what each of them is shown. They are demonstration data,
+        and the bank holds nothing private.
+      </p>
+      <ul className="mb-4 flex flex-col gap-3">
+        {demoViewers.map((viewer) => (
+          <li key={viewer.email} className="flex flex-col gap-0.5">
+            <span className="font-medium capitalize">{viewer.role}</span>
+            <span className="text-muted-foreground">
+              <code>{viewer.email}</code> · <code>{viewer.password}</code>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
