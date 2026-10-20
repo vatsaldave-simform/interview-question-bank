@@ -64,12 +64,15 @@ describe("where a Question came from", () => {
     expect(within(whereItCameFrom()).getByText(/Where it came from is not known\./)).toBeVisible();
   });
 
-  it("shows each card's Provenance in the list", async () => {
+  // The card leaves room for the Answer Notes, and the Question's page says where it came from.
+  it("leaves each card's Provenance to the Question's page", async () => {
     aBankHolding([adapted, inherited]);
     renderTheWholeClient("/questions");
 
     const cards = await screen.findAllByRole("article");
-    expect(cards[0]).toHaveTextContent("Where it came from: Adapted");
-    expect(cards[1]).toHaveTextContent("Where it came from: Inherited");
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card).not.toHaveTextContent(/Where it came from|Adapted|Inherited/);
+    }
   });
 });

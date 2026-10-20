@@ -1,6 +1,6 @@
 import type { CategoryWithTags } from "@iqb/shared";
 import { CheckIcon } from "lucide-react";
-import { chosenAfter } from "@/features/questions/category-tags";
+import { chosenAfter } from "@/features/questions/chosen-tags";
 import { Checkbox } from "@/ui/shadcn/checkbox";
 import { FieldLegend, FieldSet } from "@/ui/shadcn/field";
 import { Skeleton } from "@/ui/shadcn/skeleton";

@@ -126,7 +126,7 @@ describe("the link to an Author's own list", () => {
     aBankAnswering((asked) => aPageOf([], asked));
     renderTheWholeClient("/questions");
 
-    await screen.findByRole("heading", { name: "Questions" });
+    await screen.findByRole("heading", { name: "Browse" });
 
     expect(screen.queryByRole("link", { name: "Your Questions" })).not.toBeInTheDocument();
   });

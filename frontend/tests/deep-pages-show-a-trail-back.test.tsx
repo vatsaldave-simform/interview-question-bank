@@ -129,7 +129,7 @@ describe("a page no sidebar link leads to", () => {
 describe("a page the sidebar leads to", () => {
   it.each([
     { address: "/", title: homeGreeting },
-    { address: "/questions", title: "Questions" },
+    { address: "/questions", title: "Browse" },
     { address: "/questions/own", title: "Your Questions" },
     { address: "/administration/role-requests", title: "Open Role Requests" },
     { address: "/administration/viewers", title: "Viewers" },

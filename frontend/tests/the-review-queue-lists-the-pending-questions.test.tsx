@@ -114,7 +114,7 @@ describe("the link to the Pending queue", () => {
     aBankAnsweringTheQueue((asked) => aQueueOf([], asked));
     renderTheWholeClient("/questions");
 
-    await screen.findByRole("heading", { name: "Questions" });
+    await screen.findByRole("heading", { name: "Browse" });
 
     expect(screen.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument();
   });

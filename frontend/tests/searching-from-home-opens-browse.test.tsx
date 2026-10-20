@@ -27,7 +27,7 @@ describe("searching from Home", () => {
       " cache miss {Enter}",
     );
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Questions" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Browse" })).toBeVisible();
     expect(window.location.pathname).toBe("/questions");
     expect(window.location.search).toBe("?keywords=cache+miss");
     await waitFor(() =>
@@ -42,7 +42,7 @@ describe("searching from Home", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Search" }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Questions" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Browse" })).toBeVisible();
     expect(window.location.pathname).toBe("/questions");
     expect(window.location.search).toBe("");
   });

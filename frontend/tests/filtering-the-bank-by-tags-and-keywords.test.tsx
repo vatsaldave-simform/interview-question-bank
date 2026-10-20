@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
@@ -22,29 +22,68 @@ function aBankWithOneQuestion() {
   return fakeBank((asked) => aPageOf([aQuestion()], asked));
 }
 
-async function tick(tag: string): Promise<void> {
-  await userEvent.click(await screen.findByRole("checkbox", { name: tag }));
+function pillFor(category: string): Promise<HTMLElement> {
+  return screen.findByRole("button", { name: new RegExp(`^${category} ·`) });
+}
+
+/** Opens the Category's pill, so its Tags are on screen. */
+async function openPill(category: string): Promise<ReturnType<typeof within>> {
+  await userEvent.click(await pillFor(category));
+  return within(await screen.findByRole("menu"));
+}
+
+async function pick(category: string, tag: string): Promise<void> {
+  const menu = await openPill(category);
+  await userEvent.click(menu.getByRole("menuitemcheckbox", { name: tag }));
+  await userEvent.keyboard("{Escape}");
 }
 
 describe("filtering the bank", () => {
-  it("offers the Tags the API listed, under each Category's own name", async () => {
+  it("offers one pill per Category, under its own name, holding the Tags the API listed", async () => {
     aBankWithOneQuestion();
     renderTheWholeClient("/questions");
 
-    const technology = await screen.findByRole("group", { name: "Technology" });
-    expect(technology).toContainElement(screen.getByRole("checkbox", { name: "react" }));
-    expect(screen.getByRole("group", { name: "Question type" })).toContainElement(
-      screen.getByRole("checkbox", { name: "practical" }),
-    );
+    expect(await pillFor("Technology")).toHaveAccessibleName("Technology · Any");
+    expect(await pillFor("Seniority")).toHaveAccessibleName("Seniority · Any");
+    expect(await pillFor("Question type")).toHaveAccessibleName("Question type · Any");
+
+    const menu = await openPill("Question type");
+    expect(menu.getAllByRole("menuitemcheckbox").map((item: HTMLElement) => item.textContent)).toEqual([
+      "conceptual",
+      "practical",
+    ]);
+  });
+
+  it("keeps the menu open, so several Tags can be picked in one go", async () => {
+    aBankWithOneQuestion();
+    renderTheWholeClient("/questions");
+
+    const menu = await openPill("Technology");
+    await userEvent.click(menu.getByRole("menuitemcheckbox", { name: "react" }));
+    await userEvent.click(menu.getByRole("menuitemcheckbox", { name: "node" }));
+
+    await waitFor(() => expect(window.location.search).toBe("?technology=react&technology=node"));
+    expect(menu.getByRole("menuitemcheckbox", { name: "react" })).toBeChecked();
+    expect(menu.getByRole("menuitemcheckbox", { name: "node" })).toBeChecked();
+    expect(menu.getByRole("menuitemcheckbox", { name: "typescript" })).not.toBeChecked();
+  });
+
+  it("names the one Tag picked on its pill, or how many", async () => {
+    aBankWithOneQuestion();
+    renderTheWholeClient("/questions?technology=react&technology=node&seniority=senior");
+
+    expect(await pillFor("Technology")).toHaveAccessibleName("Technology · 2 chosen");
+    expect(await pillFor("Seniority")).toHaveAccessibleName("Seniority · senior");
+    expect(await pillFor("Question type")).toHaveAccessibleName("Question type · Any");
   });
 
   it("sends several Tags in one Category and one in another together", async () => {
     const api = aBankWithOneQuestion();
     renderTheWholeClient("/questions");
 
-    await tick("react");
-    await tick("node");
-    await tick("senior");
+    await pick("Technology", "react");
+    await pick("Technology", "node");
+    await pick("Seniority", "senior");
 
     await waitFor(() =>
       expect(window.location.search).toBe("?technology=react&technology=node&seniority=senior"),
@@ -60,7 +99,7 @@ describe("filtering the bank", () => {
     const api = aBankWithOneQuestion();
     renderTheWholeClient("/questions?technology=react&technology=node");
 
-    await tick("react");
+    await pick("Technology", "react");
 
     await waitFor(() => expect(window.location.search).toBe("?technology=node"));
     await waitFor(() =>
@@ -87,10 +126,11 @@ describe("filtering the bank", () => {
     aBankWithOneQuestion();
     renderTheWholeClient("/questions?technology=node&seniority=junior&keywords=closures");
 
-    expect(await screen.findByRole("checkbox", { name: "node" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "junior" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "react" })).not.toBeChecked();
+    expect(await pillFor("Seniority")).toHaveAccessibleName("Seniority · junior");
     expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue("closures");
+    const menu = await openPill("Technology");
+    expect(menu.getByRole("menuitemcheckbox", { name: "node" })).toBeChecked();
+    expect(menu.getByRole("menuitemcheckbox", { name: "react" })).not.toBeChecked();
   });
 
   // Page three of the old filter is not page three of the new one.
@@ -98,10 +138,22 @@ describe("filtering the bank", () => {
     const api = aBankWithOneQuestion();
     renderTheWholeClient("/questions?technology=react&offset=40");
 
-    await tick("node");
+    await pick("Technology", "node");
 
     await waitFor(() => expect(window.location.search).toBe("?technology=react&technology=node"));
     await waitFor(() => expect(listRequests(api).at(-1)!.searchParams.get("offset")).toBe("0"));
+  });
+
+  it("offers Clear filters only once a filter is set", async () => {
+    aBankWithOneQuestion();
+    renderTheWholeClient("/questions");
+    await screen.findByText(aQuestion().text);
+
+    expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
+
+    await pick("Seniority", "mid");
+
+    expect(await screen.findByRole("button", { name: "Clear filters" })).toBeVisible();
   });
 
   it("clears every Tag and the search at once", async () => {
@@ -111,14 +163,15 @@ describe("filtering the bank", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Clear filters" }));
 
     await waitFor(() => expect(window.location.search).toBe(""));
-    expect(screen.getByRole("checkbox", { name: "senior" })).not.toBeChecked();
+    expect(await pillFor("Seniority")).toHaveAccessibleName("Seniority · Any");
     expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
   });
 
   it("keeps the controls in step when the browser goes Back and Forward", async () => {
     const api = aBankWithOneQuestion();
     renderTheWholeClient("/questions");
-    await tick("react");
+    await pick("Technology", "react");
     await waitFor(() => expect(window.location.search).toBe("?technology=react"));
     await userEvent.type(screen.getByRole("searchbox", { name: "Search" }), "cache{Enter}");
     await waitFor(() => expect(window.location.search).toBe("?technology=react&keywords=cache"));
@@ -127,15 +180,19 @@ describe("filtering the bank", () => {
 
     await waitFor(() => expect(window.location.search).toBe("?technology=react"));
     await waitFor(() => expect(screen.getByRole("searchbox", { name: "Search" })).toHaveValue(""));
-    expect(screen.getByRole("checkbox", { name: "react" })).toBeChecked();
+    expect(await pillFor("Technology")).toHaveAccessibleName("Technology · react");
 
     window.history.back();
 
-    await waitFor(() => expect(screen.getByRole("checkbox", { name: "react" })).not.toBeChecked());
+    await waitFor(async () =>
+      expect(await pillFor("Technology")).toHaveAccessibleName("Technology · Any"),
+    );
     await waitFor(() => expect(listRequests(api).at(-1)!.search).not.toContain("technology"));
 
     window.history.forward();
 
-    await waitFor(() => expect(screen.getByRole("checkbox", { name: "react" })).toBeChecked());
+    await waitFor(async () =>
+      expect(await pillFor("Technology")).toHaveAccessibleName("Technology · react"),
+    );
   });
 });

@@ -36,6 +36,15 @@ describe("the browse screen", () => {
     expect(within(card).getByText("mid")).toBeVisible();
   });
 
+  it("says on each card when the Question was added", async () => {
+    fakeBank((asked) => aPageOf([aQuestion({ createdAt: new Date().toISOString() })], asked));
+
+    renderTheWholeClient("/questions");
+
+    const card = (await screen.findByText(aQuestion().text)).closest("article")!;
+    expect(within(card).getByText(/^Added/)).toBeVisible();
+  });
+
   // A client that hid a restricted or Pending row would be a second answer to what a
   // Viewer may see, and only the API gives that answer.
   it("shows every Question the API sent, restricted or Pending, without judging any", async () => {
