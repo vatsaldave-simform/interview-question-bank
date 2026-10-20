@@ -16,6 +16,7 @@ import {
   PublishButton,
   ReasonAct,
   ResubmitButton,
+  type ActProps,
   type ActRefused,
 } from "@/features/questions/publication-acts";
 import { provenanceWording } from "@/features/questions/provenance-wording";
@@ -34,7 +35,6 @@ import { PageTrail } from "@/ui/page-trail";
 import { ActNotDone } from "@/ui/act-not-done";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
-import { Separator } from "@/ui/shadcn/separator";
 import { smallHeading } from "@/ui/small-heading";
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
@@ -61,13 +61,18 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
 }
 
 function QuestionInFull({ question }: { question: Question }) {
+  const [refusal, setRefusal] = useState<ActRefused | null>(null);
   return (
     <article className="flex flex-col gap-section">
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
         trail={{ back: backToBrowse, here: question.text }}
+        action={<PublicationActs question={question} onRefusal={setRefusal} />}
       />
+      {refusal !== null && (
+        <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
+      )}
       <div className="grid items-start gap-section min-[980px]:grid-cols-[minmax(0,1fr)_300px]">
         <AnswerNotes question={question} />
         <AboutThisQuestion question={question} />
@@ -130,7 +135,6 @@ function AboutThisQuestion({ question }: { question: Question }) {
             {question.publicationState === "published" && <RatingControl question={question} />}
           </QuestionDetail>
         )}
-        <PublicationActs question={question} />
       </Card>
     </section>
   );
@@ -168,15 +172,14 @@ function WhereItCameFrom({ question }: { question: Question }) {
 
 /** Shows only the acts the API would let this Viewer do, by the same rules it uses
  * (ADR-0045). */
-function PublicationActs({ question }: { question: Question }) {
+function PublicationActs({ question, onRefusal }: ActProps) {
   const session = useSession();
   // The sign-in check already stands in front of this screen.
   if (session.status !== "signed-in") return null;
-  return <PublicationActsFor viewer={session.viewer} question={question} />;
+  return <PublicationActsFor viewer={session.viewer} question={question} onRefusal={onRefusal} />;
 }
 
-function PublicationActsFor({ viewer, question }: { viewer: Viewer; question: Question }) {
-  const [refusal, setRefusal] = useState<ActRefused | null>(null);
+function PublicationActsFor({ viewer, question, onRefusal }: ActProps & { viewer: Viewer }) {
   const { publicationState } = question;
   const acts = {
     edit: mayEdit(viewer, question),
@@ -187,27 +190,24 @@ function PublicationActsFor({ viewer, question }: { viewer: Viewer; question: Qu
   };
   if (!Object.values(acts).some(Boolean)) return null;
 
+  const props = { question, onRefusal, size: "default" } as const;
   return (
-    <>
-      <Separator />
-      <div className="flex flex-col gap-3">
-        {refusal !== null && (
-          <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
-        )}
-        <div className="flex flex-wrap items-start gap-2">
-          {acts.edit && (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-                Edit
-              </Link>
-            </Button>
-          )}
-          {acts.publish && <PublishButton question={question} onRefusal={setRefusal} />}
-          {acts.reject && <ReasonAct act="reject" question={question} onRefusal={setRefusal} />}
-          {acts.return && <ReasonAct act="return" question={question} onRefusal={setRefusal} />}
-          {acts.resubmit && <ResubmitButton question={question} onRefusal={setRefusal} />}
-        </div>
-      </div>
-    </>
+    <div
+      role="group"
+      aria-label="What you can do with this Question"
+      className="flex flex-wrap gap-2"
+    >
+      {acts.edit && (
+        <Button asChild variant="outline">
+          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+            Edit
+          </Link>
+        </Button>
+      )}
+      {acts.publish && <PublishButton {...props} />}
+      {acts.reject && <ReasonAct act="reject" variant="secondary" {...props} />}
+      {acts.return && <ReasonAct act="return" variant="secondary" {...props} />}
+      {acts.resubmit && <ResubmitButton {...props} />}
+    </div>
   );
 }

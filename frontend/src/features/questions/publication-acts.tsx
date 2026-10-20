@@ -36,6 +36,7 @@ export type ActProps = {
   /** Told the API's refusal, or null when a new act starts, for the screen to show, since a
    * Question that moved may leave the list that held this button. */
   onRefusal: (refused: ActRefused | null) => void;
+  size?: ComponentProps<typeof Button>["size"];
 };
 
 /** For a list, where the refusal has to say which Question it is about. */
@@ -45,7 +46,7 @@ export function ActRefusedInList({ refused }: { refused: ActRefused }) {
 
 type RefusedAsNearDuplicate = { message: string; nearDuplicates: NearDuplicate[] };
 
-export function PublishButton({ question, onRefusal }: ActProps) {
+export function PublishButton({ question, onRefusal, size = "sm" }: ActProps) {
   const move = useMoveQuestion(question.id);
   const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
     useState<RefusedAsNearDuplicate | null>(null);
@@ -69,7 +70,7 @@ export function PublishButton({ question, onRefusal }: ActProps) {
 
   return (
     <>
-      <Button size="sm" disabled={move.isPending} onClick={() => publish(false)}>
+      <Button size={size} disabled={move.isPending} onClick={() => publish(false)}>
         Publish
       </Button>
       {refusedAsNearDuplicate !== null && (
@@ -87,7 +88,7 @@ export function PublishButton({ question, onRefusal }: ActProps) {
 }
 
 /** Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013). */
-export function ResubmitButton({ question, onRefusal }: ActProps) {
+export function ResubmitButton({ question, onRefusal, size = "sm" }: ActProps) {
   const move = useMoveQuestion(question.id);
 
   function resubmit(): void {
@@ -100,7 +101,7 @@ export function ResubmitButton({ question, onRefusal }: ActProps) {
   }
 
   return (
-    <Button size="sm" disabled={move.isPending} onClick={resubmit}>
+    <Button size={size} disabled={move.isPending} onClick={resubmit}>
       Resubmit
     </Button>
   );
@@ -129,7 +130,13 @@ type ReasonActProps = ActProps & {
 };
 
 /** A button that opens a reason box, since the act is refused without one. */
-export function ReasonAct({ act, question, onRefusal, variant = "outline" }: ReasonActProps) {
+export function ReasonAct({
+  act,
+  question,
+  onRefusal,
+  variant = "outline",
+  size = "sm",
+}: ReasonActProps) {
   const move = useMoveQuestion(question.id);
   const [writing, setWriting] = useState(false);
   const wording = reasonActWording[act];
@@ -137,7 +144,7 @@ export function ReasonAct({ act, question, onRefusal, variant = "outline" }: Rea
   return (
     <Dialog open={writing} onOpenChange={setWriting}>
       <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
+        <Button variant={variant} size={size}>
           {wording.open}
         </Button>
       </DialogTrigger>

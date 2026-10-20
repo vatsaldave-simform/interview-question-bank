@@ -45,8 +45,11 @@ async function detailsOf(question: { text: string }) {
   return within(screen.getByRole("region", { name: "About this Question" }));
 }
 
+const theActs = () =>
+  within(screen.getByRole("group", { name: "What you can do with this Question" }));
+
 describe("the Question page", () => {
-  it("keeps the Question's details in one place, with the buttons that act on it", async () => {
+  it("keeps the Question's details in the side card, and the acts out of it", async () => {
     signInAs(aReviewer);
     aBankHolding([pending]);
     renderTheWholeClient(`/questions/${pending.id}`);
@@ -57,10 +60,20 @@ describe("the Question page", () => {
       details.getByText("Only Viewers with a Grant for Acme can see this Question."),
     ).toBeVisible();
     expect(details.getByRole("region", { name: "Where it came from" })).toBeVisible();
-    expect(details.getByRole("link", { name: "Edit" })).toBeVisible();
-    expect(details.getByRole("button", { name: "Publish" })).toBeVisible();
-    expect(details.getByRole("button", { name: "Reject" })).toBeVisible();
     expect(details.queryByText(pending.answerNotes)).not.toBeInTheDocument();
+    expect(details.queryByRole("link", { name: "Edit" })).not.toBeInTheDocument();
+    expect(details.queryByRole("button", { name: "Publish" })).not.toBeInTheDocument();
+  });
+
+  it("puts the acts on a Pending Question in the header", async () => {
+    signInAs(aReviewer);
+    aBankHolding([pending]);
+    renderTheWholeClient(`/questions/${pending.id}`);
+
+    await detailsOf(pending);
+    expect(theActs().getByRole("link", { name: "Edit" })).toBeVisible();
+    expect(theActs().getByRole("button", { name: "Publish" })).toBeVisible();
+    expect(theActs().getByRole("button", { name: "Reject" })).toBeVisible();
   });
 
   it("shows the Tags and the Client restriction with the Answer Notes", async () => {
@@ -73,22 +86,22 @@ describe("the Question page", () => {
     expect(notes.getByText("Restricted to Acme")).toBeVisible();
   });
 
-  it("offers Return to its Author with the details of a Published Question", async () => {
+  it("offers Return to its Author on a Published Question", async () => {
     signInAs(aReviewer);
     aBankHolding([published]);
     renderTheWholeClient(`/questions/${published.id}`);
 
     const details = await detailsOf(published);
     expect(details.getByText("Published")).toBeVisible();
-    expect(details.getByRole("button", { name: "Return to its Author" })).toBeVisible();
+    expect(theActs().getByRole("button", { name: "Return to its Author" })).toBeVisible();
   });
 
-  it("offers Resubmit with the details, and shows the reason in a section of its own", async () => {
+  it("offers Resubmit, and shows the reason in a section of its own", async () => {
     aBankHolding([rejected]);
     renderTheWholeClient(`/questions/${rejected.id}`);
 
     const details = await detailsOf(rejected);
-    expect(details.getByRole("button", { name: "Resubmit" })).toBeVisible();
+    expect(theActs().getByRole("button", { name: "Resubmit" })).toBeVisible();
     const reason = screen.getByRole("region", { name: "Why it was Rejected" });
     expect(reason).toHaveTextContent("Too easy to tell anyone apart.");
     expect(details.queryByText("Too easy to tell anyone apart.")).not.toBeInTheDocument();
