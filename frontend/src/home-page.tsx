@@ -51,12 +51,12 @@ export function HomePage({ onSearch }: HomePageProps) {
       <section aria-label="Search the bank">
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
+      <HomeShortcuts viewer={viewer} />
       <MyOpenRoleRequest />
       {isPageShownTo(viewer, "your-questions") && <OwnQuestionsWaiting />}
       {isPageShownTo(viewer, "review-queue") && <PendingQuestionsWaiting />}
       {isPageShownTo(viewer, "role-requests") && <OpenRoleRequestsWaiting />}
       <RecentlyAddedQuestions />
-      <HomeShortcuts viewer={viewer} />
     </div>
   );
 }
