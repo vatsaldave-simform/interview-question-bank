@@ -100,7 +100,7 @@ function AboutThisQuestion({ question }: { question: Question }) {
       aria-labelledby="about-this-question"
       className="md:col-start-2 md:row-span-2 md:row-start-1"
     >
-      <Card className="gap-5 px-6">
+      <Card className="gap-5 p-(--spacing-panel)">
         <h2 id="about-this-question" className="text-lg font-semibold">
           About this Question
         </h2>

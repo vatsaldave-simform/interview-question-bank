@@ -52,12 +52,12 @@ function EditFormLoading() {
   return (
     <div role="status" className="flex flex-col gap-6">
       <span className="sr-only">Loading the Question…</span>
-      <Card className="gap-4 px-6">
+      <Card className="gap-4 p-(--spacing-panel)">
         <Skeleton className="bg-muted h-6 w-40" />
         <Skeleton className="bg-muted h-16 w-full" />
         <Skeleton className="bg-muted h-32 w-full" />
       </Card>
-      <Card className="gap-4 px-6">
+      <Card className="gap-4 p-(--spacing-panel)">
         <Skeleton className="bg-muted h-6 w-20" />
         <TagChipShapes />
       </Card>

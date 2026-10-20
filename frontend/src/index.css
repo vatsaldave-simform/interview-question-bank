@@ -70,6 +70,9 @@
   --spacing-edge: 1.75rem;
   --spacing-edge-side: 2.25rem;
   --spacing-edge-phone: 1.25rem;
+  /* A Card takes it as `p-(--spacing-panel)`, because `cn` does not know `p-panel` and
+     would keep the Card's own `py-6`. */
+  --spacing-panel: 1.125rem;
 }
 
 :root {

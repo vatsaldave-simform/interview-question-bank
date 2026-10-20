@@ -17,7 +17,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
 
   return (
     <section aria-labelledby="history">
-      <Card className="gap-4 px-6">
+      <Card className="gap-4 p-(--spacing-panel)">
         <h2 id="history" className="text-lg font-semibold">
           History
         </h2>
