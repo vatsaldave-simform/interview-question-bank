@@ -6,7 +6,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
-import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 import { theToastSaying, toastsShown } from "./helpers/toasts";
 
@@ -47,7 +47,7 @@ function aBankReviewing(
   return fakeBank(
     (asked) => aPageOf([], asked),
     async (request, asked) => {
-      if (asked.pathname === "/api/questions/pending") return aPageOf(pending, asked);
+      if (asked.pathname === "/api/questions/pending") return aQueueOf(pending, asked);
       const one = held.find(({ id }) => asked.pathname === `/api/questions/${id}`);
       if (one !== undefined && request.method === "GET") return answersWith({ question: one });
       const path = /^\/api\/questions\/([^/]+)\/(publish|reject)$/.exec(asked.pathname);

@@ -1,6 +1,7 @@
 import {
   categoryListResponseSchema,
   categoryNames,
+  pendingQuestionListResponseSchema,
   questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
@@ -43,7 +44,7 @@ function reviewQueueQuery(offset: number) {
   const path = `/api/questions/pending${stringifySearch({ limit: questionPageSize, offset })}`;
   return queryOptions({
     queryKey: ["questions", "pending", offset],
-    queryFn: ({ signal }) => callApi(path, questionListResponseSchema, { signal }),
+    queryFn: ({ signal }) => callApi(path, pendingQuestionListResponseSchema, { signal }),
   });
 }
 

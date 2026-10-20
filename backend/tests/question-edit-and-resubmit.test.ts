@@ -3,7 +3,7 @@ import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
   getQuestion,
   historyOf,
-  idsListed,
+  idsQueued,
   patchQuestion,
   postReviewAct,
   questionAnswered,
@@ -52,7 +52,7 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   });
 
   const theQueue = async () =>
-    idsListed(
+    idsQueued(
       await api.request("/api/questions/pending", {
         headers: { authorization: `Bearer ${reviewerToken}` },
       }),

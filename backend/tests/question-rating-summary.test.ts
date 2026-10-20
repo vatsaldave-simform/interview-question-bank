@@ -1,6 +1,8 @@
 import {
+  pendingQuestionListResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
+  type PendingQuestionListResponse,
   type QuestionListResponse,
   type RatingSummary,
   type Viewer,
@@ -35,6 +37,11 @@ const nobodyRatedIt: RatingSummary = { average: null, count: 0, mine: null };
 async function listed(response: Response): Promise<QuestionListResponse["questions"]> {
   if (response.status !== 200) throw new Error(`The list answered ${response.status}.`);
   return questionListResponseSchema.parse(await response.json()).questions;
+}
+
+async function queued(response: Response): Promise<PendingQuestionListResponse["questions"]> {
+  if (response.status !== 200) throw new Error(`The queue answered ${response.status}.`);
+  return pendingQuestionListResponseSchema.parse(await response.json()).questions;
 }
 
 /** Over HTTP, because the promise is about what a response holds and what it leaves out. */
@@ -93,7 +100,7 @@ describe("the Rating summary on every Question", () => {
   });
 
   it("gives the Questions in the Pending queue and in an Author's own list their summaries", async () => {
-    const queue = await listed(
+    const queue = await queued(
       await api.request("/api/questions/pending", {
         headers: { authorization: `Bearer ${reviewerToken}` },
       }),

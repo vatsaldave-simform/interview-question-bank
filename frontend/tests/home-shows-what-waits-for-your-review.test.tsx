@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
-import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -30,7 +30,7 @@ function aBankWaitingOn(pending: Question[]) {
   return fakeBank(
     (asked) => aPageOf([], asked),
     (_request, asked) =>
-      asked.pathname === "/api/questions/pending" ? aPageOf(pending, asked) : undefined,
+      asked.pathname === "/api/questions/pending" ? aQueueOf(pending, asked) : undefined,
   );
 }
 
@@ -84,7 +84,7 @@ describe("Waiting for your review on Home", () => {
         if (asked.pathname !== "/api/questions/pending") return undefined;
         return failing
           ? refusesWith(500, "internal_error", "Something went wrong on our side.")
-          : aPageOf([waiting], asked);
+          : aQueueOf([waiting], asked);
       },
     );
     renderTheWholeClient("/");

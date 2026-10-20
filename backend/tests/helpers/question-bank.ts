@@ -1,4 +1,5 @@
 import {
+  pendingQuestionListResponseSchema,
   questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
@@ -186,6 +187,13 @@ export function aViewer(
 export async function idsListed(response: Response): Promise<string[]> {
   if (response.status !== 200) throw new Error(`The list answered ${response.status}.`);
   const body = questionListResponseSchema.parse(await response.json());
+  return body.questions.map((question) => question.id);
+}
+
+/** The ids of the Pending queue, in the order it gave them. */
+export async function idsQueued(response: Response): Promise<string[]> {
+  if (response.status !== 200) throw new Error(`The queue answered ${response.status}.`);
+  const body = pendingQuestionListResponseSchema.parse(await response.json());
   return body.questions.map((question) => question.id);
 }
 

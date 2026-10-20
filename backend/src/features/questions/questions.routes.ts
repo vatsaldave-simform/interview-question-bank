@@ -9,6 +9,7 @@ import {
   returnQuestionRequestSchema,
   rolesThatMayAddAQuestion,
   type ChangeEvent,
+  type PendingQuestionListResponse,
   type Question,
   type QuestionHistoryResponse,
   type QuestionListResponse,
@@ -30,6 +31,7 @@ import {
 } from "./questions.repository.ts";
 import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
 import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
+import { withAuthors } from "../viewers/viewers.repository.ts";
 import { ratingRoutes } from "../ratings/ratings.routes.ts";
 import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
@@ -94,7 +96,14 @@ export function questionRoutes(database: Database): Router {
 
     const questions = await findPendingQuestionsForReview(database, viewer, page);
 
-    res.json(await toListResponse(database, viewer, questions, page));
+    const authored = await withAuthors(database, questions);
+    const rated = await withRatingSummaries(database, viewer, authored);
+    const body: PendingQuestionListResponse = {
+      questions: rated.map(({ author, ...question }) => ({ ...toQuestion(question), author })),
+      limit: page.limit,
+      offset: page.offset,
+    };
+    res.json(body);
   });
 
   // A Viewer who may not add a Question is refused rather than handed a list that is always
