@@ -81,7 +81,7 @@ describe("a Question's history", () => {
 
     const [entry] = await historyEntries();
     expect(entry).toHaveTextContent("author@iqb.test added this Question");
-    // The words depend on the browser's language and time zone; the moment does not.
+    // The words depend on the time zone the tests run in; the moment does not.
     expect(within(entry!).getByRole("time")).toHaveAttribute("datetime", added.at);
   });
 

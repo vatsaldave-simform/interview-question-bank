@@ -4,13 +4,12 @@ import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import { useQuestionHistory } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
+import { dateAndTimeWording } from "@/platform/when-wording";
 import { RowsLoading } from "@/ui/rows-loading";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/shadcn/collapsible";
-
-const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 export function QuestionHistory({ questionId }: { questionId: string }) {
   const history = useQuestionHistory(questionId);
@@ -43,7 +42,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
                   {event.viewerEmail} {whatHappened(event)}
                   {" · "}
                   <time dateTime={event.at} className="text-muted-foreground">
-                    {whenWording.format(new Date(event.at))}
+                    {dateAndTimeWording(event.at)}
                   </time>
                 </p>
                 {event.type === "question_edited" && <WhatAnEditChanged edit={event.payload} />}
