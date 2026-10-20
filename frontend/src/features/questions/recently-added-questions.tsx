@@ -5,7 +5,7 @@ import { ClientRestriction } from "@/features/questions/client-restriction";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
-import { agoWording } from "@/platform/when-wording";
+import { WhenAdded } from "@/features/questions/when-added";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -56,10 +56,7 @@ export function RecentlyAddedQuestions() {
                 <QuestionTags tags={question.tags.slice(0, tagsShown)} />
                 <ClientRestriction client={question.client} />
                 {ratingIsShown(question) && <AverageRating rating={question.rating} />}
-                <p>
-                  Added{" "}
-                  <time dateTime={question.createdAt}>{agoWording(question.createdAt)}</time>
-                </p>
+                <WhenAdded createdAt={question.createdAt} />
               </RowDetails>
             </li>
           ))}

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, aQuestion, refusesWith } from "./helpers/fake-api";
+import { aClient, aQuestion, aSignedInAuthor, aViewer, refusesWith } from "./helpers/fake-api";
 import { aBankHolding, aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
 import { homeGreeting } from "./helpers/home-page";
 import { itIsNow } from "./helpers/the-clock";
@@ -97,6 +97,24 @@ describe("the newest Questions on Home", () => {
     expect(row.getByText("Restricted to Northwind Trading")).toBeVisible();
     expect(row.getByText("4.6 out of 5 from 18 Ratings")).toBeVisible();
     expect(row.getByText(/^Added/)).toHaveTextContent("Added 2 days ago");
+  });
+
+  it("tell a Reader nothing about who wrote them", async () => {
+    signInAs(
+      aViewer({
+        id: "7c3b4a1e-0000-4000-8000-000000000002",
+        email: "reader@iqb.test",
+        role: "reader",
+      }),
+    );
+    fakeBank((asked) => aPageOf([older], asked));
+    renderTheWholeClient("/");
+
+    const panel = await theNewest();
+    const row = (await panel.findByRole("link", { name: older.text })).closest("li")!;
+    expect(row).not.toHaveTextContent(/From /);
+    expect(row).not.toHaveTextContent(aSignedInAuthor.viewer.email);
+    expect(row).not.toHaveTextContent(older.authorId);
   });
 
   it("each open their own page", async () => {

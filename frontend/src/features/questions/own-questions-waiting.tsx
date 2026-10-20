@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { useFirstOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
-import { agoWording } from "@/platform/when-wording";
+import { WhenAdded } from "@/features/questions/when-added";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -32,7 +32,7 @@ export function OwnQuestionsWaiting() {
         />
       ) : own.data.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Nothing of yours is waiting or refused. When you add a Question, you can follow it here.
+          Nothing of yours is Pending or Rejected. When you add a Question, you can follow it here.
         </p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
@@ -47,10 +47,7 @@ export function OwnQuestionsWaiting() {
               </Link>
               <RowDetails>
                 <PublicationStateBadge state={question.publicationState} />
-                <p>
-                  Added{" "}
-                  <time dateTime={question.createdAt}>{agoWording(question.createdAt)}</time>
-                </p>
+                <WhenAdded createdAt={question.createdAt} />
               </RowDetails>
               {question.reason !== null && <RejectionReason reason={question.reason} />}
             </li>

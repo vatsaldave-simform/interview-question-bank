@@ -108,7 +108,7 @@ describe("Your Pending and Rejected Questions on Home", () => {
 
     expect(
       await (await thePanel()).findByText(
-        "Nothing of yours is waiting or refused. When you add a Question, you can follow it here.",
+        "Nothing of yours is Pending or Rejected. When you add a Question, you can follow it here.",
       ),
     ).toBeVisible();
   });
