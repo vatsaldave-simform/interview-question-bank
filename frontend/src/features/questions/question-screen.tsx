@@ -23,10 +23,12 @@ import { publicationStateWording } from "@/features/questions/publication-state-
 import { QuestionHistory } from "@/features/questions/question-history";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
+import { backToBrowse } from "@/features/questions/question-trail";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
+import { PageTrail } from "@/ui/page-trail";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
@@ -38,9 +40,8 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <Link to="/questions" className="text-primary text-sm hover:underline">
-        ← All Questions
-      </Link>
+      {/* The header waits for the Question, so until then the trail stands on its own. */}
+      {!question.isSuccess && <PageTrail back={backToBrowse} here="Question" />}
       {question.isPending ? (
         <p role="status" className="text-muted-foreground">
           Loading the Question…
@@ -64,6 +65,7 @@ function QuestionInFull({ question }: { question: Question }) {
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
+        trail={{ back: backToBrowse, here: question.text }}
       />
       <AboutThisQuestion question={question} />
       <div className="flex flex-col gap-6 md:col-start-1">

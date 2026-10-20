@@ -117,7 +117,8 @@ describe("changing a Question's Client restriction", () => {
     expect(await theToastSaying("It is now restricted to Acme.")).toBeVisible();
     expect(await changesSent(api)).toEqual([{ act: "restrict", body: { clientId: acme.id } }]);
 
-    await userEvent.click(screen.getByRole("link", { name: "← Back to the Question" }));
+    const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
+    await userEvent.click(trail.getByRole("link", { name: unrestricted.text }));
     expect(
       await screen.findByText("Only Viewers with a Grant for Acme can see this Question."),
     ).toBeVisible();

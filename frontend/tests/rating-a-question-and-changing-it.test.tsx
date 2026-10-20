@@ -129,7 +129,8 @@ describe("rating a Question", () => {
     expect(asked(api, path)).toBe(questionAsked);
     expect(asked(api, `${path}/history`)).toBe(historyAsked);
 
-    await userEvent.click(screen.getByRole("link", { name: "← All Questions" }));
+    const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
+    await userEvent.click(trail.getByRole("link", { name: "Browse" }));
     const [card] = await screen.findAllByRole("article");
     expect(await within(card!).findByText("3.0 out of 5 from 1 Rating")).toBeVisible();
   });

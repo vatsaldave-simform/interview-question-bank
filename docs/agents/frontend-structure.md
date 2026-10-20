@@ -35,8 +35,8 @@ through its `.routes.tsx`. It has no menu of its own: its pages are listed in th
 only links to addresses.
 
 `platform/` holds the API client, the access token, the query client, the app shell, the sign-in
-check and the error boundary. It also holds the list of pages, which the sidebar and Home's shortcuts both
-read, because those only link to addresses and read the Viewer's role. `features/auth/` holds the login screen, logging out, and the silent
+check and the error boundary. It also holds the list of pages, which the sidebar, Home's shortcuts and the
+trail back from a page all read, because those only link to addresses and read the Viewer's role. `features/auth/` holds the login screen, logging out, and the silent
 sign-in on load.
 
 **Features may import from `platform/` and `ui/`, and from another feature where the domain depends

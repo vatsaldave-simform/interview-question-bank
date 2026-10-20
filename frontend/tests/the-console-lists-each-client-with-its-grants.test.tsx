@@ -79,7 +79,8 @@ describe("the Clients on the administration console", () => {
     expect(await northwindGrants.findByText("author@iqb.test")).toBeVisible();
     expect(northwindGrants.getByText("reader@iqb.test")).toBeVisible();
 
-    await userEvent.click(screen.getByRole("link", { name: "← All Clients" }));
+    const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
+    await userEvent.click(trail.getByRole("link", { name: "Clients" }));
     await userEvent.click(await screen.findByRole("link", { name: kingsbridge.name }));
     const kingsbridgeGrants = within(await screen.findByRole("region", { name: kingsbridge.name }));
     expect(
