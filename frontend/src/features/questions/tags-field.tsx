@@ -1,4 +1,4 @@
-import type { CategoryWithTags, QuestionTag } from "@iqb/shared";
+import type { CategoryName, CategoryWithTags, QuestionTag } from "@iqb/shared";
 import { CheckIcon, PlusIcon, XIcon } from "lucide-react";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { useCategories } from "@/features/questions/questions.queries";
@@ -12,7 +12,6 @@ type TagsFieldProps = {
   onChange: (tags: QuestionTag[]) => void;
 };
 
-/** The Tags of a Question being added or edited. */
 export function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
   const categories = useCategories();
 
@@ -26,7 +25,7 @@ export function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
   }
   if (categories.isError) {
     return (
-      <p className="text-destructive flex flex-wrap items-center gap-2 text-sm">
+      <p role="alert" className="text-destructive flex flex-wrap items-center gap-2 text-sm">
         The Tags could not be loaded.
         <Button type="button" variant="outline" size="sm" onClick={() => void categories.refetch()}>
           Try again
@@ -44,12 +43,11 @@ export function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
   );
 }
 
-/** How many of a Category's Tags Quick add shows before "N more". */
 const quickAddShown = 6;
 
 type KnownTagsFieldProps = TagsFieldProps & { categories: readonly CategoryWithTags[] };
 
-type Offered = { label: string; options: QuestionTag[] };
+type OptionGroup = { label: string; options: QuestionTag[] };
 
 const sameTag = (one: QuestionTag, other: QuestionTag) =>
   one.category === other.category && one.tag === other.tag;
@@ -61,8 +59,8 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
   const [typed, setTyped] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const [heard, setHeard] = useState("");
-  const [allShown, setAllShown] = useState<ReadonlySet<string>>(new Set());
+  const [announcement, setAnnouncement] = useState("");
+  const [allShown, setAllShown] = useState<ReadonlySet<CategoryName>>(new Set());
 
   const isChosen = (tag: QuestionTag) => chosen.some((one) => sameTag(one, tag));
   const categoryNamed = (name: string) =>
@@ -73,7 +71,7 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
       .filter((tag) => !isChosen(tag));
 
   const query = typed.trim().toLowerCase();
-  const offered: Offered[] = categories
+  const offered: OptionGroup[] = categories
     .map((category) => ({
       label: category.displayName,
       options: notChosenIn(category).filter(({ tag }) => tag.toLowerCase().includes(query)),
@@ -92,31 +90,30 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
     const fresh = tags.filter((tag) => !isChosen(tag));
     if (fresh.length === 0) return;
     onChange([...chosen, ...fresh]);
-    setHeard(
+    setAnnouncement(
       fresh.map(({ category, tag }) => `Added ${tag}, a ${categoryNamed(category)} Tag.`).join(" "),
     );
   }
 
   function remove(gone: QuestionTag) {
     onChange(chosen.filter((one) => !sameTag(one, gone)));
-    setHeard(`Removed ${gone.tag}.`);
+    setAnnouncement(`Removed ${gone.tag}.`);
   }
 
-  function addActive() {
-    if (activeOption === undefined) return;
-    add([activeOption]);
+  function addOption(option: QuestionTag) {
+    add([option]);
     setTyped("");
     setActive(0);
   }
 
   /** Puts the active option on the Tag typed exactly, when there is one. */
-  function type(text: string) {
+  function showMatchesFor(text: string) {
     const exact = text.trim().toLowerCase();
     const matches = categories.flatMap((category) =>
       notChosenIn(category).filter(({ tag }) => tag.toLowerCase().includes(exact)),
     );
     const hit = matches.findIndex(({ tag }) => tag.toLowerCase() === exact);
-    if (exact !== "" && matches.length === 0) setHeard("No Tag matches.");
+    if (exact !== "" && matches.length === 0) setAnnouncement("No Tag matches.");
     setTyped(text);
     setActive(Math.max(hit, 0));
     setOpen(true);
@@ -124,7 +121,7 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
 
   /** Text pasted with commas adds every Tag it names exactly, and keeps what follows the last. */
   function typeOrPaste(text: string) {
-    if (!text.includes(",")) return type(text);
+    if (!text.includes(",")) return showMatchesFor(text);
     const parts = text.split(",");
     const rest = parts.pop() ?? "";
     const named = parts.map((part) => part.trim().toLowerCase()).filter((part) => part !== "");
@@ -133,7 +130,7 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
         notChosenIn(category).filter(({ tag }) => named.includes(tag.toLowerCase())),
       ),
     );
-    type(rest);
+    showMatchesFor(rest);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -149,7 +146,7 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
     } else if (event.key === "Enter" || event.key === ",") {
       // Enter in this box adds a Tag; it never sends the form.
       event.preventDefault();
-      if (listShown) addActive();
+      if (listShown && activeOption !== undefined) addOption(activeOption);
     } else if (event.key === "Backspace" && typed === "" && inOrder.length > 0) {
       remove(inOrder[inOrder.length - 1]!);
     } else if (event.key === "Escape" && open) {
@@ -231,21 +228,17 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
                 {group.label}
               </div>
               {group.options.map((option) => {
-                const mine = options.indexOf(option);
+                const optionIndex = options.indexOf(option);
                 return (
                   <div
                     key={option.tag}
-                    id={optionId(mine)}
+                    id={optionId(optionIndex)}
                     role="option"
-                    aria-selected={mine === activeIndex}
+                    aria-selected={optionIndex === activeIndex}
                     className="hover:bg-accent aria-selected:bg-secondary aria-selected:text-secondary-foreground cursor-pointer rounded-md px-2.5 py-1.5 text-sm"
                     // Keeps the focus in the box, so the list stays open for the next Tag.
                     onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      add([option]);
-                      setTyped("");
-                      setActive(0);
-                    }}
+                    onClick={() => addOption(option)}
                   >
                     {option.tag}
                   </div>
@@ -295,12 +288,12 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
         }}
       />
       <FieldDescription id={`${id}-help`}>
-        Pick from the known Tags. Readers find Questions in Browse by these. Press Enter or a comma
+        Pick from the known Tags. Viewers find Questions in Browse by these. Press Enter or a comma
         to add the Tag picked in the list.
       </FieldDescription>
       <FieldError>{problem}</FieldError>
       <p aria-live="polite" className="sr-only">
-        {heard}
+        {announcement}
       </p>
     </Field>
   );
@@ -309,8 +302,8 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
 type QuickAddProps = {
   categories: readonly CategoryWithTags[];
   notChosenIn: (category: CategoryWithTags) => QuestionTag[];
-  allShown: ReadonlySet<string>;
-  onShowAll: (category: string, all: boolean) => void;
+  allShown: ReadonlySet<CategoryName>;
+  onShowAll: (category: CategoryName, all: boolean) => void;
   onAdd: (tag: QuestionTag) => void;
 };
 

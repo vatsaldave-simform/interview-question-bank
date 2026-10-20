@@ -50,7 +50,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
 /** Shaped like the form's card, so the page does not jump when it arrives. */
 function EditFormLoading() {
   return (
-    <Card role="status" className="gap-section p-6">
+    <Card role="status" className="gap-section p-(--spacing-panel)">
       <span className="sr-only">Loading the Question…</span>
       <Skeleton className="bg-muted h-16 w-full" />
       <Skeleton className="bg-muted h-32 w-full" />

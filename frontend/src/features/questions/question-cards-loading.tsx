@@ -5,10 +5,16 @@ import { Skeleton } from "@/ui/shadcn/skeleton";
 export const questionGrid =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,20.625rem),1fr))] gap-3.5";
 
+type QuestionCardsLoadingProps = {
+  label: string;
+  /** Set on Browse, whose cards sit in `questionGrid` rather than in one column. */
+  inGrid?: boolean;
+};
+
 /** Shaped like a page of `QuestionCard`s, so the page does not jump when they arrive. */
-export function QuestionCardsLoading({ label }: { label: string }) {
+export function QuestionCardsLoading({ label, inGrid = false }: QuestionCardsLoadingProps) {
   return (
-    <div role="status" className={questionGrid}>
+    <div role="status" className={inGrid ? questionGrid : "flex flex-col gap-4"}>
       <span className="sr-only">{label}</span>
       {[0, 1, 2, 3].map((card) => (
         <Card key={card} className="gap-2.5 p-(--spacing-panel)">

@@ -1,7 +1,6 @@
 import type { CategoryName, CategoryWithTags } from "@iqb/shared";
 import { ChevronDownIcon } from "lucide-react";
 import { tagsIn, type BrowseSearch } from "@/features/questions/browse.schema";
-import { chosenAfter } from "@/features/questions/chosen-tags";
 import { useCategories } from "@/features/questions/questions.queries";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -26,7 +25,7 @@ export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
   }
   if (categories.isError) {
     return (
-      <p className="text-destructive flex items-center gap-2 text-sm">
+      <p role="alert" className="text-destructive flex items-center gap-2 text-sm">
         The Tags could not be loaded.
         <Button variant="outline" size="sm" onClick={() => void categories.refetch()}>
           Try again
@@ -78,7 +77,9 @@ function CategoryFilter({ category, chosen, onChange }: CategoryFilterProps) {
           <DropdownMenuCheckboxItem
             key={tag}
             checked={chosen.includes(tag)}
-            onCheckedChange={(checked) => onChange(chosenAfter(chosen, tag, checked))}
+            onCheckedChange={(checked) =>
+              onChange(checked ? [...chosen, tag] : chosen.filter((one) => one !== tag))
+            }
             // Stays open, so that several Tags can be picked in one go.
             onSelect={(event) => event.preventDefault()}
           >

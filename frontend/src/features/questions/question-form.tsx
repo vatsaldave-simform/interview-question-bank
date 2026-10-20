@@ -48,7 +48,7 @@ export function QuestionForm(props: QuestionFormProps) {
   }
 
   return (
-    <Card className="gap-section p-6">
+    <Card className="gap-section p-(--spacing-panel)">
       {/* The schema is the only check, so the browser's own validation must not answer first. */}
       <form ref={form} noValidate onSubmit={send} className="flex flex-col gap-section">
         {refusal !== null && (
