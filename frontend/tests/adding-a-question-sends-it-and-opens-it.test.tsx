@@ -68,8 +68,8 @@ describe("adding a Question", () => {
       screen.getByLabelText("Answer Notes"),
       "Look for EXPLAIN ANALYZE before any guessing.",
     );
-    await userEvent.click(await screen.findByRole("checkbox", { name: "node" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "mid" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Add node" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add mid" }));
     await userEvent.click(screen.getByRole("radio", { name: "Original" }));
     await userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
 

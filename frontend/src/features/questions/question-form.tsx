@@ -1,23 +1,14 @@
-import type { CategoryName } from "@iqb/shared";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   draftFields,
   type DraftProblems,
   type QuestionDraft,
 } from "@/features/questions/question-problems";
-import { useCategories } from "@/features/questions/questions.queries";
-import { TagChipShapes, TagChips } from "@/features/questions/tag-chips";
+import { TagsField } from "@/features/questions/tags-field";
 import { ScreenSection } from "@/ui/screen-section";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from "@/ui/shadcn/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/ui/shadcn/field";
 import { Textarea } from "@/ui/shadcn/textarea";
 
 type QuestionFormProps = {
@@ -91,73 +82,17 @@ export function QuestionForm(props: QuestionFormProps) {
             />
             <FieldError id="question-answer-notes-problem">{problems.answerNotes}</FieldError>
           </Field>
+          <TagsField
+            chosen={draft.tags}
+            problem={problems.tags}
+            onChange={(tags) => setDraft({ ...draft, tags })}
+          />
         </FieldGroup>
-      </ScreenSection>
-      <ScreenSection id="question-tags" title="Tags">
-        <TagsField
-          chosen={draft.tags}
-          problem={problems.tags}
-          onChange={(tags) => setDraft({ ...draft, tags })}
-        />
       </ScreenSection>
       {children}
       <Button type="submit" disabled={sending} className="self-start">
         {sending ? submit.sendingLabel : submit.label}
       </Button>
     </form>
-  );
-}
-
-type TagsFieldProps = {
-  chosen: QuestionDraft["tags"];
-  problem: string | undefined;
-  onChange: (tags: QuestionDraft["tags"]) => void;
-};
-
-function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
-  const categories = useCategories();
-
-  function setTagsIn(category: CategoryName, tags: string[]) {
-    onChange([
-      ...chosen.filter((one) => one.category !== category),
-      ...tags.map((tag) => ({ category, tag })),
-    ]);
-  }
-
-  return (
-    <FieldSet data-invalid={problem !== undefined}>
-      {categories.isPending ? (
-        <div role="status">
-          <span className="sr-only">Loading the Tags…</span>
-          <TagChipShapes />
-        </div>
-      ) : categories.isError ? (
-        <Alert variant="destructive">
-          <AlertDescription className="flex flex-col items-start gap-3">
-            <p>The Tags could not be loaded.</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void categories.refetch()}
-            >
-              Try again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {categories.data.map((category) => (
-            <TagChips
-              key={category.name}
-              category={category}
-              chosen={chosen.filter((one) => one.category === category.name).map(({ tag }) => tag)}
-              onChange={(tags) => setTagsIn(category.name, tags)}
-            />
-          ))}
-        </div>
-      )}
-      <FieldError>{problem}</FieldError>
-    </FieldSet>
   );
 }

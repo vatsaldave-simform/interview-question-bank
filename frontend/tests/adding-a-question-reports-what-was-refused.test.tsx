@@ -112,7 +112,7 @@ describe("adding a Question that is refused", () => {
     renderTheWholeClient("/questions/new");
 
     await writeAQuestion();
-    await userEvent.click(await screen.findByRole("checkbox", { name: "node" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Add node" }));
     await addIt();
 
     expect(await screen.findByText("These Tags do not exist: technology/node.")).toBeVisible();

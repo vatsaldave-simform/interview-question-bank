@@ -19,7 +19,7 @@ import {
 } from "@/features/questions/question-problems";
 import { backToTheQuestion } from "@/features/questions/question-trail";
 import { useEditQuestion, useQuestion } from "@/features/questions/questions.queries";
-import { TagChipShapes } from "@/features/questions/tag-chips";
+import { TagChipShapes } from "@/features/questions/tags-field";
 import { PageHeader } from "@/ui/page-header";
 import { Card } from "@/ui/shadcn/card";
 import { Skeleton } from "@/ui/shadcn/skeleton";
