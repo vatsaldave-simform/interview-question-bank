@@ -52,10 +52,7 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
       ) : question.isError ? (
         <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
       ) : (
-        <>
-          <QuestionInFull question={question.data} />
-          <QuestionHistory questionId={questionId} />
-        </>
+        <QuestionInFull question={question.data} />
       )}
     </div>
   );
@@ -141,6 +138,7 @@ function AboutThisQuestion({ question }: { question: Question }) {
         {/* Offered by the Publication State alone: whether this Viewer may rate is the API's
             answer (ADR-0002). */}
         {question.publicationState === "published" && <RatingControl question={question} />}
+        <QuestionHistory questionId={question.id} />
       </Card>
     </section>
   );

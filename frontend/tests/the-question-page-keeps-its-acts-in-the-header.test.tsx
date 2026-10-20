@@ -86,13 +86,15 @@ describe("the Question page", () => {
     expect(notes.getByText("Restricted to Acme")).toBeVisible();
   });
 
-  it("offers Return to its Author on a Published Question", async () => {
+  it("offers Return to its Author, with Your Rating and History in the side card", async () => {
     signInAs(aReviewer);
     aBankHolding([published]);
     renderTheWholeClient(`/questions/${published.id}`);
 
     const details = await detailsOf(published);
     expect(details.getByText("Published")).toBeVisible();
+    expect(details.getByRole("group", { name: "Your Rating" })).toBeVisible();
+    expect(details.getByRole("region", { name: "History" })).toBeVisible();
     expect(theActs().getByRole("button", { name: "Return to its Author" })).toBeVisible();
   });
 
