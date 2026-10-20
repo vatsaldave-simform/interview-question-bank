@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aRoleRequest, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
+import { aRoleRequest, aViewer, anAdministrator, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -64,6 +64,19 @@ describe("a Viewer's own Role Request on their account page", () => {
     expect(await theDetailsShown()).toEqual(["author@iqb.test", "Author"]);
     const section = await theRoleRequestSection();
     expect(await section.findByText("You have not asked for a different role.")).toBeVisible();
+  });
+
+  it("says beside the role when the Viewer is also an Administrator", async () => {
+    signInAs(anAdministrator);
+    aBankHoldingMine([]);
+    renderTheWholeClient("/account");
+
+    await vi.waitFor(async () =>
+      expect(await theDetailsShown()).toEqual([
+        "reviewer@iqb.test",
+        "Reviewer, and an Administrator",
+      ]),
+    );
   });
 
   it.each([

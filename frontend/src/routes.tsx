@@ -19,6 +19,7 @@ import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
 import { PageHeader } from "@/ui/page-header";
+import { Card } from "@/ui/shadcn/card";
 
 const homeRoute = createRoute({
   getParentRoute: () => signedInRoute,
@@ -47,6 +48,8 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
+const detailName = "text-muted-foreground text-xs font-semibold tracking-wider uppercase";
+
 function AccountPage() {
   // Asked on every visit, so the role shown here is the one held now.
   useCurrentViewer();
@@ -61,13 +64,22 @@ function AccountPage() {
         title="Your account"
         description="Your email, your role, and any Role Request you have made."
       />
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Email</dt>
-        <dd>{viewer.email}</dd>
-        <dt className="text-muted-foreground">Role</dt>
-        <dd>{roleWording[viewer.role]}</dd>
-      </dl>
-      <MyRoleRequest heldRole={viewer.role} />
+      <Card className="max-w-160 gap-4 p-(--spacing-panel)">
+        <dl className="flex flex-col gap-3">
+          <div>
+            <dt className={detailName}>Email</dt>
+            <dd className="mt-0.5">{viewer.email}</dd>
+          </div>
+          <div>
+            <dt className={detailName}>Role</dt>
+            <dd className="mt-0.5">
+              {roleWording[viewer.role]}
+              {viewer.isAdministrator && ", and an Administrator"}
+            </dd>
+          </div>
+        </dl>
+        <MyRoleRequest heldRole={viewer.role} />
+      </Card>
     </div>
   );
 }

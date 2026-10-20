@@ -31,12 +31,16 @@ export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
   const raise = useRaiseRoleRequest();
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="my-role-request">
-      <h2 id="my-role-request" className="text-lg font-semibold">
+    // A section and not one more line of the account's details, because it holds a form.
+    <section className="flex flex-col gap-2" aria-labelledby="my-role-request">
+      <h2
+        id="my-role-request"
+        className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
+      >
         Role Request
       </h2>
       {mine.isPending ? (
-        <RowsLoading label="Loading your Role Requests…" rows={1} />
+        <RowsLoading label="Loading your Role Requests…" rows={1} onCard />
       ) : mine.isError ? (
         <ListNotLoaded
           what="Role Requests"
@@ -66,7 +70,7 @@ function MineLoaded({ latest, heldRole, raise }: MineLoadedProps) {
   return (
     <>
       {latest === undefined ? (
-        <p className="text-muted-foreground text-sm">You have not asked for a different role.</p>
+        <p>You have not asked for a different role.</p>
       ) : (
         <Latest roleRequest={latest} />
       )}
@@ -78,7 +82,7 @@ function MineLoaded({ latest, heldRole, raise }: MineLoadedProps) {
 
 function Latest({ roleRequest }: { roleRequest: RoleRequest }) {
   return (
-    <div className="flex flex-col gap-1 text-sm">
+    <div className="flex flex-col gap-1">
       <p>
         You asked to be a {roleWording[roleRequest.role]} on{" "}
         <time dateTime={roleRequest.createdAt}>
@@ -100,8 +104,8 @@ function RaiseRoleRequest({ heldRole, raise }: { heldRole: ViewerRole; raise: Ra
   const role = picked ?? others[0];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label htmlFor="role-to-ask-for" className="text-sm">
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <label htmlFor="role-to-ask-for" className="text-sm font-semibold">
         Role to ask for
       </label>
       <NativeSelect
@@ -117,7 +121,7 @@ function RaiseRoleRequest({ heldRole, raise }: { heldRole: ViewerRole; raise: Ra
         ))}
       </NativeSelect>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         disabled={raise.isPending || role === undefined}
         onClick={() => role !== undefined && raise.mutate({ role })}
