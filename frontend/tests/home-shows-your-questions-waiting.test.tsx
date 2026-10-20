@@ -6,6 +6,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -15,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
   stopRenewingSession();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 const waiting = aQuestion({
@@ -40,10 +42,10 @@ function aBankWithOwn(own: Parameters<typeof aPageOf>[0]) {
 }
 
 async function thePanel() {
-  return within(await screen.findByRole("region", { name: "Your Questions waiting" }));
+  return within(await screen.findByRole("region", { name: "Your Pending and Rejected Questions" }));
 }
 
-describe("Your Questions waiting on Home", () => {
+describe("Your Pending and Rejected Questions on Home", () => {
   it("lists an Author's own Pending Question with its state", async () => {
     signInAs(aViewer({ role: "author" }));
     aBankWithOwn([waiting]);
@@ -52,6 +54,17 @@ describe("Your Questions waiting on Home", () => {
     const panel = await thePanel();
     const row = within((await panel.findByRole("link", { name: waiting.text })).closest("li")!);
     expect(row.getByText("Pending")).toBeVisible();
+  });
+
+  it("says when each was added", async () => {
+    itIsNow(new Date(2026, 9, 20, 12, 0));
+    signInAs(aViewer({ role: "author" }));
+    aBankWithOwn([{ ...waiting, createdAt: new Date(2026, 9, 17, 12, 0).toISOString() }]);
+    renderTheWholeClient("/");
+
+    const panel = await thePanel();
+    const row = within((await panel.findByRole("link", { name: waiting.text })).closest("li")!);
+    expect(row.getByText(/^Added/)).toHaveTextContent("Added 3 days ago");
   });
 
   it("shows why a Rejected one was refused", async () => {
@@ -82,7 +95,9 @@ describe("Your Questions waiting on Home", () => {
     renderTheWholeClient("/");
 
     await screen.findByRole("region", { name: "Recently added" });
-    expect(screen.queryByRole("region", { name: "Your Questions waiting" })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Your Pending and Rejected Questions" }),
+    ).toBeNull();
     expect(api.sent.map(({ url }) => new URL(url).pathname)).not.toContain("/api/questions/own");
   });
 
@@ -91,7 +106,11 @@ describe("Your Questions waiting on Home", () => {
     aBankWithOwn([]);
     renderTheWholeClient("/");
 
-    expect(await (await thePanel()).findByText("Nothing of yours is waiting.")).toBeVisible();
+    expect(
+      await (await thePanel()).findByText(
+        "Nothing of yours is Pending or Rejected. When you add a Question, you can follow it here.",
+      ),
+    ).toBeVisible();
   });
 
   it("says so when the list fails, and leaves the rest of Home working", async () => {
@@ -137,7 +156,7 @@ describe("Your Questions waiting on Home", () => {
       six.slice(0, 5).map(({ text }) => text),
     );
 
-    await userEvent.click(panel.getByRole("link", { name: "See all of them" }));
+    await userEvent.click(panel.getByRole("link", { name: "See them all" }));
     expect(
       await screen.findByRole("heading", { level: 1, name: "Your Questions" }),
     ).toBeVisible();

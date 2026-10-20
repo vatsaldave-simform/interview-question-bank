@@ -4,6 +4,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aClient, anAdministrator, answersWith, aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { homeGreeting } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const question = aQuestion({ authorId: anAdministrator.id });
@@ -34,8 +35,8 @@ describe("every signed-in page", () => {
   it.each([
     {
       address: "/",
-      title: "Welcome back",
-      says: "Signed in as reviewer@iqb.test: search the bank, or start from what is new.",
+      title: homeGreeting,
+      says: "Signed in as reviewer@iqb.test, a Reviewer and an Administrator.",
     },
     {
       address: "/questions",

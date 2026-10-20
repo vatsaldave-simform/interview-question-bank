@@ -10,6 +10,7 @@ import {
   refusesWith,
 } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { homeGreeting } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const question = aQuestion({ text: "What is a closure?", authorId: anAdministrator.id });
@@ -127,7 +128,7 @@ describe("a page no sidebar link leads to", () => {
 
 describe("a page the sidebar leads to", () => {
   it.each([
-    { address: "/", title: "Welcome back" },
+    { address: "/", title: homeGreeting },
     { address: "/questions", title: "Questions" },
     { address: "/questions/own", title: "Your Questions" },
     { address: "/administration/role-requests", title: "Open Role Requests" },

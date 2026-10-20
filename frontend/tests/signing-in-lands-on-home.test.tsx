@@ -2,8 +2,8 @@ import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aSignedInAuthor } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { findHome } from "./helpers/home-page";
 import { signInOnScreen } from "./helpers/login-screen";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -24,7 +24,7 @@ describe("Home", () => {
 
     await signInOnScreen("author@iqb.test", "author-password");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    expect(await findHome()).toBeVisible();
     expect(window.location.pathname).toBe("/");
   });
 
@@ -33,18 +33,8 @@ describe("Home", () => {
     signInAs();
     renderTheWholeClient("/login");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    expect(await findHome()).toBeVisible();
     await waitFor(() => expect(window.location.pathname).toBe("/"));
   });
 
-  it("greets the Viewer by the email they signed in with", async () => {
-    fakeBank((asked) => aPageOf([], asked));
-    signInAs();
-    renderTheWholeClient("/");
-
-    await screen.findByRole("heading", { level: 1, name: "Welcome back" });
-    expect(screen.getByRole("main")).toHaveTextContent(
-      `Signed in as ${aSignedInAuthor.viewer.email}`,
-    );
-  });
 });

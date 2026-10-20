@@ -40,10 +40,10 @@ function aBankWithOpen(roleRequests: RoleRequest[]) {
 }
 
 async function thePanel() {
-  return within(await screen.findByRole("region", { name: "Role Requests waiting" }));
+  return within(await screen.findByRole("region", { name: "Open Role Requests" }));
 }
 
-describe("Role Requests waiting on Home", () => {
+describe("Open Role Requests on Home", () => {
   it("lists who asked, for which role and when", async () => {
     signInAs(anAdministrator);
     aBankWithOpen([open]);
@@ -51,7 +51,8 @@ describe("Role Requests waiting on Home", () => {
 
     const panel = await thePanel();
     const row = within((await panel.findByText("reader@iqb.test")).closest("li")!);
-    expect(row.getByText(/^Asks for Author since/)).toBeVisible();
+    expect(row.getByText("Reader to Author")).toBeVisible();
+    expect(row.getByText(/^Asked/)).toHaveTextContent("Asked Sep 1, 2026");
     expect(row.getByRole("time")).toHaveAttribute("datetime", open.createdAt);
   });
 
@@ -72,7 +73,7 @@ describe("Role Requests waiting on Home", () => {
     renderTheWholeClient("/");
 
     await screen.findByRole("region", { name: "Recently added" });
-    expect(screen.queryByRole("region", { name: "Role Requests waiting" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Open Role Requests" })).toBeNull();
   });
 
   it("says so when no Role Request is waiting", async () => {
@@ -80,7 +81,9 @@ describe("Role Requests waiting on Home", () => {
     aBankWithOpen([]);
     renderTheWholeClient("/");
 
-    expect(await (await thePanel()).findByText("No Role Request is waiting.")).toBeVisible();
+    const panel = await thePanel();
+    const nobody = "No Role Request is open. Nobody is waiting on you.";
+    expect(await panel.findByText(nobody)).toBeVisible();
   });
 
   it("says so when the list fails, and leaves the other panels working", async () => {
@@ -100,7 +103,11 @@ describe("Role Requests waiting on Home", () => {
     const panel = await thePanel();
     expect(await panel.findByText("The Role Requests could not be loaded")).toBeVisible();
     const review = within(screen.getByRole("region", { name: "Waiting for your review" }));
-    expect(await review.findByText("No Question is waiting for review.")).toBeVisible();
+    expect(
+      await review.findByText(
+        "Nothing is waiting for review. New Questions appear here when an Author sends them.",
+      ),
+    ).toBeVisible();
 
     failing = false;
     await userEvent.click(panel.getByRole("button", { name: "Try again" }));

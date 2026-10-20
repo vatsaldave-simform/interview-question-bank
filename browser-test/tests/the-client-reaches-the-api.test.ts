@@ -15,7 +15,9 @@ test("the client reaches the API", async ({ page }) => {
   await page.getByLabel("Password", { exact: true }).fill("author-password");
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+  // Home's title is a greeting that follows the hour.
+  const home = page.getByRole("heading", { level: 1, name: /^Good (morning|afternoon|evening)$/ });
+  await expect(home).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
   const mainMenu = page.getByRole("navigation", { name: "Main menu" });
   await mainMenu.getByRole("link", { name: "Browse" }).click();

@@ -1,14 +1,20 @@
 import type { ListQuestionsRequest } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
+import { ClientRestriction } from "@/features/questions/client-restriction";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
+import { WhenAdded } from "@/features/questions/when-added";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
 /** Browse's own first page, cut to five, so only Questions Visible to the Viewer appear. */
 const newestFive: ListQuestionsRequest = { keywords: undefined, limit: 5, offset: 0 };
+
+const tagsShown = 2;
 
 export function RecentlyAddedQuestions() {
   const list = useQuestionList(newestFive);
@@ -18,7 +24,7 @@ export function RecentlyAddedQuestions() {
       title="Recently added"
       beside={
         <Link to="/questions" className="text-primary ml-auto text-sm hover:underline">
-          See every Question
+          See them all in Browse
         </Link>
       }
     >
@@ -31,7 +37,7 @@ export function RecentlyAddedQuestions() {
           onRetry={() => void list.refetch()}
         />
       ) : list.data.questions.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing has been added yet.</p>
+        <p className="text-muted-foreground text-sm">Nothing has been added to the bank yet.</p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {list.data.questions.map((question) => (
@@ -43,12 +49,15 @@ export function RecentlyAddedQuestions() {
               >
                 {question.text}
               </Link>
-              <div className="flex flex-wrap items-center gap-2">
+              <RowDetails>
                 {question.publicationState !== "published" && (
                   <PublicationStateBadge state={question.publicationState} />
                 )}
-                <QuestionTags tags={question.tags} />
-              </div>
+                <QuestionTags tags={question.tags.slice(0, tagsShown)} />
+                <ClientRestriction client={question.client} />
+                {ratingIsShown(question) && <AverageRating rating={question.rating} />}
+                <WhenAdded createdAt={question.createdAt} />
+              </RowDetails>
             </li>
           ))}
         </ul>

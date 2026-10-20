@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { useFirstOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { WhenAdded } from "@/features/questions/when-added";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
@@ -13,10 +15,10 @@ export function OwnQuestionsWaiting() {
   return (
     <ScreenSection
       id="own-questions-waiting"
-      title="Your Questions waiting"
+      title="Your Pending and Rejected Questions"
       beside={
         <Link to="/questions/own" className="text-primary ml-auto text-sm hover:underline">
-          See all of them
+          See them all
         </Link>
       }
     >
@@ -29,7 +31,9 @@ export function OwnQuestionsWaiting() {
           onRetry={() => void own.refetch()}
         />
       ) : own.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing of yours is waiting.</p>
+        <p className="text-muted-foreground text-sm">
+          Nothing of yours is Pending or Rejected. When you add a Question, you can follow it here.
+        </p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {own.data.map((question) => (
@@ -41,9 +45,10 @@ export function OwnQuestionsWaiting() {
               >
                 {question.text}
               </Link>
-              <div className="flex flex-wrap items-center gap-2">
+              <RowDetails>
                 <PublicationStateBadge state={question.publicationState} />
-              </div>
+                <WhenAdded createdAt={question.createdAt} />
+              </RowDetails>
               {question.reason !== null && <RejectionReason reason={question.reason} />}
             </li>
           ))}

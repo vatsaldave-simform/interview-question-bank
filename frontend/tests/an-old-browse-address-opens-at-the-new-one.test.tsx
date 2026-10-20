@@ -5,6 +5,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
+import { findHome } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -38,7 +39,7 @@ describe("an address from before Browse moved", () => {
 
     renderTheWholeClient("/");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    expect(await findHome()).toBeVisible();
     expect(window.location.pathname).toBe("/");
   });
 

@@ -22,19 +22,19 @@ async function theShortcuts() {
   return within(await screen.findByRole("region", { name: "Shortcuts" }));
 }
 
-const authorPages = ["Browse", "Add a Question", "Your Questions"];
+const authorPages = ["Browse the bank", "Add a Question", "Your Questions"];
 const administrationPages = ["Role Requests", "Viewers", "Clients"];
 
 describe("the shortcuts on Home", () => {
   it.each<[string, Viewer, string[]]>([
-    ["a Reader", aViewer({ role: "reader" }), ["Browse"]],
+    ["a Reader", aViewer({ role: "reader" }), ["Browse the bank"]],
     ["an Author", aViewer({ role: "author" }), authorPages],
     ["a Reviewer", aViewer({ role: "reviewer" }), [...authorPages, "Review queue"]],
     ["an Administrator", anAdministrator, [...authorPages, "Review queue", ...administrationPages]],
     [
       "an Administrator who is also a Reader",
       aViewer({ role: "reader", isAdministrator: true }),
-      ["Browse", ...administrationPages],
+      ["Browse the bank", ...administrationPages],
     ],
   ])("offer %s exactly the pages their role allows", async (_who, viewer, expected) => {
     signInAs(viewer);
@@ -42,16 +42,6 @@ describe("the shortcuts on Home", () => {
 
     const shortcuts = await theShortcuts();
     expect(shortcuts.getAllByRole("link").map((link) => link.textContent)).toEqual(expected);
-  });
-
-  it("say what each page is for", async () => {
-    signInAs(aViewer({ role: "author" }));
-    renderTheWholeClient("/");
-
-    const shortcuts = await theShortcuts();
-    expect(shortcuts.getByRole("link", { name: "Your Questions" })).toHaveAccessibleDescription(
-      "Your Pending and Rejected Questions, with the reason.",
-    );
   });
 
   it("open the page they name", async () => {

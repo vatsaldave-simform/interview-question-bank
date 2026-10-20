@@ -9,6 +9,10 @@ it.** It has three helpers: a date ("Sep 1, 2026"), a date with its time ("Sep 1
 2:30 PM"), and how long ago ("2 days ago"). The words are always English. The time zone is
 still the device's own.
 
+#162 added two more for Home: today's date without the year ("Tuesday, October 20"), and how
+long something has waited ("4 days"). The second uses the same units as "ago", so the two
+cannot get out of sync.
+
 ## Why date-fns
 
 "How long ago" is the hard one. The browser can say "2 days ago", but only after we pick the
@@ -17,7 +21,7 @@ plain functions, so the build keeps only the few we call. We do not ship any oth
 words.
 
 date-fns jumps from days straight to months, so the helper counts weeks itself from seven
-days to thirty. Under a minute is "just now".
+days to thirty. Under a minute is "just now", or "under a minute" for a wait.
 
 ## Why English only
 
