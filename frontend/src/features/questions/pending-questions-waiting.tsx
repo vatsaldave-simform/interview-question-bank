@@ -5,6 +5,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 const shownOnHome = 5;
 
@@ -14,11 +15,7 @@ export function PendingQuestionsWaiting() {
     <ScreenSection
       id="pending-questions-waiting"
       title="Waiting for your review"
-      beside={
-        <Link to="/review" className="text-primary ml-auto text-sm hover:underline">
-          Open the Review queue
-        </Link>
-      }
+      beside={<SectionLink to="/review">Open the Review queue</SectionLink>}
     >
       {pending.isPending ? (
         <RowsLoading label="Loading the Pending Questions…" rows={shownOnHome} onCard />

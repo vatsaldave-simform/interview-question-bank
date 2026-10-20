@@ -7,6 +7,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 const shownOnHome = 5;
 
@@ -16,11 +17,7 @@ export function OwnQuestionsWaiting() {
     <ScreenSection
       id="own-questions-waiting"
       title="Your Pending and Rejected Questions"
-      beside={
-        <Link to="/questions/own" className="text-primary ml-auto text-sm hover:underline">
-          See them all
-        </Link>
-      }
+      beside={<SectionLink to="/questions/own">See them all</SectionLink>}
     >
       {own.isPending ? (
         <RowsLoading label="Loading your Questions…" rows={shownOnHome} onCard />

@@ -10,6 +10,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 /** Browse's own first page, cut to five, so only Questions Visible to the Viewer appear. */
 const newestFive: ListQuestionsRequest = { keywords: undefined, limit: 5, offset: 0 };
@@ -22,11 +23,7 @@ export function RecentlyAddedQuestions() {
     <ScreenSection
       id="recently-added"
       title="Recently added"
-      beside={
-        <Link to="/questions" className="text-primary ml-auto text-sm hover:underline">
-          See them all in Browse
-        </Link>
-      }
+      beside={<SectionLink to="/questions">See them all in Browse</SectionLink>}
     >
       {list.isPending ? (
         <RowsLoading label="Loading the newest Questions…" rows={newestFive.limit} onCard />

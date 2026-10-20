@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useFirstOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
 import { dateWording } from "@/platform/when-wording";
@@ -6,6 +5,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 const shownOnHome = 5;
 
@@ -15,14 +15,7 @@ export function OpenRoleRequestsWaiting() {
     <ScreenSection
       id="open-role-requests-waiting"
       title="Open Role Requests"
-      beside={
-        <Link
-          to="/administration/role-requests"
-          className="text-primary ml-auto text-sm hover:underline"
-        >
-          Decide them
-        </Link>
-      }
+      beside={<SectionLink to="/administration/role-requests">Decide them</SectionLink>}
     >
       {open.isPending ? (
         <RowsLoading label="Loading the Role Requests…" rows={shownOnHome} onCard />
