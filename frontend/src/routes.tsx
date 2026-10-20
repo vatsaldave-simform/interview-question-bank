@@ -19,6 +19,8 @@ import { parseSearch, stringifySearch } from "@/platform/search-params";
 import { useSession } from "@/platform/session";
 import { signedInRoute } from "@/platform/signed-in-route";
 import { PageHeader } from "@/ui/page-header";
+import { Card } from "@/ui/shadcn/card";
+import { smallHeading } from "@/ui/small-heading";
 
 const homeRoute = createRoute({
   getParentRoute: () => signedInRoute,
@@ -61,13 +63,22 @@ function AccountPage() {
         title="Your account"
         description="Your email, your role, and any Role Request you have made."
       />
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Email</dt>
-        <dd>{viewer.email}</dd>
-        <dt className="text-muted-foreground">Role</dt>
-        <dd>{roleWording[viewer.role]}</dd>
-      </dl>
-      <MyRoleRequest heldRole={viewer.role} />
+      <Card className="max-w-160 gap-4 p-(--spacing-panel)">
+        <dl className="flex flex-col gap-3">
+          <div>
+            <dt className={smallHeading}>Email</dt>
+            <dd className="mt-0.5">{viewer.email}</dd>
+          </div>
+          <div>
+            <dt className={smallHeading}>Role</dt>
+            <dd className="mt-0.5">
+              {roleWording[viewer.role]}
+              {viewer.isAdministrator && ", and an Administrator"}
+            </dd>
+          </div>
+        </dl>
+        <MyRoleRequest heldRole={viewer.role} />
+      </Card>
     </div>
   );
 }

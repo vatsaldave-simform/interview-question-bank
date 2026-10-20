@@ -133,7 +133,7 @@ describe("Open Role Requests on Home", () => {
 
     await userEvent.click(panel.getByRole("link", { name: "Decide them" }));
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Open Role Requests" }),
+      await screen.findByRole("heading", { level: 1, name: "Role Requests" }),
     ).toBeVisible();
     expect(window.location.pathname).toBe("/administration/role-requests");
   });

@@ -184,12 +184,12 @@ describe("the number beside Role Requests", () => {
 
     const sidebar = await theSidebar();
     await sidebar.findByRole("link", { name: "Role Requests, 2 open" });
-    const table = await screen.findByRole("table", { name: "Open Role Requests" });
-    const [firstGrant] = within(table).getAllByRole("button", { name: "Grant" });
+    const list = await screen.findByRole("list", { name: "Open Role Requests" });
+    const [firstGrant] = within(list).getAllByRole("button", { name: "Grant" });
     await userEvent.click(firstGrant!);
 
     await sidebar.findByRole("link", { name: "Role Requests, 1 open" });
-    await userEvent.click(within(table).getByRole("button", { name: "Grant" }));
+    await userEvent.click(within(list).getByRole("button", { name: "Grant" }));
 
     expect(await sidebar.findByRole("link", { name: "Role Requests" })).toBeVisible();
   });

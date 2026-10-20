@@ -89,25 +89,36 @@ function optionsIn(picker: HTMLElement): string[] {
     .map((option) => option.textContent ?? "");
 }
 
-describe("issuing and revoking a Grant from the administration console", () => {
-  it("issues a Grant to a Viewer picked from those who do not hold one", async () => {
-    const api = aBankGranting(
-      new Map([[northwind, [named(author)]]]),
-    );
+/** Presses the page's "Issue a Permission Grant", which opens the form in a dialog. */
+async function theGrantDialog(section: ReturnType<typeof within>) {
+  await userEvent.click(await section.findByRole("button", { name: "Issue a Permission Grant" }));
+  return within(await screen.findByRole("dialog", { name: "Issue a Permission Grant" }));
+}
+
+async function theGrantsTable(section: ReturnType<typeof within>) {
+  return within(await section.findByRole("table", { name: "Permission Grants" }));
+}
+
+describe("issuing a Permission Grant from the administration console", () => {
+  it("issues a Grant from a dialog, to a Viewer picked from those who do not hold one", async () => {
+    const api = aBankGranting(new Map([[northwind, [named(author)]]]));
     renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
-    const picker = await section.findByLabelText("Viewer");
+    const dialog = await theGrantDialog(section);
+    const picker = await dialog.findByLabelText("Viewer");
     expect(optionsIn(picker)).toEqual(["Choose a Viewer", "reader@iqb.test", "reviewer@iqb.test"]);
     await userEvent.selectOptions(picker, "reader@iqb.test");
-    await userEvent.click(section.getByRole("button", { name: "Issue a Grant" }));
+    await userEvent.click(dialog.getByRole("button", { name: "Issue" }));
 
-    const holders = within(await section.findByRole("list", { name: "Viewers holding a Grant" }));
-    expect(await holders.findByText("reader@iqb.test")).toBeVisible();
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const grants = await theGrantsTable(section);
+    expect(await grants.findByRole("cell", { name: "reader@iqb.test" })).toBeVisible();
     expect(
       await theToastSaying("reader@iqb.test now holds a Grant against this Client."),
     ).toBeVisible();
-    expect(optionsIn(section.getByLabelText("Viewer"))).toEqual([
+    const again = await theGrantDialog(section);
+    expect(optionsIn(again.getByLabelText("Viewer"))).toEqual([
       "Choose a Viewer",
       "reviewer@iqb.test",
     ]);
@@ -116,19 +127,67 @@ describe("issuing and revoking a Grant from the administration console", () => {
     expect(await sent?.json()).toEqual({ viewerId: reader.id });
   });
 
+  it("sends nothing until a Viewer is picked, and nothing on Cancel", async () => {
+    const api = aBankGranting(new Map([[northwind, [named(author)]]]));
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
+
+    const dialog = await theGrantDialog(await sectionFor(northwind));
+    await dialog.findByLabelText("Viewer");
+    expect(dialog.getByRole("button", { name: "Issue" })).toBeDisabled();
+    await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(grantActsSent(api)).toEqual([]);
+  });
+
+  it("is offered by an empty list in place of the page's own button", async () => {
+    aBankGranting(new Map([[northwind, []]]));
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
+
+    const empty = within(
+      await screen.findByRole("region", { name: "Nobody can see this Client's Questions yet" }),
+    );
+    expect(
+      await screen.findAllByRole("button", { name: "Issue a Permission Grant" }),
+    ).toHaveLength(1);
+    await userEvent.click(empty.getByRole("button", { name: "Issue a Permission Grant" }));
+    expect(await screen.findByRole("dialog", { name: "Issue a Permission Grant" })).toBeVisible();
+  });
+
+  it("reports the API's refusal in the dialog, which stays open", async () => {
+    aBankGranting(new Map([[northwind, [named(author)]]]), () =>
+      refusesWith(409, "conflict", "That Viewer already holds a Grant for that Client."),
+    );
+    renderTheWholeClient(`/administration/clients/${northwind.id}`);
+
+    const dialog = await theGrantDialog(await sectionFor(northwind));
+    await userEvent.selectOptions(await dialog.findByLabelText("Viewer"), "reader@iqb.test");
+    await userEvent.click(dialog.getByRole("button", { name: "Issue" }));
+
+    const alert = within(await dialog.findByRole("alert"));
+    expect(alert.getByText("The Permission Grant was not issued.")).toBeVisible();
+    expect(alert.getByText("That Viewer already holds a Grant for that Client.")).toBeVisible();
+    expect(toastsShown()).toHaveLength(0);
+  });
+});
+
+describe("revoking a Permission Grant from the administration console", () => {
   it("revokes a Viewer's Grant, and offers them for one again", async () => {
     const api = aBankGranting(new Map([[northwind, [named(author)]]]));
     renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
-    const holders = within(await section.findByRole("list", { name: "Viewers holding a Grant" }));
-    const holder = within(holders.getByText("author@iqb.test").closest("li")!);
+    const grants = await theGrantsTable(section);
+    const holder = within(grants.getByRole("cell", { name: "author@iqb.test" }).closest("tr")!);
     await userEvent.click(holder.getByRole("button", { name: "Revoke" }));
     await confirmTheRevoke();
 
-    expect(await section.findByRole("heading", { name: "Nobody can see this Client's Questions yet" })).toBeVisible();
+    expect(
+      await section.findByRole("heading", { name: "Nobody can see this Client's Questions yet" }),
+    ).toBeVisible();
     expect(await theToastSaying("author@iqb.test's Grant was revoked.")).toBeVisible();
-    expect(optionsIn(section.getByLabelText("Viewer"))).toContain("author@iqb.test");
+    const dialog = await theGrantDialog(section);
+    expect(optionsIn(await dialog.findByLabelText("Viewer"))).toContain("author@iqb.test");
     expect(grantActsSent(api)).toEqual([`DELETE /api/clients/${northwind.id}/grants/${author.id}`]);
   });
 
@@ -147,40 +206,19 @@ describe("issuing and revoking a Grant from the administration console", () => {
     expect(grantActsSent(api)).toEqual([]);
   });
 
-  it.each([
-    {
-      act: "issuing",
-      message: "That Viewer already holds a Grant for that Client.",
-      refusal: () =>
-        refusesWith(409, "conflict", "That Viewer already holds a Grant for that Client."),
-      press: async (section: ReturnType<typeof within>) => {
-        await userEvent.selectOptions(section.getByLabelText("Viewer"), "reader@iqb.test");
-        await userEvent.click(section.getByRole("button", { name: "Issue a Grant" }));
-      },
-    },
-    {
-      act: "revoking",
-      refusal: () => refusesWith(404, "not_found", "Not found."),
-      message: "Not found.",
-      press: async (section: ReturnType<typeof within>) => {
-        await userEvent.click(section.getByRole("button", { name: "Revoke" }));
-        await confirmTheRevoke();
-      },
-    },
-  ])("reports the API's refusal of $act, and keeps the Grants as they were", async ({ refusal, message, press }) => {
-    aBankGranting(
-      new Map([[northwind, [named(author)]]]),
-      refusal,
+  it("reports the API's refusal, and keeps the Grants as they were", async () => {
+    aBankGranting(new Map([[northwind, [named(author)]]]), () =>
+      refusesWith(404, "not_found", "Not found."),
     );
     renderTheWholeClient(`/administration/clients/${northwind.id}`);
 
     const section = await sectionFor(northwind);
-    await section.findByLabelText("Viewer");
-    await press(section);
+    await userEvent.click(await section.findByRole("button", { name: "Revoke" }));
+    await confirmTheRevoke();
 
     const alert = within(await section.findByRole("alert"));
-    expect(alert.getByText("That was not done.")).toBeVisible();
-    expect(alert.getByText(message)).toBeVisible();
+    expect(alert.getByText("The Permission Grant was not revoked.")).toBeVisible();
+    expect(alert.getByText("Not found.")).toBeVisible();
     expect(section.getByText("author@iqb.test")).toBeVisible();
     expect(toastsShown()).toHaveLength(0);
   });

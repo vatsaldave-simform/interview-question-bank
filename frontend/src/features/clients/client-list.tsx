@@ -8,6 +8,17 @@ import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
+import { Card, CardTitle } from "@/ui/shadcn/card";
+
+/** Up to two letters for the square beside the name, as in "NL" for Northwind Logistics. */
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((word) => word.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 export function ClientList() {
   const clients = useEveryClient();
@@ -48,18 +59,31 @@ export function ClientList() {
             Add a Client, and Questions can then be restricted to it.
           </EmptyList>
         ) : (
-          <ul aria-labelledby="clients" className="bg-card divide-y rounded-md border">
+          <ul
+            aria-labelledby="clients"
+            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3.5"
+          >
             {clients.data.map((client) => (
               <li key={client.id}>
-                {/* A link to the Client's page, so its Grants are asked for only when opened. */}
-                <Link
-                  to="/administration/clients/$clientId"
-                  params={{ clientId: client.id }}
-                  className="hover:bg-accent flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium"
-                >
-                  {client.name}
-                  <ChevronRightIcon aria-hidden="true" className="text-muted-foreground size-4" />
-                </Link>
+                <Card className="flex-row items-center gap-3.5 p-(--spacing-panel)">
+                  <span
+                    aria-hidden="true"
+                    className="bg-brand-purple text-brand-lavender grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold"
+                  >
+                    {initialsOf(client.name)}
+                  </span>
+                  <CardTitle className="min-w-0 flex-1 leading-snug">
+                    {/* A link to the Client's page, so its Grants are asked for only when opened. */}
+                    <Link
+                      to="/administration/clients/$clientId"
+                      params={{ clientId: client.id }}
+                      className="outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+                    >
+                      {client.name}
+                    </Link>
+                  </CardTitle>
+                  <ChevronRightIcon aria-hidden="true" className="text-muted-foreground size-4.5" />
+                </Card>
               </li>
             ))}
           </ul>

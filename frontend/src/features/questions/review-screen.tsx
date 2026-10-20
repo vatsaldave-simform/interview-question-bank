@@ -1,4 +1,4 @@
-import type { QuestionListResponse } from "@iqb/shared";
+import type { PendingQuestion, PendingQuestionListResponse } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { ClipboardCheckIcon } from "lucide-react";
 import { useState } from "react";
@@ -9,10 +9,13 @@ import {
   type ActProps,
   type ActRefused,
 } from "@/features/questions/publication-acts";
-import { QuestionCard } from "@/features/questions/question-card";
-import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
+import {
+  CompactQuestionCard,
+  CompactQuestionCardsLoading,
+} from "@/features/questions/compact-question-card";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useReviewQueue } from "@/features/questions/questions.queries";
+import { waitedWording } from "@/platform/when-wording";
 import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -34,7 +37,7 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {queue.isPending ? (
-        <QuestionCardsLoading label="Loading the Pending Questions…" />
+        <CompactQuestionCardsLoading label="Loading the Pending Questions…" />
       ) : queue.isError ? (
         <ListNotLoaded
           what="Pending Questions"
@@ -58,7 +61,7 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
   );
 }
 
-type PendingListProps = { page: QuestionListResponse; onRefusal: ActProps["onRefusal"] };
+type PendingListProps = { page: PendingQuestionListResponse; onRefusal: ActProps["onRefusal"] };
 
 function PendingList({ page, onRefusal }: PendingListProps) {
   if (page.questions.length === 0 && page.offset === 0) {
@@ -72,7 +75,7 @@ function PendingList({ page, onRefusal }: PendingListProps) {
     return <p className="text-muted-foreground">There are no more Pending Questions.</p>;
   }
   return (
-    <ul className="flex flex-col gap-4" aria-label="Pending Questions">
+    <ul className="flex flex-col gap-3" aria-label="Pending Questions">
       {page.questions.map((question) => (
         <li key={question.id}>
           <PendingCard question={question} onRefusal={onRefusal} />
@@ -82,19 +85,31 @@ function PendingList({ page, onRefusal }: PendingListProps) {
   );
 }
 
-function PendingCard({ question, onRefusal }: ActProps) {
+type PendingCardProps = ActProps & { question: PendingQuestion };
+
+function PendingCard({ question, onRefusal }: PendingCardProps) {
   return (
-    <QuestionCard question={question}>
-      {/* Publish is the one filled button, so a page of cards does not read as a wall of them. */}
-      <div className="flex flex-wrap items-start gap-2">
-        <PublishButton question={question} onRefusal={onRefusal} />
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-            Edit
-          </Link>
-        </Button>
-        <ReasonAct act="reject" variant="ghost" question={question} onRefusal={onRefusal} />
-      </div>
-    </QuestionCard>
+    <CompactQuestionCard
+      question={question}
+      details={
+        <>
+          <p>From {question.author.email}</p>
+          {/* From when it was added, because the API does not say when it was sent for review. */}
+          <p>Waiting {waitedWording(question.createdAt)}</p>
+        </>
+      }
+      acts={
+        // Publish is the one filled button, so a page of cards does not read as a wall of them.
+        <>
+          <PublishButton question={question} onRefusal={onRefusal} />
+          <ReasonAct act="reject" variant="secondary" question={question} onRefusal={onRefusal} />
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+              Edit
+            </Link>
+          </Button>
+        </>
+      }
+    />
   );
 }

@@ -9,12 +9,14 @@ import {
   type ActProps,
   type ActRefused,
 } from "@/features/questions/publication-acts";
+import {
+  CompactQuestionCard,
+  CompactQuestionCardsLoading,
+} from "@/features/questions/compact-question-card";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
-import { QuestionCard } from "@/features/questions/question-card";
-import { QuestionCardsLoading } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useOwnQuestions } from "@/features/questions/questions.queries";
-import { RejectionReason } from "@/features/questions/rejection-reason";
+import { WhenAdded } from "@/features/questions/when-added";
 import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -25,16 +27,19 @@ type OwnQuestionsScreenProps = { offset: number; onMove: (offset: number) => voi
 export function OwnQuestionsScreen({ offset, onMove }: OwnQuestionsScreenProps) {
   const own = useOwnQuestions(offset);
   const [refusal, setRefusal] = useState<ActRefused | null>(null);
+  // The empty list offers its own button, so the header does not offer a second.
+  const nothingYet = offset === 0 && own.data?.questions.length === 0;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <PageHeader
         title="Your Questions"
         description="The Questions you added that are not in the bank yet: Pending, or Rejected with the reason."
+        action={nothingYet ? undefined : <AddAQuestionButton />}
       />
       {refusal !== null && <ActRefusedInList refused={refusal} />}
       {own.isPending ? (
-        <QuestionCardsLoading label="Loading your Questions…" />
+        <CompactQuestionCardsLoading label="Loading your Questions…" />
       ) : own.isError ? (
         <ListNotLoaded what="Questions" reason={own.error} onRetry={() => void own.refetch()} />
       ) : (
@@ -73,18 +78,20 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
     return <p className="text-muted-foreground">There are no more of your Questions.</p>;
   }
   return (
-    <ul className="flex flex-col gap-4" aria-label="Your Questions">
+    <ul className="flex flex-col gap-3" aria-label="Your Questions">
       {page.questions.map((question) => (
         <li key={question.id}>
-          <QuestionCard
+          <CompactQuestionCard
             question={question}
+            lifts={false}
             badges={<PublicationStateBadge state={question.publicationState} />}
-          >
-            {question.reason !== null && <RejectionReason reason={question.reason} />}
-            {question.publicationState === "rejected" && (
-              <RejectedActs question={question} onRefusal={onRefusal} />
-            )}
-          </QuestionCard>
+            details={<WhenAdded createdAt={question.createdAt} />}
+            acts={
+              question.publicationState === "rejected" ? (
+                <RejectedActs question={question} onRefusal={onRefusal} />
+              ) : undefined
+            }
+          />
         </li>
       ))}
     </ul>
@@ -93,13 +100,13 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
 
 function RejectedActs({ question, onRefusal }: ActProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button asChild variant="outline" size="sm">
+    <>
+      <Button asChild variant="secondary" size="sm">
         <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
           Edit
         </Link>
       </Button>
       <ResubmitButton question={question} onRefusal={onRefusal} />
-    </div>
+    </>
   );
 }

@@ -81,9 +81,9 @@ describe("a Client with no Permission Grant", () => {
     const empty = await theEmptyList("Nobody can see this Client's Questions yet");
     expect(
       empty.getByText(
-        "Questions restricted to this Client stay hidden until you give a Viewer a Permission Grant for it, below.",
+        "Questions restricted to this Client stay hidden until you issue a Viewer a Permission Grant for it.",
       ),
     ).toBeVisible();
-    expect(await screen.findByRole("button", { name: "Issue a Grant" })).toBeVisible();
+    expect(empty.getByRole("button", { name: "Issue a Permission Grant" })).toBeVisible();
   });
 });

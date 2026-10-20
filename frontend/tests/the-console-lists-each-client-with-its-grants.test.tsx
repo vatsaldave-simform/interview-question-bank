@@ -76,8 +76,9 @@ describe("the Clients on the administration console", () => {
     expect(names).toEqual([kingsbridge.name, northwind.name]);
     await userEvent.click(clients.getByRole("link", { name: northwind.name }));
     const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
-    expect(await northwindGrants.findByText("author@iqb.test")).toBeVisible();
-    expect(northwindGrants.getByText("reader@iqb.test")).toBeVisible();
+    const table = within(await northwindGrants.findByRole("table", { name: "Permission Grants" }));
+    expect(await table.findByRole("cell", { name: "author@iqb.test" })).toBeVisible();
+    expect(table.getByRole("cell", { name: "reader@iqb.test" })).toBeVisible();
 
     const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
     await userEvent.click(trail.getByRole("link", { name: "Clients" }));
@@ -139,7 +140,7 @@ describe("the Clients on the administration console", () => {
     expect(await northwindGrants.findByText("reader@iqb.test")).toBeVisible();
   });
 
-  it("reports the Viewer list failing where a Grant would be issued", async () => {
+  it("reports the Viewer list failing in the dialog where a Grant would be issued", async () => {
     aBankAnswering({
       clients: () => answersWith({ clients: [northwind] }),
       grants: (client) => grantsAgainst(client, [author]),
@@ -149,8 +150,10 @@ describe("the Clients on the administration console", () => {
     renderTheWholeClient(clientPage(northwind));
 
     const northwindGrants = within(await screen.findByRole("region", { name: northwind.name }));
-    expect(await northwindGrants.findByText("The Viewers could not be loaded")).toBeVisible();
-    expect(northwindGrants.getByText("author@iqb.test")).toBeVisible();
-    expect(northwindGrants.queryByLabelText("Viewer")).not.toBeInTheDocument();
+    expect(await northwindGrants.findByText("author@iqb.test")).toBeVisible();
+    await userEvent.click(northwindGrants.getByRole("button", { name: "Issue a Permission Grant" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Issue a Permission Grant" }));
+    expect(await dialog.findByText("The Viewers could not be loaded")).toBeVisible();
+    expect(dialog.queryByLabelText("Viewer")).not.toBeInTheDocument();
   });
 });

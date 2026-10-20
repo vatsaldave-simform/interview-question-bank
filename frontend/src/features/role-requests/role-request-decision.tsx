@@ -35,7 +35,7 @@ const problemWording: Record<"reason", string> = {
 type RoleRequestDecisionProps = {
   roleRequest: RoleRequest;
   /** Told the API's refusal, or null when a new decision starts. The queue shows it, because
-   * the queue is asked again after a refusal and this row may leave it. */
+   * the queue is asked again after a refusal and this card may leave it. */
   onRefusal: (message: string | null) => void;
 };
 
@@ -48,7 +48,7 @@ export function RoleRequestDecision({ roleRequest, onRefusal }: RoleRequestDecis
   function send(decision: DecideRoleRequestRequest, form?: HTMLFormElement): void {
     onRefusal(null);
     const { email } = roleRequest.viewer;
-    // Not `mutate`'s own callback, which is dropped once the row has left the queue.
+    // Not `mutate`'s own callback, which is dropped once the card has left the queue.
     decide.mutateAsync(decision).then(
       () =>
         toast.success(
@@ -93,18 +93,13 @@ export function RoleRequestDecision({ roleRequest, onRefusal }: RoleRequestDecis
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={decide.isPending}
-        onClick={() => send({ outcome: "granted" })}
-      >
+    <>
+      <Button size="sm" disabled={decide.isPending} onClick={() => send({ outcome: "granted" })}>
         Grant
       </Button>
       <Dialog open={denying} onOpenChange={(open) => (open ? setDenying(true) : stopDenying())}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" disabled={decide.isPending}>
+          <Button variant="secondary" size="sm" disabled={decide.isPending}>
             Deny
           </Button>
         </DialogTrigger>
@@ -140,6 +135,6 @@ export function RoleRequestDecision({ roleRequest, onRefusal }: RoleRequestDecis
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

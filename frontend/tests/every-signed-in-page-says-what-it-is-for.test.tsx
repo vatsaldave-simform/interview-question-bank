@@ -75,7 +75,7 @@ describe("every signed-in page", () => {
     },
     {
       address: "/administration/role-requests",
-      title: "Open Role Requests",
+      title: "Role Requests",
       says: "Viewers asking for a different role, the one waiting longest first.",
     },
     {

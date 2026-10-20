@@ -9,6 +9,7 @@ import { isPageShownTo } from "@/platform/app-pages";
 import { HomeShortcuts } from "@/platform/home-shortcuts";
 import { useSession } from "@/platform/session";
 import { dayWording } from "@/platform/when-wording";
+import { smallHeading } from "@/ui/small-heading";
 
 type HomePageProps = {
   onSearch: (keywords: string | undefined) => void;
@@ -37,9 +38,7 @@ export function HomePage({ onSearch }: HomePageProps) {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-section">
       <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-          {dayWording(now)}
-        </p>
+        <p className={smallHeading}>{dayWording(now)}</p>
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {greetingFor(now.getHours())}
         </h1>

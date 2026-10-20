@@ -288,7 +288,7 @@
     backdrop-filter: var(--glass-blur-popover);
   }
   /* Only a card whose title is a link lifts, so the lift tells the Viewer it opens something. */
-  [data-slot="card"]:has([data-slot="card-title"] a[href]) {
+  [data-slot="card"]:has([data-slot="card-title"] a[href]):not([data-lifts="false"]) {
     position: relative;
     transition: translate 0.18s ease;
     &:hover {
