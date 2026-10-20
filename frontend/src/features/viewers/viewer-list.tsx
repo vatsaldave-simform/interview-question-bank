@@ -10,7 +10,6 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
 import { Badge } from "@/ui/shadcn/badge";
-import { Card } from "@/ui/shadcn/card";
 import {
   Table,
   TableBody,
@@ -19,8 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/ui/shadcn/table";
-
-const columnHead = "text-muted-foreground p-3 text-xs font-semibold tracking-wider uppercase";
+import { ColumnHead, TableCard } from "@/ui/table-card";
 
 export function ViewerList() {
   const viewers = useEveryViewer();
@@ -63,14 +61,14 @@ export function ViewerList() {
             Add a Viewer, and they are emailed a link to set their password.
           </EmptyList>
         ) : (
-          <Card className="px-1.5 py-1">
+          <TableCard>
             <Table aria-labelledby="viewers">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className={columnHead}>Email</TableHead>
-                  <TableHead className={columnHead}>Role</TableHead>
-                  <TableHead className={columnHead}>Administrator</TableHead>
-                  <TableHead className={columnHead}>State</TableHead>
+                  <ColumnHead>Email</ColumnHead>
+                  <ColumnHead>Role</ColumnHead>
+                  <ColumnHead>Administrator</ColumnHead>
+                  <ColumnHead>State</ColumnHead>
                   <TableHead className="text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -98,7 +96,7 @@ export function ViewerList() {
                 ))}
               </TableBody>
             </Table>
-          </Card>
+          </TableCard>
         )}
       </section>
     </AddDialog>
