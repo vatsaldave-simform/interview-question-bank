@@ -40,6 +40,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-hover: var(--hover);
   --color-brand-red: var(--brand-red);
   --color-brand-lavender: var(--brand-lavender);
   --color-brand-purple: var(--brand-purple);
@@ -127,6 +128,8 @@
   --field: oklch(1 0 0 / 82%);
   --field-line: color-mix(in oklch, var(--brand-purple) 22%, transparent);
   --ring: var(--brand-red);
+  /* A pointed-at row is only tinted, so its text keeps its own colour. */
+  --hover: color-mix(in oklch, var(--brand-purple) 7%, transparent);
   --pending: transparent;
   --pending-foreground: var(--brand-purple);
   --pending-border: color-mix(in oklch, var(--brand-purple) 45%, transparent);
@@ -199,6 +202,7 @@
   --input: oklch(0.3 0.014 264);
   --field: oklch(0 0 0 / 22%);
   --field-line: color-mix(in oklch, var(--brand-lavender) 24%, transparent);
+  --hover: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
   --ring: oklch(0.68 0.19 15.6);
   --pending: transparent;
   --pending-foreground: var(--brand-lavender);

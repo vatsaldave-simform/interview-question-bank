@@ -6,6 +6,7 @@ import { PublicationStateBadge } from "@/features/questions/publication-state-ba
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
 import { WhenAdded } from "@/features/questions/when-added";
+import { cardRow, cardRowLink, cardRows } from "@/ui/card-rows";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
@@ -36,13 +37,13 @@ export function RecentlyAddedQuestions() {
       ) : list.data.questions.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nothing has been added to the bank yet.</p>
       ) : (
-        <ul className="divide-border flex flex-col divide-y">
+        <ul className={cardRows}>
           {list.data.questions.map((question) => (
-            <li key={question.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+            <li key={question.id} className={cardRow}>
               <Link
                 to="/questions/$questionId"
                 params={{ questionId: question.id }}
-                className="hover:text-primary line-clamp-2 font-medium hover:underline"
+                className={cardRowLink}
               >
                 {question.text}
               </Link>
