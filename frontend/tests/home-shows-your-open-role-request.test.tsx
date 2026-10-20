@@ -53,9 +53,9 @@ describe("Your Role Request on Home", () => {
 
     await thePanel();
     for (const other of [
-      "Your Questions waiting",
+      "Your Pending and Rejected Questions",
       "Waiting for your review",
-      "Role Requests waiting",
+      "Open Role Requests",
     ]) {
       expect(screen.queryByRole("region", { name: other })).toBeNull();
     }
@@ -118,7 +118,7 @@ describe("Your Role Request on Home", () => {
       await panel.findByText("The Role Requests you raised could not be loaded"),
     ).toBeVisible();
     const recentlyAdded = within(screen.getByRole("region", { name: "Recently added" }));
-    expect(await recentlyAdded.findByText("Nothing has been added yet.")).toBeVisible();
+    expect(await recentlyAdded.findByText("Nothing has been added to the bank yet.")).toBeVisible();
 
     failing = false;
     await userEvent.click(panel.getByRole("button", { name: "Try again" }));

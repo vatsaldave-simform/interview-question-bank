@@ -27,7 +27,9 @@ export function PendingQuestionsWaiting() {
           onRetry={() => void pending.refetch()}
         />
       ) : pending.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No Question is waiting for review.</p>
+        <p className="text-muted-foreground text-sm">
+          Nothing is waiting for review. New Questions appear here when an Author sends them.
+        </p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {pending.data.map((question) => (

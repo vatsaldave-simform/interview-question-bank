@@ -18,7 +18,7 @@ export function RecentlyAddedQuestions() {
       title="Recently added"
       beside={
         <Link to="/questions" className="text-primary ml-auto text-sm hover:underline">
-          See every Question
+          See them all in Browse
         </Link>
       }
     >
@@ -31,7 +31,7 @@ export function RecentlyAddedQuestions() {
           onRetry={() => void list.refetch()}
         />
       ) : list.data.questions.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing has been added yet.</p>
+        <p className="text-muted-foreground text-sm">Nothing has been added to the bank yet.</p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {list.data.questions.map((question) => (

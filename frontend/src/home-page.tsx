@@ -52,11 +52,19 @@ export function HomePage({ onSearch }: HomePageProps) {
         <BrowseSearchBox keywords={undefined} onSearch={onSearch} large />
       </section>
       <HomeShortcuts viewer={viewer} />
-      <MyOpenRoleRequest />
-      {isPageShownTo(viewer, "your-questions") && <OwnQuestionsWaiting />}
-      {isPageShownTo(viewer, "review-queue") && <PendingQuestionsWaiting />}
-      {isPageShownTo(viewer, "role-requests") && <OpenRoleRequestsWaiting />}
-      <RecentlyAddedQuestions />
+      <div className="flex flex-col items-start gap-section min-[900px]:flex-row">
+        <div className="w-full min-w-0 flex-[1.55_1_0%]">
+          <RecentlyAddedQuestions />
+        </div>
+        {/* Hidden by CSS when empty, because whether Your Role Request shows depends on data
+            this page does not hold (ADR-0047). */}
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-section empty:hidden">
+          {isPageShownTo(viewer, "review-queue") && <PendingQuestionsWaiting />}
+          {isPageShownTo(viewer, "role-requests") && <OpenRoleRequestsWaiting />}
+          {isPageShownTo(viewer, "your-questions") && <OwnQuestionsWaiting />}
+          <MyOpenRoleRequest />
+        </div>
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function OpenRoleRequestsWaiting() {
   return (
     <ScreenSection
       id="open-role-requests-waiting"
-      title="Role Requests waiting"
+      title="Open Role Requests"
       beside={
         <Link
           to="/administration/role-requests"
@@ -32,7 +32,9 @@ export function OpenRoleRequestsWaiting() {
           onRetry={() => void open.refetch()}
         />
       ) : open.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No Role Request is waiting.</p>
+        <p className="text-muted-foreground text-sm">
+          No Role Request is open. Nobody is waiting on you.
+        </p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {open.data.map((roleRequest) => (

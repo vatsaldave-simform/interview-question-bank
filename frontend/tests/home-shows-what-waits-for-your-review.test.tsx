@@ -65,7 +65,11 @@ describe("Waiting for your review on Home", () => {
     aBankWaitingOn([]);
     renderTheWholeClient("/");
 
-    expect(await (await thePanel()).findByText("No Question is waiting for review.")).toBeVisible();
+    expect(
+      await (await thePanel()).findByText(
+        "Nothing is waiting for review. New Questions appear here when an Author sends them.",
+      ),
+    ).toBeVisible();
   });
 
   it("says so when the list fails, and leaves the other panels working", async () => {
@@ -91,7 +95,9 @@ describe("Waiting for your review on Home", () => {
 
     const panel = await thePanel();
     expect(await panel.findByText("The Pending Questions could not be loaded")).toBeVisible();
-    const yours = within(screen.getByRole("region", { name: "Your Questions waiting" }));
+    const yours = within(
+      screen.getByRole("region", { name: "Your Pending and Rejected Questions" }),
+    );
     expect(await yours.findByRole("link", { name: own.text })).toBeVisible();
 
     failing = false;

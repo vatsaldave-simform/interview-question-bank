@@ -13,10 +13,10 @@ export function OwnQuestionsWaiting() {
   return (
     <ScreenSection
       id="own-questions-waiting"
-      title="Your Questions waiting"
+      title="Your Pending and Rejected Questions"
       beside={
         <Link to="/questions/own" className="text-primary ml-auto text-sm hover:underline">
-          See all of them
+          See them all
         </Link>
       }
     >
@@ -29,7 +29,9 @@ export function OwnQuestionsWaiting() {
           onRetry={() => void own.refetch()}
         />
       ) : own.data.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing of yours is waiting.</p>
+        <p className="text-muted-foreground text-sm">
+          Nothing of yours is waiting or refused. When you add a Question, you can follow it here.
+        </p>
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {own.data.map((question) => (

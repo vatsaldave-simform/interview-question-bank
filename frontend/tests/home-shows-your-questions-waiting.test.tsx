@@ -40,10 +40,10 @@ function aBankWithOwn(own: Parameters<typeof aPageOf>[0]) {
 }
 
 async function thePanel() {
-  return within(await screen.findByRole("region", { name: "Your Questions waiting" }));
+  return within(await screen.findByRole("region", { name: "Your Pending and Rejected Questions" }));
 }
 
-describe("Your Questions waiting on Home", () => {
+describe("Your Pending and Rejected Questions on Home", () => {
   it("lists an Author's own Pending Question with its state", async () => {
     signInAs(aViewer({ role: "author" }));
     aBankWithOwn([waiting]);
@@ -82,7 +82,9 @@ describe("Your Questions waiting on Home", () => {
     renderTheWholeClient("/");
 
     await screen.findByRole("region", { name: "Recently added" });
-    expect(screen.queryByRole("region", { name: "Your Questions waiting" })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Your Pending and Rejected Questions" }),
+    ).toBeNull();
     expect(api.sent.map(({ url }) => new URL(url).pathname)).not.toContain("/api/questions/own");
   });
 
@@ -91,7 +93,11 @@ describe("Your Questions waiting on Home", () => {
     aBankWithOwn([]);
     renderTheWholeClient("/");
 
-    expect(await (await thePanel()).findByText("Nothing of yours is waiting.")).toBeVisible();
+    expect(
+      await (await thePanel()).findByText(
+        "Nothing of yours is waiting or refused. When you add a Question, you can follow it here.",
+      ),
+    ).toBeVisible();
   });
 
   it("says so when the list fails, and leaves the rest of Home working", async () => {
@@ -137,7 +143,7 @@ describe("Your Questions waiting on Home", () => {
       six.slice(0, 5).map(({ text }) => text),
     );
 
-    await userEvent.click(panel.getByRole("link", { name: "See all of them" }));
+    await userEvent.click(panel.getByRole("link", { name: "See them all" }));
     expect(
       await screen.findByRole("heading", { level: 1, name: "Your Questions" }),
     ).toBeVisible();

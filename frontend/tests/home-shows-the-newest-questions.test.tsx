@@ -86,7 +86,7 @@ describe("the newest Questions on Home", () => {
     renderTheWholeClient("/");
 
     const panel = await theNewest();
-    await userEvent.click(await panel.findByRole("link", { name: "See every Question" }));
+    await userEvent.click(await panel.findByRole("link", { name: "See them all in Browse" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Questions" })).toBeVisible();
     expect(window.location.pathname).toBe("/questions");
@@ -96,7 +96,8 @@ describe("the newest Questions on Home", () => {
     fakeBank((asked) => aPageOf([], asked));
     renderTheWholeClient("/");
 
-    expect(await (await theNewest()).findByText("Nothing has been added yet.")).toBeVisible();
+    const panel = await theNewest();
+    expect(await panel.findByText("Nothing has been added to the bank yet.")).toBeVisible();
   });
 
   it("say so when the list fails, and leave the rest of Home in place", async () => {
