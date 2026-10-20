@@ -40,7 +40,7 @@ async function writeAQuestion(): Promise<void> {
   await userEvent.click(screen.getByRole("radio", { name: "Original" }));
 }
 
-const addIt = () => userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
+const addIt = () => userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
 describe("adding a Question that is refused", () => {
   it("refuses an empty Question and empty Answer Notes before sending anything", async () => {

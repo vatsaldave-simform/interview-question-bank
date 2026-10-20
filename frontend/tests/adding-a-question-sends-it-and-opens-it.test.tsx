@@ -71,7 +71,7 @@ describe("adding a Question", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Add node" }));
     await userEvent.click(screen.getByRole("button", { name: "Add mid" }));
     await userEvent.click(screen.getByRole("radio", { name: "Original" }));
-    await userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
     expect(
       await screen.findByRole("heading", { name: "How would you find a slow query?" }),

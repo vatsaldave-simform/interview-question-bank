@@ -74,7 +74,7 @@ async function addAQuestion(): Promise<void> {
   await userEvent.type(questionBox, "How would you find a slow query?");
   await userEvent.type(screen.getByLabelText("Answer Notes"), "Look for EXPLAIN ANALYZE.");
   await userEvent.click(screen.getByRole("radio", { name: "Original" }));
-  await userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
+  await userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 }
 
 describe("a Question the API judged a Near-Duplicate", () => {
