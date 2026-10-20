@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
+import { aQuestion, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
@@ -136,6 +136,26 @@ describe("Your Pending and Rejected Questions on Home", () => {
     failing = false;
     await userEvent.click(panel.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(panel.getByRole("link", { name: waiting.text })).toBeVisible());
+  });
+
+  it("opens a Question's own page from its row", async () => {
+    signInAs(aViewer({ role: "author" }));
+    fakeBank(
+      (asked) => aPageOf([], asked),
+      (_request, asked) => {
+        if (asked.pathname === "/api/questions/own") return aPageOf([waiting], asked);
+        if (asked.pathname === `/api/questions/${waiting.id}`) {
+          return answersWith({ question: waiting });
+        }
+        if (asked.pathname.endsWith("/history")) return answersWith({ events: [] });
+        return undefined;
+      },
+    );
+    renderTheWholeClient("/");
+
+    await userEvent.click(await (await thePanel()).findByRole("link", { name: waiting.text }));
+    expect(await screen.findByRole("heading", { level: 1, name: waiting.text })).toBeVisible();
+    expect(window.location.pathname).toBe(`/questions/${waiting.id}`);
   });
 
   it("shows the first five of Your Questions, and leads on to the rest", async () => {
