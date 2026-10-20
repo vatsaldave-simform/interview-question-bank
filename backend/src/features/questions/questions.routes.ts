@@ -37,9 +37,13 @@ import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
 
-/** The Question as the API answers with it: only the timestamp needs changing. */
-function toQuestion(question: QuestionFromDb & { rating: RatingSummary }): Question {
-  return { ...question, createdAt: question.createdAt.toISOString() };
+/** The Question as the API answers with it: only the timestamp changes, and anything added
+ * beside it, like the queue's author, is kept. */
+function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
+  createdAt,
+  ...question
+}: Q): Omit<Q, "createdAt"> & Question {
+  return { ...question, createdAt: createdAt.toISOString() };
 }
 
 async function toResponse(
@@ -99,7 +103,7 @@ export function questionRoutes(database: Database): Router {
     const authored = await withAuthors(database, questions);
     const rated = await withRatingSummaries(database, viewer, authored);
     const body: PendingQuestionListResponse = {
-      questions: rated.map(({ author, ...question }) => ({ ...toQuestion(question), author })),
+      questions: rated.map(toQuestion),
       limit: page.limit,
       offset: page.offset,
     };

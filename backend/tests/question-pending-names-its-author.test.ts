@@ -4,6 +4,7 @@ import { logIn, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   getQuestion,
+  inOneAnswerNoteOnly,
   seedTheBank,
   seededQuestionIds,
   viewerByRole,
@@ -64,6 +65,15 @@ describe("who wrote a Pending Question", () => {
       expect(fields.length).toBeGreaterThan(0);
       expect(fields.flat()).not.toContain("author");
     }
+  });
+
+  it("is named on no Question a keyword search finds", async () => {
+    const fields = await fieldsOfEach(
+      await getList(api, `?keywords=${inOneAnswerNoteOnly}`, reviewerToken),
+    );
+
+    expect(fields.length).toBeGreaterThan(0);
+    expect(fields.flat()).not.toContain("author");
   });
 
   it("is named on no Question in an Author's own list", async () => {
