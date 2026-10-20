@@ -15,6 +15,9 @@ export const roleRequestSchema = z
     /** The role they asked for, which may be any other role: there is no ladder
      * (ADR-0016). */
     role: viewerRoleSchema,
+    /** The role the Viewer who asked holds when this is read, which a grant or an
+     * Administrator may have changed since they asked. */
+    heldRole: viewerRoleSchema,
     state: roleRequestStateSchema,
     reason: z.string().nullable(),
     createdAt: z.iso.datetime(),

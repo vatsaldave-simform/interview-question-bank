@@ -97,6 +97,7 @@ export function aRoleRequest(changes: Partial<RoleRequest> = {}): RoleRequest {
     id: "d0000000-0000-4000-8000-000000000001",
     viewer: { id: aSignedInAuthor.viewer.id, email: aSignedInAuthor.viewer.email },
     role: "reviewer",
+    heldRole: aSignedInAuthor.viewer.role,
     state: "open",
     reason: null,
     createdAt: "2026-09-01T09:00:00.000Z",

@@ -81,7 +81,8 @@ export async function grantRoleRequest(
       viewerId: viewer.id,
       payload,
     });
-    return granted;
+    // The row was read before the role changed, so answer with the role just set.
+    return { ...granted, heldRole: granted.role };
   });
 }
 

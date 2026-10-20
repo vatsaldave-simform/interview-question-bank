@@ -27,6 +27,7 @@ afterEach(() => {
 
 const fromReader = aRoleRequest({
   viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "reader@iqb.test" },
+  heldRole: "reader",
 });
 const fromAuthor = aRoleRequest({ id: "d0000000-0000-4000-8000-000000000002" });
 const reader = aViewer({ ...fromReader.viewer, role: "reader" });
@@ -190,6 +191,7 @@ describe("deciding a Role Request from the administration console", () => {
     const own = aRoleRequest({
       viewer: { id: anAdministrator.id, email: anAdministrator.email },
       role: "author",
+      heldRole: anAdministrator.role,
     });
     aBankDeciding([own]);
     renderTheWholeClient("/administration/role-requests");
