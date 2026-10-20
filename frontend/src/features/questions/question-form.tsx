@@ -54,7 +54,7 @@ export function QuestionForm(props: QuestionFormProps) {
 
   return (
     // The schema is the only check, so the browser's own validation must not answer first.
-    <form ref={form} noValidate onSubmit={send} className="flex flex-col gap-6">
+    <form ref={form} noValidate onSubmit={send} className="flex flex-col gap-section">
       {refusal !== null && (
         <Alert variant="destructive">
           <AlertTitle>{refusal.title}</AlertTitle>

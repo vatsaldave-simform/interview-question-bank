@@ -1,6 +1,6 @@
 # Dates are written by date-fns, in English
 
-Five screens showed a date, and each built its own `Intl.DateTimeFormat`. They passed no
+Five components showed a date, and each built its own `Intl.DateTimeFormat`. They passed no
 language, so each date followed the browser's language. #160 asks for one place that writes
 dates, and Home will soon need "Added 2 days ago" (#162).
 
@@ -23,8 +23,8 @@ days to thirty. Under a minute is "just now".
 
 Every other word on the screen is English. A date in the browser's language does not fit in
 an English sentence, as in "You asked for the Author role on 1 sept. 2026". Tests could only
-check the `datetime` attribute, because the words changed from machine to machine. Now a test
-can check the words too.
+check the `datetime` attribute, because the words changed from machine to machine. Now only
+the time zone changes them, so the tests of `when-wording.ts` check the words themselves.
 
 ## What we did not do
 
@@ -43,3 +43,4 @@ has no plan for that. When it does, `when-wording.ts` is the one file to change.
 - A browser set to US English shows the same words as before. A browser set to another
   language now shows them in US English too.
 - `when-wording.ts` is in `platform/`, because more than one feature shows a date.
+- `docs/agents/frontend-structure.md` says so under Dates.
