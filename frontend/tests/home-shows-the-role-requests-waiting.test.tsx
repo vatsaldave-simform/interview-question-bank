@@ -56,6 +56,18 @@ describe("Open Role Requests on Home", () => {
     expect(row.getByRole("time")).toHaveAttribute("datetime", open.createdAt);
   });
 
+  it("opens the Role Requests page from a Role Request", async () => {
+    signInAs(anAdministrator);
+    aBankWithOpen([open]);
+    renderTheWholeClient("/");
+
+    await userEvent.click(await (await thePanel()).findByRole("link", { name: "reader@iqb.test" }));
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Role Requests" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe("/administration/role-requests");
+  });
+
   it("is shown to an Administrator whatever role they hold", async () => {
     signInAs(aViewer({ role: "reader", isAdministrator: true }));
     aBankWithOpen([open]);

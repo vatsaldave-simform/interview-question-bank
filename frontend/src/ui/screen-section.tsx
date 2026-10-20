@@ -13,11 +13,12 @@ export function ScreenSection({ id, title, beside, children }: ScreenSectionProp
   return (
     <section aria-labelledby={id}>
       <Card className="gap-3 p-(--spacing-panel)">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 id={id} className="text-lg font-semibold">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id={id} className="min-w-0 text-lg font-[650]">
             {title}
           </h2>
-          {beside}
+          {/* The title wraps before this does, so the link stays on the heading's line. */}
+          {beside !== undefined && <div className="shrink-0">{beside}</div>}
         </div>
         {children}
       </Card>

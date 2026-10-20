@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useFirstPendingQuestions } from "@/features/questions/questions.queries";
 import { waitedWording } from "@/platform/when-wording";
+import { cardRow, cardRowLink, cardRows } from "@/ui/card-rows";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 const shownOnHome = 5;
 
@@ -14,11 +16,7 @@ export function PendingQuestionsWaiting() {
     <ScreenSection
       id="pending-questions-waiting"
       title="Waiting for your review"
-      beside={
-        <Link to="/review" className="text-primary ml-auto text-sm hover:underline">
-          Open the Review queue
-        </Link>
-      }
+      beside={<SectionLink to="/review">Open the Review queue</SectionLink>}
     >
       {pending.isPending ? (
         <RowsLoading label="Loading the Pending Questions…" rows={shownOnHome} onCard />
@@ -33,13 +31,13 @@ export function PendingQuestionsWaiting() {
           Nothing is waiting for review. New Questions appear here when an Author sends them.
         </p>
       ) : (
-        <ul className="divide-border flex flex-col divide-y">
+        <ul className={cardRows}>
           {pending.data.map((question) => (
-            <li key={question.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+            <li key={question.id} className={cardRow}>
               <Link
                 to="/questions/$questionId"
                 params={{ questionId: question.id }}
-                className="hover:text-primary line-clamp-2 font-medium hover:underline"
+                className={cardRowLink}
               >
                 {question.text}
               </Link>

@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
 import { useMyOpenRoleRequest } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
 import { dateWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { ScreenSection } from "@/ui/screen-section";
+import { SectionLink } from "@/ui/section-link";
 
 export function MyOpenRoleRequest() {
   const open = useMyOpenRoleRequest();
@@ -13,11 +13,7 @@ export function MyOpenRoleRequest() {
     <ScreenSection
       id="my-open-role-request"
       title="Your Role Request"
-      beside={
-        <Link to="/account" className="text-primary ml-auto text-sm hover:underline">
-          See it on your account
-        </Link>
-      }
+      beside={<SectionLink to="/account">See it on your account</SectionLink>}
     >
       {open.isError ? (
         <ListNotLoaded
