@@ -20,7 +20,7 @@ export function HomePage({ onSearch }: HomePageProps) {
   if (session.status !== "signed-in") return null;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-section">
       <PageHeader
         title="Welcome back"
         description={

@@ -63,6 +63,17 @@
   --radius-xl: calc(var(--radius) * 1.4);
 }
 
+/* The sizes keep the agreed design's proportions, not its exact pixels. */
+@theme {
+  --spacing-section: 1.375rem;
+  --spacing-edge-top-bottom: 1.75rem;
+  --spacing-edge-side: 2.25rem;
+  --spacing-edge-phone: 1.25rem;
+  /* A Card takes it as `p-(--spacing-panel)`, because `cn` does not know `p-panel` and
+     would keep the Card's own `py-6`. */
+  --spacing-panel: 1.125rem;
+}
+
 :root {
   color-scheme: light;
   --radius: 0.625rem;

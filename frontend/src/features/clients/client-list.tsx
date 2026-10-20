@@ -27,7 +27,7 @@ export function ClientList() {
         />
       )}
     >
-      <section className="flex flex-col gap-6" aria-labelledby="clients">
+      <section className="flex flex-col gap-section" aria-labelledby="clients">
         <PageHeader
           title="Clients"
           titleId="clients"

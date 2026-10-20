@@ -12,4 +12,8 @@ describe("merging Tailwind classes", () => {
     // class the caller did not touch survives.
     expect(cn("p-2 text-sm", "p-4")).toBe("text-sm p-4");
   });
+
+  it("lets the shared panel padding replace a card's own", () => {
+    expect(cn("gap-6 py-6", "p-(--spacing-panel)")).toBe("gap-6 p-(--spacing-panel)");
+  });
 });

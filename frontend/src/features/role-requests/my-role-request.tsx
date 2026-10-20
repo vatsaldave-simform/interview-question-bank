@@ -12,13 +12,12 @@ import {
 } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
 import { whatWentWrong } from "@/platform/api-client";
+import { dateWording } from "@/platform/when-wording";
 import { ActNotDone } from "@/ui/act-not-done";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
-
-const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 const stateWording: Record<RoleRequestState, string> = {
   open: "It is waiting for an Administrator.",
@@ -83,7 +82,7 @@ function Latest({ roleRequest }: { roleRequest: RoleRequest }) {
       <p>
         You asked to be a {roleWording[roleRequest.role]} on{" "}
         <time dateTime={roleRequest.createdAt}>
-          {whenWording.format(new Date(roleRequest.createdAt))}
+          {dateWording(roleRequest.createdAt)}
         </time>
         .
       </p>

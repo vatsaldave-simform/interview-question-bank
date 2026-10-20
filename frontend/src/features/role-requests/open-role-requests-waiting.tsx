@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useFirstOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
+import { dateWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
 const shownOnHome = 5;
-
-const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 export function OpenRoleRequestsWaiting() {
   const open = useFirstOpenRoleRequests(shownOnHome);
@@ -42,7 +41,7 @@ export function OpenRoleRequestsWaiting() {
               <p className="text-muted-foreground text-sm">
                 Asks for {roleWording[roleRequest.role]} since{" "}
                 <time dateTime={roleRequest.createdAt}>
-                  {whenWording.format(new Date(roleRequest.createdAt))}
+                  {dateWording(roleRequest.createdAt)}
                 </time>
               </p>
             </li>

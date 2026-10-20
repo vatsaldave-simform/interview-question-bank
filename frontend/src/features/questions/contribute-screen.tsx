@@ -104,7 +104,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <Link to="/questions" className="text-primary text-sm hover:underline">
         ← All Questions
       </Link>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { RoleRequestDecision } from "@/features/role-requests/role-request-decision";
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
+import { dateAndTimeWording } from "@/platform/when-wording";
 import { ActNotDone } from "@/ui/act-not-done";
 import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -17,8 +18,6 @@ import {
   TableRow,
 } from "@/ui/shadcn/table";
 
-const whenWording = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
-
 type Refusal = { from: string; message: string };
 
 export function RoleRequestQueue() {
@@ -26,7 +25,7 @@ export function RoleRequestQueue() {
   const [refusal, setRefusal] = useState<Refusal | null>(null);
 
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="open-role-requests">
+    <section className="flex flex-col gap-section" aria-labelledby="open-role-requests">
       <PageHeader
         title="Open Role Requests"
         titleId="open-role-requests"
@@ -67,7 +66,7 @@ export function RoleRequestQueue() {
                 <TableCell>{roleWording[roleRequest.role]}</TableCell>
                 <TableCell>
                   <time dateTime={roleRequest.createdAt}>
-                    {whenWording.format(new Date(roleRequest.createdAt))}
+                    {dateAndTimeWording(roleRequest.createdAt)}
                   </time>
                 </TableCell>
                 <TableCell>

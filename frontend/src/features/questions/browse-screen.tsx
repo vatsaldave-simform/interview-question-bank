@@ -33,13 +33,13 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   );
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-section">
       <PageHeader
         title="Questions"
         description="Every Published Question you can see, to search or narrow by Category."
         action={mayAddAQuestion && <AddAQuestionButton />}
       />
-      <div className="grid gap-8 md:grid-cols-[14rem_1fr]">
+      <div className="grid gap-section md:grid-cols-[14rem_1fr]">
         <aside className="flex flex-col gap-6" aria-label="Filters">
           <BrowseFilters search={search} onSearchChange={onSearchChange} />
           {(namesAFilter || request === null) && (
@@ -48,7 +48,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
             </Button>
           )}
         </aside>
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-section">
           <BrowseSearchBox
             // A new key resets the box to the address, after Back or Clear filters.
             key={String(search.keywords ?? "")}

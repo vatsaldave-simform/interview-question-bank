@@ -56,7 +56,7 @@ function AccountPage() {
 
   const { viewer } = session;
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8">
+    <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <PageHeader
         title="Your account"
         description="Your email, your role, and any Role Request you have made."

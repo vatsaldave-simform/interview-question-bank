@@ -39,7 +39,7 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-section">
       {/* The header waits for the Question, so until then the trail stands on its own. */}
       {!question.isSuccess && <PageTrail back={backToBrowse} here="Question" />}
       {question.isPending ? (
@@ -61,14 +61,14 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
 function QuestionInFull({ question }: { question: Question }) {
   return (
     // The details come before the main column, so on a phone they sit just under the title.
-    <article className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
+    <article className="grid items-start gap-section md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
         trail={{ back: backToBrowse, here: question.text }}
       />
       <AboutThisQuestion question={question} />
-      <div className="flex flex-col gap-6 md:col-start-1">
+      <div className="flex flex-col gap-section md:col-start-1">
         {question.reason !== null && (
           <ScreenSection id="why-it-was-rejected" title="Why it was Rejected">
             <p className="whitespace-pre-line">{question.reason}</p>
@@ -100,7 +100,7 @@ function AboutThisQuestion({ question }: { question: Question }) {
       aria-labelledby="about-this-question"
       className="md:col-start-2 md:row-span-2 md:row-start-1"
     >
-      <Card className="gap-5 px-6">
+      <Card className="gap-5 p-(--spacing-panel)">
         <h2 id="about-this-question" className="text-lg font-semibold">
           About this Question
         </h2>

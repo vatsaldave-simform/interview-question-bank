@@ -99,6 +99,15 @@ own `data-sonner-toast`, and the reduced-motion rule, which has to reach every e
 
 Colours that carry meaning are theme variables in `index.css`, never Tailwind colour classes, so the dark palette only has to give each one a new value.
 
+Spacing works the same way. The gap between a page's sections, the page edge and a panel's
+padding are theme variables in `index.css`: `gap-section`, `p-(--spacing-panel)` and the rest.
+A screen uses them and sets no section gap or page edge of its own.
+
+## Dates
+
+Every date on a screen is written by `platform/when-wording.ts`, in English (ADR-0048). No other
+file formats a date.
+
 ## Tests
 
 Tests live in `frontend/tests/`, flat, as on the backend. They are named after the behaviour they

@@ -30,7 +30,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
   const question = useQuestion(questionId);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <PageHeader
         title="Edit the Question"
         description="Change what the Question says, and its history keeps who changed it and when."
@@ -50,14 +50,14 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
 /** Shaped like the form's first two cards, so the page does not jump when it arrives. */
 function EditFormLoading() {
   return (
-    <div role="status" className="flex flex-col gap-6">
+    <div role="status" className="flex flex-col gap-section">
       <span className="sr-only">Loading the Question…</span>
-      <Card className="gap-4 px-6">
+      <Card className="gap-4 p-(--spacing-panel)">
         <Skeleton className="bg-muted h-6 w-40" />
         <Skeleton className="bg-muted h-16 w-full" />
         <Skeleton className="bg-muted h-32 w-full" />
       </Card>
-      <Card className="gap-4 px-6">
+      <Card className="gap-4 p-(--spacing-panel)">
         <Skeleton className="bg-muted h-6 w-20" />
         <TagChipShapes />
       </Card>
