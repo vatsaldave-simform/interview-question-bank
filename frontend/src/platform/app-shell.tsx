@@ -23,7 +23,7 @@ export function AppShell({ onSignOut, marks }: { onSignOut: () => void; marks: S
       <AppSidebar viewer={session.viewer} onSignOut={onSignOut} marks={marks} />
       <div className="flex min-w-0 flex-1 flex-col">
         <PhoneBar />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-edge-phone md:px-edge-side md:py-edge">
           <Outlet />
         </main>
       </div>

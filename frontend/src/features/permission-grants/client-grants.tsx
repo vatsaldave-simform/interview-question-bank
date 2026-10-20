@@ -24,7 +24,7 @@ export function ClientGrants({ clientId }: { clientId: string }) {
   const name = clients.data?.find(({ id }) => id === clientId)?.name ?? "Client";
 
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="client">
+    <section className="flex flex-col gap-section" aria-labelledby="client">
       <PageHeader
         title={name}
         titleId="client"

@@ -38,7 +38,7 @@ export function ViewerList() {
         />
       )}
     >
-      <section className="flex flex-col gap-6" aria-labelledby="viewers">
+      <section className="flex flex-col gap-section" aria-labelledby="viewers">
         <PageHeader
           title="Viewers"
           titleId="viewers"

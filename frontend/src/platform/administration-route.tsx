@@ -21,7 +21,7 @@ export const administrationStartRoute = createRoute({
 /** No menu of its own, because the sidebar already lists each page under Administration. */
 function AdministrationFrame() {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-section">
       <Outlet />
     </div>
   );

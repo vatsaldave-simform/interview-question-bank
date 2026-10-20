@@ -27,7 +27,7 @@ export function ReviewScreen({ offset, onMove }: ReviewScreenProps) {
   const [refusal, setRefusal] = useState<ActRefused | null>(null);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <PageHeader
         title="Review queue"
         description="Pending Questions waiting on a Reviewer, the one that has waited longest first."

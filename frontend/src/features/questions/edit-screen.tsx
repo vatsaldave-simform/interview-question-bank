@@ -30,7 +30,7 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
   const question = useQuestion(questionId);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-section">
       <PageHeader
         title="Edit the Question"
         description="Change what the Question says, and its history keeps who changed it and when."

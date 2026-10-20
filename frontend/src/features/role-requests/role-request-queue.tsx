@@ -26,7 +26,7 @@ export function RoleRequestQueue() {
   const [refusal, setRefusal] = useState<Refusal | null>(null);
 
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="open-role-requests">
+    <section className="flex flex-col gap-section" aria-labelledby="open-role-requests">
       <PageHeader
         title="Open Role Requests"
         titleId="open-role-requests"
