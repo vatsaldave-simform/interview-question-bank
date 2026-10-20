@@ -53,12 +53,24 @@ describe("the Question page", () => {
 
     const details = await detailsOf(pending);
     expect(details.getByText("Pending")).toBeVisible();
-    expect(details.getByText("Restricted to Acme")).toBeVisible();
+    expect(
+      details.getByText("Only Viewers with a Grant for Acme can see this Question."),
+    ).toBeVisible();
     expect(details.getByRole("region", { name: "Where it came from" })).toBeVisible();
     expect(details.getByRole("link", { name: "Edit" })).toBeVisible();
     expect(details.getByRole("button", { name: "Publish" })).toBeVisible();
     expect(details.getByRole("button", { name: "Reject" })).toBeVisible();
     expect(details.queryByText(pending.answerNotes)).not.toBeInTheDocument();
+  });
+
+  it("shows the Tags and the Client restriction with the Answer Notes", async () => {
+    aBankHolding([pending]);
+    renderTheWholeClient(`/questions/${pending.id}`);
+
+    await detailsOf(pending);
+    const notes = within(screen.getByRole("region", { name: "Answer Notes" }));
+    expect(notes.getByText(pending.answerNotes)).toBeVisible();
+    expect(notes.getByText("Restricted to Acme")).toBeVisible();
   });
 
   it("offers Return to its Author with the details of a Published Question", async () => {

@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import {
   mayEdit,
   mayPublish,
@@ -26,14 +27,15 @@ import { QuestionTags } from "@/features/questions/question-tags";
 import { backToBrowse } from "@/features/questions/question-trail";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
+import { RejectionReason } from "@/features/questions/rejection-reason";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 import { PageTrail } from "@/ui/page-trail";
 import { ActNotDone } from "@/ui/act-not-done";
-import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
 import { Separator } from "@/ui/shadcn/separator";
+import { smallHeading } from "@/ui/small-heading";
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
@@ -60,34 +62,43 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
 
 function QuestionInFull({ question }: { question: Question }) {
   return (
-    // The details come before the main column, so on a phone they sit just under the title.
-    <article className="grid items-start gap-section md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
+    <article className="flex flex-col gap-section">
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
         trail={{ back: backToBrowse, here: question.text }}
       />
-      <AboutThisQuestion question={question} />
-      <div className="flex flex-col gap-section md:col-start-1">
-        {question.reason !== null && (
-          <ScreenSection id="why-it-was-rejected" title="Why it was Rejected">
-            <p className="whitespace-pre-line">{question.reason}</p>
-          </ScreenSection>
-        )}
-        <ScreenSection id="answer-notes" title="Answer Notes">
-          <p className="whitespace-pre-line">{question.answerNotes}</p>
-          <QuestionTags tags={question.tags} />
-        </ScreenSection>
-        {ratingIsShown(question) && (
-          <ScreenSection id="rating" title="Rating">
-            <AverageRating rating={question.rating} />
-            {/* Offered by the Publication State alone: whether this Viewer may rate is the
-                API's answer (ADR-0002). */}
-            {question.publicationState === "published" && <RatingControl question={question} />}
-          </ScreenSection>
-        )}
+      <div className="grid items-start gap-section min-[980px]:grid-cols-[minmax(0,1fr)_300px]">
+        <AnswerNotes question={question} />
+        <AboutThisQuestion question={question} />
       </div>
     </article>
+  );
+}
+
+function AnswerNotes({ question }: { question: Question }) {
+  return (
+    <section aria-labelledby="answer-notes">
+      <Card className="gap-3.5 px-7 py-6.5">
+        {question.reason !== null && (
+          <section aria-label="Why it was Rejected">
+            <RejectionReason reason={question.reason} />
+          </section>
+        )}
+        {(question.tags.length > 0 || question.client !== null) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <QuestionTags tags={question.tags} />
+            <ClientRestriction client={question.client} />
+          </div>
+        )}
+        <h2 id="answer-notes" className={cn(smallHeading, "text-[0.9375rem]")}>
+          Answer Notes
+        </h2>
+        <p className="max-w-[68ch] text-[1.0625rem] leading-[1.7] whitespace-pre-line">
+          {question.answerNotes}
+        </p>
+      </Card>
+    </section>
   );
 }
 
@@ -96,12 +107,9 @@ type TitledProps = { id: string; title: string; children: ReactNode };
 function AboutThisQuestion({ question }: { question: Question }) {
   const state = publicationStateWording[question.publicationState];
   return (
-    <section
-      aria-labelledby="about-this-question"
-      className="md:col-start-2 md:row-span-2 md:row-start-1"
-    >
-      <Card className="gap-5 p-(--spacing-panel)">
-        <h2 id="about-this-question" className="text-lg font-semibold">
+    <section aria-labelledby="about-this-question">
+      <Card className="gap-4 p-(--spacing-panel)">
+        <h2 id="about-this-question" className="sr-only">
           About this Question
         </h2>
         <QuestionDetail id="publication-state" title="Publication State">
@@ -110,13 +118,18 @@ function AboutThisQuestion({ question }: { question: Question }) {
         </QuestionDetail>
         {question.client !== null && (
           <QuestionDetail id="who-can-see-it" title="Who can see it">
-            <ClientRestriction client={question.client} />
-            <p className="text-muted-foreground">
-              Only Viewers with a Grant for {question.client.name} can see this Question.
-            </p>
+            <p>Only Viewers with a Grant for {question.client.name} can see this Question.</p>
           </QuestionDetail>
         )}
         <WhereItCameFrom question={question} />
+        {ratingIsShown(question) && (
+          <QuestionDetail id="rating" title="Rating">
+            <AverageRating rating={question.rating} />
+            {/* Offered by the Publication State alone: whether this Viewer may rate is the
+                API's answer (ADR-0002). */}
+            {question.publicationState === "published" && <RatingControl question={question} />}
+          </QuestionDetail>
+        )}
         <PublicationActs question={question} />
       </Card>
     </section>
@@ -125,8 +138,8 @@ function AboutThisQuestion({ question }: { question: Question }) {
 
 function QuestionDetail({ id, title, children }: TitledProps) {
   return (
-    <section className="flex flex-col items-start gap-1.5 text-sm" aria-labelledby={id}>
-      <h3 id={id} className="font-medium">
+    <section className="flex flex-col items-start gap-0.5" aria-labelledby={id}>
+      <h3 id={id} className={smallHeading}>
         {title}
       </h3>
       {children}

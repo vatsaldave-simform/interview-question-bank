@@ -41,9 +41,14 @@ const othersRejected = aQuestion({
 async function actsOn(question: Question) {
   await screen.findByRole("heading", { level: 1, name: question.text });
   const details = within(screen.getByRole("region", { name: "About this Question" }));
+  // Your Rating sits in the same card, but it is not an act on the Question.
+  const rating = screen.queryByRole("region", { name: "Rating" });
   return {
     links: details.queryAllByRole("link").map((link) => link.textContent),
-    buttons: details.queryAllByRole("button").map((button) => button.textContent),
+    buttons: details
+      .queryAllByRole("button")
+      .filter((button) => !rating?.contains(button))
+      .map((button) => button.textContent),
   };
 }
 
