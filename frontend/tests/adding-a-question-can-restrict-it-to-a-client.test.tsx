@@ -58,7 +58,7 @@ async function writeAQuestion(): Promise<void> {
   await userEvent.click(screen.getByRole("radio", { name: "Original" }));
 }
 
-const addIt = () => userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
+const addIt = () => userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
 describe("restricting a new Question to a Client", () => {
   it("offers only the Clients the Viewer holds a Grant for, set to no restriction", async () => {

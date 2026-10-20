@@ -36,7 +36,7 @@ describe("who sees what", () => {
 
     expect(await screen.findByRole("button", { name: "author@iqb.test" })).toBeInTheDocument();
     // The shell has an outlet and something is in it: the landing route rendered.
-    expect(screen.getByRole("heading", { name: "Questions" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Browse" })).toBeInTheDocument();
   });
 
   it("hands the login screen straight over while the silent sign-in is still going", async () => {

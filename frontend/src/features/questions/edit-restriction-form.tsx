@@ -10,11 +10,10 @@ import {
 } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { ActNotDone } from "@/ui/act-not-done";
-import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
 
-/** Apart from the edit form, because an edit refuses a Client and a restriction change is
- * its own Change Event (ADR-0018). */
+/** In the edit form's card but sent apart from it, because an edit refuses a Client and a
+ * restriction change is its own Change Event (ADR-0018). */
 export function EditRestrictionForm({ question }: { question: Question }) {
   const clients = useGrantedClients();
   const change = useChangeRestriction(question.id);
@@ -45,11 +44,16 @@ export function EditRestrictionForm({ question }: { question: Question }) {
   if (clients.data?.length === 0 && question.client === null) return null;
 
   return (
-    <ScreenSection
-      id="who-can-see-it"
-      title="Who can see it"
-      beside={<ClientRestriction client={question.client} />}
+    <section
+      aria-labelledby="who-can-see-it"
+      className="border-border flex flex-col gap-3 border-t pt-section"
     >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 id="who-can-see-it" className="text-lg font-semibold">
+          Who can see it
+        </h2>
+        <ClientRestriction client={question.client} />
+      </div>
       <p className="text-muted-foreground text-sm">
         This changes straight away. It is not part of Save.
       </p>
@@ -84,6 +88,6 @@ export function EditRestrictionForm({ question }: { question: Question }) {
           Remove the restriction
         </Button>
       )}
-    </ScreenSection>
+    </section>
   );
 }

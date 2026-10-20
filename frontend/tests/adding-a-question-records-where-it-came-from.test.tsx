@@ -47,7 +47,7 @@ async function writeAQuestion(): Promise<void> {
   await userEvent.type(screen.getByLabelText("Answer Notes"), "Look for EXPLAIN ANALYZE.");
 }
 
-const addIt = () => userEvent.click(screen.getByRole("button", { name: "Add the Question" }));
+const addIt = () => userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
 describe("adding a Question records where it came from", () => {
   it("sends an Adapted Question with the Source the Author named", async () => {

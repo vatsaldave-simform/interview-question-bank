@@ -22,8 +22,7 @@ import {
 } from "@/features/questions/question-problems";
 import { useAddQuestion } from "@/features/questions/questions.queries";
 import { PageHeader } from "@/ui/page-header";
-import { ScreenSection } from "@/ui/screen-section";
-import { FieldGroup } from "@/ui/shadcn/field";
+import { Button } from "@/ui/shadcn/button";
 
 const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
 
@@ -105,9 +104,6 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-section">
-      <Link to="/questions" className="text-primary text-sm hover:underline">
-        ← All Questions
-      </Link>
       <PageHeader
         title="Add a Question"
         description="A Reviewer reads it before it is in the bank."
@@ -119,19 +115,20 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
           refusal === null ? null : { title: "The Question was not added", message: refusal }
         }
         sending={add.isPending}
-        submit={{ label: "Add the Question", sendingLabel: "Adding…" }}
+        submit={{ label: "Send for review", sendingLabel: "Sending…" }}
+        cancel={
+          <Button variant="outline" asChild>
+            <Link to="/">Cancel</Link>
+          </Button>
+        }
         onSubmit={submit}
       >
-        <ScreenSection id="where-it-came-from" title="Where it came from and who can see it">
-          <FieldGroup>
-            <ContributeProvenanceFields
-              choice={provenanceChoice}
-              problems={problems}
-              onChange={setProvenanceChoice}
-            />
-            <QuestionClientChoice clientId={clientId} onChange={setClientId} />
-          </FieldGroup>
-        </ScreenSection>
+        <ContributeProvenanceFields
+          choice={provenanceChoice}
+          problems={problems}
+          onChange={setProvenanceChoice}
+        />
+        <QuestionClientChoice clientId={clientId} onChange={setClientId} />
       </QuestionForm>
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog

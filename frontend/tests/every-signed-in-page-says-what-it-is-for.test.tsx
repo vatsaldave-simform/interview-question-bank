@@ -40,8 +40,8 @@ describe("every signed-in page", () => {
     },
     {
       address: "/questions",
-      title: "Questions",
-      says: "Every Published Question you can see, to search or narrow by Category.",
+      title: "Browse",
+      says: "Every Published Question you can see. Search, or narrow it by Category.",
     },
     {
       address: "/questions/new",

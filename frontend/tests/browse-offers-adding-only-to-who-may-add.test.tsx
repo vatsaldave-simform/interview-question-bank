@@ -22,7 +22,7 @@ describe("Browse's Add a Question button", () => {
     renderTheWholeClient("/questions");
 
     const main = within(await screen.findByRole("main"));
-    expect(await main.findByRole("heading", { level: 1, name: "Questions" })).toBeVisible();
+    expect(await main.findByRole("heading", { level: 1, name: "Browse" })).toBeVisible();
     expect(main.queryByRole("link", { name: "Add a Question" })).not.toBeInTheDocument();
   });
 

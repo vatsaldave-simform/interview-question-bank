@@ -134,7 +134,7 @@ describe("the newest Questions on Home", () => {
     const panel = await theNewest();
     await userEvent.click(await panel.findByRole("link", { name: "See them all in Browse" }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Questions" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Browse" })).toBeVisible();
     expect(window.location.pathname).toBe("/questions");
   });
 

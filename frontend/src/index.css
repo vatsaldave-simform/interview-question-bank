@@ -124,6 +124,8 @@
   --destructive: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
   --border: oklch(0.924 0.012 264);
   --input: oklch(0.924 0.012 264);
+  --field: oklch(1 0 0 / 82%);
+  --field-line: color-mix(in oklch, var(--brand-purple) 22%, transparent);
   --ring: var(--brand-red);
   --pending: transparent;
   --pending-foreground: var(--brand-purple);
@@ -195,6 +197,8 @@
   --destructive: var(--brand-red);
   --border: oklch(0.3 0.014 264);
   --input: oklch(0.3 0.014 264);
+  --field: oklch(0 0 0 / 22%);
+  --field-line: color-mix(in oklch, var(--brand-lavender) 24%, transparent);
   --ring: oklch(0.68 0.19 15.6);
   --pending: transparent;
   --pending-foreground: var(--brand-lavender);
@@ -262,6 +266,14 @@
   [data-sonner-toast] {
     border-color: var(--glass-edge);
     backdrop-filter: var(--glass-blur-popover);
+  }
+  /* The fill is an image, because the fields paint their own colour see-through with a class
+     that a base rule cannot outrank. */
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="native-select"] {
+    --input: var(--field-line);
+    background-image: linear-gradient(var(--field), var(--field));
   }
   [data-slot="sidebar-inner"] {
     backdrop-filter: var(--glass-blur-sidebar);

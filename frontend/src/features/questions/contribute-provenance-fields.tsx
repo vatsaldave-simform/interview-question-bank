@@ -4,7 +4,6 @@ import { provenanceWording } from "@/features/questions/provenance-wording";
 import type { DraftProblems } from "@/features/questions/question-problems";
 import {
   Field,
-  FieldContent,
   FieldDescription,
   FieldError,
   FieldLabel,
@@ -40,6 +39,7 @@ export function ContributeProvenanceFields(props: ContributeProvenanceFieldsProp
       <FieldSet data-invalid={problems.provenance !== undefined}>
         <FieldLegend>Where it came from</FieldLegend>
         <RadioGroup
+          className="flex flex-wrap gap-2"
           value={choice.provenance ?? ""}
           onValueChange={(value) =>
             onChange({ ...choice, provenance: provenances.find((one) => one === value) ?? null })
@@ -52,23 +52,31 @@ export function ContributeProvenanceFields(props: ContributeProvenanceFieldsProp
           {provenances.map((provenance, index) => {
             const id = `question-provenance-${provenance}`;
             return (
-              <Field key={provenance} orientation="horizontal">
+              <label
+                key={provenance}
+                htmlFor={id}
+                className="border-(--field-line) bg-(--field) has-focus-visible:ring-ring/50 has-data-[state=checked]:border-ring inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium has-focus-visible:ring-[3px]"
+              >
                 <RadioGroupItem
                   ref={index === 0 ? firstChoice : undefined}
                   id={id}
                   value={provenance}
                   aria-describedby={`${id}-meaning`}
                 />
-                <FieldContent>
-                  <FieldLabel htmlFor={id}>{provenanceWording[provenance].name}</FieldLabel>
-                  <FieldDescription id={`${id}-meaning`}>
-                    {provenanceWording[provenance].meaning}
-                  </FieldDescription>
-                </FieldContent>
-              </Field>
+                {provenanceWording[provenance].name}
+                {/* Read out with the choice, and shown under the pills only once it is picked. */}
+                <span id={`${id}-meaning`} hidden>
+                  {provenanceWording[provenance].meaning}
+                </span>
+              </label>
             );
           })}
         </RadioGroup>
+        <FieldDescription>
+          {choice.provenance === null
+            ? "Adapted means you reworked it from a public work. You name that work next."
+            : provenanceWording[choice.provenance].meaning}
+        </FieldDescription>
         <FieldError id="question-provenance-problem">{problems.provenance}</FieldError>
       </FieldSet>
       {choice.provenance === "adapted" && (

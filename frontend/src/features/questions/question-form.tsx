@@ -1,23 +1,14 @@
-import type { CategoryName } from "@iqb/shared";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   draftFields,
   type DraftProblems,
   type QuestionDraft,
 } from "@/features/questions/question-problems";
-import { useCategories } from "@/features/questions/questions.queries";
-import { TagChipShapes, TagChips } from "@/features/questions/tag-chips";
-import { ScreenSection } from "@/ui/screen-section";
+import { TagsField } from "@/features/questions/tags-field";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from "@/ui/shadcn/field";
+import { Card } from "@/ui/shadcn/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/ui/shadcn/field";
 import { Textarea } from "@/ui/shadcn/textarea";
 
 type QuestionFormProps = {
@@ -27,15 +18,19 @@ type QuestionFormProps = {
   refusal: { title: string; message: string } | null;
   sending: boolean;
   submit: { label: string; sendingLabel: string };
+  /** Shown beside the submit button, such as a way to leave without sending. */
+  cancel?: ReactNode;
   onSubmit: (draft: QuestionDraft) => void;
-  /** Cards only one of the two forms has, shown after the ones they share. */
+  /** Fields only one of the two forms has, shown after the ones they share. */
   children?: ReactNode;
+  /** Shown in the same card after the form, for what is sent apart from it. */
+  after?: ReactNode;
 };
 
 /** Checking and sending the draft belong to the screen, because adding and editing check it
  * against different schemas. */
 export function QuestionForm(props: QuestionFormProps) {
-  const { initial, problems, refusal, sending, submit, onSubmit, children } = props;
+  const { initial, problems, refusal, sending, submit, cancel, onSubmit, children, after } = props;
   const [draft, setDraft] = useState(initial);
   const form = useRef<HTMLFormElement>(null);
 
@@ -53,15 +48,15 @@ export function QuestionForm(props: QuestionFormProps) {
   }
 
   return (
-    // The schema is the only check, so the browser's own validation must not answer first.
-    <form ref={form} noValidate onSubmit={send} className="flex flex-col gap-section">
-      {refusal !== null && (
-        <Alert variant="destructive">
-          <AlertTitle>{refusal.title}</AlertTitle>
-          <AlertDescription>{refusal.message}</AlertDescription>
-        </Alert>
-      )}
-      <ScreenSection id="the-question" title="The Question">
+    <Card className="gap-section p-(--spacing-panel)">
+      {/* The schema is the only check, so the browser's own validation must not answer first. */}
+      <form ref={form} noValidate onSubmit={send} className="flex flex-col gap-section">
+        {refusal !== null && (
+          <Alert variant="destructive">
+            <AlertTitle>{refusal.title}</AlertTitle>
+            <AlertDescription>{refusal.message}</AlertDescription>
+          </Alert>
+        )}
         <FieldGroup>
           <Field data-invalid={problems.text !== undefined}>
             <FieldLabel htmlFor="question-text">Question</FieldLabel>
@@ -91,73 +86,21 @@ export function QuestionForm(props: QuestionFormProps) {
             />
             <FieldError id="question-answer-notes-problem">{problems.answerNotes}</FieldError>
           </Field>
+          <TagsField
+            chosen={draft.tags}
+            problem={problems.tags}
+            onChange={(tags) => setDraft({ ...draft, tags })}
+          />
+          {children}
         </FieldGroup>
-      </ScreenSection>
-      <ScreenSection id="question-tags" title="Tags">
-        <TagsField
-          chosen={draft.tags}
-          problem={problems.tags}
-          onChange={(tags) => setDraft({ ...draft, tags })}
-        />
-      </ScreenSection>
-      {children}
-      <Button type="submit" disabled={sending} className="self-start">
-        {sending ? submit.sendingLabel : submit.label}
-      </Button>
-    </form>
-  );
-}
-
-type TagsFieldProps = {
-  chosen: QuestionDraft["tags"];
-  problem: string | undefined;
-  onChange: (tags: QuestionDraft["tags"]) => void;
-};
-
-function TagsField({ chosen, problem, onChange }: TagsFieldProps) {
-  const categories = useCategories();
-
-  function setTagsIn(category: CategoryName, tags: string[]) {
-    onChange([
-      ...chosen.filter((one) => one.category !== category),
-      ...tags.map((tag) => ({ category, tag })),
-    ]);
-  }
-
-  return (
-    <FieldSet data-invalid={problem !== undefined}>
-      {categories.isPending ? (
-        <div role="status">
-          <span className="sr-only">Loading the Tags…</span>
-          <TagChipShapes />
+        <div className="flex flex-wrap gap-2.5">
+          <Button type="submit" disabled={sending}>
+            {sending ? submit.sendingLabel : submit.label}
+          </Button>
+          {cancel}
         </div>
-      ) : categories.isError ? (
-        <Alert variant="destructive">
-          <AlertDescription className="flex flex-col items-start gap-3">
-            <p>The Tags could not be loaded.</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void categories.refetch()}
-            >
-              Try again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {categories.data.map((category) => (
-            <TagChips
-              key={category.name}
-              category={category}
-              chosen={chosen.filter((one) => one.category === category.name).map(({ tag }) => tag)}
-              onChange={(tags) => setTagsIn(category.name, tags)}
-            />
-          ))}
-        </div>
-      )}
-      <FieldError>{problem}</FieldError>
-    </FieldSet>
+      </form>
+      {after}
+    </Card>
   );
 }

@@ -106,7 +106,7 @@ describe("editing a Question", () => {
     const api = aBankHoldingOneQuestion();
     await openTheEditForm();
 
-    await userEvent.click(await screen.findByRole("checkbox", { name: "senior" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Add senior" }));
     await save();
 
     expect(await screen.findByRole("heading", { name: original.text })).toBeVisible();
@@ -161,7 +161,7 @@ describe("editing a Question", () => {
       ).toHaveLength(2),
     );
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "senior" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add senior" }));
     await save();
 
     await screen.findByRole("heading", { name: "Somebody else's better wording." });

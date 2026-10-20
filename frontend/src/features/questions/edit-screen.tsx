@@ -19,7 +19,7 @@ import {
 } from "@/features/questions/question-problems";
 import { backToTheQuestion } from "@/features/questions/question-trail";
 import { useEditQuestion, useQuestion } from "@/features/questions/questions.queries";
-import { TagChipShapes } from "@/features/questions/tag-chips";
+import { TagChipShapes } from "@/features/questions/tags-field";
 import { PageHeader } from "@/ui/page-header";
 import { Card } from "@/ui/shadcn/card";
 import { Skeleton } from "@/ui/shadcn/skeleton";
@@ -47,21 +47,15 @@ export function EditScreen({ questionId, onSaved }: EditScreenProps) {
   );
 }
 
-/** Shaped like the form's first two cards, so the page does not jump when it arrives. */
+/** Shaped like the form's card, so the page does not jump when it arrives. */
 function EditFormLoading() {
   return (
-    <div role="status" className="flex flex-col gap-section">
+    <Card role="status" className="gap-section p-(--spacing-panel)">
       <span className="sr-only">Loading the Question…</span>
-      <Card className="gap-4 p-(--spacing-panel)">
-        <Skeleton className="bg-muted h-6 w-40" />
-        <Skeleton className="bg-muted h-16 w-full" />
-        <Skeleton className="bg-muted h-32 w-full" />
-      </Card>
-      <Card className="gap-4 p-(--spacing-panel)">
-        <Skeleton className="bg-muted h-6 w-20" />
-        <TagChipShapes />
-      </Card>
-    </div>
+      <Skeleton className="bg-muted h-16 w-full" />
+      <Skeleton className="bg-muted h-32 w-full" />
+      <TagChipShapes />
+    </Card>
   );
 }
 
@@ -155,8 +149,8 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
         sending={edit.isPending}
         submit={{ label: "Save", sendingLabel: "Saving…" }}
         onSubmit={submit}
+        after={<EditRestrictionForm question={question} />}
       />
-      <EditRestrictionForm question={question} />
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog
           message={refusedAsNearDuplicate.message}
