@@ -6,6 +6,7 @@ import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
 import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const aReviewer = aViewer({
@@ -22,6 +23,7 @@ beforeEach(() => {
 afterEach(() => {
   stopRenewingSession();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 /** Answers the Pending queue as the test says, and everything else the usual way. */
@@ -52,6 +54,30 @@ describe("the Reviewer's Pending queue", () => {
     const [first, second] = within(queue).getAllByRole("article");
     expect(within(first!).getByRole("link", { name: waitedLongest.text })).toBeVisible();
     expect(within(second!).getByRole("link", { name: justAdded.text })).toBeVisible();
+  });
+
+  it("shows each Question's Tags, who sent it and how long it has waited", async () => {
+    itIsNow(new Date(2026, 9, 20, 12, 0));
+    const waiting = aQuestion({
+      id: "a0000000-0000-4000-8000-000000000013",
+      text: "What does a database index cost on every write?",
+      publicationState: "pending",
+      tags: [{ category: "technology", tag: "PostgreSQL" }],
+      createdAt: new Date(2026, 9, 16, 12, 0).toISOString(),
+    });
+    aBankAnsweringTheQueue((asked) => aQueueOf([waiting], asked));
+
+    renderTheWholeClient("/review");
+
+    const queue = await screen.findByRole("list", { name: "Pending Questions" });
+    const card = within(within(queue).getByRole("article"));
+    expect(card.getByText("PostgreSQL")).toBeVisible();
+    expect(card.getByText("From author@iqb.test")).toBeVisible();
+    expect(card.getByText("Waiting 4 days")).toBeVisible();
+    for (const act of ["Publish", "Reject"]) {
+      expect(card.getByRole("button", { name: act })).toBeVisible();
+    }
+    expect(card.getByRole("link", { name: "Edit" })).toBeVisible();
   });
 
   it("says so when nothing is waiting", async () => {

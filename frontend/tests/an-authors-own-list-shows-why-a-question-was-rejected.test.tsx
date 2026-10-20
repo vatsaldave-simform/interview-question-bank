@@ -57,6 +57,7 @@ describe("an Author's own Pending and Rejected Questions", () => {
     expect(within(second!).getByRole("link", { name: rejected.text })).toBeVisible();
     expect(within(second!).getByText("Rejected")).toBeVisible();
     expect(within(second!).getByText(rejected.reason!)).toBeVisible();
+    expect(within(second!).getByText("Why:")).toBeVisible();
   });
 
   it("shows the reason a Question was returned from the bank", async () => {
@@ -73,6 +74,17 @@ describe("an Author's own Pending and Rejected Questions", () => {
 
     const list = await screen.findByRole("list", { name: "Your Questions" });
     expect(within(list).getByText(returned.reason!)).toBeVisible();
+  });
+
+  it("offers Add a Question at the top of the page", async () => {
+    aBankAnswering((asked) => aPageOf([waiting], asked));
+
+    renderTheWholeClient("/questions/own");
+
+    await screen.findByRole("list", { name: "Your Questions" });
+    const main = within(screen.getByRole("main"));
+    await userEvent.click(main.getByRole("link", { name: "Add a Question" }));
+    expect(window.location.pathname).toBe("/questions/new");
   });
 
   it("says so when the Author has nothing Pending and nothing Rejected", async () => {

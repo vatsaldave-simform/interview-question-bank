@@ -63,7 +63,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
           </AlertDescription>
         </Alert>
       ) : list.isPending ? (
-        <QuestionCardsLoading label="Loading Questions…" inGrid />
+        <QuestionCardsLoading label="Loading Questions…" />
       ) : list.isError ? (
         <Alert variant="destructive">
           <AlertTitle>The Questions could not be loaded</AlertTitle>
