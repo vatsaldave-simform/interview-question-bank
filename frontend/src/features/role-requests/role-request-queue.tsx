@@ -1,22 +1,19 @@
+import type { RoleRequest } from "@iqb/shared";
 import { UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { RoleRequestDecision } from "@/features/role-requests/role-request-decision";
 import { useOpenRoleRequests } from "@/features/role-requests/role-requests.queries";
 import { roleWording } from "@/features/viewers/role-wording";
-import { dateAndTimeWording } from "@/platform/when-wording";
+import { dateWording } from "@/platform/when-wording";
 import { ActNotDone } from "@/ui/act-not-done";
 import { EmptyList } from "@/ui/empty-list";
+import { ListCard } from "@/ui/list-card";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/ui/shadcn/table";
+import { Badge } from "@/ui/shadcn/badge";
+import { CardTitle } from "@/ui/shadcn/card";
 
 type Refusal = { from: string; message: string };
 
@@ -25,10 +22,10 @@ export function RoleRequestQueue() {
   const [refusal, setRefusal] = useState<Refusal | null>(null);
 
   return (
-    <section className="flex flex-col gap-section" aria-labelledby="open-role-requests">
+    <section className="flex flex-col gap-section" aria-labelledby="role-requests">
       <PageHeader
-        title="Open Role Requests"
-        titleId="open-role-requests"
+        title="Role Requests"
+        titleId="role-requests"
         description="Viewers asking for a different role, the one waiting longest first."
       />
       {refusal !== null && (
@@ -50,40 +47,45 @@ export function RoleRequestQueue() {
           When a Viewer asks for a different role, it shows here for you to decide.
         </EmptyList>
       ) : (
-        <Table aria-labelledby="open-role-requests">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Viewer</TableHead>
-              <TableHead>Asked for</TableHead>
-              <TableHead>Asked on</TableHead>
-              <TableHead>Decision</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {roleRequests.data.map((roleRequest) => (
-              <TableRow key={roleRequest.id}>
-                <TableCell>{roleRequest.viewer.email}</TableCell>
-                <TableCell>{roleWording[roleRequest.role]}</TableCell>
-                <TableCell>
-                  <time dateTime={roleRequest.createdAt}>
-                    {dateAndTimeWording(roleRequest.createdAt)}
-                  </time>
-                </TableCell>
-                <TableCell>
-                  <RoleRequestDecision
-                    roleRequest={roleRequest}
-                    onRefusal={(message) =>
-                      setRefusal(
-                        message === null ? null : { from: roleRequest.viewer.email, message },
-                      )
-                    }
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ul className="flex flex-col gap-3" aria-label="Open Role Requests">
+          {roleRequests.data.map((roleRequest) => (
+            <li key={roleRequest.id}>
+              <RoleRequestCard
+                roleRequest={roleRequest}
+                onRefusal={(message) =>
+                  setRefusal(message === null ? null : { from: roleRequest.viewer.email, message })
+                }
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </section>
+  );
+}
+
+type RoleRequestCardProps = {
+  roleRequest: RoleRequest;
+  onRefusal: (message: string | null) => void;
+};
+
+function RoleRequestCard({ roleRequest, onRefusal }: RoleRequestCardProps) {
+  return (
+    <article>
+      <ListCard acts={<RoleRequestDecision roleRequest={roleRequest} onRefusal={onRefusal} />}>
+        <CardTitle className="leading-snug">
+          <h2>{roleRequest.viewer.email}</h2>
+        </CardTitle>
+        <RowDetails>
+          <Badge variant="secondary">
+            {roleWording[roleRequest.heldRole]} to {roleWording[roleRequest.role]}
+          </Badge>
+          <p>
+            Asked{" "}
+            <time dateTime={roleRequest.createdAt}>{dateWording(roleRequest.createdAt)}</time>
+          </p>
+        </RowDetails>
+      </ListCard>
+    </article>
   );
 }

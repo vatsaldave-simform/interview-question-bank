@@ -78,19 +78,19 @@ function decisionsSent(api: ReturnType<typeof fakeBank>): Request[] {
   return api.sent.filter((request) => new URL(request.url).pathname.endsWith("/decision"));
 }
 
-async function rowFor(email: string) {
-  const table = await screen.findByRole("table", { name: "Open Role Requests" });
-  const row = within(table)
-    .getAllByRole("row")
+async function cardFor(email: string) {
+  const list = await screen.findByRole("list", { name: "Open Role Requests" });
+  const card = within(list)
+    .getAllByRole("article")
     .find((candidate) => within(candidate).queryByText(email) !== null);
-  if (row === undefined) throw new Error(`No row for ${email}.`);
-  return within(row);
+  if (card === undefined) throw new Error(`No card for ${email}.`);
+  return within(card);
 }
 
-/** Presses Deny on the row for `email`, which opens the reason form in a dialog. */
+/** Presses Deny on the card for `email`, which opens the reason form in a dialog. */
 async function theDenialOf(email: string) {
-  const row = await rowFor(email);
-  await userEvent.click(row.getByRole("button", { name: "Deny" }));
+  const card = await cardFor(email);
+  await userEvent.click(card.getByRole("button", { name: "Deny" }));
   return within(await screen.findByRole("dialog", { name: "Deny the Role Request" }));
 }
 
@@ -99,13 +99,13 @@ describe("deciding a Role Request from the administration console", () => {
     const api = aBankDeciding([fromReader, fromAuthor]);
     renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Grant" }));
+    const card = await cardFor("reader@iqb.test");
+    await userEvent.click(card.getByRole("button", { name: "Grant" }));
 
-    const table = within(screen.getByRole("table", { name: "Open Role Requests" }));
-    await vi.waitFor(() => expect(table.queryByText("reader@iqb.test")).not.toBeInTheDocument());
+    const list = within(screen.getByRole("list", { name: "Open Role Requests" }));
+    await vi.waitFor(() => expect(list.queryByText("reader@iqb.test")).not.toBeInTheDocument());
     expect(await theToastSaying("reader@iqb.test was granted the Reviewer role.")).toBeVisible();
-    expect(table.getByText("author@iqb.test")).toBeVisible();
+    expect(list.getByText("author@iqb.test")).toBeVisible();
     const [sent] = decisionsSent(api);
     expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
     expect(await sent!.json()).toEqual({ outcome: "granted" });
@@ -157,7 +157,7 @@ describe("deciding a Role Request from the administration console", () => {
     await userEvent.type(denial.getByLabelText("Why it is denied"), "Not on a project yet.");
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
-    const queue = within(screen.getByRole("region", { name: "Open Role Requests" }));
+    const queue = within(screen.getByRole("region", { name: "Role Requests" }));
     const alert = within(await queue.findByRole("alert"));
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -174,15 +174,15 @@ describe("deciding a Role Request from the administration console", () => {
     });
     renderTheWholeClient("/administration/role-requests");
 
-    const row = await rowFor("reader@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Grant" }));
+    const card = await cardFor("reader@iqb.test");
+    await userEvent.click(card.getByRole("button", { name: "Grant" }));
 
-    const queue = within(screen.getByRole("region", { name: "Open Role Requests" }));
+    const queue = within(screen.getByRole("region", { name: "Role Requests" }));
     const alert = within(await queue.findByRole("alert"));
     expect(alert.getByText("The Role Request from reader@iqb.test was not decided.")).toBeVisible();
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
-    const table = within(queue.getByRole("table"));
-    await vi.waitFor(() => expect(table.queryByText("reader@iqb.test")).not.toBeInTheDocument());
+    const list = within(queue.getByRole("list", { name: "Open Role Requests" }));
+    await vi.waitFor(() => expect(list.queryByText("reader@iqb.test")).not.toBeInTheDocument());
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
     expect(toastsShown()).toHaveLength(0);
   });
@@ -199,8 +199,8 @@ describe("deciding a Role Request from the administration console", () => {
     // The Review queue link is shown to a Reviewer only, so it goes with the role.
     const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
     expect(sidebar.getByRole("link", { name: "Review queue" })).toBeVisible();
-    const row = await rowFor("reviewer@iqb.test");
-    await userEvent.click(row.getByRole("button", { name: "Grant" }));
+    const card = await cardFor("reviewer@iqb.test");
+    await userEvent.click(card.getByRole("button", { name: "Grant" }));
 
     await vi.waitFor(() =>
       expect(sidebar.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument(),

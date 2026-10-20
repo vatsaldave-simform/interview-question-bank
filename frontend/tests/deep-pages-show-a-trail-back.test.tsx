@@ -131,7 +131,7 @@ describe("a page the sidebar leads to", () => {
     { address: "/", title: homeGreeting },
     { address: "/questions", title: "Browse" },
     { address: "/questions/own", title: "Your Questions" },
-    { address: "/administration/role-requests", title: "Open Role Requests" },
+    { address: "/administration/role-requests", title: "Role Requests" },
     { address: "/administration/viewers", title: "Viewers" },
     { address: "/administration/clients", title: "Clients" },
   ])("shows no trail at $address", async ({ address, title }) => {
