@@ -5,6 +5,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, refusesWith } from "./helpers/fake-api";
 import { aBankHolding, aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
+import { homeGreeting } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -109,7 +110,7 @@ describe("the newest Questions on Home", () => {
 
     const panel = await theNewest();
     expect(await panel.findByText("The newest Questions could not be loaded")).toBeVisible();
-    expect(screen.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: homeGreeting })).toBeVisible();
     expect(screen.getByRole("searchbox", { name: "Search" })).toBeVisible();
 
     failing = false;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agoWording, dateAndTimeWording, dateWording } from "@/platform/when-wording";
+import { agoWording, dateAndTimeWording, dateWording, dayWording } from "@/platform/when-wording";
 
 // Built from the local clock, so the expected words hold in any time zone the tests run in.
 const at = (year: number, month: number, day: number, hours = 9, minutes = 0) =>
@@ -12,6 +12,10 @@ describe("a date", () => {
 
   it("reads with its time on a twelve-hour clock when the time matters", () => {
     expect(dateAndTimeWording(at(2026, 9, 2, 14, 30))).toBe("Sep 2, 2026, 2:30 PM");
+  });
+
+  it("reads as the day of the week, the month and the day when it is today", () => {
+    expect(dayWording(new Date(at(2026, 10, 20)))).toBe("Tuesday, October 20");
   });
 });
 

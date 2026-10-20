@@ -8,6 +8,10 @@ export function dateAndTimeWording(at: string): string {
   return format(at, "MMM d, yyyy, h:mm a");
 }
 
+export function dayWording(now: Date = new Date()): string {
+  return format(now, "EEEE, MMMM d");
+}
+
 export function agoWording(at: string, now: Date = new Date()): string {
   // Also catches a moment a little ahead of this device's clock, which would read "in 5 seconds".
   if (differenceInSeconds(now, at) < 60) return "just now";

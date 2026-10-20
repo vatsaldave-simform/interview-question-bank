@@ -5,6 +5,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aSignedInAuthor, answersWith, fakeApi } from "./helpers/fake-api";
 import { aPageOf, signInAs } from "./helpers/fake-bank";
+import { findHome } from "./helpers/home-page";
 import { signInOnScreen } from "./helpers/login-screen";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -46,7 +47,7 @@ describe("two Viewers taking turns in one tab", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
     await screen.findByRole("button", { name: "Sign in" });
     await signInOnScreen(aReader.email, "reader-password");
-    await screen.findByRole("heading", { level: 1, name: "Welcome back" });
+    await findHome();
     await userEvent.click(
       within(screen.getByRole("navigation", { name: "Main menu" })).getByRole("link", {
         name: "Browse",
