@@ -18,6 +18,7 @@ import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { RowsLoading } from "@/ui/rows-loading";
 import { Button } from "@/ui/shadcn/button";
 import { NativeSelect, NativeSelectOption } from "@/ui/shadcn/native-select";
+import { smallHeading } from "@/ui/small-heading";
 
 const stateWording: Record<RoleRequestState, string> = {
   open: "It is waiting for an Administrator.",
@@ -31,12 +32,8 @@ export function MyRoleRequest({ heldRole }: { heldRole: ViewerRole }) {
   const raise = useRaiseRoleRequest();
 
   return (
-    // A section and not one more line of the account's details, because it holds a form.
     <section className="flex flex-col gap-2" aria-labelledby="my-role-request">
-      <h2
-        id="my-role-request"
-        className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
-      >
+      <h2 id="my-role-request" className={smallHeading}>
         Role Request
       </h2>
       {mine.isPending ? (

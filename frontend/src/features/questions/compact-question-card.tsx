@@ -16,13 +16,20 @@ type CompactQuestionCardProps = {
   /** The line under the chips, as in "From author@iqb.test". */
   details: ReactNode;
   acts?: ReactNode;
+  lifts?: boolean;
 };
 
 /** For a list a Viewer works through, so it leaves out the Answer Notes the Question's page shows. */
-export function CompactQuestionCard({ question, badges, details, acts }: CompactQuestionCardProps) {
+export function CompactQuestionCard({
+  question,
+  badges,
+  details,
+  acts,
+  lifts = true,
+}: CompactQuestionCardProps) {
   return (
     <article>
-      <ListCard acts={acts}>
+      <ListCard acts={acts} lifts={lifts}>
         <CardTitle className="leading-snug">
           <Link
             to="/questions/$questionId"
@@ -50,7 +57,7 @@ export function CompactQuestionCardsLoading({ label }: { label: string }) {
     <div role="status" className="flex flex-col gap-3">
       <span className="sr-only">{label}</span>
       {[0, 1, 2].map((card) => (
-        <Card key={card} className="gap-2 px-4.5 py-4">
+        <Card key={card} className="gap-2 p-(--spacing-panel)">
           <Skeleton className="bg-muted h-5 w-3/4" />
           <div className="flex gap-2">
             <Skeleton className="bg-muted h-5 w-16 rounded-full" />

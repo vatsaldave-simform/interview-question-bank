@@ -83,6 +83,7 @@ function OwnQuestionList({ page, onRefusal }: OwnQuestionListProps) {
         <li key={question.id}>
           <CompactQuestionCard
             question={question}
+            lifts={false}
             badges={<PublicationStateBadge state={question.publicationState} />}
             details={<WhenAdded createdAt={question.createdAt} />}
             acts={

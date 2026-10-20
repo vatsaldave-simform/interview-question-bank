@@ -109,7 +109,7 @@ describe("issuing a Permission Grant from the administration console", () => {
     const picker = await dialog.findByLabelText("Viewer");
     expect(optionsIn(picker)).toEqual(["Choose a Viewer", "reader@iqb.test", "reviewer@iqb.test"]);
     await userEvent.selectOptions(picker, "reader@iqb.test");
-    await userEvent.click(dialog.getByRole("button", { name: "Issue the Grant" }));
+    await userEvent.click(dialog.getByRole("button", { name: "Issue" }));
 
     await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     const grants = await theGrantsTable(section);
@@ -133,7 +133,7 @@ describe("issuing a Permission Grant from the administration console", () => {
 
     const dialog = await theGrantDialog(await sectionFor(northwind));
     await dialog.findByLabelText("Viewer");
-    expect(dialog.getByRole("button", { name: "Issue the Grant" })).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Issue" })).toBeDisabled();
     await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -162,10 +162,10 @@ describe("issuing a Permission Grant from the administration console", () => {
 
     const dialog = await theGrantDialog(await sectionFor(northwind));
     await userEvent.selectOptions(await dialog.findByLabelText("Viewer"), "reader@iqb.test");
-    await userEvent.click(dialog.getByRole("button", { name: "Issue the Grant" }));
+    await userEvent.click(dialog.getByRole("button", { name: "Issue" }));
 
     const alert = within(await dialog.findByRole("alert"));
-    expect(alert.getByText("The Grant was not issued.")).toBeVisible();
+    expect(alert.getByText("The Permission Grant was not issued.")).toBeVisible();
     expect(alert.getByText("That Viewer already holds a Grant for that Client.")).toBeVisible();
     expect(toastsShown()).toHaveLength(0);
   });
@@ -217,7 +217,7 @@ describe("revoking a Permission Grant from the administration console", () => {
     await confirmTheRevoke();
 
     const alert = within(await section.findByRole("alert"));
-    expect(alert.getByText("The Grant was not revoked.")).toBeVisible();
+    expect(alert.getByText("The Permission Grant was not revoked.")).toBeVisible();
     expect(alert.getByText("Not found.")).toBeVisible();
     expect(section.getByText("author@iqb.test")).toBeVisible();
     expect(toastsShown()).toHaveLength(0);

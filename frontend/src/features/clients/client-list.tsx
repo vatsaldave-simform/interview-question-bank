@@ -65,7 +65,7 @@ export function ClientList() {
           >
             {clients.data.map((client) => (
               <li key={client.id}>
-                <Card className="flex-row items-center gap-3.5 p-4.5">
+                <Card className="flex-row items-center gap-3.5 p-(--spacing-panel)">
                   <span
                     aria-hidden="true"
                     className="bg-brand-purple text-brand-lavender grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold"
@@ -73,8 +73,7 @@ export function ClientList() {
                     {initialsOf(client.name)}
                   </span>
                   <CardTitle className="min-w-0 flex-1 leading-snug">
-                    {/* A link to the Client's page, so its Grants are asked for only when
-                        opened. It covers the whole card, so the card is what is pressed. */}
+                    {/* A link to the Client's page, so its Grants are asked for only when opened. */}
                     <Link
                       to="/administration/clients/$clientId"
                       params={{ clientId: client.id }}

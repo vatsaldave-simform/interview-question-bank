@@ -13,12 +13,10 @@ import { Badge } from "@/ui/shadcn/badge";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from "@/ui/shadcn/table";
-import { ColumnHead, TableCard } from "@/ui/table-card";
+import { Cell, ColumnHead, ColumnHeads, TableCard } from "@/ui/table-card";
 
 export function ViewerList() {
   const viewers = useEveryViewer();
@@ -63,24 +61,22 @@ export function ViewerList() {
         ) : (
           <TableCard>
             <Table aria-labelledby="viewers">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <ColumnHead>Email</ColumnHead>
-                  <ColumnHead>Role</ColumnHead>
-                  <ColumnHead>Administrator</ColumnHead>
-                  <ColumnHead>State</ColumnHead>
-                  <TableHead className="text-right">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
+              <ColumnHeads>
+                <ColumnHead>Email</ColumnHead>
+                <ColumnHead>Role</ColumnHead>
+                <ColumnHead>Administrator</ColumnHead>
+                <ColumnHead>State</ColumnHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </ColumnHeads>
               <TableBody>
                 {viewers.data.map((viewer) => (
                   <TableRow key={viewer.id}>
-                    <TableCell className="p-3">{viewer.email}</TableCell>
-                    <TableCell className="p-3">{roleWording[viewer.role]}</TableCell>
-                    <TableCell className="p-3">{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
-                    <TableCell className="p-3">
+                    <Cell>{viewer.email}</Cell>
+                    <Cell>{roleWording[viewer.role]}</Cell>
+                    <Cell>{viewer.isAdministrator ? "Yes" : "No"}</Cell>
+                    <Cell>
                       {viewer.isDeactivated ? (
                         <Badge className="bg-rejected text-rejected-foreground border-transparent">
                           Deactivated
@@ -88,10 +84,10 @@ export function ViewerList() {
                       ) : (
                         "Active"
                       )}
-                    </TableCell>
-                    <TableCell className="p-3">
+                    </Cell>
+                    <Cell>
                       <ViewerActs viewer={viewer} />
-                    </TableCell>
+                    </Cell>
                   </TableRow>
                 ))}
               </TableBody>

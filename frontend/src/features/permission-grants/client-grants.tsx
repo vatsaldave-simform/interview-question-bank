@@ -20,12 +20,10 @@ import { Button } from "@/ui/shadcn/button";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from "@/ui/shadcn/table";
-import { ColumnHead, TableCard } from "@/ui/table-card";
+import { Cell, ColumnHead, ColumnHeads, TableCard } from "@/ui/table-card";
 
 export function ClientGrants({ clientId }: { clientId: string }) {
   // The API has no address for one Client, so the name comes from the list of them all.
@@ -59,8 +57,8 @@ export function ClientGrants({ clientId }: { clientId: string }) {
             back: [{ name: "Administration", link: { to: "/administration" } }, { page: "clients" }],
             here: name,
           }}
-          // Left out until the Grants are known, so no Viewer holding one is offered, and an
-          // empty list offers it in its place.
+          // Shown only once the Grants are loaded, so the dialog never offers a Viewer who holds
+          // one; an empty list shows its own button instead.
           action={grants.isSuccess && grants.data.length > 0 ? issueAGrant : undefined}
         />
         <section className="flex flex-col gap-3" aria-labelledby="permission-grants">
@@ -99,7 +97,10 @@ function GrantsAgainst({ clientId, grants, issueAGrant }: GrantsAgainstProps) {
   return (
     <>
       {revoke.isError && (
-        <ActNotDone title="The Grant was not revoked." reason={whatWentWrong(revoke.error)} />
+        <ActNotDone
+          title="The Permission Grant was not revoked."
+          reason={whatWentWrong(revoke.error)}
+        />
       )}
       {grants.length === 0 ? (
         <EmptyList
@@ -113,19 +114,17 @@ function GrantsAgainst({ clientId, grants, issueAGrant }: GrantsAgainstProps) {
       ) : (
         <TableCard>
           <Table aria-labelledby="permission-grants">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <ColumnHead>Viewer</ColumnHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ColumnHeads>
+              <ColumnHead>Viewer</ColumnHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </ColumnHeads>
             <TableBody>
               {grants.map(({ viewer }) => (
                 <TableRow key={viewer.id}>
-                  <TableCell className="p-3">{viewer.email}</TableCell>
-                  <TableCell className="p-3 text-right">
+                  <Cell>{viewer.email}</Cell>
+                  <Cell className="text-right">
                     <Button
                       variant="outline"
                       size="sm"
@@ -137,7 +136,7 @@ function GrantsAgainst({ clientId, grants, issueAGrant }: GrantsAgainstProps) {
                     >
                       Revoke
                     </Button>
-                  </TableCell>
+                  </Cell>
                 </TableRow>
               ))}
             </TableBody>

@@ -51,7 +51,10 @@ export function IssueGrantForm({ clientId, grants, onIssued, onCancel }: IssueGr
     <form onSubmit={submit} aria-label="Issue a Permission Grant">
       <FieldGroup>
         {issue.isError && (
-          <ActNotDone title="The Grant was not issued." reason={whatWentWrong(issue.error)} />
+          <ActNotDone
+            title="The Permission Grant was not issued."
+            reason={whatWentWrong(issue.error)}
+          />
         )}
         <Field>
           <FieldLabel htmlFor={pickerId}>Viewer</FieldLabel>
@@ -73,7 +76,7 @@ export function IssueGrantForm({ clientId, grants, onIssued, onCancel }: IssueGr
             Cancel
           </Button>
           <Button type="submit" disabled={issue.isPending || pickedViewer === undefined}>
-            Issue the Grant
+            Issue
           </Button>
         </DialogFooter>
       </FieldGroup>
