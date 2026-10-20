@@ -1,4 +1,4 @@
-import type { Viewer, ViewerRole } from "@iqb/shared";
+import type { NamedViewer, Viewer, ViewerRole } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction, Transaction } from "../../platform/database.ts";
 
 /** Everything a response or a permission check may see. Never the stored credential. */
@@ -39,6 +39,26 @@ export function findViewerById(
 /** Deactivated Viewers too, because an Administrator has to find them to reactivate them. */
 export function findEveryViewer(database: Database): Promise<Viewer[]> {
   return database.viewer.findMany({ orderBy: { email: "asc" }, select: publicFields });
+}
+
+/** Only for Questions already read through the visibility check, because this looks their
+ * authors up by id alone (ADR-0049). */
+export async function withAuthors<Q extends { authorId: string }>(
+  database: Database,
+  questions: readonly Q[],
+): Promise<(Q & { author: NamedViewer })[]> {
+  const authorIds = [...new Set(questions.map(({ authorId }) => authorId))];
+  const authors = await database.viewer.findMany({
+    where: { id: { in: authorIds } },
+    select: { id: true, email: true },
+  });
+
+  const authorFor = new Map(authors.map((author) => [author.id, author]));
+  return questions.map((question) => {
+    const author = authorFor.get(question.authorId);
+    if (author === undefined) throw new Error(`No author came back for ${question.authorId}.`);
+    return { ...question, author };
+  });
 }
 
 /** Deactivated Administrators are not counted, because they cannot log in to appoint a

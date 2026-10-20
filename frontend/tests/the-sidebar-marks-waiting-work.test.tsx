@@ -13,7 +13,7 @@ import {
   answersWith,
   type FakeApi,
 } from "./helpers/fake-api";
-import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const aReviewer = aViewer({
@@ -43,7 +43,7 @@ function aBankWaitingOn(pending: Question[]): FakeApi {
   return fakeBank(
     (asked) => aPageOf([], asked),
     (request, asked) => {
-      if (asked.pathname === "/api/questions/pending") return aPageOf(pending, asked);
+      if (asked.pathname === "/api/questions/pending") return aQueueOf(pending, asked);
       const published = /^\/api\/questions\/([^/]+)\/publish$/.exec(asked.pathname);
       if (published === null || request.method !== "POST") return undefined;
       const moved = pending.find(({ id }) => id === published[1]);

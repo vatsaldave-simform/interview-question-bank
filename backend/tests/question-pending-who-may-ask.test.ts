@@ -4,6 +4,7 @@ import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   idsListed,
+  idsQueued,
   seedTheBank,
   seededQuestionIds,
 } from "./helpers/question-bank.ts";
@@ -68,7 +69,7 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
   it("hands a Reviewer the Pending Questions Visible to them", async () => {
     const response = await getList(api, "pending", {}, reviewerToken);
 
-    expect(await idsListed(response)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient]);
+    expect(await idsQueued(response)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient]);
   });
 
   it("refuses an Author's own list to a Reader, who can have added nothing", async () => {

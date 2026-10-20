@@ -26,6 +26,7 @@ afterEach(() => {
 const open = aRoleRequest({
   viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "reader@iqb.test" },
   role: "author",
+  heldRole: "reader",
   createdAt: "2026-09-01T09:00:00.000Z",
 });
 

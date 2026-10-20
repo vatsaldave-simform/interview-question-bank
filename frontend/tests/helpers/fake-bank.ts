@@ -1,4 +1,4 @@
-import type { Question, Viewer } from "@iqb/shared";
+import type { PendingQuestion, Question, Viewer } from "@iqb/shared";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { currentSession, replaceSession } from "@/platform/session";
 import { aSignedInAuthor, answersWith, fakeApi, theCategories, type FakeApi } from "./fake-api";
@@ -12,6 +12,18 @@ export function aPageOf(questions: Question[], asked: URL): Response {
     limit: Number(asked.searchParams.get("limit") ?? questionPageSize),
     offset: Number(asked.searchParams.get("offset") ?? 0),
   });
+}
+
+/** The Pending queue's answer, which names each Question's author as the API does. */
+export function aQueueOf(questions: Question[], asked: URL): Response {
+  const { id, email } = aSignedInAuthor.viewer;
+  const queued = questions.map((question): PendingQuestion => {
+    if (question.authorId !== id) {
+      throw new Error(`The fake queue knows no author ${question.authorId}.`);
+    }
+    return { ...question, author: { id, email } };
+  });
+  return aPageOf(queued, asked);
 }
 
 /** How a test answers any other path. `undefined` leaves it to the usual answer. */
@@ -33,7 +45,7 @@ export function fakeBank(
     const answered = await answerTheRest(request, asked);
     if (answered !== undefined) return answered;
     if (asked.pathname === "/api/questions") return answerTheList(asked);
-    if (asked.pathname === "/api/questions/pending") return aPageOf([], asked);
+    if (asked.pathname === "/api/questions/pending") return aQueueOf([], asked);
     if (asked.pathname === "/api/questions/own") return aPageOf([], asked);
     if (asked.pathname === "/api/categories") return answersWith(theCategories);
     if (asked.pathname === "/api/viewers") return answersWith({ viewers: [] });

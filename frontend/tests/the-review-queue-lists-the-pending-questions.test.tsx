@@ -5,7 +5,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { questionPageSize } from "@/features/questions/question-pages.schema";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
-import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const aReviewer = aViewer({
@@ -44,7 +44,7 @@ describe("the Reviewer's Pending queue", () => {
       text: "How do you tell a slow query from a slow network?",
       publicationState: "pending",
     });
-    aBankAnsweringTheQueue((asked) => aPageOf([waitedLongest, justAdded], asked));
+    aBankAnsweringTheQueue((asked) => aQueueOf([waitedLongest, justAdded], asked));
 
     renderTheWholeClient("/review");
 
@@ -55,7 +55,7 @@ describe("the Reviewer's Pending queue", () => {
   });
 
   it("says so when nothing is waiting", async () => {
-    aBankAnsweringTheQueue((asked) => aPageOf([], asked));
+    aBankAnsweringTheQueue((asked) => aQueueOf([], asked));
 
     renderTheWholeClient("/review");
 
@@ -73,7 +73,7 @@ describe("the Reviewer's Pending queue", () => {
       }),
     );
     const api = aBankAnsweringTheQueue((asked) =>
-      aPageOf(asked.searchParams.get("offset") === "0" ? aFullPage : [], asked),
+      aQueueOf(asked.searchParams.get("offset") === "0" ? aFullPage : [], asked),
     );
     renderTheWholeClient("/review");
     await screen.findByText("Pending number 1");
@@ -101,7 +101,7 @@ describe("the Reviewer's Pending queue", () => {
 
 describe("the link to the Pending queue", () => {
   it("is in the sidebar for a Reviewer, and opens the queue", async () => {
-    aBankAnsweringTheQueue((asked) => aPageOf([], asked));
+    aBankAnsweringTheQueue((asked) => aQueueOf([], asked));
     renderTheWholeClient("/questions");
 
     await userEvent.click(await screen.findByRole("link", { name: "Review queue" }));
@@ -111,7 +111,7 @@ describe("the link to the Pending queue", () => {
 
   it.each(["reader", "author"] as const)("is not in the sidebar for a %s", async (role) => {
     signInAs(aViewer({ role }));
-    aBankAnsweringTheQueue((asked) => aPageOf([], asked));
+    aBankAnsweringTheQueue((asked) => aQueueOf([], asked));
     renderTheWholeClient("/questions");
 
     await screen.findByRole("heading", { name: "Questions" });

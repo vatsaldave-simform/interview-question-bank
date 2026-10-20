@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { namedViewerSchema } from "./auth.js";
 import { clientSchema } from "./clients.js";
 import { ratingSummarySchema } from "./ratings.js";
 
@@ -241,3 +242,13 @@ export const questionListResponseSchema = z
   })
   .strict();
 export type QuestionListResponse = z.infer<typeof questionListResponseSchema>;
+
+/** A Question as the Pending queue lists one. No other response names who wrote it, and only
+ * a Reviewer reads the queue (ADR-0049). */
+export const pendingQuestionSchema = questionSchema.extend({ author: namedViewerSchema }).strict();
+export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
+
+export const pendingQuestionListResponseSchema = questionListResponseSchema
+  .extend({ questions: z.array(pendingQuestionSchema) })
+  .strict();
+export type PendingQuestionListResponse = z.infer<typeof pendingQuestionListResponseSchema>;

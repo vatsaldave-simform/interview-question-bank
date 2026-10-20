@@ -9,6 +9,7 @@ import {
   returnQuestionRequestSchema,
   rolesThatMayAddAQuestion,
   type ChangeEvent,
+  type PendingQuestionListResponse,
   type Question,
   type QuestionHistoryResponse,
   type QuestionListResponse,
@@ -30,14 +31,19 @@ import {
 } from "./questions.repository.ts";
 import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
 import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
+import { withAuthors } from "../viewers/viewers.repository.ts";
 import { ratingRoutes } from "../ratings/ratings.routes.ts";
 import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
 
-/** The Question as the API answers with it: only the timestamp needs changing. */
-function toQuestion(question: QuestionFromDb & { rating: RatingSummary }): Question {
-  return { ...question, createdAt: question.createdAt.toISOString() };
+/** The Question as the API answers with it: only the timestamp changes, and anything added
+ * beside it, like the queue's author, is kept. */
+function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
+  createdAt,
+  ...question
+}: Q): Omit<Q, "createdAt"> & Question {
+  return { ...question, createdAt: createdAt.toISOString() };
 }
 
 async function toResponse(
@@ -94,7 +100,14 @@ export function questionRoutes(database: Database): Router {
 
     const questions = await findPendingQuestionsForReview(database, viewer, page);
 
-    res.json(await toListResponse(database, viewer, questions, page));
+    const authored = await withAuthors(database, questions);
+    const rated = await withRatingSummaries(database, viewer, authored);
+    const body: PendingQuestionListResponse = {
+      questions: rated.map(toQuestion),
+      limit: page.limit,
+      offset: page.offset,
+    };
+    res.json(body);
   });
 
   // A Viewer who may not add a Question is refused rather than handed a list that is always

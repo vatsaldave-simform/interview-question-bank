@@ -1,26 +1,36 @@
 import type { NamedViewer, ViewerRole } from "@iqb/shared";
-import type { RoleRequestState } from "../../generated/prisma/client.ts";
+import type { Prisma, RoleRequestState } from "../../generated/prisma/client.ts";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
 const publicFields = {
   id: true,
-  viewer: { select: { id: true, email: true } },
+  viewer: { select: { id: true, email: true, role: true } },
   role: true,
   state: true,
   reason: true,
   createdAt: true,
   decidedAt: true,
-} as const;
+} satisfies Prisma.RoleRequestSelect;
+
+type RoleRequestRow = Prisma.RoleRequestGetPayload<{ select: typeof publicFields }>;
 
 export type RoleRequestFromDb = {
   id: string;
   viewer: NamedViewer;
   role: ViewerRole;
+  heldRole: ViewerRole;
   state: RoleRequestState;
   reason: string | null;
   createdAt: Date;
   decidedAt: Date | null;
 };
+
+function toRoleRequestFromDb({
+  viewer: { role: heldRole, ...viewer },
+  ...roleRequest
+}: RoleRequestRow): RoleRequestFromDb {
+  return { ...roleRequest, viewer, heldRole };
+}
 
 export type RoleRequestDecision =
   | { state: "granted"; reason: string | null }
@@ -33,33 +43,41 @@ export function insertRoleRequest(
   viewerId: string,
   role: ViewerRole,
 ): Promise<RoleRequestFromDb> {
-  return database.roleRequest.create({ data: { viewerId, role }, select: publicFields });
+  return database.roleRequest
+    .create({ data: { viewerId, role }, select: publicFields })
+    .then(toRoleRequestFromDb);
 }
 
-export function findRoleRequestById(
+export async function findRoleRequestById(
   database: DatabaseOrTransaction,
   id: string,
 ): Promise<RoleRequestFromDb | null> {
-  return database.roleRequest.findUnique({ where: { id }, select: publicFields });
+  const roleRequest = await database.roleRequest.findUnique({
+    where: { id },
+    select: publicFields,
+  });
+  return roleRequest === null ? null : toRoleRequestFromDb(roleRequest);
 }
 
-export function findRoleRequestsOf(
+export async function findRoleRequestsOf(
   database: Database,
   viewerId: string,
 ): Promise<RoleRequestFromDb[]> {
-  return database.roleRequest.findMany({
+  const roleRequests = await database.roleRequest.findMany({
     where: { viewerId },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: publicFields,
   });
+  return roleRequests.map(toRoleRequestFromDb);
 }
 
-export function findOpenRoleRequests(database: Database): Promise<RoleRequestFromDb[]> {
-  return database.roleRequest.findMany({
+export async function findOpenRoleRequests(database: Database): Promise<RoleRequestFromDb[]> {
+  const roleRequests = await database.roleRequest.findMany({
     where: { state: "open" },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: publicFields,
   });
+  return roleRequests.map(toRoleRequestFromDb);
 }
 
 /** Null when the Role Request is not open, because the state is in the `where`: of two
@@ -74,5 +92,5 @@ export async function decideRoleRequest(
     data: { state: decision.state, reason: decision.reason, decidedAt: new Date() },
     select: publicFields,
   });
-  return decided ?? null;
+  return decided === undefined ? null : toRoleRequestFromDb(decided);
 }
