@@ -80,6 +80,21 @@ describe("rating a Question", () => {
     expect(await ratingsSent(api)).toEqual([{ value: 4 }]);
   });
 
+  it("rates by keyboard alone, moving from star to star with Tab", async () => {
+    const api = aBankRating(someoneElses, (value) => ({ average: value, count: 1, mine: value }));
+    await openThePageOf(someoneElses);
+
+    theButtonFor(1).focus();
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(theButtonFor(3)).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByText("3.0 out of 5 from 1 Rating")).toBeVisible();
+    expect(theButtonFor(3)).toHaveAttribute("aria-pressed", "true");
+    expect(await ratingsSent(api)).toEqual([{ value: 3 }]);
+  });
+
   it("changes a Rating the Viewer already gave", async () => {
     const rated = { ...someoneElses, rating: { average: 4, count: 3, mine: 4 } };
     const api = aBankRating(rated, (value) => ({ average: (8 + value) / 3, count: 3, mine: value }));

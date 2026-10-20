@@ -9,6 +9,7 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { StarIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { ClientRestriction } from "@/features/questions/client-restriction";
@@ -129,12 +130,17 @@ function AboutThisQuestion({ question }: { question: Question }) {
         <WhereItCameFrom question={question} />
         {ratingIsShown(question) && (
           <QuestionDetail id="rating" title="Rating">
-            <AverageRating rating={question.rating} />
-            {/* Offered by the Publication State alone: whether this Viewer may rate is the
-                API's answer (ADR-0002). */}
-            {question.publicationState === "published" && <RatingControl question={question} />}
+            <div className="flex items-center gap-1.5">
+              {question.rating.average !== null && (
+                <StarIcon aria-hidden="true" className="fill-brand-red text-brand-red size-4" />
+              )}
+              <AverageRating rating={question.rating} />
+            </div>
           </QuestionDetail>
         )}
+        {/* Offered by the Publication State alone: whether this Viewer may rate is the API's
+            answer (ADR-0002). */}
+        {question.publicationState === "published" && <RatingControl question={question} />}
       </Card>
     </section>
   );

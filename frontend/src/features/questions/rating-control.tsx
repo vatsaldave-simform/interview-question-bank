@@ -1,4 +1,6 @@
 import { highestRating, lowestRating, type Question } from "@iqb/shared";
+import { cn } from "cn";
+import { StarIcon } from "lucide-react";
 import { useState } from "react";
 import { useRateQuestion } from "@/features/questions/questions.queries";
 import { whatWentWrong } from "@/platform/api-client";
@@ -25,27 +27,35 @@ export function RatingControl({ question }: { question: Question }) {
   return (
     <div className="flex flex-col gap-3">
       {refusal !== null && <ActNotDone title="Your Rating was not saved." reason={refusal} />}
-      <div
-        role="group"
-        aria-labelledby="your-rating"
-        className="flex flex-wrap items-center gap-2"
-      >
-        <span id="your-rating" className="text-sm">
+      <div role="group" aria-labelledby="your-rating" className="flex flex-col items-start gap-1.5">
+        <span id="your-rating" className="text-[0.9375rem] font-semibold">
           Your Rating
         </span>
-        {ratingValues.map((value) => (
-          <Button
-            key={value}
-            size="sm"
-            variant={value === mine ? "default" : "outline"}
-            aria-label={`${value} out of ${highestRating}`}
-            aria-pressed={value === mine}
-            disabled={rate.isPending}
-            onClick={() => send(value)}
-          >
-            {value}
-          </Button>
-        ))}
+        <div className="-ml-1.5 flex">
+          {ratingValues.map((value) => (
+            <Button
+              key={value}
+              size="icon-sm"
+              variant="ghost"
+              // Every star up to the Viewer's Rating is filled, but only that one is pressed.
+              className={cn(
+                "hover:bg-hover",
+                mine !== null && value <= mine
+                  ? "text-brand-red hover:text-brand-red"
+                  : "text-muted-foreground hover:text-muted-foreground",
+              )}
+              aria-label={`${value} out of ${highestRating}`}
+              aria-pressed={value === mine}
+              disabled={rate.isPending}
+              onClick={() => send(value)}
+            >
+              <StarIcon
+                aria-hidden="true"
+                className={cn("size-5.5", mine !== null && value <= mine && "fill-current")}
+              />
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
