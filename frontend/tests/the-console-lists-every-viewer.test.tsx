@@ -48,7 +48,12 @@ describe("the administration console", () => {
 
     renderTheWholeClient("/administration/viewers");
 
-    expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
+    const table = await screen.findByRole("table", { name: "Viewers" });
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Email", "Role", "Administrator", "State", "Actions"]);
     const left = within(rowFor("left@iqb.test"));
     expect(left.getByRole("cell", { name: "Author" })).toBeVisible();
     expect(left.getByRole("cell", { name: "No" })).toBeVisible();
@@ -86,7 +91,12 @@ describe("the administration console", () => {
 
     expect(await screen.findByText("Something went wrong on our side.")).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByRole("table", { name: "Viewers" })).toBeVisible();
+    const table = await screen.findByRole("table", { name: "Viewers" });
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Email", "Role", "Administrator", "State", "Actions"]);
     expect(rowFor("reviewer@iqb.test")).toBeVisible();
   });
 });

@@ -9,6 +9,8 @@ import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
 import { PageHeader } from "@/ui/page-header";
 import { RowsLoading } from "@/ui/rows-loading";
+import { Badge } from "@/ui/shadcn/badge";
+import { Card } from "@/ui/shadcn/card";
 import {
   Table,
   TableBody,
@@ -17,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/ui/shadcn/table";
+
+const columnHead = "text-muted-foreground p-3 text-xs font-semibold tracking-wider uppercase";
 
 export function ViewerList() {
   const viewers = useEveryViewer();
@@ -59,34 +63,42 @@ export function ViewerList() {
             Add a Viewer, and they are emailed a link to set their password.
           </EmptyList>
         ) : (
-          <Table aria-labelledby="viewers">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Administrator</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead className="text-right">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {viewers.data.map((viewer) => (
-                <TableRow key={viewer.id}>
-                  <TableCell>{viewer.email}</TableCell>
-                  <TableCell>{roleWording[viewer.role]}</TableCell>
-                  <TableCell>{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
-                  <TableCell className={viewer.isDeactivated ? "text-muted-foreground" : ""}>
-                    {viewer.isDeactivated ? "Deactivated" : "Active"}
-                  </TableCell>
-                  <TableCell>
-                    <ViewerActs viewer={viewer} />
-                  </TableCell>
+          <Card className="px-1.5 py-1">
+            <Table aria-labelledby="viewers">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={columnHead}>Email</TableHead>
+                  <TableHead className={columnHead}>Role</TableHead>
+                  <TableHead className={columnHead}>Administrator</TableHead>
+                  <TableHead className={columnHead}>State</TableHead>
+                  <TableHead className="text-right">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {viewers.data.map((viewer) => (
+                  <TableRow key={viewer.id}>
+                    <TableCell className="p-3">{viewer.email}</TableCell>
+                    <TableCell className="p-3">{roleWording[viewer.role]}</TableCell>
+                    <TableCell className="p-3">{viewer.isAdministrator ? "Yes" : "No"}</TableCell>
+                    <TableCell className="p-3">
+                      {viewer.isDeactivated ? (
+                        <Badge className="bg-rejected text-rejected-foreground border-transparent">
+                          Deactivated
+                        </Badge>
+                      ) : (
+                        "Active"
+                      )}
+                    </TableCell>
+                    <TableCell className="p-3">
+                      <ViewerActs viewer={viewer} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </section>
     </AddDialog>
