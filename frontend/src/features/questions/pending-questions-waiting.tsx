@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useFirstPendingQuestions } from "@/features/questions/questions.queries";
+import { waitedWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
@@ -33,7 +35,7 @@ export function PendingQuestionsWaiting() {
       ) : (
         <ul className="divide-border flex flex-col divide-y">
           {pending.data.map((question) => (
-            <li key={question.id} className="py-3 first:pt-0 last:pb-0">
+            <li key={question.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
               <Link
                 to="/questions/$questionId"
                 params={{ questionId: question.id }}
@@ -41,6 +43,12 @@ export function PendingQuestionsWaiting() {
               >
                 {question.text}
               </Link>
+              <RowDetails>
+                <p>From {question.author.email}</p>
+                {/* From when it was added, because the API does not say when it was sent for
+                    review, so a Question sent back and sent again counts from the start. */}
+                <p>Waiting {waitedWording(question.createdAt)}</p>
+              </RowDetails>
             </li>
           ))}
         </ul>

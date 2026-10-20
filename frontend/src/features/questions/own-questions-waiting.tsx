@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { useFirstOwnQuestions } from "@/features/questions/questions.queries";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { agoWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
@@ -43,9 +45,13 @@ export function OwnQuestionsWaiting() {
               >
                 {question.text}
               </Link>
-              <div className="flex flex-wrap items-center gap-2">
+              <RowDetails>
                 <PublicationStateBadge state={question.publicationState} />
-              </div>
+                <p>
+                  Added{" "}
+                  <time dateTime={question.createdAt}>{agoWording(question.createdAt)}</time>
+                </p>
+              </RowDetails>
               {question.reason !== null && <RejectionReason reason={question.reason} />}
             </li>
           ))}

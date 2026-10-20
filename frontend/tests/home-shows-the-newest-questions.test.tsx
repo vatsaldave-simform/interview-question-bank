@@ -3,9 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion, refusesWith } from "./helpers/fake-api";
+import { aClient, aQuestion, refusesWith } from "./helpers/fake-api";
 import { aBankHolding, aPageOf, fakeBank, listRequests, signInAs } from "./helpers/fake-bank";
 import { homeGreeting } from "./helpers/home-page";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -16,6 +17,7 @@ beforeEach(() => {
 afterEach(() => {
   stopRenewingSession();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 const newest = aQuestion({
@@ -69,6 +71,32 @@ describe("the newest Questions on Home", () => {
       within((await panel.findByRole("link", { name: text })).closest("li")!);
     expect((await rowOf(pending.text)).getByText("Pending")).toBeVisible();
     expect((await rowOf(older.text)).queryByText("Published")).not.toBeInTheDocument();
+  });
+
+  it("show two Tags, the Client restriction, the Rating and when each was added", async () => {
+    itIsNow(new Date(2026, 9, 20, 12, 0));
+    const restricted = aQuestion({
+      id: "a0000000-0000-4000-8000-000000000005",
+      text: "How would you split a table that has outgrown one server?",
+      tags: [
+        { category: "technology", tag: "node" },
+        { category: "seniority", tag: "senior" },
+        { category: "question-type", tag: "practical" },
+      ],
+      client: aClient(),
+      rating: { average: 4.6, count: 18, mine: null },
+      createdAt: new Date(2026, 9, 18, 12, 0).toISOString(),
+    });
+    fakeBank((asked) => aPageOf([restricted], asked));
+    renderTheWholeClient("/");
+
+    const panel = await theNewest();
+    const row = within((await panel.findByRole("link", { name: restricted.text })).closest("li")!);
+    const tags = within(row.getByRole("list", { name: "Tags" })).getAllByRole("listitem");
+    expect(tags.map((tag) => tag.textContent)).toEqual(["node", "senior"]);
+    expect(row.getByText("Restricted to Northwind Trading")).toBeVisible();
+    expect(row.getByText("4.6 out of 5 from 18 Ratings")).toBeVisible();
+    expect(row.getByText(/^Added/)).toHaveTextContent("Added 2 days ago");
   });
 
   it("each open their own page", async () => {

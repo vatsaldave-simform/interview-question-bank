@@ -6,6 +6,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -15,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
   stopRenewingSession();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 const waiting = aQuestion({
@@ -52,6 +54,17 @@ describe("Your Pending and Rejected Questions on Home", () => {
     const panel = await thePanel();
     const row = within((await panel.findByRole("link", { name: waiting.text })).closest("li")!);
     expect(row.getByText("Pending")).toBeVisible();
+  });
+
+  it("says when each was added", async () => {
+    itIsNow(new Date(2026, 9, 20, 12, 0));
+    signInAs(aViewer({ role: "author" }));
+    aBankWithOwn([{ ...waiting, createdAt: new Date(2026, 9, 17, 12, 0).toISOString() }]);
+    renderTheWholeClient("/");
+
+    const panel = await thePanel();
+    const row = within((await panel.findByRole("link", { name: waiting.text })).closest("li")!);
+    expect(row.getByText(/^Added/)).toHaveTextContent("Added 3 days ago");
   });
 
   it("shows why a Rejected one was refused", async () => {

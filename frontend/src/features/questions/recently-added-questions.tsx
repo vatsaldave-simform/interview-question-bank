@@ -1,14 +1,20 @@
 import type { ListQuestionsRequest } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
+import { ClientRestriction } from "@/features/questions/client-restriction";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
+import { agoWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
 /** Browse's own first page, cut to five, so only Questions Visible to the Viewer appear. */
 const newestFive: ListQuestionsRequest = { keywords: undefined, limit: 5, offset: 0 };
+
+const tagsShown = 2;
 
 export function RecentlyAddedQuestions() {
   const list = useQuestionList(newestFive);
@@ -43,12 +49,18 @@ export function RecentlyAddedQuestions() {
               >
                 {question.text}
               </Link>
-              <div className="flex flex-wrap items-center gap-2">
+              <RowDetails>
                 {question.publicationState !== "published" && (
                   <PublicationStateBadge state={question.publicationState} />
                 )}
-                <QuestionTags tags={question.tags} />
-              </div>
+                <QuestionTags tags={question.tags.slice(0, tagsShown)} />
+                <ClientRestriction client={question.client} />
+                {ratingIsShown(question) && <AverageRating rating={question.rating} />}
+                <p>
+                  Added{" "}
+                  <time dateTime={question.createdAt}>{agoWording(question.createdAt)}</time>
+                </p>
+              </RowDetails>
             </li>
           ))}
         </ul>

@@ -6,6 +6,7 @@ import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
 import { aQuestion, aViewer, refusesWith } from "./helpers/fake-api";
 import { aPageOf, aQueueOf, fakeBank, signInAs } from "./helpers/fake-bank";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -15,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
   stopRenewingSession();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 const aReviewer = aViewer({ role: "reviewer" });
@@ -45,6 +47,18 @@ describe("Waiting for your review on Home", () => {
     renderTheWholeClient("/");
 
     expect(await (await thePanel()).findByRole("link", { name: waiting.text })).toBeVisible();
+  });
+
+  it("names each Question's author and how long it has waited since it was added", async () => {
+    itIsNow(new Date(2026, 9, 20, 12, 0));
+    signInAs(aReviewer);
+    aBankWaitingOn([{ ...waiting, createdAt: new Date(2026, 9, 16, 12, 0).toISOString() }]);
+    renderTheWholeClient("/");
+
+    const panel = await thePanel();
+    const row = within((await panel.findByRole("link", { name: waiting.text })).closest("li")!);
+    expect(row.getByText("From author@iqb.test")).toBeVisible();
+    expect(row.getByText("Waiting 4 days")).toBeVisible();
   });
 
   it.each<[string, Viewer]>([

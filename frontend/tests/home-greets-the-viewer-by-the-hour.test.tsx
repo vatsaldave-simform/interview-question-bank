@@ -6,6 +6,7 @@ import { replaceSession } from "@/platform/session";
 import { anAdministrator, aViewer } from "./helpers/fake-api";
 import { aBankHolding, signInAs } from "./helpers/fake-bank";
 import { findHome } from "./helpers/home-page";
+import { itIsNow } from "./helpers/the-clock";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
@@ -19,11 +20,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** Only the date is faked, so the screen's own timers still run. */
-function itIsNow(hours: number) {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date(2026, 9, 20, hours, 0));
-}
+const todayAt = (hours: number) => new Date(2026, 9, 20, hours, 0);
 
 describe("Home's header", () => {
   it.each([
@@ -34,7 +31,7 @@ describe("Home's header", () => {
     [18, "Good evening"],
     [23, "Good evening"],
   ])("at %i:00 says %s", async (hours, greeting) => {
-    itIsNow(hours);
+    itIsNow(todayAt(hours));
     signInAs();
     renderTheWholeClient("/");
 
@@ -42,7 +39,7 @@ describe("Home's header", () => {
   });
 
   it("shows today's date above the greeting", async () => {
-    itIsNow(9);
+    itIsNow(todayAt(9));
     signInAs();
     renderTheWholeClient("/");
 

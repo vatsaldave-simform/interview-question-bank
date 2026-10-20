@@ -51,7 +51,8 @@ describe("Open Role Requests on Home", () => {
 
     const panel = await thePanel();
     const row = within((await panel.findByText("reader@iqb.test")).closest("li")!);
-    expect(row.getByText(/^Asks for Author since/)).toBeVisible();
+    expect(row.getByText("Reader to Author")).toBeVisible();
+    expect(row.getByText(/^Asked/)).toHaveTextContent("Asked Sep 1, 2026");
     expect(row.getByRole("time")).toHaveAttribute("datetime", open.createdAt);
   });
 

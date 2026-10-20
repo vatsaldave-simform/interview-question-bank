@@ -3,6 +3,7 @@ import { useFirstOpenRoleRequests } from "@/features/role-requests/role-requests
 import { roleWording } from "@/features/viewers/role-wording";
 import { dateWording } from "@/platform/when-wording";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
+import { RowDetails } from "@/ui/row-details";
 import { RowsLoading } from "@/ui/rows-loading";
 import { ScreenSection } from "@/ui/screen-section";
 
@@ -40,12 +41,17 @@ export function OpenRoleRequestsWaiting() {
           {open.data.map((roleRequest) => (
             <li key={roleRequest.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
               <p className="font-medium">{roleRequest.viewer.email}</p>
-              <p className="text-muted-foreground text-sm">
-                Asks for {roleWording[roleRequest.role]} since{" "}
-                <time dateTime={roleRequest.createdAt}>
-                  {dateWording(roleRequest.createdAt)}
-                </time>
-              </p>
+              <RowDetails>
+                <p>
+                  {roleWording[roleRequest.heldRole]} to {roleWording[roleRequest.role]}
+                </p>
+                <p>
+                  Asked{" "}
+                  <time dateTime={roleRequest.createdAt}>
+                    {dateWording(roleRequest.createdAt)}
+                  </time>
+                </p>
+              </RowDetails>
             </li>
           ))}
         </ul>

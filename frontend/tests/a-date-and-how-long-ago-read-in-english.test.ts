@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { agoWording, dateAndTimeWording, dateWording, dayWording } from "@/platform/when-wording";
+import {
+  agoWording,
+  dateAndTimeWording,
+  dateWording,
+  dayWording,
+  waitedWording,
+} from "@/platform/when-wording";
 
 // Built from the local clock, so the expected words hold in any time zone the tests run in.
 const at = (year: number, month: number, day: number, hours = 9, minutes = 0) =>
@@ -41,5 +47,24 @@ describe("how long ago something happened", () => {
   it("says 'just now' for under a minute", () => {
     expect(agoWording(at(2026, 10, 20, 11, 59), now)).toBe("1 minute ago");
     expect(agoWording(new Date(now.getTime() - 30_000).toISOString(), now)).toBe("just now");
+  });
+});
+
+describe("how long something has waited", () => {
+  const now = new Date(at(2026, 10, 20, 12, 0));
+
+  it("counts the way 'ago' does, without the 'ago'", () => {
+    expect(waitedWording(at(2026, 10, 19, 12, 0), now)).toBe("1 day");
+    expect(waitedWording(at(2026, 10, 16, 12, 0), now)).toBe("4 days");
+    expect(waitedWording(at(2026, 10, 13, 12, 0), now)).toBe("1 week");
+    expect(waitedWording(at(2026, 9, 29, 12, 0), now)).toBe("3 weeks");
+    expect(waitedWording(at(2026, 8, 20, 12, 0), now)).toBe("2 months");
+    expect(waitedWording(at(2026, 10, 20, 9, 0), now)).toBe("3 hours");
+  });
+
+  it("says 'under a minute' for under a minute", () => {
+    expect(waitedWording(new Date(now.getTime() - 30_000).toISOString(), now)).toBe(
+      "under a minute",
+    );
   });
 });
