@@ -19,7 +19,9 @@ export function PageHeader({ title, titleId, description, action, trail }: PageH
     <div className="flex min-w-0 flex-col gap-2.5">
       {trail !== undefined && <PageTrail {...trail} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
+        {/* Grows and shrinks, so a long title wraps beside the action instead of pushing it
+            onto a line of its own. */}
+        <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-1">
           <h1 id={titleId} className="text-2xl leading-snug font-semibold">{title}</h1>
           <p className="text-muted-foreground text-sm">{description}</p>
         </div>

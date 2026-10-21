@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import {
   mayEdit,
   mayPublish,
@@ -8,6 +9,7 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
+import { StarIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { ClientRestriction } from "@/features/questions/client-restriction";
@@ -15,6 +17,7 @@ import {
   PublishButton,
   ReasonAct,
   ResubmitButton,
+  type ActProps,
   type ActRefused,
 } from "@/features/questions/publication-acts";
 import { provenanceWording } from "@/features/questions/provenance-wording";
@@ -26,14 +29,14 @@ import { QuestionTags } from "@/features/questions/question-tags";
 import { backToBrowse } from "@/features/questions/question-trail";
 import { useQuestion } from "@/features/questions/questions.queries";
 import { RatingControl } from "@/features/questions/rating-control";
+import { RejectionReason } from "@/features/questions/rejection-reason";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 import { PageTrail } from "@/ui/page-trail";
 import { ActNotDone } from "@/ui/act-not-done";
-import { ScreenSection } from "@/ui/screen-section";
 import { Button } from "@/ui/shadcn/button";
 import { Card } from "@/ui/shadcn/card";
-import { Separator } from "@/ui/shadcn/separator";
+import { smallHeading } from "@/ui/small-heading";
 
 export function QuestionScreen({ questionId }: { questionId: string }) {
   const question = useQuestion(questionId);
@@ -49,45 +52,56 @@ export function QuestionScreen({ questionId }: { questionId: string }) {
       ) : question.isError ? (
         <QuestionNotShown reason={question.error} onRetry={() => void question.refetch()} />
       ) : (
-        <>
-          <QuestionInFull question={question.data} />
-          <QuestionHistory questionId={questionId} />
-        </>
+        <QuestionInFull question={question.data} />
       )}
     </div>
   );
 }
 
 function QuestionInFull({ question }: { question: Question }) {
+  const [refusal, setRefusal] = useState<ActRefused | null>(null);
   return (
-    // The details come before the main column, so on a phone they sit just under the title.
-    <article className="grid items-start gap-section md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
+    <article className="flex flex-col gap-section">
       <PageHeader
         title={question.text}
         description="One Question, with its Answer Notes and where it came from."
         trail={{ back: backToBrowse, here: question.text }}
+        action={<PublicationActs question={question} onRefusal={setRefusal} />}
       />
-      <AboutThisQuestion question={question} />
-      <div className="flex flex-col gap-section md:col-start-1">
-        {question.reason !== null && (
-          <ScreenSection id="why-it-was-rejected" title="Why it was Rejected">
-            <p className="whitespace-pre-line">{question.reason}</p>
-          </ScreenSection>
-        )}
-        <ScreenSection id="answer-notes" title="Answer Notes">
-          <p className="whitespace-pre-line">{question.answerNotes}</p>
-          <QuestionTags tags={question.tags} />
-        </ScreenSection>
-        {ratingIsShown(question) && (
-          <ScreenSection id="rating" title="Rating">
-            <AverageRating rating={question.rating} />
-            {/* Offered by the Publication State alone: whether this Viewer may rate is the
-                API's answer (ADR-0002). */}
-            {question.publicationState === "published" && <RatingControl question={question} />}
-          </ScreenSection>
-        )}
+      {refusal !== null && (
+        <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
+      )}
+      <div className="grid items-start gap-section min-[980px]:grid-cols-[minmax(0,1fr)_300px]">
+        <AnswerNotes question={question} />
+        <AboutThisQuestion question={question} />
       </div>
     </article>
+  );
+}
+
+function AnswerNotes({ question }: { question: Question }) {
+  return (
+    <section aria-labelledby="answer-notes">
+      <Card className="gap-3.5 px-7 py-6.5">
+        {question.reason !== null && (
+          <section aria-label="Why it was Rejected">
+            <RejectionReason reason={question.reason} />
+          </section>
+        )}
+        {(question.tags.length > 0 || question.client !== null) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <QuestionTags tags={question.tags} />
+            <ClientRestriction client={question.client} />
+          </div>
+        )}
+        <h2 id="answer-notes" className={cn(smallHeading, "text-[0.9375rem]")}>
+          Answer Notes
+        </h2>
+        <p className="max-w-[68ch] text-[1.0625rem] leading-[1.7] whitespace-pre-line">
+          {question.answerNotes}
+        </p>
+      </Card>
+    </section>
   );
 }
 
@@ -96,12 +110,9 @@ type TitledProps = { id: string; title: string; children: ReactNode };
 function AboutThisQuestion({ question }: { question: Question }) {
   const state = publicationStateWording[question.publicationState];
   return (
-    <section
-      aria-labelledby="about-this-question"
-      className="md:col-start-2 md:row-span-2 md:row-start-1"
-    >
-      <Card className="gap-5 p-(--spacing-panel)">
-        <h2 id="about-this-question" className="text-lg font-semibold">
+    <section aria-labelledby="about-this-question">
+      <Card className="gap-4 p-(--spacing-panel)">
+        <h2 id="about-this-question" className="sr-only">
           About this Question
         </h2>
         <QuestionDetail id="publication-state" title="Publication State">
@@ -110,14 +121,24 @@ function AboutThisQuestion({ question }: { question: Question }) {
         </QuestionDetail>
         {question.client !== null && (
           <QuestionDetail id="who-can-see-it" title="Who can see it">
-            <ClientRestriction client={question.client} />
-            <p className="text-muted-foreground">
-              Only Viewers with a Grant for {question.client.name} can see this Question.
-            </p>
+            <p>Only Viewers with a Grant for {question.client.name} can see this Question.</p>
           </QuestionDetail>
         )}
         <WhereItCameFrom question={question} />
-        <PublicationActs question={question} />
+        {ratingIsShown(question) && (
+          <QuestionDetail id="rating" title="Rating">
+            <div className="flex items-center gap-1.5">
+              {question.rating.average !== null && (
+                <StarIcon aria-hidden="true" className="fill-brand-red text-brand-red size-4" />
+              )}
+              <AverageRating rating={question.rating} />
+            </div>
+          </QuestionDetail>
+        )}
+        {/* Offered by the Publication State alone: whether this Viewer may rate is the API's
+            answer (ADR-0002). */}
+        {question.publicationState === "published" && <RatingControl question={question} />}
+        <QuestionHistory questionId={question.id} />
       </Card>
     </section>
   );
@@ -125,8 +146,8 @@ function AboutThisQuestion({ question }: { question: Question }) {
 
 function QuestionDetail({ id, title, children }: TitledProps) {
   return (
-    <section className="flex flex-col items-start gap-1.5 text-sm" aria-labelledby={id}>
-      <h3 id={id} className="font-medium">
+    <section className="flex flex-col items-start gap-0.5" aria-labelledby={id}>
+      <h3 id={id} className={smallHeading}>
         {title}
       </h3>
       {children}
@@ -155,15 +176,14 @@ function WhereItCameFrom({ question }: { question: Question }) {
 
 /** Shows only the acts the API would let this Viewer do, by the same rules it uses
  * (ADR-0045). */
-function PublicationActs({ question }: { question: Question }) {
+function PublicationActs({ question, onRefusal }: ActProps) {
   const session = useSession();
   // The sign-in check already stands in front of this screen.
   if (session.status !== "signed-in") return null;
-  return <PublicationActsFor viewer={session.viewer} question={question} />;
+  return <PublicationActsFor viewer={session.viewer} question={question} onRefusal={onRefusal} />;
 }
 
-function PublicationActsFor({ viewer, question }: { viewer: Viewer; question: Question }) {
-  const [refusal, setRefusal] = useState<ActRefused | null>(null);
+function PublicationActsFor({ viewer, question, onRefusal }: ActProps & { viewer: Viewer }) {
   const { publicationState } = question;
   const acts = {
     edit: mayEdit(viewer, question),
@@ -174,27 +194,24 @@ function PublicationActsFor({ viewer, question }: { viewer: Viewer; question: Qu
   };
   if (!Object.values(acts).some(Boolean)) return null;
 
+  const props = { question, onRefusal, size: "default" } as const;
   return (
-    <>
-      <Separator />
-      <div className="flex flex-col gap-3">
-        {refusal !== null && (
-          <ActNotDone title={`This Question ${refusal.notDone}.`} reason={refusal.message} />
-        )}
-        <div className="flex flex-wrap items-start gap-2">
-          {acts.edit && (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
-                Edit
-              </Link>
-            </Button>
-          )}
-          {acts.publish && <PublishButton question={question} onRefusal={setRefusal} />}
-          {acts.reject && <ReasonAct act="reject" question={question} onRefusal={setRefusal} />}
-          {acts.return && <ReasonAct act="return" question={question} onRefusal={setRefusal} />}
-          {acts.resubmit && <ResubmitButton question={question} onRefusal={setRefusal} />}
-        </div>
-      </div>
-    </>
+    <div
+      role="group"
+      aria-label="What you can do with this Question"
+      className="flex flex-wrap gap-2"
+    >
+      {acts.edit && (
+        <Button asChild variant="outline">
+          <Link to="/questions/$questionId/edit" params={{ questionId: question.id }}>
+            Edit
+          </Link>
+        </Button>
+      )}
+      {acts.publish && <PublishButton {...props} />}
+      {acts.reject && <ReasonAct act="reject" variant="secondary" {...props} />}
+      {acts.return && <ReasonAct act="return" variant="secondary" {...props} />}
+      {acts.resubmit && <ResubmitButton {...props} />}
+    </div>
   );
 }

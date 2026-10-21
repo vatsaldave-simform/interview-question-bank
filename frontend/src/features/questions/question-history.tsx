@@ -8,39 +8,43 @@ import { dateAndTimeWording } from "@/platform/when-wording";
 import { RowsLoading } from "@/ui/rows-loading";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
-import { Card } from "@/ui/shadcn/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/shadcn/collapsible";
 
+/** Sits in the Question page's side card, which already gives it a card. */
 export function QuestionHistory({ questionId }: { questionId: string }) {
   const history = useQuestionHistory(questionId);
 
   return (
-    <section aria-labelledby="history">
-      <Card className="gap-4 p-(--spacing-panel)">
-        <h2 id="history" className="text-lg font-semibold">
-          History
-        </h2>
-        {history.isPending ? (
-          <RowsLoading label="Loading the history…" onCard />
-        ) : history.isError ? (
-          <Alert variant="destructive">
-            <AlertTitle>The history could not be loaded</AlertTitle>
-            <AlertDescription className="flex flex-col items-start gap-3">
-              <p>{whatWentWrong(history.error)}</p>
-              <Button variant="outline" size="sm" onClick={() => void history.refetch()}>
-                Try again
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : history.data.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No changes have been recorded.</p>
-        ) : (
-          <ol aria-labelledby="history" className="flex flex-col divide-y">
-            {history.data.map((event) => (
-              <li key={event.id} className="flex flex-col gap-1 py-3 text-sm first:pt-0 last:pb-0">
-                <p>
+    <section aria-labelledby="history" className="flex flex-col gap-2">
+      <h3 id="history" className="text-[0.9375rem] font-semibold">
+        History
+      </h3>
+      {history.isPending ? (
+        <RowsLoading label="Loading the history…" onCard />
+      ) : history.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>The history could not be loaded</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3">
+            <p>{whatWentWrong(history.error)}</p>
+            <Button variant="outline" size="sm" onClick={() => void history.refetch()}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : history.data.length === 0 ? (
+        <p className="text-muted-foreground text-[0.9375rem]">No changes have been recorded.</p>
+      ) : (
+        <ol aria-labelledby="history" className="flex flex-col gap-3 text-[0.9375rem]">
+          {history.data.map((event) => (
+            <li key={event.id} className="flex gap-2.5">
+              <span
+                aria-hidden="true"
+                className="bg-brand-lavender ring-brand-lavender/40 mt-2 size-2 shrink-0 rounded-full ring-3"
+              />
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="break-words">
                   {event.viewerEmail} {whatHappened(event)}
-                  {" · "}
+                  <br />
                   <time dateTime={event.at} className="text-muted-foreground">
                     {dateAndTimeWording(event.at)}
                   </time>
@@ -53,11 +57,11 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
                   event.type === "near_duplicate_refused") && (
                   <NearDuplicatesNamed nearDuplicates={event.payload.nearDuplicates} />
                 )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </Card>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
 }
