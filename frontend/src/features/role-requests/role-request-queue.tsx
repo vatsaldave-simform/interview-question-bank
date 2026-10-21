@@ -77,7 +77,7 @@ function RoleRequestCard({ roleRequest, onRefusal }: RoleRequestCardProps) {
           <h2>{roleRequest.viewer.email}</h2>
         </CardTitle>
         <RowDetails>
-          <Badge variant="secondary">
+          <Badge className="bg-chip text-chip-foreground">
             {roleWording[roleRequest.heldRole]} to {roleWording[roleRequest.role]}
           </Badge>
           <p>

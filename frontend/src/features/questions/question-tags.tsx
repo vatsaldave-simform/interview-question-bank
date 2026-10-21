@@ -7,7 +7,7 @@ export function QuestionTags({ tags }: { tags: readonly QuestionTag[] }) {
     <ul className="flex flex-wrap gap-2" aria-label="Tags">
       {tags.map(({ category, tag }) => (
         <li key={`${category}:${tag}`}>
-          <Badge variant="secondary" title={category}>
+          <Badge className="bg-chip text-chip-foreground" title={category}>
             {tag}
           </Badge>
         </li>
