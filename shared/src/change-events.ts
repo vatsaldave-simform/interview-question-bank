@@ -4,34 +4,6 @@ import { clientSchema } from "./clients.js";
 import { permissionGrantSchema } from "./permission-grants.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
-export const changeEventTypes = [
-  "question_added",
-  "question_edited",
-  "near_duplicate_refused",
-  "near_duplicate_overridden",
-  "administrator_appointed",
-  "administrator_withdrawn",
-  "role_changed",
-  "client_created",
-  "permission_grant_issued",
-  "permission_grant_revoked",
-  "viewer_created",
-  "viewer_deactivated",
-  "viewer_reactivated",
-  "role_request_granted",
-  "role_request_denied",
-  "question_published",
-  "question_rejected",
-  "question_resubmitted",
-  "question_returned",
-  // The old words for restricting and removing a Restriction, kept because the log is
-  // append-only and its rows already say them (ADR-0027).
-  "question_classified",
-  "question_declassified",
-] as const;
-export const changeEventTypeSchema = z.enum(changeEventTypes);
-export type ChangeEventType = z.infer<typeof changeEventTypeSchema>;
-
 /**
  * The whole content of a Question as it was added. Whole rather than a reference to the
  * Question, because an event has to still say what happened after later edits, and
@@ -178,6 +150,144 @@ export type QuestionClassified = z.infer<typeof questionClassifiedSchema>;
 export const questionDeclassifiedSchema = z.object({ clientId: z.uuid() }).strict();
 export type QuestionDeclassified = z.infer<typeof questionDeclassifiedSchema>;
 
+/**
+ * Whether an event hangs off a Question. Only a refused Near-Duplicate may go either way:
+ * nothing was stored when it was a new submission, and a Question exists when it was an
+ * edit (ADR-0014).
+ */
+type QuestionRule = "required" | "never" | "optional";
+
+type ChangeEventKind = {
+  payload: z.ZodType;
+  question: QuestionRule;
+  /** Whether the payload names a Question other than the one the event hangs off. Only the
+   * Viewer the event names may read one, because its presence alone says that other
+   * Question exists (ADR-0028). */
+  namesAnotherQuestion: boolean;
+};
+
+/**
+ * Every Change Event type, once. The type list and the API response are built from this,
+ * so a new type is added here and nowhere else in `shared`.
+ */
+export const changeEventKinds = {
+  question_added: {
+    payload: questionAddedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_edited: {
+    payload: questionEditedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  near_duplicate_refused: {
+    payload: nearDuplicateRefusedSchema,
+    question: "optional",
+    namesAnotherQuestion: true,
+  },
+  near_duplicate_overridden: {
+    payload: nearDuplicateOverriddenSchema,
+    question: "required",
+    namesAnotherQuestion: true,
+  },
+  // No Question is ever involved in an administrative act (ADR-0015).
+  administrator_appointed: {
+    payload: administratorAppointedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  administrator_withdrawn: {
+    payload: administratorWithdrawnSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  role_changed: {
+    payload: roleChangedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  client_created: {
+    payload: clientCreatedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  permission_grant_issued: {
+    payload: permissionGrantIssuedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  permission_grant_revoked: {
+    payload: permissionGrantRevokedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  viewer_created: {
+    payload: viewerCreatedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  viewer_deactivated: {
+    payload: viewerDeactivatedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  viewer_reactivated: {
+    payload: viewerReactivatedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  role_request_granted: {
+    payload: roleRequestGrantedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  role_request_denied: {
+    payload: roleRequestDeniedSchema,
+    question: "never",
+    namesAnotherQuestion: false,
+  },
+  question_published: {
+    payload: questionPublishedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_rejected: {
+    payload: questionRejectedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_resubmitted: {
+    payload: questionResubmittedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_returned: {
+    payload: questionReturnedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  // The old words for restricting and removing a Restriction, kept because the log is
+  // append-only and its rows already say them (ADR-0027).
+  question_classified: {
+    payload: questionClassifiedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_declassified: {
+    payload: questionDeclassifiedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+} as const satisfies Record<string, ChangeEventKind>;
+
+export type ChangeEventType = keyof typeof changeEventKinds;
+export const changeEventTypes = Object.keys(changeEventKinds) as [
+  ChangeEventType,
+  ...ChangeEventType[],
+];
+export const changeEventTypeSchema = z.enum(changeEventTypes);
+
 /** What every Change Event says, whatever happened: which Question, which Viewer, when. */
 const changeEventSchema = z.object({
   id: z.uuid(),
@@ -194,78 +304,28 @@ const changeEventSchema = z.object({
  * A Change Event as the API answers with one. The type and the payload are read together,
  * so a caller that has looked at the type knows the shape of what it is holding.
  */
-export const changeEventResponseSchema = z.discriminatedUnion("type", [
-  changeEventSchema.extend({ type: z.literal("question_added"), payload: questionAddedSchema }),
-  changeEventSchema.extend({ type: z.literal("question_edited"), payload: questionEditedSchema }),
+export type ChangeEvent = {
+  [Type in ChangeEventType]: z.infer<typeof changeEventSchema> & {
+    type: Type;
+    payload: z.infer<(typeof changeEventKinds)[Type]["payload"]>;
+  };
+}[ChangeEventType];
+
+const changeEventVariants = changeEventTypes.map((type) =>
   changeEventSchema.extend({
-    type: z.literal("near_duplicate_refused"),
-    payload: nearDuplicateRefusedSchema,
+    type: z.literal(type),
+    payload: changeEventKinds[type].payload,
   }),
-  changeEventSchema.extend({
-    type: z.literal("near_duplicate_overridden"),
-    payload: nearDuplicateOverriddenSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("administrator_appointed"),
-    payload: administratorAppointedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("administrator_withdrawn"),
-    payload: administratorWithdrawnSchema,
-  }),
-  changeEventSchema.extend({ type: z.literal("role_changed"), payload: roleChangedSchema }),
-  changeEventSchema.extend({ type: z.literal("client_created"), payload: clientCreatedSchema }),
-  changeEventSchema.extend({
-    type: z.literal("permission_grant_issued"),
-    payload: permissionGrantIssuedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("permission_grant_revoked"),
-    payload: permissionGrantRevokedSchema,
-  }),
-  changeEventSchema.extend({ type: z.literal("viewer_created"), payload: viewerCreatedSchema }),
-  changeEventSchema.extend({
-    type: z.literal("viewer_deactivated"),
-    payload: viewerDeactivatedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("viewer_reactivated"),
-    payload: viewerReactivatedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("role_request_granted"),
-    payload: roleRequestGrantedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("role_request_denied"),
-    payload: roleRequestDeniedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_published"),
-    payload: questionPublishedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_rejected"),
-    payload: questionRejectedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_resubmitted"),
-    payload: questionResubmittedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_returned"),
-    payload: questionReturnedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_classified"),
-    payload: questionClassifiedSchema,
-  }),
-  changeEventSchema.extend({
-    type: z.literal("question_declassified"),
-    payload: questionDeclassifiedSchema,
-  }),
-]);
-export type ChangeEvent = z.infer<typeof changeEventResponseSchema>;
+);
+
+// Zod cannot type a union it builds in a loop, so `ChangeEvent` above says what it holds.
+export const changeEventResponseSchema = z.discriminatedUnion(
+  "type",
+  changeEventVariants as [
+    (typeof changeEventVariants)[number],
+    ...(typeof changeEventVariants)[number][],
+  ],
+) as unknown as z.ZodType<ChangeEvent>;
 
 /** The history of one Question, oldest first, because a history is read forwards. */
 export const questionHistoryResponseSchema = z

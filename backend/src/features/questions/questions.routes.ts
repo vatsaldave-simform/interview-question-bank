@@ -8,7 +8,6 @@ import {
   restrictQuestionRequestSchema,
   returnQuestionRequestSchema,
   rolesThatMayAddAQuestion,
-  type ChangeEvent,
   type PendingQuestionListResponse,
   type Question,
   type QuestionHistoryResponse,
@@ -29,7 +28,6 @@ import {
   type QuestionFromDb,
   type QuestionPage,
 } from "./questions.repository.ts";
-import type { ChangeEventFromDb } from "../change-events/change-events.repository.ts";
 import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
 import { withAuthors } from "../viewers/viewers.repository.ts";
 import { ratingRoutes } from "../ratings/ratings.routes.ts";
@@ -62,12 +60,6 @@ async function toListResponse(
 ): Promise<QuestionListResponse> {
   const rated = await withRatingSummaries(database, viewer, questions);
   return { questions: rated.map(toQuestion), limit: page.limit, offset: page.offset };
-}
-
-/** The Change Event as the API answers with it. The time is called what it is here: the
- * event is when something happened, not when a row was created. */
-function toEventResponse({ createdAt, ...event }: ChangeEventFromDb): ChangeEvent {
-  return { ...event, at: createdAt.toISOString() };
 }
 
 export function questionRoutes(database: Database): Router {
@@ -141,7 +133,7 @@ export function questionRoutes(database: Database): Router {
     const events = await findEventsAboutVisibleQuestion(database, viewer, id);
     if (events === null) throw new NotFoundError();
 
-    const body: QuestionHistoryResponse = { events: events.map(toEventResponse) };
+    const body: QuestionHistoryResponse = { events };
     res.json(body);
   });
 

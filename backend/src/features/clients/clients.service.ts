@@ -18,10 +18,8 @@ export async function createClient(
     return await database.$transaction(async (transaction) => {
       const client = await insertClient(transaction, name);
       const payload: ClientCreated = { client };
-      await insertChangeEvent(transaction, {
+      await insertChangeEvent(transaction, viewer, {
         type: "client_created",
-        questionId: null,
-        viewerId: viewer.id,
         payload,
       });
       return client;

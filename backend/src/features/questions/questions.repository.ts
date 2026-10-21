@@ -1,6 +1,7 @@
 import {
   categoryNameSchema,
   mostNearDuplicatesNamed,
+  type ChangeEvent,
   type Client,
   nearDuplicateThreshold,
   type CategoryName,
@@ -14,12 +15,9 @@ import {
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import {
-  aboutAnotherQuestion,
-  changeEventFieldsToRead,
+  findEventsOfQuestion,
   insertChangeEvent,
-  toChangeEventFromDb,
-  type ChangeEventFromDb,
-  type NewChangeEvent,
+  type ChangeEventToInsert,
 } from "../change-events/change-events.repository.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database, Transaction } from "../../platform/database.ts";
@@ -129,25 +127,13 @@ export async function findEventsAboutVisibleQuestion(
   database: Database,
   viewer: Viewer,
   id: string,
-): Promise<ChangeEventFromDb[] | null> {
+): Promise<ChangeEvent[] | null> {
   // The events are read only below this, so there is no way to reach the log for an id
   // nobody checked (ADR-0003).
   const visible = await database.$queryRaw<{ id: string }[]>(visibleQuestionWithId(viewer, id));
   if (visible.length === 0) return null;
 
-  const events = await database.changeEvent.findMany({
-    // Being able to see a Question is not being able to see what its Author was warned
-    // about: those events name Questions of their own (ADR-0028).
-    where: {
-      questionId: id,
-      OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
-    },
-    // The time comes from the process that wrote the event, so two events can share
-    // one; the id settles that, and the order is at least the same every read.
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: changeEventFieldsToRead,
-  });
-  return events.map(toChangeEventFromDb);
+  return findEventsOfQuestion(database, viewer, id);
 }
 
 export type QuestionPage = { limit: number; offset: number };
@@ -414,10 +400,9 @@ async function recordOverride(
   overridden: readonly NearDuplicate[],
 ): Promise<void> {
   if (overridden.length === 0) return;
-  await insertChangeEvent(transaction, {
+  await insertChangeEvent(transaction, viewer, {
     type: "near_duplicate_overridden",
     questionId,
-    viewerId: viewer.id,
     payload: { nearDuplicates: [...overridden] },
   });
 }
@@ -463,10 +448,9 @@ export async function insertQuestion(
     });
 
     const added = toQuestionFromDb(stored);
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "question_added",
       questionId: added.id,
-      viewerId: viewer.id,
       payload: {
         text: added.text,
         answerNotes: added.answerNotes,
@@ -476,10 +460,9 @@ export async function insertQuestion(
       },
     });
     if (added.client !== null) {
-      await insertChangeEvent(transaction, {
+      await insertChangeEvent(transaction, viewer, {
         type: "question_classified",
         questionId: added.id,
-        viewerId: viewer.id,
         payload: { clientId: { before: null, after: added.client.id } },
       });
     }
@@ -497,10 +480,9 @@ export async function recordRefusedAsNearDuplicate(
   questionId: string | null,
   refused: NearDuplicateRefused,
 ): Promise<void> {
-  await insertChangeEvent(database, {
+  await insertChangeEvent(database, viewer, {
     type: "near_duplicate_refused",
     questionId,
-    viewerId: viewer.id,
     payload: refused,
   });
 }
@@ -558,19 +540,17 @@ export type WriteRefused = "not-visible" | "wrong-state" | "client-not-granted";
 
 export type QuestionWritten = { question: QuestionFromDb } | { refused: WriteRefused };
 
-type QuestionAndViewer = { questionId: string; viewerId: string };
-
 type ChangePlan = {
   /** Part of the `where`, so of two acts at once only one lands. */
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
-  event: NewChangeEvent;
+  event: ChangeEventToInsert;
   /** The Client the Viewer must still hold a Grant for when the write lands. */
   grantedClient?: string;
 };
 
 const changePlans: {
-  [A in ChangeAct]: (change: Change<A>, happened: QuestionAndViewer) => ChangePlan;
+  [A in ChangeAct]: (change: Change<A>, happened: { questionId: string }) => ChangePlan;
 } = {
   publish: (_, happened) => ({
     startsFrom: { publicationState: "pending" },
@@ -625,7 +605,7 @@ const changePlans: {
 // Generic, because TypeScript cannot match a union of changes to a union of plans directly.
 function changePlanFor<A extends ChangeAct>(
   change: Change<A>,
-  happened: QuestionAndViewer,
+  happened: { questionId: string },
 ): ChangePlan {
   return changePlans[change.act](change, happened);
 }
@@ -668,10 +648,9 @@ async function editLockedQuestion(
   const after = await readLockedQuestion(transaction, id);
   const changed = whatChanged(before, after);
   if (changed !== null) {
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "question_edited",
       questionId: id,
-      viewerId: viewer.id,
       payload: changed,
     });
     await recordOverride(transaction, viewer, id, overridden);
@@ -686,7 +665,7 @@ async function changeLockedQuestion(
   change: Change,
   overridden: readonly NearDuplicate[],
 ): Promise<QuestionWritten> {
-  const plan = changePlanFor(change, { questionId: id, viewerId: viewer.id });
+  const plan = changePlanFor(change, { questionId: id });
   // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
   // restricted to a Client its Author no longer holds.
   if (
@@ -702,7 +681,7 @@ async function changeLockedQuestion(
   });
   if (count === 0) return { refused: "wrong-state" };
 
-  await insertChangeEvent(transaction, plan.event);
+  await insertChangeEvent(transaction, viewer, plan.event);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
 }

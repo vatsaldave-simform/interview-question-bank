@@ -175,10 +175,8 @@ describe("two administrative acts at the same moment", () => {
         role: { before: second.role, after: "reader" },
       };
       // Names the first Viewer, whose row the withdrawal has locked by now.
-      await insertChangeEvent(transaction, {
+      await insertChangeEvent(transaction, first, {
         type: "role_changed",
-        questionId: null,
-        viewerId: first.id,
         payload,
       });
     });

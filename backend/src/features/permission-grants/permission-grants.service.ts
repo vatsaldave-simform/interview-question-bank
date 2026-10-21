@@ -41,10 +41,8 @@ export async function issuePermissionGrant(
     return await database.$transaction(async (transaction) => {
       const grant = await insertPermissionGrant(transaction, client.id, target.id);
       const payload: PermissionGrantIssued = { grant };
-      await insertChangeEvent(transaction, {
+      await insertChangeEvent(transaction, viewer, {
         type: "permission_grant_issued",
-        questionId: null,
-        viewerId: viewer.id,
         payload,
       });
       return grant;
@@ -79,10 +77,8 @@ export async function revokePermissionGrant(
     await database.$transaction(async (transaction) => {
       const grant = await deletePermissionGrant(transaction, clientId, targetId);
       const payload: PermissionGrantRevoked = { grant };
-      await insertChangeEvent(transaction, {
+      await insertChangeEvent(transaction, viewer, {
         type: "permission_grant_revoked",
-        questionId: null,
-        viewerId: viewer.id,
         payload,
       });
     });

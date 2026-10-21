@@ -75,10 +75,8 @@ export async function grantRoleRequest(
       role: { before: target.role, after: granted.role },
       reason,
     };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "role_request_granted",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     // The row was read before the role changed, so answer with the role just set.
@@ -101,10 +99,8 @@ export async function denyRoleRequest(
       role: denied.role,
       reason,
     };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "role_request_denied",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return denied;
