@@ -1,6 +1,7 @@
 import {
   categoryNameSchema,
   mostNearDuplicatesNamed,
+  type ChangeEvent,
   type Client,
   nearDuplicateThreshold,
   type CategoryName,
@@ -14,11 +15,8 @@ import {
 } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import {
-  aboutAnotherQuestion,
-  changeEventFieldsToRead,
+  findEventsOfQuestion,
   insertChangeEvent,
-  toChangeEventFromDb,
-  type ChangeEventFromDb,
   type ChangeEventToInsert,
 } from "../change-events/change-events.repository.ts";
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
@@ -129,25 +127,13 @@ export async function findEventsAboutVisibleQuestion(
   database: Database,
   viewer: Viewer,
   id: string,
-): Promise<ChangeEventFromDb[] | null> {
+): Promise<ChangeEvent[] | null> {
   // The events are read only below this, so there is no way to reach the log for an id
   // nobody checked (ADR-0003).
   const visible = await database.$queryRaw<{ id: string }[]>(visibleQuestionWithId(viewer, id));
   if (visible.length === 0) return null;
 
-  const events = await database.changeEvent.findMany({
-    // Being able to see a Question is not being able to see what its Author was warned
-    // about: those events name Questions of their own (ADR-0028).
-    where: {
-      questionId: id,
-      OR: [{ type: { notIn: [...aboutAnotherQuestion] } }, { viewerId: viewer.id }],
-    },
-    // The time comes from the process that wrote the event, so two events can share
-    // one; the id settles that, and the order is at least the same every read.
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: changeEventFieldsToRead,
-  });
-  return events.map(toChangeEventFromDb);
+  return findEventsOfQuestion(database, viewer, id);
 }
 
 export type QuestionPage = { limit: number; offset: number };
