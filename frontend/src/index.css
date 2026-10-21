@@ -29,6 +29,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-chip: var(--chip);
+  --color-chip-foreground: var(--chip-foreground);
   --color-pending: var(--pending);
   --color-pending-foreground: var(--pending-foreground);
   --color-pending-border: var(--pending-border);
@@ -130,11 +132,15 @@
   --ring: var(--brand-red);
   /* A pointed-at row is only tinted, so its text keeps its own colour. */
   --hover: color-mix(in oklch, var(--brand-purple) 7%, transparent);
+  /* See-through, like the glass the chip sits on. */
+  --chip: color-mix(in oklch, var(--brand-lavender) 40%, transparent);
+  --chip-foreground: var(--brand-purple);
   --pending: transparent;
   --pending-foreground: var(--brand-purple);
   --pending-border: color-mix(in oklch, var(--brand-purple) 45%, transparent);
   --rejected: color-mix(in oklch, var(--brand-red) 15%, transparent);
-  --rejected-foreground: var(--destructive);
+  /* Its own value, so a change to the error red does not reach the Rejected chip. */
+  --rejected-foreground: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
   --restricted: var(--brand-purple);
   --restricted-foreground: oklch(1 0 0);
   --restricted-border: var(--brand-purple);
@@ -204,6 +210,8 @@
   --field-line: color-mix(in oklch, var(--brand-lavender) 24%, transparent);
   --hover: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
   --ring: oklch(0.68 0.19 15.6);
+  --chip: color-mix(in oklch, var(--brand-lavender) 16%, transparent);
+  --chip-foreground: var(--brand-lavender);
   --pending: transparent;
   --pending-foreground: var(--brand-lavender);
   --pending-border: color-mix(in oklch, var(--brand-lavender) 55%, transparent);
@@ -278,6 +286,13 @@
   [data-slot="native-select"] {
     --input: var(--field-line);
     background-image: linear-gradient(var(--field), var(--field));
+  }
+  /* The badge sizes itself with classes a base rule cannot outrank, so this changes the values
+     those classes read: the agreed design's chip, scaled from its 14px text to the app's 16px. */
+  [data-slot="badge"] {
+    --spacing: calc(0.25rem * 16 / 14);
+    --text-xs: calc(0.75rem * 16 / 14);
+    height: calc(1.5rem * 16 / 14);
   }
   [data-slot="sidebar-inner"] {
     backdrop-filter: var(--glass-blur-sidebar);

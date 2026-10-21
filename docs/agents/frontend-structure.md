@@ -92,6 +92,8 @@ as `[data-slot="card"]` (ADR-0046). No CSS modules, no CSS-in-JS, and no second 
 
 A base rule is for a look every copy of a generated component shares, like the frosted glass and
 its fallbacks. It never keys on a generated class name, and it uses only theme variables.
+When a generated component sets a size with a class, a base rule cannot outrank it, so the rule
+changes the theme variable that class reads instead, as the badge rule does with `--spacing`.
 
 Four base rules key on something other than a slot name, because no slot name reaches what they
 style: the backdrop on `body`, the page fade on each page inside `<main>`, the toasts on Sonner's

@@ -172,7 +172,7 @@ function KnownTagsField({ categories, chosen, problem, onChange }: KnownTagsFiel
               <li
                 key={`${tag.category}/${tag.tag}`}
                 title={categoryNamed(tag.category)}
-                className="bg-secondary text-secondary-foreground inline-flex h-6.5 items-center gap-0.5 rounded-full pr-0.5 pl-2.5 text-xs font-medium"
+                className="bg-chip text-chip-foreground inline-flex h-6.5 items-center gap-0.5 rounded-full pr-0.5 pl-2.5 text-xs font-medium"
               >
                 {tag.tag}
                 <button
