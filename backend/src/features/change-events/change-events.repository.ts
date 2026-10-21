@@ -1,6 +1,7 @@
 import {
   administratorAppointedSchema,
   administratorWithdrawnSchema,
+  changeEventKinds,
   clientCreatedSchema,
   nearDuplicateOverriddenSchema,
   nearDuplicateRefusedSchema,
@@ -25,6 +26,7 @@ import {
   type ClientCreated,
   type NearDuplicateOverridden,
   type NearDuplicateRefused,
+  type ChangeEvent,
   type ChangeEventType,
   type PermissionGrantIssued,
   type PermissionGrantRevoked,
@@ -41,143 +43,28 @@ import {
   type RoleRequestGranted,
   type ViewerCreated,
   type ViewerDeactivated,
+  type Viewer,
   type ViewerReactivated,
 } from "@iqb/shared";
 import type { Prisma } from "../../generated/prisma/client.ts";
 import type { DatabaseOrTransaction } from "../../platform/database.ts";
 
+/** What each kind of event says about its Question, as the caller must write it. */
+type QuestionOf = {
+  required: { questionId: string };
+  never: { questionId?: undefined };
+  optional: { questionId: string | null };
+};
+
 /** The type and the payload travel together, so an edit's before and after cannot be
- * filed as an addition, and only a refused submission may name no Question (ADR-0006). */
-export type NewChangeEvent =
-  | {
-      type: "question_added";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionAdded;
-    }
-  | {
-      type: "question_edited";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionEdited;
-    }
-  | {
-      /** Null for a refused submission, since nothing was stored, and an id when the
-       * refused act was on a Question that already exists (ADR-0014). */
-      type: "near_duplicate_refused";
-      questionId: string | null;
-      viewerId: string;
-      payload: NearDuplicateRefused;
-    }
-  | {
-      type: "near_duplicate_overridden";
-      questionId: string;
-      viewerId: string;
-      payload: NearDuplicateOverridden;
-    }
-  | {
-      /** No Question is ever involved in an administrative act (ADR-0015). */
-      type: "administrator_appointed";
-      questionId: null;
-      viewerId: string;
-      payload: AdministratorAppointed;
-    }
-  | {
-      type: "administrator_withdrawn";
-      questionId: null;
-      viewerId: string;
-      payload: AdministratorWithdrawn;
-    }
-  | {
-      type: "role_changed";
-      questionId: null;
-      viewerId: string;
-      payload: RoleChanged;
-    }
-  | {
-      type: "client_created";
-      questionId: null;
-      viewerId: string;
-      payload: ClientCreated;
-    }
-  | {
-      type: "permission_grant_issued";
-      questionId: null;
-      viewerId: string;
-      payload: PermissionGrantIssued;
-    }
-  | {
-      type: "permission_grant_revoked";
-      questionId: null;
-      viewerId: string;
-      payload: PermissionGrantRevoked;
-    }
-  | {
-      type: "viewer_created";
-      questionId: null;
-      viewerId: string;
-      payload: ViewerCreated;
-    }
-  | {
-      type: "viewer_deactivated";
-      questionId: null;
-      viewerId: string;
-      payload: ViewerDeactivated;
-    }
-  | {
-      type: "viewer_reactivated";
-      questionId: null;
-      viewerId: string;
-      payload: ViewerReactivated;
-    }
-  | {
-      type: "role_request_granted";
-      questionId: null;
-      viewerId: string;
-      payload: RoleRequestGranted;
-    }
-  | {
-      type: "role_request_denied";
-      questionId: null;
-      viewerId: string;
-      payload: RoleRequestDenied;
-    }
-  | {
-      type: "question_published";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionPublished;
-    }
-  | {
-      type: "question_rejected";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionRejected;
-    }
-  | {
-      type: "question_resubmitted";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionResubmitted;
-    }
-  | {
-      type: "question_returned";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionReturned;
-    }
-  | {
-      type: "question_classified";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionClassified;
-    }
-  | {
-      type: "question_declassified";
-      questionId: string;
-      viewerId: string;
-      payload: QuestionDeclassified;
-    };
+ * filed as an addition. Whether a Question may be named comes from the type's entry in
+ * the table in `@iqb/shared`. */
+export type ChangeEventToInsert = {
+  [Type in ChangeEventType]: {
+    type: Type;
+    payload: Extract<ChangeEvent, { type: Type }>["payload"];
+  } & QuestionOf[(typeof changeEventKinds)[Type]["question"]];
+}[ChangeEventType];
 
 /**
  * The kinds whose payload names a Question other than the one the event hangs off. Only
@@ -189,14 +76,19 @@ export const aboutAnotherQuestion = [
   "near_duplicate_overridden",
 ] as const satisfies readonly ChangeEventType[];
 
+/** `viewer` is the Viewer who did it. */
 export async function insertChangeEvent(
   database: DatabaseOrTransaction,
-  event: NewChangeEvent,
+  viewer: Viewer,
+  event: ChangeEventToInsert,
 ): Promise<void> {
+  // Refused here, because the log is append-only and a wrong payload could not be fixed
+  // afterwards (ADR-0027).
+  changeEventKinds[event.type].payload.parse(event.payload);
   await database.changeEvent.create({
     data: {
-      questionId: event.questionId,
-      viewerId: event.viewerId,
+      questionId: event.questionId ?? null,
+      viewerId: viewer.id,
       type: event.type,
       payload: event.payload,
     },
@@ -265,7 +157,11 @@ export function toChangeEventFromDb(row: ChangeEventRow): ChangeEventFromDb {
     case "question_edited":
       return { ...happened, type: row.type, payload: questionEditedSchema.parse(row.payload) };
     case "near_duplicate_refused":
-      return { ...happened, type: row.type, payload: nearDuplicateRefusedSchema.parse(row.payload) };
+      return {
+        ...happened,
+        type: row.type,
+        payload: nearDuplicateRefusedSchema.parse(row.payload),
+      };
     case "near_duplicate_overridden":
       return {
         ...happened,

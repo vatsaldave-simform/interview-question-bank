@@ -85,10 +85,8 @@ export async function appointAdministrator(
 
     const appointed = await setIsAdministrator(transaction, target.id, true);
     const payload: AdministratorAppointed = { viewer: affectedViewer(appointed) };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "administrator_appointed",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return appointed;
@@ -116,10 +114,8 @@ export async function withdrawAdministrator(
 
     const withdrawn = await setIsAdministrator(transaction, target.id, false);
     const payload: AdministratorWithdrawn = { viewer: affectedViewer(withdrawn) };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "administrator_withdrawn",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return withdrawn;
@@ -143,10 +139,8 @@ export async function changeRole(
       viewer: affectedViewer(changed),
       role: { before: target.role, after: role },
     };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "role_changed",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return changed;
@@ -173,10 +167,8 @@ export async function deactivateViewer(
     const deactivated = await setIsDeactivated(transaction, target.id, true);
     await revokeRefreshTokensOfViewer(transaction, target.id);
     const payload: ViewerDeactivated = { viewer: affectedViewer(deactivated) };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "viewer_deactivated",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return deactivated;
@@ -196,10 +188,8 @@ export async function reactivateViewer(
 
     const reactivated = await setIsDeactivated(transaction, target.id, false);
     const payload: ViewerReactivated = { viewer: affectedViewer(reactivated) };
-    await insertChangeEvent(transaction, {
+    await insertChangeEvent(transaction, viewer, {
       type: "viewer_reactivated",
-      questionId: null,
-      viewerId: viewer.id,
       payload,
     });
     return reactivated;
@@ -222,10 +212,8 @@ export async function createViewer(
       async (transaction) => {
         const inserted = await insertViewer(transaction, email, role);
         const payload: ViewerCreated = { viewer: affectedViewer(inserted), role: inserted.role };
-        await insertChangeEvent(transaction, {
+        await insertChangeEvent(transaction, viewer, {
           type: "viewer_created",
-          questionId: null,
-          viewerId: viewer.id,
           payload,
         });
         const issued = await issuePasswordToken(transaction, inserted.id, settings);
