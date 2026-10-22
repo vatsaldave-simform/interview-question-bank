@@ -27,30 +27,6 @@ export type RotationResult =
   | { rotated: true; viewerId: string; refreshToken: IssuedRefreshToken }
   | { rotated: false; reason: RotationRefusal };
 
-function findPresented(
-  database: Database,
-  presented: string,
-): Promise<RefreshTokenFromDb | null> {
-  return findRefreshTokenByHash(database, hashRandomToken(presented));
-}
-
-async function issueInto(
-  database: Database,
-  familyId: string,
-  viewerId: string,
-  { lifetimeSeconds }: RefreshTokenConfig,
-): Promise<IssuedRefreshToken> {
-  const token = mintRandomToken();
-  const expiresAt = new Date(Date.now() + lifetimeSeconds * 1_000);
-  await insertRefreshToken(database, {
-    familyId,
-    viewerId,
-    tokenHash: hashRandomToken(token),
-    expiresAt,
-  });
-  return { token, expiresAt };
-}
-
 /** Starts a family, which is what a login does; revoking it later ends this session alone. */
 export function issueRefreshToken(
   database: Database,
@@ -58,16 +34,6 @@ export function issueRefreshToken(
   config: RefreshTokenConfig,
 ): Promise<IssuedRefreshToken> {
   return issueInto(database, randomUUID(), viewerId, config);
-}
-
-async function endFamily(
-  database: Database,
-  stored: RefreshTokenFromDb,
-  reason: RotationRefusal,
-): Promise<RotationResult> {
-  log().warn({ familyId: stored.familyId, viewerId: stored.viewerId }, "refresh token family revoked");
-  await revokeRefreshTokenFamily(database, stored.familyId);
-  return { rotated: false, reason };
 }
 
 /** Exchanges a presented token for its successor, or ends the family (ADR-0023). */
@@ -106,4 +72,38 @@ export async function revokeRefreshTokenFamilyOf(
   const stored = await findPresented(database, presented);
   if (!stored) return;
   await revokeRefreshTokenFamily(database, stored.familyId);
+}
+
+async function issueInto(
+  database: Database,
+  familyId: string,
+  viewerId: string,
+  { lifetimeSeconds }: RefreshTokenConfig,
+): Promise<IssuedRefreshToken> {
+  const token = mintRandomToken();
+  const expiresAt = new Date(Date.now() + lifetimeSeconds * 1_000);
+  await insertRefreshToken(database, {
+    familyId,
+    viewerId,
+    tokenHash: hashRandomToken(token),
+    expiresAt,
+  });
+  return { token, expiresAt };
+}
+
+function findPresented(
+  database: Database,
+  presented: string,
+): Promise<RefreshTokenFromDb | null> {
+  return findRefreshTokenByHash(database, hashRandomToken(presented));
+}
+
+async function endFamily(
+  database: Database,
+  stored: RefreshTokenFromDb,
+  reason: RotationRefusal,
+): Promise<RotationResult> {
+  log().warn({ familyId: stored.familyId, viewerId: stored.viewerId }, "refresh token family revoked");
+  await revokeRefreshTokenFamily(database, stored.familyId);
+  return { rotated: false, reason };
 }
