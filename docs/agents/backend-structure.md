@@ -55,6 +55,32 @@ In `tests/`, a helper says it is a test helper: `test-database.ts`, `test-api.ts
 named after the contract they hold the API to (`error-contract.test.ts`, `request-id.test.ts`),
 not after the source file they exercise, and `tests/` stays flat.
 
+## Reading order inside a file
+
+A reader should see what a file offers without reading all of it. Every file in `backend/src` goes
+top to bottom in this order:
+
+1. Imports.
+2. Exported types.
+3. Exported functions.
+4. Private helpers, in the order they are first used.
+5. Private types, constants and error messages.
+
+Order the exported functions like this:
+
+- Services and routes follow the order `<feature>.routes.ts` calls them.
+- Repositories and token files list reads before writes, then follow the order their service first
+  uses them.
+- `questions.repository.ts` groups its exports by concern instead: visible reads, search,
+  Near-Duplicate, Tag lookup, writes. The helpers go below, and there are no divider comments.
+
+Every top-level function is written with `function`, not `const x = () =>`.
+
+**One exception.** A constant that other top-level code reads while the file loads stays above that
+code. A `const` is not available before its line runs, so moving it down would break the file.
+
+`*.seed.ts` files are data, and this order does not apply to them.
+
 ## Words in names
 
 A word in a name means the same thing in every file of `backend/src` and `shared`, so a reader
