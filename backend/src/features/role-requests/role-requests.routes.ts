@@ -18,22 +18,6 @@ import { denyRoleRequest, grantRoleRequest, raiseRoleRequest } from "./role-requ
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
 
-const roleRequestIdSchema = z.uuid();
-
-function roleRequestIdNamed(req: Request): string {
-  const id = roleRequestIdSchema.safeParse(req.params["id"]);
-  if (!id.success) throw new InvalidRequestError("Not a valid Role Request id.");
-  return id.data;
-}
-
-function toRoleRequest(roleRequest: RoleRequestFromDb): RoleRequest {
-  return {
-    ...roleRequest,
-    createdAt: roleRequest.createdAt.toISOString(),
-    decidedAt: roleRequest.decidedAt?.toISOString() ?? null,
-  };
-}
-
 export function roleRequestRoutes(database: Database): Router {
   const router = Router();
 
@@ -78,3 +62,19 @@ export function roleRequestRoutes(database: Database): Router {
 
   return router;
 }
+
+function toRoleRequest(roleRequest: RoleRequestFromDb): RoleRequest {
+  return {
+    ...roleRequest,
+    createdAt: roleRequest.createdAt.toISOString(),
+    decidedAt: roleRequest.decidedAt?.toISOString() ?? null,
+  };
+}
+
+function roleRequestIdNamed(req: Request): string {
+  const id = roleRequestIdSchema.safeParse(req.params["id"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Role Request id.");
+  return id.data;
+}
+
+const roleRequestIdSchema = z.uuid();

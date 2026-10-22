@@ -32,19 +32,6 @@ export async function raiseRoleRequest(
   }
 }
 
-/** Only an Administrator gets here, and they may know every Role Request exists, so a 404
- * for one that does not is no leak. */
-async function decideIfStillOpen(
-  transaction: Transaction,
-  id: string,
-  decision: RoleRequestDecision,
-): Promise<RoleRequestFromDb> {
-  const decided = await decideRoleRequest(transaction, id, decision);
-  if (decided !== null) return decided;
-  if ((await findRoleRequestById(transaction, id)) === null) throw new NotFoundError();
-  throw new ConflictError("That Role Request has already been decided.");
-}
-
 /**
  * Granted even when the Viewer who asked already holds the role, because an Administrator
  * set it directly in the meantime: the decision still happened, so it is still recorded.
@@ -105,4 +92,17 @@ export async function denyRoleRequest(
     });
     return denied;
   });
+}
+
+/** Only an Administrator gets here, and they may know every Role Request exists, so a 404
+ * for one that does not is no leak. */
+async function decideIfStillOpen(
+  transaction: Transaction,
+  id: string,
+  decision: RoleRequestDecision,
+): Promise<RoleRequestFromDb> {
+  const decided = await decideRoleRequest(transaction, id, decision);
+  if (decided !== null) return decided;
+  if ((await findRoleRequestById(transaction, id)) === null) throw new NotFoundError();
+  throw new ConflictError("That Role Request has already been decided.");
 }
