@@ -35,33 +35,6 @@ import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
 
-/** The Question as the API answers with it: only the timestamp changes, and anything added
- * beside it, like the queue's author, is kept. */
-function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
-  createdAt,
-  ...question
-}: Q): Omit<Q, "createdAt"> & Question {
-  return { ...question, createdAt: createdAt.toISOString() };
-}
-
-async function toResponse(
-  database: Database,
-  viewer: Viewer,
-  question: QuestionFromDb,
-): Promise<QuestionResponse> {
-  return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
-}
-
-async function toListResponse(
-  database: Database,
-  viewer: Viewer,
-  questions: QuestionFromDb[],
-  page: QuestionPage,
-): Promise<QuestionListResponse> {
-  const rated = await withRatingSummaries(database, viewer, questions);
-  return { questions: rated.map(toQuestion), limit: page.limit, offset: page.offset };
-}
-
 export function questionRoutes(database: Database): Router {
   const router = Router();
 
@@ -221,4 +194,31 @@ export function questionRoutes(database: Database): Router {
   router.use("/:id/rating", ratingRoutes(database));
 
   return router;
+}
+
+async function toResponse(
+  database: Database,
+  viewer: Viewer,
+  question: QuestionFromDb,
+): Promise<QuestionResponse> {
+  return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
+}
+
+/** The Question as the API answers with it: only the timestamp changes, and anything added
+ * beside it, like the queue's author, is kept. */
+function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
+  createdAt,
+  ...question
+}: Q): Omit<Q, "createdAt"> & Question {
+  return { ...question, createdAt: createdAt.toISOString() };
+}
+
+async function toListResponse(
+  database: Database,
+  viewer: Viewer,
+  questions: QuestionFromDb[],
+  page: QuestionPage,
+): Promise<QuestionListResponse> {
+  const rated = await withRatingSummaries(database, viewer, questions);
+  return { questions: rated.map(toQuestion), limit: page.limit, offset: page.offset };
 }
