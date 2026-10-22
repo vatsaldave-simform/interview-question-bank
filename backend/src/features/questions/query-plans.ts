@@ -16,8 +16,6 @@ import {
   type TagsInCategory,
 } from "./questions.repository.ts";
 
-/** One query worth capturing a plan for, and why it is in the set. */
-type Scenario = { name: string; why: string; viewer: Viewer };
 export type SearchScenario = Scenario & { search: QuestionSearch };
 export type ListScenario = Scenario & { list: QuestionQuery };
 export type PlanScenario = SearchScenario | ListScenario;
@@ -33,6 +31,8 @@ export type CapturedPlan = {
   /** True when the plan reads the whole questions table instead of using an index. */
   readsTheWholeTable: boolean;
 };
+
+export type PlannedRead = keyof typeof scenariosFor;
 
 /**
  * Two things the bulk seed leaves undone, and a plan measured without either is not
@@ -50,116 +50,6 @@ export async function vacuumAndAnalyze(database: Database): Promise<void> {
     "VACUUM (ANALYZE) questions, question_tags, tags, categories, permission_grants",
   );
 }
-
-/** Twice, keeping the second. The first run pays for pages that are not in the cache
- * yet, which measures this machine rather than the query. */
-export async function capturePlan(
-  database: Database,
-  scenario: PlanScenario,
-): Promise<CapturedPlan> {
-  await explain(database, scenario);
-  const plan = await explain(database, scenario);
-  return { scenario, plan, ...readPlan(plan) };
-}
-
-export function queryOf(scenario: PlanScenario): QuestionQuery {
-  return "search" in scenario ? scenario.search : scenario.list;
-}
-
-/** Taken from the repository, so what is measured is the statement that ships. */
-function statementFor(scenario: PlanScenario): Prisma.Sql {
-  return "search" in scenario
-    ? searchStatement(scenario.viewer, scenario.search)
-    : listStatement(scenario.viewer, scenario.list);
-}
-
-async function explain(database: Database, scenario: PlanScenario): Promise<string> {
-  const rows = await database.$queryRaw<{ "QUERY PLAN": string }[]>(
-    Prisma.sql`EXPLAIN (ANALYZE, BUFFERS) ${statementFor(scenario)}`,
-  );
-  return rows.map((row) => row["QUERY PLAN"]).join("\n");
-}
-
-const executionTime = /Execution Time: ([\d.]+) ms/;
-/** The first one belongs to the top node, whose count already includes its children. */
-const topBuffers = /Buffers: shared ([^\n]*)/;
-const indexUsed = /(?:Index Scan using|Index Only Scan using|Bitmap Index Scan on) (\S+)/g;
-
-/** The three things the summary table reports, pulled out of the plan text. Exported
- * because a mistake here makes the committed evidence say something the plan does not. */
-export function readPlan(plan: string): Omit<CapturedPlan, "scenario" | "plan"> {
-  const time = executionTime.exec(plan);
-  const buffers = topBuffers.exec(plan);
-  return {
-    milliseconds: time === null ? 0 : Number(time[1]),
-    buffers: buffers === null ? 0 : pagesTouched(buffers[1]!),
-    indexes: [...new Set([...plan.matchAll(indexUsed)].map((found) => found[1]!))].sort(),
-    readsTheWholeTable: /Seq Scan on questions/.test(plan),
-  };
-}
-
-/** Pages found in the cache and pages read from disk together, which is the number
- * ADR-0011 compared two SQL shapes on. */
-function pagesTouched(line: string): number {
-  return [...line.matchAll(/(?:hit|read)=(\d+)/g)].reduce(
-    (total, found) => total + Number(found[1]),
-    0,
-  );
-}
-
-type TagReach = { id: string; value: string; questions: number };
-
-/** Every Tag of one Category with how many Questions carry it, commonest first. Read
- * from the bank rather than assumed: which Tag is common depends on the seed value. */
-async function tagsByReach(database: Database, category: CategoryName): Promise<TagReach[]> {
-  return database.$queryRaw<TagReach[]>`
-    SELECT t.id, t.value, count(qt."questionId")::int AS questions
-      FROM tags t
-      JOIN categories c ON c.id = t."categoryId"
-      LEFT JOIN question_tags qt ON qt."tagId" = t.id
-     WHERE c.name = ${category}
-     GROUP BY t.id, t.value
-     ORDER BY questions DESC, t.value ASC
-  `;
-}
-
-/** The seeded Viewer of each role, as the API would have them after signing in. */
-async function seededViewers(database: Database): Promise<Record<ViewerRole, Viewer>> {
-  const roles: ViewerRole[] = ["reader", "author", "reviewer"];
-  const found = await Promise.all(
-    roles.map((role) =>
-      database.viewer.findUniqueOrThrow({
-        where: { email: seedViewerByRole(role).email },
-        select: { id: true, email: true, role: true, isAdministrator: true },
-      }),
-    ),
-  );
-  return Object.fromEntries(found.map((viewer) => [viewer.role, viewer])) as Record<
-    ViewerRole,
-    Viewer
-  >;
-}
-
-/** Deep enough that the page cannot be filled before the skipped rows have been produced
- * and thrown away, which is where the limit-and-offset ceiling shows up. */
-const deepOffset = 2_000;
-
-async function whatTheBankHolds(database: Database) {
-  const technology = await tagsByReach(database, "technology");
-  const seniority = await tagsByReach(database, "seniority");
-  return {
-    viewer: await seededViewers(database),
-    commonTag: technology[0]!,
-    rareTag: technology[technology.length - 1]!,
-    commonSeniority: seniority[0]!,
-  };
-}
-
-function inCategory(category: CategoryName, tag: TagReach): TagsInCategory {
-  return { category, tagIds: [tag.id] };
-}
-
-const page = { limit: defaultQuestionPageSize, offset: 0 };
 
 /**
  * The set of searches the plans are captured for. Each one changes a single thing about
@@ -353,4 +243,115 @@ export const scenariosFor = {
   list: scenariosForTheList,
 } satisfies Record<string, (database: Database) => Promise<PlanScenario[]>>;
 
-export type PlannedRead = keyof typeof scenariosFor;
+/** Twice, keeping the second. The first run pays for pages that are not in the cache
+ * yet, which measures this machine rather than the query. */
+export async function capturePlan(
+  database: Database,
+  scenario: PlanScenario,
+): Promise<CapturedPlan> {
+  await explain(database, scenario);
+  const plan = await explain(database, scenario);
+  return { scenario, plan, ...readPlan(plan) };
+}
+
+export function queryOf(scenario: PlanScenario): QuestionQuery {
+  return "search" in scenario ? scenario.search : scenario.list;
+}
+
+/** The three things the summary table reports, pulled out of the plan text. Exported
+ * because a mistake here makes the committed evidence say something the plan does not. */
+export function readPlan(plan: string): Omit<CapturedPlan, "scenario" | "plan"> {
+  const time = executionTime.exec(plan);
+  const buffers = topBuffers.exec(plan);
+  return {
+    milliseconds: time === null ? 0 : Number(time[1]),
+    buffers: buffers === null ? 0 : pagesTouched(buffers[1]!),
+    indexes: [...new Set([...plan.matchAll(indexUsed)].map((found) => found[1]!))].sort(),
+    readsTheWholeTable: /Seq Scan on questions/.test(plan),
+  };
+}
+
+async function whatTheBankHolds(database: Database) {
+  const technology = await tagsByReach(database, "technology");
+  const seniority = await tagsByReach(database, "seniority");
+  return {
+    viewer: await seededViewers(database),
+    commonTag: technology[0]!,
+    rareTag: technology[technology.length - 1]!,
+    commonSeniority: seniority[0]!,
+  };
+}
+
+/** Every Tag of one Category with how many Questions carry it, commonest first. Read
+ * from the bank rather than assumed: which Tag is common depends on the seed value. */
+async function tagsByReach(database: Database, category: CategoryName): Promise<TagReach[]> {
+  return database.$queryRaw<TagReach[]>`
+    SELECT t.id, t.value, count(qt."questionId")::int AS questions
+      FROM tags t
+      JOIN categories c ON c.id = t."categoryId"
+      LEFT JOIN question_tags qt ON qt."tagId" = t.id
+     WHERE c.name = ${category}
+     GROUP BY t.id, t.value
+     ORDER BY questions DESC, t.value ASC
+  `;
+}
+
+/** The seeded Viewer of each role, as the API would have them after signing in. */
+async function seededViewers(database: Database): Promise<Record<ViewerRole, Viewer>> {
+  const roles: ViewerRole[] = ["reader", "author", "reviewer"];
+  const found = await Promise.all(
+    roles.map((role) =>
+      database.viewer.findUniqueOrThrow({
+        where: { email: seedViewerByRole(role).email },
+        select: { id: true, email: true, role: true, isAdministrator: true },
+      }),
+    ),
+  );
+  return Object.fromEntries(found.map((viewer) => [viewer.role, viewer])) as Record<
+    ViewerRole,
+    Viewer
+  >;
+}
+
+function inCategory(category: CategoryName, tag: TagReach): TagsInCategory {
+  return { category, tagIds: [tag.id] };
+}
+
+async function explain(database: Database, scenario: PlanScenario): Promise<string> {
+  const rows = await database.$queryRaw<{ "QUERY PLAN": string }[]>(
+    Prisma.sql`EXPLAIN (ANALYZE, BUFFERS) ${statementFor(scenario)}`,
+  );
+  return rows.map((row) => row["QUERY PLAN"]).join("\n");
+}
+
+/** Taken from the repository, so what is measured is the statement that ships. */
+function statementFor(scenario: PlanScenario): Prisma.Sql {
+  return "search" in scenario
+    ? searchStatement(scenario.viewer, scenario.search)
+    : listStatement(scenario.viewer, scenario.list);
+}
+
+/** Pages found in the cache and pages read from disk together, which is the number
+ * ADR-0011 compared two SQL shapes on. */
+function pagesTouched(line: string): number {
+  return [...line.matchAll(/(?:hit|read)=(\d+)/g)].reduce(
+    (total, found) => total + Number(found[1]),
+    0,
+  );
+}
+
+/** One query worth capturing a plan for, and why it is in the set. */
+type Scenario = { name: string; why: string; viewer: Viewer };
+
+type TagReach = { id: string; value: string; questions: number };
+
+const page = { limit: defaultQuestionPageSize, offset: 0 };
+
+/** Deep enough that the page cannot be filled before the skipped rows have been produced
+ * and thrown away, which is where the limit-and-offset ceiling shows up. */
+const deepOffset = 2_000;
+
+const executionTime = /Execution Time: ([\d.]+) ms/;
+/** The first one belongs to the top node, whose count already includes its children. */
+const topBuffers = /Buffers: shared ([^\n]*)/;
+const indexUsed = /(?:Index Scan using|Index Only Scan using|Bitmap Index Scan on) (\S+)/g;
