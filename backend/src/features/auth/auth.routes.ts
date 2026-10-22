@@ -48,26 +48,6 @@ export type PublicAuthDependencies = AuthDependencies & {
   passwordResetMail: PasswordResetMailDependencies;
 };
 
-/** The credentials were wrong. Which half was wrong is never said, nor logged. */
-const badCredentials = () => new UnauthenticatedError("Those credentials are not valid.");
-
-/** A 401, because the token is the credential here, which also keeps a dead link apart
- * from a 400 about the password. */
-const deadLink = () =>
-  new UnauthenticatedError("This link is not valid. It may have expired or been used already.");
-
-/** A refusal a caller cannot learn anything from: there is no session, whichever way. */
-const noSession = () => new UnauthenticatedError("There is no session to refresh.");
-
-/**
- * The cookie is cleared on every refusal, reuse included: the token it holds is dead
- * either way, and leaving it would have the client present it again.
- */
-function refuseSession(res: Response, cookie: RefreshCookieConfig): never {
-  clearRefreshCookie(res, cookie);
-  throw noSession();
-}
-
 /**
  * The routes reachable without an access token, because they are how one is obtained.
  * Mounted ahead of the sign-in check for that reason alone.
@@ -203,4 +183,31 @@ export function authenticatedAuthRoutes(): Router {
   });
 
   return router;
+}
+
+/** The credentials were wrong. Which half was wrong is never said, nor logged. */
+function badCredentials() {
+  return new UnauthenticatedError("Those credentials are not valid.");
+}
+
+/** A refusal a caller cannot learn anything from: there is no session, whichever way. */
+function noSession() {
+  return new UnauthenticatedError("There is no session to refresh.");
+}
+
+/**
+ * The cookie is cleared on every refusal, reuse included: the token it holds is dead
+ * either way, and leaving it would have the client present it again.
+ */
+function refuseSession(res: Response, cookie: RefreshCookieConfig): never {
+  clearRefreshCookie(res, cookie);
+  throw noSession();
+}
+
+/** A 401, because the token is the credential here, which also keeps a dead link apart
+ * from a 400 about the password. */
+function deadLink() {
+  return new UnauthenticatedError(
+    "This link is not valid. It may have expired or been used already.",
+  );
 }
