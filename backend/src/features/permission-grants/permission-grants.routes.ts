@@ -15,20 +15,6 @@ import {
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
 
-const idSchema = z.uuid();
-
-function clientIdNamed(req: Request): string {
-  const id = idSchema.safeParse(req.params["clientId"]);
-  if (!id.success) throw new InvalidRequestError("Not a valid Client id.");
-  return id.data;
-}
-
-function viewerIdNamed(req: Request): string {
-  const id = idSchema.safeParse(req.params["viewerId"]);
-  if (!id.success) throw new InvalidRequestError("Not a valid Viewer id.");
-  return id.data;
-}
-
 export function permissionGrantRoutes(database: Database): Router {
   // The Client's id is in the path this router is mounted under, not in its own.
   const router = Router({ mergeParams: true });
@@ -70,3 +56,17 @@ export function permissionGrantRoutes(database: Database): Router {
 
   return router;
 }
+
+function clientIdNamed(req: Request): string {
+  const id = idSchema.safeParse(req.params["clientId"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Client id.");
+  return id.data;
+}
+
+function viewerIdNamed(req: Request): string {
+  const id = idSchema.safeParse(req.params["viewerId"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Viewer id.");
+  return id.data;
+}
+
+const idSchema = z.uuid();

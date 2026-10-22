@@ -1,19 +1,6 @@
 import type { PermissionGrant } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
-const publicFields = {
-  client: { select: { id: true, name: true } },
-  viewer: { select: { id: true, email: true } },
-} as const;
-
-export function insertPermissionGrant(
-  database: DatabaseOrTransaction,
-  clientId: string,
-  viewerId: string,
-): Promise<PermissionGrant> {
-  return database.permissionGrant.create({ data: { clientId, viewerId }, select: publicFields });
-}
-
 export function findPermissionGrantsForClient(
   database: Database,
   clientId: string,
@@ -23,6 +10,14 @@ export function findPermissionGrantsForClient(
     orderBy: { viewer: { email: "asc" } },
     select: publicFields,
   });
+}
+
+export function insertPermissionGrant(
+  database: DatabaseOrTransaction,
+  clientId: string,
+  viewerId: string,
+): Promise<PermissionGrant> {
+  return database.permissionGrant.create({ data: { clientId, viewerId }, select: publicFields });
 }
 
 /** Deletes the row rather than marking it: every Question read checks whether the row is
@@ -37,3 +32,8 @@ export function deletePermissionGrant(
     select: publicFields,
   });
 }
+
+const publicFields = {
+  client: { select: { id: true, name: true } },
+  viewer: { select: { id: true, email: true } },
+} as const;
