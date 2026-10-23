@@ -11,8 +11,6 @@ export function createLogger({ level, destination }: LoggerConfig): Logger {
   return destination ? pino({ level }, destination) : pino({ level });
 }
 
-let rootLogger: Logger = pino({ level: "silent" });
-
 /** Called once at startup, and by the app factory, so `log()` has somewhere to write. */
 export function setRootLogger(logger: Logger): void {
   rootLogger = logger;
@@ -27,3 +25,5 @@ export function setRootLogger(logger: Logger): void {
 export function log(): Logger {
   return currentRequestContext()?.logger ?? rootLogger;
 }
+
+let rootLogger: Logger = pino({ level: "silent" });
