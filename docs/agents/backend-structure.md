@@ -81,6 +81,9 @@ code. A `const` is not available before its line runs, so moving it down would b
 
 `*.seed.ts` files are data, and this order does not apply to them.
 
+Files in `commands/` run top to bottom as they load, so they are read in the order they run, with
+each helper above the line that needs it. The order above does not apply.
+
 ## Words in names
 
 A word in a name means the same thing in every file of `backend/src` and `shared`, so a reader
