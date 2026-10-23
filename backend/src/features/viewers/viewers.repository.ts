@@ -1,15 +1,6 @@
 import type { NamedViewer, Viewer, ViewerRole } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction, Transaction } from "../../platform/database.ts";
 
-/** Everything a response or a permission check may see. Never the stored credential. */
-const publicFields = {
-  id: true,
-  email: true,
-  role: true,
-  isAdministrator: true,
-  isDeactivated: true,
-} as const;
-
 /** Null until the Viewer sets a password, so every reader has to say what that means. */
 export type ViewerWithCredential = Viewer & { passwordHash: string | null };
 
@@ -134,3 +125,12 @@ export function insertViewer(
 ): Promise<Viewer> {
   return database.viewer.create({ data: { email, role }, select: publicFields });
 }
+
+/** Everything a response or a permission check may see. Never the stored credential. */
+const publicFields = {
+  id: true,
+  email: true,
+  role: true,
+  isAdministrator: true,
+  isDeactivated: true,
+} as const;
