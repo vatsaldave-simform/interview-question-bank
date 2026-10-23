@@ -5,23 +5,6 @@ import { log } from "../../platform/logger.ts";
 import { verifyAccessToken, type AccessTokenConfig, type RefusalReason } from "./access-token.ts";
 import { findViewerById } from "../viewers/viewers.repository.ts";
 
-const bearer = /^Bearer (?<token>\S+)$/;
-
-/**
- * One refusal, whatever went wrong. The reason is logged rather than answered: an
- * operator can tell an expired token from a forged one, and a caller cannot.
- */
-function refusal(
-  reason: RefusalReason | "absent" | "unknown_viewer" | "deactivated_viewer",
-): UnauthenticatedError {
-  log().debug({ reason }, "authentication refused");
-  return new UnauthenticatedError();
-}
-
-function presentedToken(header: string | undefined): string | undefined {
-  return header === undefined ? undefined : bearer.exec(header)?.groups?.["token"];
-}
-
 /**
  * What the sign-in check needs: the Viewers to look a token up against, and the settings
  * the token was signed with. One type, because the check, the auth routes and the /api
@@ -59,3 +42,20 @@ export function requireAuthenticatedViewer({
     next();
   };
 }
+
+function presentedToken(header: string | undefined): string | undefined {
+  return header === undefined ? undefined : bearer.exec(header)?.groups?.["token"];
+}
+
+/**
+ * One refusal, whatever went wrong. The reason is logged rather than answered: an
+ * operator can tell an expired token from a forged one, and a caller cannot.
+ */
+function refusal(
+  reason: RefusalReason | "absent" | "unknown_viewer" | "deactivated_viewer",
+): UnauthenticatedError {
+  log().debug({ reason }, "authentication refused");
+  return new UnauthenticatedError();
+}
+
+const bearer = /^Bearer (?<token>\S+)$/;

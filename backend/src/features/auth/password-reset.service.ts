@@ -6,15 +6,6 @@ import { findViewerByEmail } from "../viewers/viewers.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { log } from "../../platform/logger.ts";
 
-/** The kind of error and no more, because a mail server's message often names the
- * recipient, and this is the one place a Viewer's address could reach the logs. */
-function kindOfFailure(error: unknown): Record<string, unknown> {
-  if (!(error instanceof Error)) return {};
-  // nodemailer's own fields: a short code such as EENVELOPE, and the SMTP reply number.
-  const { code, responseCode } = error as Error & { code?: unknown; responseCode?: unknown };
-  return { errorName: error.name, code, responseCode };
-}
-
 /**
  * Never throws, because it runs after the response has gone, where an error nobody
  * catches ends the process (ADR-0038).
@@ -56,4 +47,13 @@ export async function mailPasswordResetLink(
     // mailed" apart from "not mailed yet".
     log().debug("password reset request handled");
   }
+}
+
+/** The kind of error and no more, because a mail server's message often names the
+ * recipient, and this is the one place a Viewer's address could reach the logs. */
+function kindOfFailure(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return {};
+  // nodemailer's own fields: a short code such as EENVELOPE, and the SMTP reply number.
+  const { code, responseCode } = error as Error & { code?: unknown; responseCode?: unknown };
+  return { errorName: error.name, code, responseCode };
 }

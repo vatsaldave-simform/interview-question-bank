@@ -1,12 +1,5 @@
 import { errors, jwtVerify, SignJWT } from "jose";
 
-/**
- * A short-lived access token, as a JWT signed with HS256 (ADR-0008, ADR-0019). One
- * process signs and reads it, so the verifier is pinned to that one algorithm: a
- * token naming any other is refused rather than dispatched on.
- */
-const algorithm = "HS256";
-
 /** Read from the environment once at startup and handed to whatever needs it. */
 export type AccessTokenConfig = {
   secret: string;
@@ -23,28 +16,6 @@ export type RefusalReason = "malformed" | "bad_signature" | "expired";
 export type VerificationResult =
   | { valid: true; claims: AccessTokenClaims }
   | { valid: false; reason: RefusalReason };
-
-function signingKey(secret: string): Uint8Array {
-  return new TextEncoder().encode(secret);
-}
-
-/**
- * A JWT's `exp` is a whole number of seconds, so a token is good for up to a second
- * less than its nominal lifetime. Immaterial at fifteen minutes, and the reason a
- * client refreshes on a margin rather than on the last moment.
- */
-export async function signAccessToken(
-  viewerId: string,
-  { secret, lifetimeSeconds }: AccessTokenConfig,
-): Promise<string> {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  return new SignJWT()
-    .setProtectedHeader({ alg: algorithm })
-    .setSubject(viewerId)
-    .setIssuedAt(issuedAt)
-    .setExpirationTime(issuedAt + lifetimeSeconds)
-    .sign(signingKey(secret));
-}
 
 /**
  * Never throws for a bad token: which of the ways it was bad is a fact for the log,
@@ -69,6 +40,28 @@ export async function verifyAccessToken(
   }
 }
 
+/**
+ * A JWT's `exp` is a whole number of seconds, so a token is good for up to a second
+ * less than its nominal lifetime. Immaterial at fifteen minutes, and the reason a
+ * client refreshes on a margin rather than on the last moment.
+ */
+export async function signAccessToken(
+  viewerId: string,
+  { secret, lifetimeSeconds }: AccessTokenConfig,
+): Promise<string> {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  return new SignJWT()
+    .setProtectedHeader({ alg: algorithm })
+    .setSubject(viewerId)
+    .setIssuedAt(issuedAt)
+    .setExpirationTime(issuedAt + lifetimeSeconds)
+    .sign(signingKey(secret));
+}
+
+function signingKey(secret: string): Uint8Array {
+  return new TextEncoder().encode(secret);
+}
+
 function refusalReason(error: unknown): RefusalReason {
   if (error instanceof errors.JWTExpired) return "expired";
   if (error instanceof errors.JWSSignatureVerificationFailed) return "bad_signature";
@@ -76,3 +69,10 @@ function refusalReason(error: unknown): RefusalReason {
   // payload that is not an object — is the caller having presented nonsense.
   return "malformed";
 }
+
+/**
+ * A short-lived access token, as a JWT signed with HS256 (ADR-0008, ADR-0019). One
+ * process signs and reads it, so the verifier is pinned to that one algorithm: a
+ * token naming any other is refused rather than dispatched on.
+ */
+const algorithm = "HS256";

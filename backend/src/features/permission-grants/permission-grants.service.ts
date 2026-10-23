@@ -17,12 +17,12 @@ import {
 import type { Database } from "../../platform/database.ts";
 import { ConflictError, InvalidRequestError, NotFoundError } from "../../platform/errors.ts";
 
-/** Only an Administrator gets here, and an Administrator may know every Client exists, so
- * a 404 for one that does not is no leak. */
-async function getClient(database: Database, id: string): Promise<Client> {
-  const client = await findClientById(database, id);
-  if (client === null) throw new NotFoundError();
-  return client;
+export async function listPermissionGrants(
+  database: Database,
+  clientId: string,
+): Promise<PermissionGrant[]> {
+  const client = await getClient(database, clientId);
+  return findPermissionGrantsForClient(database, client.id);
 }
 
 /** An Administrator may issue a Grant to themselves, kept honest by the Change Event
@@ -57,14 +57,6 @@ export async function issuePermissionGrant(
   }
 }
 
-export async function listPermissionGrants(
-  database: Database,
-  clientId: string,
-): Promise<PermissionGrant[]> {
-  const client = await getClient(database, clientId);
-  return findPermissionGrantsForClient(database, client.id);
-}
-
 /** Takes effect on the Viewer's next request with no more work, because no read keeps a
  * copy of who holds which Grant. */
 export async function revokePermissionGrant(
@@ -89,4 +81,12 @@ export async function revokePermissionGrant(
     }
     throw error;
   }
+}
+
+/** Only an Administrator gets here, and an Administrator may know every Client exists, so
+ * a 404 for one that does not is no leak. */
+async function getClient(database: Database, id: string): Promise<Client> {
+  const client = await findClientById(database, id);
+  if (client === null) throw new NotFoundError();
+  return client;
 }

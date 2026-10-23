@@ -3,21 +3,6 @@ import { Router } from "express";
 import type { Database } from "../database.ts";
 import { log } from "../logger.ts";
 
-async function databaseIsUp(database: Database): Promise<boolean> {
-  try {
-    await database.$queryRaw`SELECT 1`;
-    return true;
-  } catch (error) {
-    log().warn({ err: error }, "readiness check could not reach the database");
-    return false;
-  }
-}
-
-const statusByReadiness: Record<ReadinessResponse["status"], number> = {
-  ready: 200,
-  not_ready: 503,
-};
-
 export function healthRoutes(database: Database): Router {
   const router = Router();
 
@@ -43,3 +28,18 @@ export function healthRoutes(database: Database): Router {
 
   return router;
 }
+
+async function databaseIsUp(database: Database): Promise<boolean> {
+  try {
+    await database.$queryRaw`SELECT 1`;
+    return true;
+  } catch (error) {
+    log().warn({ err: error }, "readiness check could not reach the database");
+    return false;
+  }
+}
+
+const statusByReadiness: Record<ReadinessResponse["status"], number> = {
+  ready: 200,
+  not_ready: 503,
+};

@@ -21,16 +21,6 @@ import type { PasswordMailDependencies } from "../auth/password-link.ts";
 import type { Database } from "../../platform/database.ts";
 import { InvalidRequestError } from "../../platform/errors.ts";
 
-const viewerIdSchema = z.uuid();
-
-/** No Question is named here, so a malformed id is simply a bad request rather than the
- * missing-Question disguise `requireRole`'s callers need (ADR-0002). */
-function viewerIdNamed(req: Request): string {
-  const id = viewerIdSchema.safeParse(req.params["id"]);
-  if (!id.success) throw new InvalidRequestError("Not a valid Viewer id.");
-  return id.data;
-}
-
 /**
  * Every route here is Administrator-only (ADR-0015): the check sits on the router, not
  * on each route, because nothing under it needs a Question looked up first.
@@ -115,3 +105,13 @@ export function administrationRoutes(
 
   return router;
 }
+
+/** No Question is named here, so a malformed id is simply a bad request rather than the
+ * missing-Question disguise `requireRole`'s callers need (ADR-0002). */
+function viewerIdNamed(req: Request): string {
+  const id = viewerIdSchema.safeParse(req.params["id"]);
+  if (!id.success) throw new InvalidRequestError("Not a valid Viewer id.");
+  return id.data;
+}
+
+const viewerIdSchema = z.uuid();

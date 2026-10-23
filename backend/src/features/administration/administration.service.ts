@@ -28,45 +28,43 @@ import type { Database, DatabaseOrTransaction, Transaction } from "../../platfor
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 import { log } from "../../platform/logger.ts";
 
-async function getViewer(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
-  const target = await findViewerById(database, id);
-  if (target === null) throw new NotFoundError();
-  return target;
-}
-
-/** Read after the lock, so the "already done?" check sees what a racing request just
- * committed (ADR-0039). */
-async function lockAndGetViewer(transaction: Transaction, id: string): Promise<Viewer> {
-  await lockViewer(transaction, id);
-  return getViewer(transaction, id);
-}
-
-/** As `lockAndGetViewer`, and also locks every active Administrator, for the acts that must
- * not remove the last one (ADR-0039). */
-async function lockAdministratorsAndGetViewer(
-  transaction: Transaction,
-  id: string,
+/**
+ * The mail is sent last, inside the transaction, so a send that fails leaves no Viewer
+ * behind and the Administrator can simply try again instead of meeting a 409.
+ */
+export async function createViewer(
+  database: Database,
+  { mailer, settings }: PasswordMailDependencies,
+  viewer: Viewer,
+  email: string,
+  role: ViewerRole,
 ): Promise<Viewer> {
-  await lockViewerAndActiveAdministrators(transaction, id);
-  return getViewer(transaction, id);
-}
-
-/** Every administrative act, whatever it does to the target Viewer, in the shape the
- * Change Event names it (ADR-0035). */
-function affectedViewer(target: Viewer) {
-  return { id: target.id, email: target.email };
-}
-
-/** Called after `lockAdministratorsAndGetViewer` in the transaction of the write it guards,
- * so no other request can remove an Administrator between the count and the write (ADR-0039). */
-async function refuseLastActiveAdministrator(
-  transaction: DatabaseOrTransaction,
-  target: Viewer,
-  refusal: string,
-): Promise<void> {
-  if (!target.isAdministrator) return;
-  if ((await countOtherActiveAdministrators(transaction, target.id)) === 0) {
-    throw new ConflictError(refusal);
+  try {
+    const created = await database.$transaction(
+      async (transaction) => {
+        const inserted = await insertViewer(transaction, email, role);
+        const payload: ViewerCreated = { viewer: affectedViewer(inserted), role: inserted.role };
+        await insertChangeEvent(transaction, viewer, {
+          type: "viewer_created",
+          payload,
+        });
+        const issued = await issuePasswordToken(transaction, inserted.id, settings);
+        await mailer.send(setPasswordMessage(inserted.email, issued, settings.appUrl));
+        return inserted;
+      },
+      // Past Prisma's five seconds, which a slow but working mail server can take; a send
+      // that outlasts even this rolls back after the mail has gone, and its link never works.
+      { timeout: 20_000 },
+    );
+    log().info({ viewerId: created.id }, "set-password link mailed");
+    return created;
+  } catch (error) {
+    // Caught from the unique index rather than checked first, so two requests racing for
+    // one address cannot both pass the check.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new ConflictError("A Viewer with that email address already exists.");
+    }
+    throw error;
   }
 }
 
@@ -196,42 +194,44 @@ export async function reactivateViewer(
   });
 }
 
-/**
- * The mail is sent last, inside the transaction, so a send that fails leaves no Viewer
- * behind and the Administrator can simply try again instead of meeting a 409.
- */
-export async function createViewer(
-  database: Database,
-  { mailer, settings }: PasswordMailDependencies,
-  viewer: Viewer,
-  email: string,
-  role: ViewerRole,
+/** Every administrative act, whatever it does to the target Viewer, in the shape the
+ * Change Event names it (ADR-0035). */
+function affectedViewer(target: Viewer) {
+  return { id: target.id, email: target.email };
+}
+
+/** Read after the lock, so the "already done?" check sees what a racing request just
+ * committed (ADR-0039). */
+async function lockAndGetViewer(transaction: Transaction, id: string): Promise<Viewer> {
+  await lockViewer(transaction, id);
+  return getViewer(transaction, id);
+}
+
+async function getViewer(database: DatabaseOrTransaction, id: string): Promise<Viewer> {
+  const target = await findViewerById(database, id);
+  if (target === null) throw new NotFoundError();
+  return target;
+}
+
+/** As `lockAndGetViewer`, and also locks every active Administrator, for the acts that must
+ * not remove the last one (ADR-0039). */
+async function lockAdministratorsAndGetViewer(
+  transaction: Transaction,
+  id: string,
 ): Promise<Viewer> {
-  try {
-    const created = await database.$transaction(
-      async (transaction) => {
-        const inserted = await insertViewer(transaction, email, role);
-        const payload: ViewerCreated = { viewer: affectedViewer(inserted), role: inserted.role };
-        await insertChangeEvent(transaction, viewer, {
-          type: "viewer_created",
-          payload,
-        });
-        const issued = await issuePasswordToken(transaction, inserted.id, settings);
-        await mailer.send(setPasswordMessage(inserted.email, issued, settings.appUrl));
-        return inserted;
-      },
-      // Past Prisma's five seconds, which a slow but working mail server can take; a send
-      // that outlasts even this rolls back after the mail has gone, and its link never works.
-      { timeout: 20_000 },
-    );
-    log().info({ viewerId: created.id }, "set-password link mailed");
-    return created;
-  } catch (error) {
-    // Caught from the unique index rather than checked first, so two requests racing for
-    // one address cannot both pass the check.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      throw new ConflictError("A Viewer with that email address already exists.");
-    }
-    throw error;
+  await lockViewerAndActiveAdministrators(transaction, id);
+  return getViewer(transaction, id);
+}
+
+/** Called after `lockAdministratorsAndGetViewer` in the transaction of the write it guards,
+ * so no other request can remove an Administrator between the count and the write (ADR-0039). */
+async function refuseLastActiveAdministrator(
+  transaction: DatabaseOrTransaction,
+  target: Viewer,
+  refusal: string,
+): Promise<void> {
+  if (!target.isAdministrator) return;
+  if ((await countOtherActiveAdministrators(transaction, target.id)) === 0) {
+    throw new ConflictError(refusal);
   }
 }
