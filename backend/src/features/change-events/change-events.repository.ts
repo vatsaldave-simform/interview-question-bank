@@ -9,13 +9,6 @@ import {
 import type { Prisma } from "../../generated/prisma/client.ts";
 import type { DatabaseOrTransaction } from "../../platform/database.ts";
 
-/** What each kind of event says about its Question, as the caller must write it. */
-type QuestionOf = {
-  required: { questionId: string };
-  never: { questionId?: undefined };
-  optional: { questionId: string | null };
-};
-
 /** The type and the payload travel together, so an edit's before and after cannot be
  * filed as an addition. Whether a Question may be named comes from the type's entry in
  * the table in `@iqb/shared`. */
@@ -25,39 +18,6 @@ export type ChangeEventToInsert = {
     payload: Extract<ChangeEvent, { type: Type }>["payload"];
   } & QuestionOf[(typeof changeEventKinds)[Type]["question"]];
 }[ChangeEventType];
-
-/** `viewer` is the Viewer who did it. */
-export async function insertChangeEvent(
-  database: DatabaseOrTransaction,
-  viewer: Viewer,
-  event: ChangeEventToInsert,
-): Promise<void> {
-  // Refused here, because the log is append-only and a wrong payload could not be fixed
-  // afterwards (ADR-0027).
-  changeEventKinds[event.type].payload.parse(event.payload);
-  await database.changeEvent.create({
-    data: {
-      questionId: event.questionId ?? null,
-      viewerId: viewer.id,
-      type: event.type,
-      payload: event.payload,
-    },
-  });
-}
-
-const changeEventFieldsToRead = {
-  id: true,
-  questionId: true,
-  viewerId: true,
-  viewer: { select: { email: true } },
-  type: true,
-  payload: true,
-  createdAt: true,
-} satisfies Prisma.ChangeEventSelect;
-
-const typesThatNameAnotherQuestion = changeEventTypes.filter(
-  (type) => changeEventKinds[type].namesAnotherQuestion,
-);
 
 /**
  * The history of one Question, oldest first. The caller has already checked that `viewer`
@@ -87,3 +47,43 @@ export async function findEventsOfQuestion(
     changeEventResponseSchema.parse({ ...row, viewerEmail: email, at: createdAt.toISOString() }),
   );
 }
+
+/** `viewer` is the Viewer who did it. */
+export async function insertChangeEvent(
+  database: DatabaseOrTransaction,
+  viewer: Viewer,
+  event: ChangeEventToInsert,
+): Promise<void> {
+  // Refused here, because the log is append-only and a wrong payload could not be fixed
+  // afterwards (ADR-0027).
+  changeEventKinds[event.type].payload.parse(event.payload);
+  await database.changeEvent.create({
+    data: {
+      questionId: event.questionId ?? null,
+      viewerId: viewer.id,
+      type: event.type,
+      payload: event.payload,
+    },
+  });
+}
+
+/** What each kind of event says about its Question, as the caller must write it. */
+type QuestionOf = {
+  required: { questionId: string };
+  never: { questionId?: undefined };
+  optional: { questionId: string | null };
+};
+
+const typesThatNameAnotherQuestion = changeEventTypes.filter(
+  (type) => changeEventKinds[type].namesAnotherQuestion,
+);
+
+const changeEventFieldsToRead = {
+  id: true,
+  questionId: true,
+  viewerId: true,
+  viewer: { select: { email: true } },
+  type: true,
+  payload: true,
+  createdAt: true,
+} satisfies Prisma.ChangeEventSelect;

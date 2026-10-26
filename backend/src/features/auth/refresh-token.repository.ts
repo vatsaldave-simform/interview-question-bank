@@ -1,15 +1,5 @@
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
-/** Everything rotation needs to judge a presented token, and never the stored hash. */
-const judgeableFields = {
-  id: true,
-  familyId: true,
-  viewerId: true,
-  expiresAt: true,
-  spentAt: true,
-  revokedAt: true,
-} as const;
-
 export type RefreshTokenFromDb = {
   id: string;
   familyId: string;
@@ -27,18 +17,32 @@ export type NewRefreshToken = {
   expiresAt: Date;
 };
 
-export function insertRefreshToken(
-  database: Database,
-  token: NewRefreshToken,
-): Promise<RefreshTokenFromDb> {
-  return database.refreshToken.create({ data: token, select: judgeableFields });
-}
-
 export function findRefreshTokenByHash(
   database: Database,
   tokenHash: string,
 ): Promise<RefreshTokenFromDb | null> {
   return database.refreshToken.findUnique({ where: { tokenHash }, select: judgeableFields });
+}
+
+/**
+ * Whether anything in this family has been revoked, which is how a rotation that has
+ * already inserted its successor discovers that the family died underneath it.
+ */
+export async function refreshTokenFamilyIsRevoked(
+  database: Database,
+  familyId: string,
+): Promise<boolean> {
+  const revoked = await database.refreshToken.count({
+    where: { familyId, revokedAt: { not: null } },
+  });
+  return revoked > 0;
+}
+
+export function insertRefreshToken(
+  database: Database,
+  token: NewRefreshToken,
+): Promise<RefreshTokenFromDb> {
+  return database.refreshToken.create({ data: token, select: judgeableFields });
 }
 
 /**
@@ -77,16 +81,12 @@ export async function revokeRefreshTokensOfViewer(
   });
 }
 
-/**
- * Whether anything in this family has been revoked, which is how a rotation that has
- * already inserted its successor discovers that the family died underneath it.
- */
-export async function refreshTokenFamilyIsRevoked(
-  database: Database,
-  familyId: string,
-): Promise<boolean> {
-  const revoked = await database.refreshToken.count({
-    where: { familyId, revokedAt: { not: null } },
-  });
-  return revoked > 0;
-}
+/** Everything rotation needs to judge a presented token, and never the stored hash. */
+const judgeableFields = {
+  id: true,
+  familyId: true,
+  viewerId: true,
+  expiresAt: true,
+  spentAt: true,
+  revokedAt: true,
+} as const;

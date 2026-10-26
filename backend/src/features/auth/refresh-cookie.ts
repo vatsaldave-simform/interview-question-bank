@@ -1,11 +1,6 @@
 import type { Request, Response } from "express";
 import type { IssuedRefreshToken } from "./refresh-token.ts";
 
-// Limited to the routes that read it, so it is not sent on every other API request.
-const path = "/api/auth";
-
-const name = "iqb_refresh";
-
 export type RefreshCookieConfig = {
   /** False only where the API is served over http, which is a laptop (ADR-0008). */
   secure: boolean;
@@ -38,3 +33,8 @@ export function presentedRefreshToken(req: Request): string | undefined {
   const presented: unknown = req.cookies?.[name];
   return typeof presented === "string" && presented.length > 0 ? presented : undefined;
 }
+
+const name = "iqb_refresh";
+
+// Limited to the routes that read it, so it is not sent on every other API request.
+const path = "/api/auth";

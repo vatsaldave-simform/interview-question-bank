@@ -1,8 +1,6 @@
 import type { Client } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
-const publicFields = { id: true, name: true } as const;
-
 /** Only the Clients the Viewer holds a Permission Grant for, the same condition every
  * Question read uses, so a Viewer's own list never reveals that a Client exists. */
 export function findClientsGrantedTo(database: Database, viewerId: string): Promise<Client[]> {
@@ -39,3 +37,5 @@ export function findClientById(database: Database, id: string): Promise<Client |
 export function insertClient(database: DatabaseOrTransaction, name: string): Promise<Client> {
   return database.client.create({ data: { name }, select: publicFields });
 }
+
+const publicFields = { id: true, name: true } as const;
