@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="520" height="520">
+      <rect width="520" height="520" fill="#fff" />
+      <polygon points="189,235 225,235 409,520 373,520" fill="#000" />
+    </mask>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#FF4E6B" />
+  <g transform="translate(32 32) scale(0.1) translate(-265 -256)" fill="#fff">
+    <circle cx="265" cy="255" r="162" fill="none" stroke="#fff" stroke-width="82" mask="url(#gap)" />
+    <polygon points="240,258 330,258 465,460 370,460" />
+  </g>
+</svg>

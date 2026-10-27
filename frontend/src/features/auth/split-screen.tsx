@@ -13,13 +13,13 @@ export function SplitScreen({ title, description, children }: SplitScreenProps) 
     <main className="bg-form-half grid min-h-svh grid-rows-[auto_1fr] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:grid-rows-1">
       <section className="text-brand-half-foreground flex flex-col justify-between gap-5 overflow-hidden bg-(image:--brand-half) px-5 py-6 md:gap-8 md:px-12 md:py-10">
         <div className="flex items-center gap-3">
-          <img src="/simform-logo.svg" alt="Simform" className="h-5 w-auto md:h-6.5" />
-          <span className="text-brand-lavender text-sm font-semibold">Interview Question Bank</span>
+          <img src="/mark.svg" alt="" className="size-6 md:size-7" />
+          <span className="text-brand-tint text-sm font-semibold">Interview Question Bank</span>
         </div>
         <div className="flex max-w-120 flex-col gap-3.5">
           <h1 className="text-2xl leading-tight font-bold tracking-tight text-balance md:text-4xl lg:text-5xl">
             Better interviews start with{" "}
-            <em className="text-brand-lavender not-italic">better questions.</em>
+            <em className="text-brand-tint not-italic">better questions.</em>
           </h1>
           <p className="text-brand-half-muted max-w-[40ch] text-sm md:text-base">
             Search the questions our interviewers have written, checked and rated. Then add your
@@ -48,7 +48,7 @@ function SampleCards() {
   return (
     <div aria-hidden="true" className="relative hidden h-52 md:block">
       <div className={`${cardClasses} top-0 left-0 w-[min(380px,92%)]`}>
-        <small className="text-brand-lavender text-xs">Recently added</small>
+        <small className="text-brand-tint text-xs">Recently added</small>
         <b className="leading-snug">
           What happens between typing an address into a browser and the page appearing?
         </b>
@@ -62,10 +62,10 @@ function SampleCards() {
       </div>
       <div className={`${cardClasses} top-30 left-[min(220px,40%)] w-60`}>
         <span className="flex items-center gap-1 text-xs">
-          <StarIcon className="fill-brand-red text-brand-red size-3.5" />
+          <StarIcon className="fill-brand-action text-brand-action size-3.5" />
           <b>4.6</b> out of 5 from 18 Ratings
         </span>
-        <small className="text-brand-lavender text-xs">
+        <small className="text-brand-tint text-xs">
           Checked by a Reviewer before it is in the bank
         </small>
       </div>

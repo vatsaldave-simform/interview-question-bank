@@ -43,9 +43,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-hover: var(--hover);
-  --color-brand-red: var(--brand-red);
-  --color-brand-lavender: var(--brand-lavender);
-  --color-brand-purple: var(--brand-purple);
+  --color-brand-action: var(--brand-action);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-deep: var(--brand-deep);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -80,12 +80,13 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  /* The organisation's three colours. They stay the same in dark mode. */
-  --brand-red: oklch(0.658 0.191 17.1);
-  --brand-lavender: oklch(0.855 0.085 301.4);
-  --brand-purple: oklch(0.302 0.15 295.3);
-  --background: oklch(0.985 0.002 249);
-  --text: color-mix(in oklch, var(--brand-purple) 72%, oklch(0 0 0));
+  /* The organisation's colours, named for their job, and the same in dark mode. */
+  --brand-action: #ff4e6b;
+  --brand-strong: #ff0436;
+  --brand-tint: color-mix(in oklch, color-mix(in oklch, var(--brand-action), var(--brand-strong)) 30%, oklch(1 0 0));
+  --brand-deep: oklch(0.22 0.04 23);
+  --background: color-mix(in oklch, var(--brand-tint) 10%, oklch(1 0 0));
+  --text: var(--brand-deep);
   --foreground: var(--text);
   /* How see-through each glass is was measured, so its text keeps the contrast it had when solid. */
   --card: var(--card-glass);
@@ -103,135 +104,140 @@
   --glass-blur-card: blur(14px) saturate(1.3);
   --glass-blur-popover: blur(26px) saturate(1.6);
   --glass-blur-sidebar: blur(22px) saturate(1.5);
-  --glow: color-mix(in oklch, var(--brand-lavender) 85%, transparent);
+  --glow: color-mix(in oklch, var(--brand-tint) 85%, transparent);
   --backdrop:
-    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 30%, transparent), transparent 70%),
-    radial-gradient(38% 42% at 100% 0%, color-mix(in oklch, var(--brand-red) 20%, transparent), transparent 72%),
-    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-lavender) 90%, transparent), transparent 72%),
-    radial-gradient(40% 40% at 25% 100%, color-mix(in oklch, var(--brand-red) 10%, transparent), transparent 70%),
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-strong) 18%, transparent), transparent 70%),
+    radial-gradient(38% 42% at 100% 0%, color-mix(in oklch, var(--brand-action) 20%, transparent), transparent 72%),
+    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-tint) 90%, transparent), transparent 72%),
+    radial-gradient(40% 40% at 25% 100%, color-mix(in oklch, var(--brand-action) 10%, transparent), transparent 70%),
     linear-gradient(
       160deg,
-      color-mix(in oklch, var(--brand-lavender) 40%, oklch(1 0 0)),
-      color-mix(in oklch, var(--brand-lavender) 68%, oklch(1 0 0))
+      color-mix(in oklch, var(--brand-tint) 40%, oklch(1 0 0)),
+      color-mix(in oklch, var(--brand-tint) 68%, oklch(1 0 0))
     );
-  /* White text on this red is hard to read, and the design owners chose it anyway. */
-  --primary: var(--brand-red);
+  /* Darkened so white text on it reads at 4.5:1. */
+  --primary: color-mix(in oklch, var(--brand-action) 72%, oklch(0 0 0));
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.934 0.014 304.1);
-  --secondary-foreground: var(--brand-purple);
-  --muted: oklch(0.968 0.004 264);
-  --muted-foreground: color-mix(in oklch, var(--brand-purple) 78%, oklch(1 0 0));
-  --accent: oklch(0.968 0.004 264);
+  --secondary: color-mix(in oklch, var(--brand-tint) 35%, oklch(1 0 0));
+  --secondary-foreground: var(--brand-deep);
+  --muted: color-mix(in oklch, var(--brand-tint) 15%, oklch(1 0 0));
+  --muted-foreground: color-mix(in oklch, var(--brand-deep) 78%, oklch(1 0 0));
+  --accent: color-mix(in oklch, var(--brand-tint) 15%, oklch(1 0 0));
   --accent-foreground: var(--text);
-  /* The brand red darkened, because the brand red itself is too light to read as text. */
-  --destructive: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
-  --border: oklch(0.924 0.012 264);
-  --input: oklch(0.924 0.012 264);
+  /* The strong red darkened, because the red itself is too light to carry white text or to read as text. */
+  --destructive: color-mix(in oklch, var(--brand-strong) 62%, oklch(0 0 0));
+  --border: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
+  --input: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
   --field: oklch(1 0 0 / 82%);
-  --field-line: color-mix(in oklch, var(--brand-purple) 22%, transparent);
-  --ring: var(--brand-red);
+  --field-line: color-mix(in oklch, var(--brand-deep) 22%, transparent);
+  --ring: var(--brand-action);
   /* A pointed-at row is only tinted, so its text keeps its own colour. */
-  --hover: color-mix(in oklch, var(--brand-purple) 7%, transparent);
+  --hover: color-mix(in oklch, var(--brand-deep) 7%, transparent);
   /* See-through, like the glass the chip sits on. */
-  --chip: color-mix(in oklch, var(--brand-lavender) 40%, transparent);
-  --chip-foreground: var(--brand-purple);
+  --chip: color-mix(in oklch, var(--brand-tint) 40%, transparent);
+  --chip-foreground: var(--brand-deep);
   --pending: transparent;
-  --pending-foreground: var(--brand-purple);
-  --pending-border: color-mix(in oklch, var(--brand-purple) 45%, transparent);
-  --rejected: color-mix(in oklch, var(--brand-red) 15%, transparent);
+  --pending-foreground: var(--brand-deep);
+  --pending-border: color-mix(in oklch, var(--brand-deep) 45%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-strong) 15%, transparent);
   /* Its own value, so a change to the error red does not reach the Rejected chip. */
-  --rejected-foreground: color-mix(in oklch, var(--brand-red) 60%, oklch(0 0 0));
-  --restricted: var(--brand-purple);
+  --rejected-foreground: color-mix(in oklch, var(--brand-strong) 62%, oklch(0 0 0));
+  --restricted: var(--brand-deep);
   --restricted-foreground: oklch(1 0 0);
-  --restricted-border: var(--brand-purple);
+  --restricted-border: var(--brand-deep);
   /* More see-through than a card, because the sidebar holds short labels and no long reading. */
   --sidebar: var(--sidebar-glass);
   --sidebar-glass: oklch(1 0 0 / 50%);
-  --sidebar-solid: color-mix(in oklch, var(--brand-lavender) 24%, oklch(1 0 0));
+  --sidebar-solid: color-mix(in oklch, var(--brand-tint) 24%, oklch(1 0 0));
   --sidebar-foreground: var(--text);
-  --sidebar-primary: var(--brand-purple);
+  --sidebar-primary: var(--brand-deep);
   --sidebar-primary-foreground: oklch(1 0 0);
   /* The library paints a pointed-at link in this, so it is only a faint tint. */
-  --sidebar-accent: color-mix(in oklch, var(--brand-purple) 7%, transparent);
+  --sidebar-accent: color-mix(in oklch, var(--brand-deep) 7%, transparent);
   --sidebar-accent-foreground: var(--text);
   --sidebar-border: var(--glass-edge);
   --sidebar-ring: var(--ring);
-  /* The brand half of the signed-out screens is deep purple in light and in dark alike. */
+  /* The brand half of the signed-out screens is the strong red darkened, in light and in dark alike. */
   --brand-half:
-    radial-gradient(50% 45% at 100% 0%, color-mix(in oklch, var(--brand-red) 42%, transparent), transparent 72%),
-    radial-gradient(60% 55% at 0% 100%, color-mix(in oklch, var(--brand-lavender) 45%, transparent), transparent 70%),
-    radial-gradient(40% 35% at 70% 70%, color-mix(in oklch, var(--brand-lavender) 22%, transparent), transparent 70%),
-    linear-gradient(155deg, var(--brand-purple), color-mix(in oklch, var(--brand-purple) 60%, oklch(0 0 0)));
+    radial-gradient(50% 45% at 100% 0%, color-mix(in oklch, var(--brand-action) 42%, transparent), transparent 72%),
+    radial-gradient(60% 55% at 0% 100%, color-mix(in oklch, var(--brand-action) 30%, transparent), transparent 70%),
+    radial-gradient(40% 35% at 70% 70%, color-mix(in oklch, var(--brand-action) 14%, transparent), transparent 70%),
+    linear-gradient(
+      155deg,
+      color-mix(in oklch, var(--brand-strong) 68%, oklch(0 0 0)),
+      color-mix(in oklch, var(--brand-strong) 40%, oklch(0 0 0))
+    );
   --brand-half-foreground: oklch(1 0 0);
-  --brand-half-muted: color-mix(in oklch, var(--brand-lavender) 70%, oklch(1 0 0));
+  --brand-half-muted: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
   --brand-half-card: oklch(1 0 0 / 10%);
   --brand-half-card-border: oklch(1 0 0 / 22%);
-  --brand-half-tag: color-mix(in oklch, var(--brand-lavender) 22%, transparent);
-  --form-half: color-mix(in oklch, var(--brand-lavender) 10%, oklch(1 0 0));
+  --brand-half-tag: color-mix(in oklch, var(--brand-tint) 22%, transparent);
+  --form-half: color-mix(in oklch, var(--brand-tint) 10%, oklch(1 0 0));
 }
 
 .dark {
   /* The browser's own parts, such as scroll bars and the native select, turn dark too. */
   color-scheme: dark;
-  --background: oklch(0.16 0.014 264);
-  --text: color-mix(in oklch, var(--brand-lavender) 20%, oklch(1 0 0));
+  --background: color-mix(in oklch, var(--brand-deep) 70%, oklch(0 0 0));
+  --text: color-mix(in oklch, var(--brand-tint) 20%, oklch(1 0 0));
   --foreground: var(--text);
   --card-glass: color-mix(in oklch, var(--card-solid) 78%, transparent);
-  --card-solid: color-mix(in oklch, var(--brand-purple) 58%, oklch(0 0 0));
+  --card-solid: color-mix(in oklch, var(--brand-deep) 90%, oklch(0 0 0));
   --card-foreground: var(--text);
   --popover-glass: color-mix(in oklch, var(--popover-solid) 78%, transparent);
-  --popover-solid: color-mix(in oklch, var(--brand-purple) 62%, oklch(0 0 0));
+  --popover-solid: var(--brand-deep);
   --dialog-glass: var(--popover-glass);
-  --glow: color-mix(in oklch, var(--brand-lavender) 35%, transparent);
+  --glow: color-mix(in oklch, var(--brand-tint) 35%, transparent);
   --popover-foreground: var(--text);
-  --glass-edge: color-mix(in oklch, var(--brand-lavender) 16%, transparent);
+  --glass-edge: color-mix(in oklch, var(--brand-tint) 16%, transparent);
   --backdrop:
-    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-purple) 90%, transparent), transparent 70%),
-    radial-gradient(40% 45% at 100% 0%, color-mix(in oklch, var(--brand-red) 20%, transparent), transparent 72%),
-    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-lavender) 22%, transparent), transparent 72%),
-    radial-gradient(40% 40% at 20% 100%, color-mix(in oklch, var(--brand-red) 10%, transparent), transparent 70%),
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-strong) 28%, transparent), transparent 70%),
+    radial-gradient(40% 45% at 100% 0%, color-mix(in oklch, var(--brand-action) 20%, transparent), transparent 72%),
+    radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-tint) 22%, transparent), transparent 72%),
+    radial-gradient(40% 40% at 20% 100%, color-mix(in oklch, var(--brand-action) 10%, transparent), transparent 70%),
     linear-gradient(
       160deg,
-      color-mix(in oklch, var(--brand-purple) 55%, oklch(0 0 0)),
-      color-mix(in oklch, var(--brand-purple) 30%, oklch(0 0 0))
+      color-mix(in oklch, var(--brand-deep) 80%, oklch(0 0 0)),
+      color-mix(in oklch, var(--brand-deep) 45%, oklch(0 0 0))
     );
-  --primary: oklch(0.68 0.19 15.6);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.26 0.05 300);
-  --secondary-foreground: oklch(0.88 0.05 300);
-  --muted: oklch(0.24 0.012 264);
-  --muted-foreground: color-mix(in oklch, var(--brand-lavender) 88%, oklch(1 0 0));
-  --accent: oklch(0.26 0.014 264);
+  /* Dark text on the bright action colour, because white on it is only 3.2:1. */
+  --primary: var(--brand-action);
+  --primary-foreground: var(--brand-deep);
+  --secondary: color-mix(in oklch, var(--brand-tint) 12%, var(--brand-deep));
+  --secondary-foreground: var(--text);
+  --muted: color-mix(in oklch, var(--brand-tint) 8%, var(--brand-deep));
+  --muted-foreground: color-mix(in oklch, var(--brand-tint) 88%, oklch(1 0 0));
+  --accent: color-mix(in oklch, var(--brand-tint) 12%, var(--brand-deep));
   --accent-foreground: var(--text);
-  --destructive: var(--brand-red);
-  --border: oklch(0.3 0.014 264);
-  --input: oklch(0.3 0.014 264);
+  --destructive: var(--brand-action);
+  --border: color-mix(in oklch, var(--brand-tint) 16%, var(--brand-deep));
+  --input: color-mix(in oklch, var(--brand-tint) 16%, var(--brand-deep));
   --field: oklch(0 0 0 / 22%);
-  --field-line: color-mix(in oklch, var(--brand-lavender) 24%, transparent);
-  --hover: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
-  --ring: oklch(0.68 0.19 15.6);
-  --chip: color-mix(in oklch, var(--brand-lavender) 16%, transparent);
-  --chip-foreground: var(--brand-lavender);
+  --field-line: color-mix(in oklch, var(--brand-tint) 24%, transparent);
+  --hover: color-mix(in oklch, var(--brand-tint) 10%, transparent);
+  --ring: var(--brand-action);
+  --chip: color-mix(in oklch, var(--brand-tint) 16%, transparent);
+  --chip-foreground: var(--brand-tint);
   --pending: transparent;
-  --pending-foreground: var(--brand-lavender);
-  --pending-border: color-mix(in oklch, var(--brand-lavender) 55%, transparent);
-  --rejected: color-mix(in oklch, var(--brand-red) 24%, transparent);
-  --rejected-foreground: color-mix(in oklch, var(--brand-red) 50%, oklch(1 0 0));
-  --restricted: var(--brand-lavender);
-  --restricted-foreground: var(--brand-purple);
-  --restricted-border: var(--brand-lavender);
+  --pending-foreground: var(--brand-tint);
+  --pending-border: color-mix(in oklch, var(--brand-tint) 55%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-strong) 30%, transparent);
+  --rejected-foreground: color-mix(in oklch, var(--brand-action) 50%, oklch(1 0 0));
+  --restricted: var(--brand-tint);
+  --restricted-foreground: var(--brand-deep);
+  --restricted-border: var(--brand-tint);
   --sidebar-glass: color-mix(
     in oklch,
-    color-mix(in oklch, var(--brand-purple) 55%, oklch(0 0 0)) 52%,
+    color-mix(in oklch, var(--brand-deep) 80%, oklch(0 0 0)) 52%,
     transparent
   );
-  --sidebar-solid: color-mix(in oklch, var(--brand-purple) 48%, oklch(0 0 0));
+  --sidebar-solid: color-mix(in oklch, var(--brand-deep) 72%, oklch(0 0 0));
   --sidebar-foreground: var(--text);
-  --sidebar-primary: color-mix(in oklch, var(--brand-lavender) 22%, transparent);
+  --sidebar-primary: color-mix(in oklch, var(--brand-tint) 22%, transparent);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: color-mix(in oklch, var(--brand-lavender) 10%, transparent);
+  --sidebar-accent: color-mix(in oklch, var(--brand-tint) 10%, transparent);
   --sidebar-accent-foreground: var(--text);
-  --form-half: color-mix(in oklch, var(--brand-purple) 30%, oklch(0 0 0));
+  --form-half: color-mix(in oklch, var(--brand-deep) 55%, oklch(0 0 0));
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -293,6 +299,11 @@
     --spacing: calc(0.25rem * 16 / 14);
     --text-xs: calc(0.75rem * 16 / 14);
     height: calc(1.5rem * 16 / 14);
+  }
+  /* White text needs a darker fill than the bright action colour, which links and the ring keep in dark mode. */
+  .dark [data-slot="button"][data-variant="default"] {
+    --primary: color-mix(in oklch, var(--brand-action) 72%, oklch(0 0 0));
+    --primary-foreground: oklch(1 0 0);
   }
   [data-slot="sidebar-inner"] {
     backdrop-filter: var(--glass-blur-sidebar);

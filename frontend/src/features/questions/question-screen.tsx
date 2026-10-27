@@ -129,7 +129,7 @@ function AboutThisQuestion({ question }: { question: Question }) {
           <QuestionDetail id="rating" title="Rating">
             <div className="flex items-center gap-1.5">
               {question.rating.average !== null && (
-                <StarIcon aria-hidden="true" className="fill-brand-red text-brand-red size-4" />
+                <StarIcon aria-hidden="true" className="fill-brand-action text-brand-action size-4" />
               )}
               <AverageRating rating={question.rating} />
             </div>
