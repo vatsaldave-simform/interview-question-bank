@@ -1,5 +1,7 @@
 # Authors narrow, Reviewers widen, nobody moves sideways
 
+> Replaced by ADR-0050. A Client no longer hides a Question.
+
 Changing which Client a Question is restricted to is three operations wearing one name, and they
 carry very different risk. **Classifying** attaches a restriction to an unrestricted Question and
 only narrows who can see it, so any Author may do it to their own. **Declassifying** removes the

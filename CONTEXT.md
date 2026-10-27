@@ -1,7 +1,7 @@
 # Interview Question Bank
 
-A shared bank of interview and screening questions, searchable across categories, where
-questions tied to a specific client stay visible only to people permitted for that client.
+A shared bank of interview and screening questions, searchable across categories and by the
+clients that asked them. Every Viewer sees every Published question.
 
 ## Language
 
@@ -45,6 +45,12 @@ One Viewer's opinion of one Question, revisable and never shown attributed: a Qu
 only the average and the count. Only a Published Question is rated, and never by its own Author.
 _Avoid_: score, vote, review, feedback
 
+**Client**:
+An organisation that has asked a Question in its interviews. A Question may name several
+Clients, or none, and a Viewer may filter the bank by them. Naming a Client is a fact about the
+Question and hides it from nobody. A Client is added to or removed from a Question.
+_Avoid_: customer, account, organisation, org, restriction, restrict, classify, move
+
 ### People and access
 
 **Viewer**:
@@ -53,15 +59,13 @@ _Avoid_: user, actor, principal, requester
 
 **Author**:
 A Viewer who may add Questions and edit the ones they added. They may withdraw their own Pending
-Question by Rejecting it, and resubmit their own Rejected one. They may restrict their own Question
-to a Client they hold a Permission Grant for, and move it to another such Client while it is
-Pending or Rejected, but never remove a restriction.
+Question by Rejecting it, and resubmit their own Rejected one. Adding a Client to a Question, or
+removing one, is an edit like any other.
 
 **Reviewer**:
 A Viewer who may edit any Question that is Visible to them, and who alone Publishes a Question,
-Rejects another Viewer's, returns a Published one to its Author, or removes its Client
-restriction. Like an Author, they restrict only their own. A returned Question is Rejected, with
-the reason it was returned.
+Rejects another Viewer's, or returns a Published one to its Author. A returned Question is
+Rejected, with the reason it was returned.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
@@ -70,7 +74,7 @@ never competes with Viewer.
 _Avoid_: user, viewer-only, basic user
 
 **Administrator**:
-A Viewer who may create Viewers and Clients, issue and revoke Permission Grants, decide Role
+A Viewer who may create Viewers and Clients, decide Role
 Requests and Deactivate Viewers. Held alongside Reader, Author or Reviewer rather than instead of one, and carrying no
 access to Questions of its own.
 _Avoid_: admin, superuser, owner, root
@@ -90,23 +94,9 @@ A Viewer's request to hold a different role, granted or denied by an Administrat
 the Viewer who asked can read. A Viewer holds at most one open Role Request.
 _Avoid_: application, promotion, access request
 
-**Client**:
-An organisation a Question may be restricted to.
-_Avoid_: customer, account, organisation, org
-
-**Permission Grant**:
-The authority for one Viewer to see one Client's Questions.
-_Avoid_: permission, access, share, entitlement
-
-**Restriction**:
-The Client a Question is limited to, if any. A restricted Question is Visible only to Viewers
-holding a Permission Grant for that Client. An Author restricts their own Question; only a
-Reviewer removes a Restriction. Changing it from one Client to another is moving the Question.
-_Avoid_: classification, classify, declassify
-
 **Visible**:
-A Question is Visible to a Viewer when it is not restricted to a Client, or is restricted to a
-Client the Viewer holds a Permission Grant for. Visibility is evaluated before anything else,
+A Question is Visible to a Viewer when it is Published, when the Viewer is its Author, or when
+the Viewer is a Reviewer. Visibility is evaluated before anything else,
 on reads and writes alike.
 _Avoid_: permitted, allowed, accessible
 
@@ -119,7 +109,6 @@ _Avoid_: duplicate, similar question, match
 
 **Change Event**:
 An append-only record of something that happened to the bank — a Question submitted, edited,
-Published, Rejected, returned or resubmitted, restricted to a Client or had that restriction
-removed, or a submission, publication or edit refused as a Near-Duplicate — carrying who did it
+Published, Rejected, returned or resubmitted, had a Client added or removed, or a submission, publication or edit refused as a Near-Duplicate — carrying who did it
 and when.
 _Avoid_: audit log, history entry, revision, version
