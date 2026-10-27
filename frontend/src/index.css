@@ -302,6 +302,11 @@
     --text-xs: calc(0.75rem * 16 / 14);
     height: calc(1.5rem * 16 / 14);
   }
+  /* White text needs a darker fill than the bright action colour, which links and the ring keep in dark mode. */
+  .dark [data-slot="button"][data-variant="default"] {
+    --primary: color-mix(in oklch, var(--brand-action) 72%, oklch(0 0 0));
+    --primary-foreground: oklch(1 0 0);
+  }
   [data-slot="sidebar-inner"] {
     backdrop-filter: var(--glass-blur-sidebar);
   }
