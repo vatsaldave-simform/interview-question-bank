@@ -104,7 +104,7 @@ export function PhoneBar() {
   );
 }
 
-/** Stacked in the sidebar, which is too narrow for the logo and the name side by side. */
+/** Stacked in the sidebar, which is too narrow for the mark and the name side by side. */
 function BrandLink({ stacked = false }: { stacked?: boolean }) {
   const { setOpenMobile } = useSidebar();
   return (
@@ -114,12 +114,7 @@ function BrandLink({ stacked = false }: { stacked?: boolean }) {
       className={`focus-visible:ring-sidebar-ring flex min-w-0 rounded-md text-sm font-semibold outline-none focus-visible:ring-2 ${stacked ? "flex-col items-start gap-1.5" : "items-center gap-3"}`}
     >
       {/* The name beside it already says where the link goes, so the picture adds nothing to read out. */}
-      <img
-        src="/simform-logo.svg"
-        alt=""
-        // Shrunk, the box is cut to the logo's mark, which is its left-hand part.
-        className="h-6 w-auto shrink-0 object-cover object-left group-data-[collapsible=icon]:w-[1.3rem]"
-      />
+      <img src="/mark.svg" alt="" className="size-6 shrink-0" />
       <span className="truncate group-data-[collapsible=icon]:sr-only">Interview Question Bank</span>
     </Link>
   );

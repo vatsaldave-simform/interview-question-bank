@@ -13,7 +13,7 @@ export function SplitScreen({ title, description, children }: SplitScreenProps) 
     <main className="bg-form-half grid min-h-svh grid-rows-[auto_1fr] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:grid-rows-1">
       <section className="text-brand-half-foreground flex flex-col justify-between gap-5 overflow-hidden bg-(image:--brand-half) px-5 py-6 md:gap-8 md:px-12 md:py-10">
         <div className="flex items-center gap-3">
-          <img src="/simform-logo.svg" alt="Simform" className="h-5 w-auto md:h-6.5" />
+          <img src="/mark.svg" alt="" className="size-6 md:size-7" />
           <span className="text-brand-tint text-sm font-semibold">Interview Question Bank</span>
         </div>
         <div className="flex max-w-120 flex-col gap-3.5">
