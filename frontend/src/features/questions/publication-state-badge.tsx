@@ -1,6 +1,6 @@
 import type { PublicationState } from "@iqb/shared";
 import type { VariantProps } from "class-variance-authority";
-import { ClockIcon } from "lucide-react";
+import { CircleXIcon, ClockIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { publicationStateWording } from "@/features/questions/publication-state-wording";
 import { Badge, type badgeVariants } from "@/ui/shadcn/badge";
@@ -22,6 +22,7 @@ const lookOf: Record<PublicationState, BadgeLook> = {
   rejected: {
     variant: "outline",
     className: "border-transparent bg-rejected text-rejected-foreground",
+    icon: <CircleXIcon aria-hidden="true" />,
   },
 };
 

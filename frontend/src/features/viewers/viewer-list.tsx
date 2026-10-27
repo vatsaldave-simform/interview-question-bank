@@ -1,4 +1,4 @@
-import { UsersIcon } from "lucide-react";
+import { BanIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { CreateViewerForm } from "@/features/viewers/create-viewer-form";
 import { roleWording } from "@/features/viewers/role-wording";
@@ -79,6 +79,7 @@ export function ViewerList() {
                     <Cell>
                       {viewer.isDeactivated ? (
                         <Badge className="bg-rejected text-rejected-foreground border-transparent">
+                          <BanIcon aria-hidden="true" />
                           Deactivated
                         </Badge>
                       ) : (
