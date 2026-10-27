@@ -176,65 +176,66 @@
 .dark {
   /* The browser's own parts, such as scroll bars and the native select, turn dark too. */
   color-scheme: dark;
-  --background: oklch(0.16 0.014 264);
+  --background: color-mix(in oklch, var(--brand-deep) 70%, oklch(0 0 0));
   --text: color-mix(in oklch, var(--brand-tint) 20%, oklch(1 0 0));
   --foreground: var(--text);
   --card-glass: color-mix(in oklch, var(--card-solid) 78%, transparent);
-  --card-solid: color-mix(in oklch, var(--brand-deep) 58%, oklch(0 0 0));
+  --card-solid: color-mix(in oklch, var(--brand-deep) 90%, oklch(0 0 0));
   --card-foreground: var(--text);
   --popover-glass: color-mix(in oklch, var(--popover-solid) 78%, transparent);
-  --popover-solid: color-mix(in oklch, var(--brand-deep) 62%, oklch(0 0 0));
+  --popover-solid: var(--brand-deep);
   --dialog-glass: var(--popover-glass);
   --glow: color-mix(in oklch, var(--brand-tint) 35%, transparent);
   --popover-foreground: var(--text);
   --glass-edge: color-mix(in oklch, var(--brand-tint) 16%, transparent);
   --backdrop:
-    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-deep) 90%, transparent), transparent 70%),
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-strong) 28%, transparent), transparent 70%),
     radial-gradient(40% 45% at 100% 0%, color-mix(in oklch, var(--brand-action) 20%, transparent), transparent 72%),
     radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-tint) 22%, transparent), transparent 72%),
     radial-gradient(40% 40% at 20% 100%, color-mix(in oklch, var(--brand-action) 10%, transparent), transparent 70%),
     linear-gradient(
       160deg,
-      color-mix(in oklch, var(--brand-deep) 55%, oklch(0 0 0)),
-      color-mix(in oklch, var(--brand-deep) 30%, oklch(0 0 0))
+      color-mix(in oklch, var(--brand-deep) 80%, oklch(0 0 0)),
+      color-mix(in oklch, var(--brand-deep) 45%, oklch(0 0 0))
     );
-  --primary: oklch(0.68 0.19 15.6);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.26 0.05 300);
-  --secondary-foreground: oklch(0.88 0.05 300);
-  --muted: oklch(0.24 0.012 264);
+  /* Dark text on the bright action colour, because white on it is only 3.2:1. */
+  --primary: var(--brand-action);
+  --primary-foreground: var(--brand-deep);
+  --secondary: color-mix(in oklch, var(--brand-tint) 12%, var(--brand-deep));
+  --secondary-foreground: var(--text);
+  --muted: color-mix(in oklch, var(--brand-tint) 8%, var(--brand-deep));
   --muted-foreground: color-mix(in oklch, var(--brand-tint) 88%, oklch(1 0 0));
-  --accent: oklch(0.26 0.014 264);
+  --accent: color-mix(in oklch, var(--brand-tint) 12%, var(--brand-deep));
   --accent-foreground: var(--text);
   --destructive: var(--brand-action);
-  --border: oklch(0.3 0.014 264);
-  --input: oklch(0.3 0.014 264);
+  --border: color-mix(in oklch, var(--brand-tint) 16%, var(--brand-deep));
+  --input: color-mix(in oklch, var(--brand-tint) 16%, var(--brand-deep));
   --field: oklch(0 0 0 / 22%);
   --field-line: color-mix(in oklch, var(--brand-tint) 24%, transparent);
   --hover: color-mix(in oklch, var(--brand-tint) 10%, transparent);
-  --ring: oklch(0.68 0.19 15.6);
+  --ring: var(--brand-action);
   --chip: color-mix(in oklch, var(--brand-tint) 16%, transparent);
   --chip-foreground: var(--brand-tint);
   --pending: transparent;
   --pending-foreground: var(--brand-tint);
   --pending-border: color-mix(in oklch, var(--brand-tint) 55%, transparent);
-  --rejected: color-mix(in oklch, var(--brand-action) 24%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-strong) 30%, transparent);
   --rejected-foreground: color-mix(in oklch, var(--brand-action) 50%, oklch(1 0 0));
   --restricted: var(--brand-tint);
   --restricted-foreground: var(--brand-deep);
   --restricted-border: var(--brand-tint);
   --sidebar-glass: color-mix(
     in oklch,
-    color-mix(in oklch, var(--brand-deep) 55%, oklch(0 0 0)) 52%,
+    color-mix(in oklch, var(--brand-deep) 80%, oklch(0 0 0)) 52%,
     transparent
   );
-  --sidebar-solid: color-mix(in oklch, var(--brand-deep) 48%, oklch(0 0 0));
+  --sidebar-solid: color-mix(in oklch, var(--brand-deep) 72%, oklch(0 0 0));
   --sidebar-foreground: var(--text);
   --sidebar-primary: color-mix(in oklch, var(--brand-tint) 22%, transparent);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: color-mix(in oklch, var(--brand-tint) 10%, transparent);
   --sidebar-accent-foreground: var(--text);
-  --form-half: color-mix(in oklch, var(--brand-deep) 30%, oklch(0 0 0));
+  --form-half: color-mix(in oklch, var(--brand-deep) 55%, oklch(0 0 0));
 }
 
 @media (prefers-reduced-transparency: reduce) {
