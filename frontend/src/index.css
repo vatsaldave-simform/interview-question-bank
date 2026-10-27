@@ -80,9 +80,7 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  /* The organisation's colours, named for their job. They stay the same in dark mode.
-     Strong is only the base the darkened reds are made from. The deep colour is the dark end of
-     the red, not a third red. */
+  /* The organisation's colours, named for their job, and the same in dark mode. */
   --brand-action: #ff4e6b;
   --brand-strong: #ff0436;
   --brand-tint: color-mix(in oklch, color-mix(in oklch, var(--brand-action), var(--brand-strong)) 30%, oklch(1 0 0));
@@ -117,7 +115,7 @@
       color-mix(in oklch, var(--brand-tint) 40%, oklch(1 0 0)),
       color-mix(in oklch, var(--brand-tint) 68%, oklch(1 0 0))
     );
-  /* The action colour darkened until white text on it, and it as a link on the backdrop, reach 4.5:1. The exact colour stays in the ring and the glows. */
+  /* Darkened so white text on it reads at 4.5:1. */
   --primary: color-mix(in oklch, var(--brand-action) 72%, oklch(0 0 0));
   --primary-foreground: oklch(1 0 0);
   --secondary: color-mix(in oklch, var(--brand-tint) 35%, oklch(1 0 0));
