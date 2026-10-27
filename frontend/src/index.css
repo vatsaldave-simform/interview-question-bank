@@ -159,12 +159,16 @@
   --sidebar-accent-foreground: var(--text);
   --sidebar-border: var(--glass-edge);
   --sidebar-ring: var(--ring);
-  /* The brand half of the signed-out screens is the deep colour in light and in dark alike. */
+  /* The brand half of the signed-out screens is the strong red darkened, in light and in dark alike. */
   --brand-half:
     radial-gradient(50% 45% at 100% 0%, color-mix(in oklch, var(--brand-action) 42%, transparent), transparent 72%),
-    radial-gradient(60% 55% at 0% 100%, color-mix(in oklch, var(--brand-tint) 45%, transparent), transparent 70%),
-    radial-gradient(40% 35% at 70% 70%, color-mix(in oklch, var(--brand-tint) 22%, transparent), transparent 70%),
-    linear-gradient(155deg, var(--brand-deep), color-mix(in oklch, var(--brand-deep) 60%, oklch(0 0 0)));
+    radial-gradient(60% 55% at 0% 100%, color-mix(in oklch, var(--brand-action) 30%, transparent), transparent 70%),
+    radial-gradient(40% 35% at 70% 70%, color-mix(in oklch, var(--brand-action) 14%, transparent), transparent 70%),
+    linear-gradient(
+      155deg,
+      color-mix(in oklch, var(--brand-strong) 68%, oklch(0 0 0)),
+      color-mix(in oklch, var(--brand-strong) 40%, oklch(0 0 0))
+    );
   --brand-half-foreground: oklch(1 0 0);
   --brand-half-muted: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
   --brand-half-card: oklch(1 0 0 / 10%);
