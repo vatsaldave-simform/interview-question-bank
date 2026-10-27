@@ -1,5 +1,7 @@
 # A Question names its Client, not just its id
 
+> The `client` field is replaced by `clients: { id, name }[]` in ADR-0050. The reasons for sending a name rather than an id still hold.
+
 #98 shows a Viewer when a Question is restricted to a Client, and which one. Until now, every
 Question the API returned named its Client only by `clientId`. A person cannot read an id. This
 is the same problem ADR-0035 solved for the Viewers in a Question's history.

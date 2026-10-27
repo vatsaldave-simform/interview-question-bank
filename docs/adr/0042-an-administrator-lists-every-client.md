@@ -1,5 +1,7 @@
 # An Administrator lists every Client, on a route of its own
 
+> Replaced by ADR-0050. A Client no longer hides a Question.
+
 `GET /api/clients` answers only with the Clients the caller holds a Permission Grant for. That is
 story 28 of spec #20: the list a Viewer picks from when restricting a Question must not reveal that
 a Client exists.
