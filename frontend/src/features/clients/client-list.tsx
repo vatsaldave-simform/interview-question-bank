@@ -68,7 +68,7 @@ export function ClientList() {
                 <Card className="flex-row items-center gap-3.5 p-(--spacing-panel)">
                   <span
                     aria-hidden="true"
-                    className="bg-brand-purple text-brand-lavender grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold"
+                    className="bg-brand-deep text-brand-tint grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold"
                   >
                     {initialsOf(client.name)}
                   </span>

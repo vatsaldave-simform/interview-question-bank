@@ -41,7 +41,7 @@ export function RatingControl({ question }: { question: Question }) {
               className={cn(
                 "hover:bg-hover",
                 mine !== null && value <= mine
-                  ? "text-brand-red hover:text-brand-red"
+                  ? "text-brand-action hover:text-brand-action"
                   : "text-muted-foreground hover:text-muted-foreground",
               )}
               aria-label={`${value} out of ${highestRating}`}

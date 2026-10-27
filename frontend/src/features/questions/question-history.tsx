@@ -39,7 +39,7 @@ export function QuestionHistory({ questionId }: { questionId: string }) {
             <li key={event.id} className="flex gap-2.5">
               <span
                 aria-hidden="true"
-                className="bg-brand-lavender ring-brand-lavender/40 mt-2 size-2 shrink-0 rounded-full ring-3"
+                className="bg-brand-tint ring-brand-tint/40 mt-2 size-2 shrink-0 rounded-full ring-3"
               />
               <div className="flex min-w-0 flex-col gap-1">
                 <p className="break-words">
