@@ -80,12 +80,15 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  /* The organisation's three colours, named for their job. They stay the same in dark mode. */
-  --brand-action: oklch(0.658 0.191 17.1);
-  --brand-tint: oklch(0.855 0.085 301.4);
-  --brand-deep: oklch(0.302 0.15 295.3);
-  --background: oklch(0.985 0.002 249);
-  --text: color-mix(in oklch, var(--brand-deep) 72%, oklch(0 0 0));
+  /* The organisation's colours, named for their job. They stay the same in dark mode.
+     Strong is only the base the darkened reds are made from. The deep colour is the dark end of
+     the red, not a third red. */
+  --brand-action: #ff4e6b;
+  --brand-strong: #ff0436;
+  --brand-tint: color-mix(in oklch, color-mix(in oklch, var(--brand-action), var(--brand-strong)) 30%, oklch(1 0 0));
+  --brand-deep: oklch(0.22 0.04 23);
+  --background: color-mix(in oklch, var(--brand-tint) 10%, oklch(1 0 0));
+  --text: var(--brand-deep);
   --foreground: var(--text);
   /* How see-through each glass is was measured, so its text keeps the contrast it had when solid. */
   --card: var(--card-glass);
@@ -105,7 +108,7 @@
   --glass-blur-sidebar: blur(22px) saturate(1.5);
   --glow: color-mix(in oklch, var(--brand-tint) 85%, transparent);
   --backdrop:
-    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-deep) 30%, transparent), transparent 70%),
+    radial-gradient(55% 55% at 0% 0%, color-mix(in oklch, var(--brand-strong) 18%, transparent), transparent 70%),
     radial-gradient(38% 42% at 100% 0%, color-mix(in oklch, var(--brand-action) 20%, transparent), transparent 72%),
     radial-gradient(55% 60% at 90% 100%, color-mix(in oklch, var(--brand-tint) 90%, transparent), transparent 72%),
     radial-gradient(40% 40% at 25% 100%, color-mix(in oklch, var(--brand-action) 10%, transparent), transparent 70%),
@@ -114,19 +117,19 @@
       color-mix(in oklch, var(--brand-tint) 40%, oklch(1 0 0)),
       color-mix(in oklch, var(--brand-tint) 68%, oklch(1 0 0))
     );
-  /* White text on this colour is hard to read, and the design owners chose it anyway. */
-  --primary: var(--brand-action);
+  /* The action colour darkened until white text on it, and it as a link on the backdrop, reach 4.5:1. The exact colour stays in the ring and the glows. */
+  --primary: color-mix(in oklch, var(--brand-action) 72%, oklch(0 0 0));
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.934 0.014 304.1);
+  --secondary: color-mix(in oklch, var(--brand-tint) 35%, oklch(1 0 0));
   --secondary-foreground: var(--brand-deep);
-  --muted: oklch(0.968 0.004 264);
+  --muted: color-mix(in oklch, var(--brand-tint) 15%, oklch(1 0 0));
   --muted-foreground: color-mix(in oklch, var(--brand-deep) 78%, oklch(1 0 0));
-  --accent: oklch(0.968 0.004 264);
+  --accent: color-mix(in oklch, var(--brand-tint) 15%, oklch(1 0 0));
   --accent-foreground: var(--text);
-  /* The error colour is the action colour darkened, because the action colour itself is too light to read as text. */
-  --destructive: color-mix(in oklch, var(--brand-action) 60%, oklch(0 0 0));
-  --border: oklch(0.924 0.012 264);
-  --input: oklch(0.924 0.012 264);
+  /* The strong red darkened, because the red itself is too light to carry white text or to read as text. */
+  --destructive: color-mix(in oklch, var(--brand-strong) 62%, oklch(0 0 0));
+  --border: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
+  --input: color-mix(in oklch, var(--brand-tint) 70%, oklch(1 0 0));
   --field: oklch(1 0 0 / 82%);
   --field-line: color-mix(in oklch, var(--brand-deep) 22%, transparent);
   --ring: var(--brand-action);
@@ -138,9 +141,9 @@
   --pending: transparent;
   --pending-foreground: var(--brand-deep);
   --pending-border: color-mix(in oklch, var(--brand-deep) 45%, transparent);
-  --rejected: color-mix(in oklch, var(--brand-action) 15%, transparent);
+  --rejected: color-mix(in oklch, var(--brand-strong) 15%, transparent);
   /* Its own value, so a change to the error red does not reach the Rejected chip. */
-  --rejected-foreground: color-mix(in oklch, var(--brand-action) 60%, oklch(0 0 0));
+  --rejected-foreground: color-mix(in oklch, var(--brand-strong) 62%, oklch(0 0 0));
   --restricted: var(--brand-deep);
   --restricted-foreground: oklch(1 0 0);
   --restricted-border: var(--brand-deep);
