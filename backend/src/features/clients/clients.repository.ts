@@ -1,7 +1,6 @@
 import type { Client } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
-/** Every Viewer is answered with every Client, because a Client hides nothing (ADR-0050). */
 export function findEveryClient(database: Database): Promise<Client[]> {
   return database.client.findMany({ orderBy: { name: "asc" }, select: publicFields });
 }

@@ -15,11 +15,8 @@ import {
 import { writeVisibleQuestion } from "../src/features/questions/questions.repository.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
-/**
- * A second Author, because the seed holds one Viewer per role and "someone else's
- * Question" needs two of them. The row is written directly because creating a Viewer
- * over HTTP is #25.
- */
+/** Written straight to the table, because the seed holds one Author and creating a Viewer
+ * over HTTP is #25. */
 async function logInAsASecondAuthor(api: TestApi): Promise<string> {
   const credentials = {
     email: "second-author@iqb.test",
@@ -252,11 +249,8 @@ describe("editing a Question over HTTP", () => {
   });
 });
 
-/**
- * The visibility rule on the write path. A Question the Viewer cannot see answers an edit
- * exactly as an id that names nothing — the same status and the same bytes — whatever
- * role the Viewer holds (ADR-0002).
- */
+/** A Question the Viewer cannot see answers an edit exactly as an id that names nothing,
+ * whatever role the Viewer holds (ADR-0002). */
 describe("editing a Question that is not Visible", () => {
   let api: TestApi;
   let authorToken: string;

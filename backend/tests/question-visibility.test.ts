@@ -13,12 +13,8 @@ const pendingWithNoClient = seedQuestions[2]!.id;
 const rejectedWithNoClient = seedQuestions[3]!.id;
 const pendingWithAClient = seedQuestions[4]!.id;
 
-/**
- * The one function every later read builds on. A Question is Visible when it is Published,
- * when the Viewer is its Author, or when the Viewer is a Reviewer, whatever Clients it names
- * (ADR-0003, ADR-0050). Asserted here rather than over HTTP, because this is where the
- * condition either exists or does not.
- */
+/** Asserted on the query function rather than over HTTP, because this is where the rule
+ * either exists or does not (ADR-0003, ADR-0050). */
 describe("fetching a Question through the shared query function", () => {
   let database: Database;
 

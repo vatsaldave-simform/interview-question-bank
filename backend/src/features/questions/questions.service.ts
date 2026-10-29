@@ -348,7 +348,6 @@ async function restrictionFor(
   return { write: { act: "move", from: question.clientId, to: clientId }, overridden: [] };
 }
 
-/** The write says which check made it fail, in the order the look-up asks them (ADR-0002). */
 function refusal(refused: WriteRefused, wrongState: string): AppError {
   switch (refused) {
     case "not-visible":

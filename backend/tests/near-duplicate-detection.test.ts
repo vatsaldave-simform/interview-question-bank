@@ -50,7 +50,6 @@ describe("finding what a submission closely resembles", () => {
     expect(nearDuplicates).toEqual([]);
   });
 
-  // Used to be left out for a Viewer holding no Grant for the Client it names.
   it("names a Question whatever Clients it names", async () => {
     const nearDuplicates = await findNearDuplicates(database, nearlyTheOtherClientsBookingOne);
 

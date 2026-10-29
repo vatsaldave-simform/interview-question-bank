@@ -127,10 +127,10 @@ describe("changing a Question's Client restriction", () => {
     aBankHolding(restricted);
     renderTheWholeClient(`/questions/${restricted.id}/edit`);
 
-    const whoCanSeeIt = await screen.findByRole("region", { name: "Who can see it" });
-    expect(within(whoCanSeeIt).getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
-    expect(await within(whoCanSeeIt).findByRole("button", { name: "Restrict" })).toBeVisible();
-    expect(within(whoCanSeeIt).queryByRole("button", { name: "Save" })).toBeNull();
+    const clientsSection = await screen.findByRole("region", { name: "Clients" });
+    expect(within(clientsSection).getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
+    expect(await within(clientsSection).findByRole("button", { name: "Restrict" })).toBeVisible();
+    expect(within(clientsSection).queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.getAllByRole("list", { name: "Clients" })).toHaveLength(1);
   });
 
@@ -194,7 +194,7 @@ describe("changing a Question's Client restriction", () => {
 
     await screen.findByLabelText("Question");
     await waitForElementToBeRemoved(() => screen.queryByText("Loading the Clients…"));
-    expect(screen.queryByRole("heading", { name: "Who can see it" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Clients" })).toBeNull();
     expect(screen.queryByRole("combobox", { name: "Restrict to a Client" })).toBeNull();
     expect(screen.queryByText(/Client|restriction/)).toBeNull();
   });

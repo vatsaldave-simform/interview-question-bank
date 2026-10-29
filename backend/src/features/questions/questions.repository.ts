@@ -415,7 +415,7 @@ function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.
 /** Not exported, and with no version that skips a check: a caller who can write their
  * own condition is the second way in that ends the guarantee (ADR-0003). */
 function visibleQuestions(viewer: Viewer): Prisma.Sql {
- // A Reviewer sees every Question, because the queue is theirs to work (ADR-0013).
+  // A Reviewer sees every Question, because the queue is theirs to work (ADR-0013).
   if (viewer.role === "reviewer") return Prisma.sql`true`;
   return Prisma.sql`(q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid)`;
 }
@@ -432,8 +432,8 @@ function carryingOneOf({ tagIds }: TagsInCategory): Prisma.Sql {
                                AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
 }
 
-/** Closest first and none below the threshold, over Question text alone (ADR-0004) and
- * Visible Questions alone (ADR-0007). */
+/** Closest first and none below the threshold, over Question text alone (ADR-0004), and
+ * only among the Publication States the caller names (ADR-0007). */
 async function findNearDuplicatesAmong(
   database: Database,
   text: string,

@@ -26,10 +26,12 @@ export function EditRestrictionForm({ question }: { question: Question }) {
     setRefusal(null);
     change.mutate(restrictionChange, {
       onSuccess: ({ question: changed }) => {
-        const now = changed.clients[0] ?? null;
-        setClientId(now?.id ?? null);
+        const restrictedNow = changed.clients[0] ?? null;
+        setClientId(restrictedNow?.id ?? null);
         toast.success(
-          now === null ? "The restriction was removed." : `It is now restricted to ${now.name}.`,
+          restrictedNow === null
+            ? "The restriction was removed."
+            : `It is now restricted to ${restrictedNow.name}.`,
         );
       },
       onError: (reason) => setRefusal(whatWentWrong(reason)),
@@ -46,12 +48,12 @@ export function EditRestrictionForm({ question }: { question: Question }) {
 
   return (
     <section
-      aria-labelledby="who-can-see-it"
+      aria-labelledby="question-clients"
       className="border-border flex flex-col gap-3 border-t pt-section"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 id="who-can-see-it" className="text-lg font-semibold">
-          Who can see it
+        <h2 id="question-clients" className="text-lg font-semibold">
+          Clients
         </h2>
         <QuestionClients clients={question.clients} />
       </div>
