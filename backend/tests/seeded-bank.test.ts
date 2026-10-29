@@ -13,7 +13,7 @@ import {
 } from "../src/features/questions/questions.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWhereTheClientsDisagree } from "./helpers/question-bank.ts";
+import { questionsWhereTheColumnIsNotTheFirstClient } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
@@ -92,9 +92,25 @@ describe("the seed", () => {
     expect(perClient.some((group) => group.clientId === null)).toBe(true);
   });
 
-  it("writes the join table to match each Question's Client", async () => {
+  it("puts each Question's first Client by name in the old column", async () => {
     expect(await database.questionClient.count()).toBeGreaterThan(0);
-    expect(await questionsWhereTheClientsDisagree(database)).toEqual([]);
+    expect(await questionsWhereTheColumnIsNotTheFirstClient(database)).toEqual([]);
+  });
+
+  it("names both Clients on one Question, and the first by name in the old column", async () => {
+    const named = await database.question.findMany({
+      where: { clients: { some: {} } },
+      select: {
+        client: { select: { name: true } },
+        clients: { select: { client: { select: { name: true } } } },
+      },
+    });
+
+    const several = named.filter(({ clients }) => clients.length > 1);
+    expect(several).toHaveLength(1);
+    const names = several[0]!.clients.map(({ client }) => client.name).sort();
+    expect(names).toEqual([seedOtherClient.name, seedClient.name].sort());
+    expect(several[0]!.client?.name).toBe(names[0]);
   });
 
   it("seeds Questions in every Publication State", async () => {

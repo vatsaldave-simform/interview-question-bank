@@ -17,8 +17,8 @@ export type SeedQuestion = {
   text: string;
   answerNotes: string;
   authorEmail: string;
-  /** The Client this Question is restricted to; absent for one in the open bank. */
-  restrictedTo?: SeedClient;
+  /** The Clients that have asked it; absent for none. */
+  clients?: readonly SeedClient[];
   publicationState: PublicationState;
   reason?: string;
   provenance: Provenance;
@@ -74,7 +74,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "How would you migrate this client's reporting pipeline off nightly batch jobs?",
     answerNotes: "Look for staged cutover, backfill and a way to compare the two outputs.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedClient,
+    clients: [seedClient],
     publicationState: "published",
     provenance: "adapted",
     source: "Designing Data-Intensive Applications, chapter 11",
@@ -108,7 +108,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "Walk through the trade-offs in this client's current React rendering strategy.",
     answerNotes: "Expect them to ask what the measured problem is before answering.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedClient,
+    clients: [seedClient],
     publicationState: "pending",
     provenance: "original",
     tags: [
@@ -123,7 +123,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "How would you migrate this client's Python booking service onto the shared data model?",
     answerNotes: "Look for a rollout that can be stopped halfway, and for who is told when it is.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedOtherClient,
+    clients: [seedOtherClient],
     publicationState: "published",
     provenance: "original",
     tags: [
@@ -137,7 +137,7 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "Which part of this client's intake process would you automate first, and why that part?",
     answerNotes: "The reasoning is the answer; the part they pick barely matters.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedOtherClient,
+    clients: [seedOtherClient],
     publicationState: "pending",
     provenance: "original",
     tags: [
@@ -145,14 +145,13 @@ export const seedQuestions: readonly SeedQuestion[] = [
       { category: "question-type", tag: "practical" },
     ],
   },
-  // One Rejected Question per Client, so each Client holds every Publication State and
-  // the Rejected path can be walked through a Grant, not only in the open bank.
+  // One Rejected Question per Client, so each Client holds every Publication State.
   {
     id: "a0000000-0000-4000-8000-000000000008",
     text: "What does this client's logo look like?",
     answerNotes: "None worth recording.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedClient,
+    clients: [seedClient],
     publicationState: "rejected",
     reason: "It tests whether someone read the brief, not how they work.",
     provenance: "original",
@@ -163,11 +162,27 @@ export const seedQuestions: readonly SeedQuestion[] = [
     text: "Name every Python web framework this client has ever used.",
     answerNotes: "None worth recording.",
     authorEmail: seedAuthorEmail,
-    restrictedTo: seedOtherClient,
+    clients: [seedOtherClient],
     publicationState: "rejected",
     reason: "A list someone could look up says nothing about how they would use one.",
     provenance: "original",
     tags: [{ category: "technology", tag: "python" }],
+  },
+  // Asked by both Clients, and listed out of name order, so the old column has to be given
+  // the first by name rather than the first written.
+  {
+    id: "a0000000-0000-4000-8000-000000000010",
+    text: "How would you share one component library between two teams that ship on different schedules?",
+    answerNotes: "Look for versioned releases, a changelog people read, and a plan for breaking changes.",
+    authorEmail: seedAuthorEmail,
+    clients: [seedClient, seedOtherClient],
+    publicationState: "published",
+    provenance: "original",
+    tags: [
+      { category: "technology", tag: "react" },
+      { category: "seniority", tag: "senior" },
+      { category: "question-type", tag: "system-design" },
+    ],
   },
 ];
 
@@ -201,13 +216,19 @@ export async function seedQuestionBank(
       select: { id: true },
     });
     // Seeded by `clients.seed.ts`, which the seed command runs first.
-    const client =
-      question.restrictedTo === undefined
-        ? null
-        : await database.client.findUniqueOrThrow({
-            where: { name: question.restrictedTo.name },
-            select: { id: true },
-          });
+    const named = (question.clients ?? []).map(({ name }) => name);
+    const clients = await database.client.findMany({
+      where: { name: { in: named } },
+      orderBy: { name: "asc" },
+      select: { id: true },
+    });
+    // Checked, because `in` drops a name it cannot find where a typo should stop the seed.
+    if (clients.length !== new Set(named).size) {
+      throw new Error(`Question ${question.id} names a Client that was never seeded.`);
+    }
+    // The old column holds one Client, the first by name, so code rolled back to before
+    // `question_clients` was read still finds one of them (ADR-0050).
+    const [first] = clients;
     await database.question.upsert({
       where: { id: question.id },
       update: {},
@@ -216,13 +237,13 @@ export async function seedQuestionBank(
         text: question.text,
         answerNotes: question.answerNotes,
         authorId: author.id,
-        ...(client === null ? {} : { clientId: client.id }),
+        ...(first === undefined ? {} : { clientId: first.id }),
         publicationState: question.publicationState,
         ...(question.reason === undefined ? {} : { reason: question.reason }),
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
         tags: { create: question.tags.map((reference) => ({ tagId: tagId(tagIds, reference) })) },
-        clients: { create: client === null ? [] : [{ clientId: client.id }] },
+        clients: { create: clients.map(({ id }) => ({ clientId: id })) },
       },
     });
   }

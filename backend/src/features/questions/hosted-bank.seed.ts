@@ -383,15 +383,15 @@ const openQuestions: readonly SeedQuestion[] = [
   }),
 ];
 
-/** Four per Client, with one or two of each Pending so a Reviewer with a Grant has Client
- * work to review. */
+/** Four per Client, with one or two of each Pending so a Reviewer has Client work to
+ * review, and one asked by two Clients. */
 const clientQuestions: readonly SeedQuestion[] = [
   byJohn(39, {
     text: "Harbourline's delivery vans each send their position every 10 seconds. How would you store and serve the latest one?",
     answerNotes:
       "Keep the latest position apart from the history: one in something like Redis, the " +
       "other in a table built for time series. Ask how old history gets dropped.",
-    restrictedTo: harbourline,
+    clients: [harbourline],
     publicationState: "published",
     provenance: "original",
     tags: [tech("redis"), tech("postgres"), level("senior"), kind("system-design")],
@@ -401,7 +401,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "An idempotency key on each update, checked by the server, and a unique constraint so " +
       "a retry cannot write a second row.",
-    restrictedTo: harbourline,
+    clients: [harbourline],
     publicationState: "published",
     provenance: "original",
     tags: [tech("node"), tech("postgres"), level("mid"), kind("practical")],
@@ -411,7 +411,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "They should see it is the travelling salesman problem and settle for good enough: " +
       "nearest neighbour plus local swaps, inside a time limit.",
-    restrictedTo: harbourline,
+    clients: [harbourline],
     publicationState: "published",
     provenance: "original",
     tags: [tech("python"), level("senior"), kind("coding")],
@@ -421,7 +421,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Scans stored on the device in a queue, and sent when the connection returns, with a " +
       "rule for two scans of the same parcel that disagree.",
-    restrictedTo: harbourline,
+    clients: [harbourline],
     publicationState: "pending",
     provenance: "original",
     tags: [tech("react"), tech("typescript"), level("senior"), kind("system-design")],
@@ -431,7 +431,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "One database transaction, or a double-entry ledger. Strong answers lock both accounts " +
       "in a fixed order so two transfers cannot deadlock.",
-    restrictedTo: brightwater,
+    clients: [brightwater],
     publicationState: "published",
     provenance: "original",
     tags: [tech("postgres"), tech("java"), level("senior"), kind("system-design")],
@@ -441,7 +441,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Floats cannot hold most decimal amounts exactly, so totals drift. Use whole cents or " +
       "a decimal type.",
-    restrictedTo: brightwater,
+    clients: [brightwater],
     publicationState: "published",
     provenance: "original",
     tags: [tech("java"), tech("javascript"), level("junior"), kind("conceptual")],
@@ -451,7 +451,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Measure first. Then paging, an index on account and date, and perhaps a summary table " +
       "per month.",
-    restrictedTo: brightwater,
+    clients: [brightwater],
     publicationState: "pending",
     provenance: "original",
     tags: [tech("postgres"), level("mid"), kind("debugging")],
@@ -461,7 +461,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Short-lived tokens, refresh tokens tied to the device, biometrics to unlock them, and " +
       "a way for the customer to sign out every device at once.",
-    restrictedTo: brightwater,
+    clients: [brightwater],
     publicationState: "pending",
     provenance: "original",
     tags: [tech("typescript"), tech("aws"), level("senior"), kind("system-design")],
@@ -471,7 +471,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "An atomic decrement, in Redis or a guarded SQL update, with a queue in front. Ask what " +
       "happens to a cart that is never paid for.",
-    restrictedTo: fernhill,
+    clients: [fernhill],
     publicationState: "published",
     provenance: "original",
     tags: [tech("redis"), tech("go"), level("senior"), kind("system-design")],
@@ -481,7 +481,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Measure with Lighthouse or real-user data. Then image sizes, too much JavaScript, " +
       "fonts and layout shift.",
-    restrictedTo: fernhill,
+    clients: [fernhill],
     publicationState: "published",
     provenance: "original",
     tags: [tech("react"), tech("css"), level("mid"), kind("debugging")],
@@ -491,7 +491,7 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Wait for a pause in typing, cancel requests that are out of date, and use a search " +
       "index rather than LIKE. Keyboard support matters too.",
-    restrictedTo: fernhill,
+    clients: [fernhill],
     publicationState: "published",
     provenance: "original",
     tags: [tech("react"), tech("typescript"), level("mid"), kind("practical")],
@@ -501,10 +501,21 @@ const clientQuestions: readonly SeedQuestion[] = [
     answerNotes:
       "Something small with clear edges and little risk, with monitoring in place before the " +
       "move. Not the checkout.",
-    restrictedTo: fernhill,
+    clients: [fernhill],
     publicationState: "pending",
     provenance: "original",
     tags: [tech("kubernetes"), tech("docker"), level("lead"), kind("system-design")],
+  }),
+  // Listed out of name order, so the old column has to be given the first by name.
+  byJohn(51, {
+    text: "Harbourline and Fernhill both want an audit trail of who changed what. How would you build one service for both?",
+    answerNotes:
+      "An append-only table per tenant or a tenant column, written in the same transaction as " +
+      "the change. Ask who may read another tenant's trail: nobody.",
+    clients: [harbourline, fernhill],
+    publicationState: "published",
+    provenance: "original",
+    tags: [tech("postgres"), level("senior"), kind("system-design")],
   }),
 ];
 

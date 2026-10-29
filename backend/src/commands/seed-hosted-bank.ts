@@ -15,17 +15,17 @@ const env = readEnv();
 const database = createDatabase(env.DATABASE_URL, { poolMax: env.DATABASE_POOL_MAX });
 
 try {
-  // The order is the dependency: Grants are held by Viewers, and a restricted Question
-  // points at its Client.
+  // The order is the dependency: Grants are held by Viewers, and a Question points at its
+  // Clients.
   await seedHostedViewers(database, passwords);
   await seedClientsAndGrants(database, hostedClients);
   await seedQuestionBank(database, hostedBank);
 
-  const restricted = hostedBank.questions.filter((question) => question.restrictedTo).length;
+  const namingAClient = hostedBank.questions.filter((question) => question.clients?.length).length;
   console.log(`Seeded ${passwords.size} Viewers: ${[...passwords.keys()].join(", ")}`);
   console.log(
     `Seeded ${hostedClients.length} Clients and ${hostedBank.questions.length} Questions, ` +
-      `${restricted} of them restricted to a Client.`,
+      `${namingAClient} of them naming a Client.`,
   );
 } finally {
   await database.$disconnect();
