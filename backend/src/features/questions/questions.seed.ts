@@ -222,6 +222,7 @@ export async function seedQuestionBank(
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
         tags: { create: question.tags.map((reference) => ({ tagId: tagId(tagIds, reference) })) },
+        clients: { create: client === null ? [] : [{ clientId: client.id }] },
       },
     });
   }

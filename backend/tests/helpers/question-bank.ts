@@ -327,6 +327,19 @@ export async function historyOf(api: TestApi, id: string, token: string): Promis
   return questionHistoryResponseSchema.parse(await response.json()).events;
 }
 
+/** Every Question whose `clientId` and join table rows do not name the same Clients, for
+ * a test that a write kept the two in step (ADR-0050). Empty when they all agree. */
+export async function questionsWhereTheClientsDisagree(database: Database): Promise<string[]> {
+  const rows = await database.$queryRaw<{ id: string }[]>`
+    SELECT q.id FROM questions q
+      LEFT JOIN question_clients qc ON qc."questionId" = q.id
+     GROUP BY q.id, q."clientId"
+    HAVING array_remove(array_agg(qc."clientId"), NULL)
+           IS DISTINCT FROM array_remove(ARRAY[q."clientId"], NULL)
+  `;
+  return rows.map((row) => row.id);
+}
+
 /** The Question a response carries, failing loudly with the status and body otherwise. */
 export async function questionAnswered(response: Response): Promise<Question> {
   if (response.status !== 200) throw new Error(`Answered ${await statusAndBody(response)}.`);

@@ -8,7 +8,7 @@ import {
 } from "../src/features/questions/bulk-bank.seed.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { seedTheBank } from "./helpers/question-bank.ts";
+import { questionsWhereTheClientsDisagree, seedTheBank } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
@@ -125,6 +125,10 @@ describe("the bulk bank", () => {
     expect(restricted).toBeGreaterThan(bulk.count * 0.1);
     expect(restricted).toBeLessThan(bulk.count * 0.3);
     expect(unrestricted).toBe(bulk.count - restricted);
+  });
+
+  it("writes the join table to match each Question's Client", async () => {
+    expect(await questionsWhereTheClientsDisagree(database)).toEqual([]);
   });
 
   // The small seed holds the other states.

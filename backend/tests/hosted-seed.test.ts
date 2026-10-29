@@ -21,6 +21,7 @@ import {
 } from "../src/features/viewers/hosted-viewers.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
+import { questionsWhereTheClientsDisagree } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /** A password per hosted Viewer, each one different so a mix-up shows. */
@@ -211,6 +212,10 @@ describe("the hosted seed's Questions", () => {
   });
   afterAll(async () => {
     await database.$disconnect();
+  });
+
+  it("writes the join table to match each Question's Client", async () => {
+    expect(await questionsWhereTheClientsDisagree(database)).toEqual([]);
   });
 
   it("writes 50 Questions, all by John", async () => {
