@@ -19,7 +19,6 @@ import {
   insertChangeEvent,
   type ChangeEventToInsert,
 } from "../change-events/change-events.repository.ts";
-import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database, Transaction } from "../../platform/database.ts";
 
 /** A Question as the rest of the code sees one: its Clients and its Tags carry names, not
@@ -63,7 +62,7 @@ export type NewQuestion = {
   answerNotes: string;
   provenance: Provenance;
   source?: string;
-  /** A Client the adding Viewer holds a Grant for, which the caller has checked. */
+  /** A Client the caller has checked exists. */
   clientId?: string;
   tagIds: readonly string[];
 };
@@ -80,7 +79,7 @@ export type QuestionWrite = Change | ({ act: "edit" } & QuestionEdit);
 
 /** Why a write wrote nothing, decided inside its transaction, so nobody has to look the
  * Question up again to find out. */
-export type WriteRefused = "not-visible" | "wrong-state" | "client-not-granted";
+export type WriteRefused = "not-visible" | "wrong-state";
 
 export type QuestionWritten = { question: QuestionFromDb } | { refused: WriteRefused };
 
@@ -582,14 +581,6 @@ async function changeLockedQuestion(
   overridden: readonly NearDuplicate[],
 ): Promise<QuestionWritten> {
   const plan = changePlanFor(change, { questionId: id });
-  // Asked again here, so a Grant revoked since the caller checked cannot leave the Question
-  // restricted to a Client its Author no longer holds.
-  if (
-    plan.grantedClient !== undefined &&
-    (await findClientGrantedTo(transaction, viewer.id, plan.grantedClient)) === null
-  ) {
-    return { refused: "client-not-granted" };
-  }
 
   const { count } = await transaction.question.updateMany({
     where: { AND: [{ id }, plan.startsFrom] },
@@ -674,8 +665,6 @@ type ChangePlan = {
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
   event: ChangeEventToInsert;
-  /** The Client the Viewer must still hold a Grant for when the write lands. */
-  grantedClient?: string;
   /** The join table follows `clientId` until reads move to it (ADR-0050). */
   clientRow?: { remove?: string; add?: string };
 };
@@ -713,7 +702,6 @@ const changePlans: {
       type: "question_classified",
       payload: { clientId: { before: null, after: clientId } },
     },
-    grantedClient: clientId,
     clientRow: { add: clientId },
   }),
   // A Question Published since the caller looked is no longer its Author's to move.
@@ -725,7 +713,6 @@ const changePlans: {
       type: "question_classified",
       payload: { clientId: { before: from, after: to } },
     },
-    grantedClient: to,
     clientRow: { remove: from, add: to },
   }),
   "remove-restriction": ({ from }, happened) => ({

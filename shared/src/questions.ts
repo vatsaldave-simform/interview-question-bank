@@ -129,7 +129,7 @@ export const rejectQuestionRequestSchema = z
   .strict();
 export type RejectQuestionRequest = z.infer<typeof rejectQuestionRequestSchema>;
 
-/** Only a Client the Viewer holds a Grant for is accepted, and that is checked further in. */
+/** Only a Client that exists is accepted, and that is checked further in. */
 export const restrictQuestionRequestSchema = z.object({ clientId: z.uuid() }).strict();
 export type RestrictQuestionRequest = z.infer<typeof restrictQuestionRequestSchema>;
 

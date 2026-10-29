@@ -6,11 +6,10 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callApi } from "@/platform/api-client";
 
-/** Only the Clients the Viewer holds a Grant for, which are the only ones they may restrict a
- * Question to. */
-export function useGrantedClients() {
+/** Every Client, which any Viewer may name on a Question (ADR-0050). */
+export function useClients() {
   return useQuery({
-    queryKey: ["clients", "granted"],
+    queryKey: ["clients", "list"],
     queryFn: ({ signal }) => callApi("/api/clients", clientListResponseSchema, { signal }),
     select: (answer) => answer.clients,
   });

@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { writeVisibleQuestion } from "../src/features/questions/questions.repository.ts";
 import {
   aViewer,
-  clientIdNamed,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
@@ -23,12 +21,10 @@ const {
  */
 describe("why the write on an existing Question wrote nothing", () => {
   let api: TestApi;
-  let secondClientId: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
-    secondClientId = await clientIdNamed(api.database, seedOtherClient.name);
   });
   beforeEach(async () => {
     await resetTheQuestions(api.database);
@@ -68,21 +64,6 @@ describe("why the write on an existing Question wrote nothing", () => {
 
     expect(written).toEqual({ refused: "wrong-state" });
     expect(await eventsAbout(publishedAndUnrestricted)).toBe(before);
-  });
-
-  it("says client-not-granted for a Client the Viewer holds no Grant for", async () => {
-    const author = await viewerByRole(api.database, "author");
-
-    const written = await writeVisibleQuestion(api.database, author, publishedAndUnrestricted, {
-      act: "restrict",
-      clientId: secondClientId,
-    });
-
-    expect(written).toEqual({ refused: "client-not-granted" });
-    const stored = await api.database.question.findUniqueOrThrow({
-      where: { id: publishedAndUnrestricted },
-    });
-    expect(stored.clientId).toBeNull();
   });
 
   it("answers with the Question when it wrote, so the refusals above are not a no-op", async () => {

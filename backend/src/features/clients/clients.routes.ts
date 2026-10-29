@@ -7,7 +7,7 @@ import { Router } from "express";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireAdministrator } from "../auth/require-administrator.middleware.ts";
 import { permissionGrantRoutes } from "../permission-grants/permission-grants.routes.ts";
-import { findClientsGrantedTo, findEveryClient } from "./clients.repository.ts";
+import { findEveryClient } from "./clients.repository.ts";
 import { createClient } from "./clients.service.ts";
 import type { Database } from "../../platform/database.ts";
 
@@ -16,15 +16,15 @@ import type { Database } from "../../platform/database.ts";
 export function clientRoutes(database: Database): Router {
   const router = Router();
 
-  router.get("/", async (req, res) => {
-    const clients = await findClientsGrantedTo(database, authenticatedViewer(req).id);
+  router.get("/", async (_req, res) => {
+    const clients = await findEveryClient(database);
 
     const body: ClientListResponse = { clients };
     res.json(body);
   });
 
-  // The checks sit on these two routes and not the router, because listing your own Clients
-  // is open to every Viewer.
+  // The checks sit on these two routes and not the router, because listing the Clients is
+  // open to every Viewer.
   router.get("/all", requireAdministrator(), async (_req, res) => {
     const clients = await findEveryClient(database);
 

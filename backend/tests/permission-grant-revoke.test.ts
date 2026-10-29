@@ -151,16 +151,9 @@ describe("the next request after a Grant is revoked", () => {
 
     expect((await getQuestion(api, named, readerToken)).status).toBe(200);
     expect(await questionIdsListed(readerToken)).toContain(named);
-    expect(await clientNamesListed(api, readerToken)).toEqual([]);
-  });
-
-  it("leaves the Viewer's other Grants working", async () => {
-    // Issued here, so that revoking it leaves the Reviewer's Grant for the second Client.
-    const reviewer = await viewerByRole(api.database, "reviewer");
-    await api.database.permissionGrant.create({ data: { viewerId: reviewer.id, clientId } });
-
-    await deleteGrant(api, clientId, reviewer.id, administratorToken);
-
-    expect(await clientNamesListed(api, administratorToken)).toEqual([seedOtherClient.name]);
+    expect(await clientNamesListed(api, readerToken)).toEqual([
+      seedOtherClient.name,
+      seedClient.name,
+    ]);
   });
 });

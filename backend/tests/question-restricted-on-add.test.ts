@@ -93,43 +93,34 @@ describe("adding a Question restricted to a Client", () => {
     expect(events.map(({ type }) => type)).toEqual(["question_added"]);
   });
 
-  it("refuses a Client the Author holds no Grant for exactly as one that does not exist", async () => {
-    const notHeld = await postQuestion(api, aQuestion({ clientId: secondClientId }), authorToken);
-    const noSuchClient = await postQuestion(
+  it("lets an Author name a Client they hold no Grant for", async () => {
+    const question = await addedAs(authorToken, secondClientId);
+
+    expect(question.clients.map(({ id }) => id)).toEqual([secondClientId]);
+  });
+
+  it("lets a Viewer holding no Grant at all name a Client", async () => {
+    const token = await logInHoldingNoGrant(api, "author");
+
+    const question = await addedAs(token, firstClientId);
+
+    expect(question.clients.map(({ id }) => id)).toEqual([firstClientId]);
+  });
+
+  it("refuses a Client that does not exist, and stores nothing", async () => {
+    const text = "Which Client-specific question should never have been stored at all?";
+
+    const response = await postQuestion(
       api,
-      aQuestion({ clientId: crypto.randomUUID() }),
+      aQuestion({ text, clientId: crypto.randomUUID() }),
       authorToken,
     );
 
-    expect(notHeld.status).toBe(400);
-    expect(noSuchClient.status).toBe(400);
-    const [notHeldBody, noSuchClientBody] = [
-      apiErrorSchema.parse(await notHeld.json()),
-      apiErrorSchema.parse(await noSuchClient.json()),
-    ];
-    // The request id differs between two requests, so only the rest is compared.
-    expect(notHeldBody.error.code).toBe("invalid_request");
-    expect(notHeldBody.error.message).toBe("No such Client.");
-    expect(notHeldBody.error.message).toBe(noSuchClientBody.error.message);
-    expect(notHeldBody.error.details).toEqual(noSuchClientBody.error.details);
-  });
-
-  it("stores nothing when the Client is refused", async () => {
-    const text = "Which Client-specific question should never have been stored at all?";
-    const countBefore = await api.database.question.count({ where: { text } });
-
-    await postQuestion(api, aQuestion({ text, clientId: secondClientId }), authorToken);
-
-    expect(await api.database.question.count({ where: { text } })).toBe(countBefore);
-  });
-
-  it("refuses a Viewer holding no Grant at all", async () => {
-    const token = await logInHoldingNoGrant(api, "author");
-
-    const response = await postQuestion(api, aQuestion({ clientId: firstClientId }), token);
-
     expect(response.status).toBe(400);
-    expect(apiErrorSchema.parse(await response.json()).error.message).toBe("No such Client.");
+    const body = apiErrorSchema.parse(await response.json());
+    expect(body.error.code).toBe("invalid_request");
+    expect(body.error.message).toBe("No such Client.");
+    expect(await api.database.question.count({ where: { text } })).toBe(0);
   });
 
   it("refuses a Client id that is not a uuid at the edge", async () => {

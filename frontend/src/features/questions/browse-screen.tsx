@@ -135,8 +135,7 @@ function NothingToShow({ namesAFilter, onClearFilter }: NothingToShowProps) {
     );
   }
   return (
-    // Not "the bank is empty": it may hold Questions restricted to a Client this Viewer
-    // holds no Permission Grant for.
+    // Not "the bank is empty": it may hold Pending Questions this Viewer may not see.
     <EmptyList
       icon={LibraryIcon}
       title="No Question you can see yet"

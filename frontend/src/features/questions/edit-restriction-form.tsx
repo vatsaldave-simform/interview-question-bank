@@ -1,7 +1,7 @@
 import type { Question } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { useGrantedClients } from "@/features/clients/clients.queries";
+import { useClients } from "@/features/clients/clients.queries";
 import { QuestionClients } from "@/features/questions/question-clients";
 import { QuestionClientChoice } from "@/features/questions/question-client-choice";
 import {
@@ -15,7 +15,7 @@ import { Button } from "@/ui/shadcn/button";
 /** In the edit form's card but sent apart from it, because an edit refuses a Client and a
  * restriction change is its own Change Event (ADR-0018). */
 export function EditRestrictionForm({ question }: { question: Question }) {
-  const clients = useGrantedClients();
+  const clients = useClients();
   const change = useChangeRestriction(question.id);
   // The one Client the restrict act works on, which is the first by name until #194.
   const restrictedTo = question.clients[0] ?? null;

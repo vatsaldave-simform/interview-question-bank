@@ -39,7 +39,7 @@ import {
   type TagsInCategory,
   type WriteRefused,
 } from "./questions.repository.ts";
-import { findClientGrantedTo } from "../clients/clients.repository.ts";
+import { findClientById } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -57,7 +57,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  if (request.clientId !== undefined) await checkGrantedClient(database, viewer, request.clientId);
+  if (request.clientId !== undefined) await checkClientExists(database, request.clientId);
   const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "add",
     questionId: null,
@@ -185,14 +185,9 @@ function idOf(found: ReadonlyMap<string, string>, { category, tag }: QuestionTag
   return id;
 }
 
-/** A restriction the Viewer holds no Grant for would hide the Question from the Viewer who
- * set it, and a Client they cannot see is answered as one that does not exist (ADR-0018). */
-async function checkGrantedClient(
-  database: Database,
-  viewer: Viewer,
-  clientId: string,
-): Promise<void> {
-  if ((await findClientGrantedTo(database, viewer.id, clientId)) === null) {
+/** Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
+async function checkClientExists(database: Database, clientId: string): Promise<void> {
+  if ((await findClientById(database, clientId)) === null) {
     throw new InvalidRequestError("No such Client.");
   }
 }
@@ -339,7 +334,7 @@ async function restrictionFor(
   question: QuestionFromDb,
   clientId: string,
 ): Promise<PreparedWrite | null> {
-  await checkGrantedClient(database, viewer, clientId);
+  await checkClientExists(database, clientId);
 
   if (question.clientId === null) return { write: { act: "restrict", clientId }, overridden: [] };
   if (question.clientId === clientId) return null;
@@ -353,14 +348,11 @@ async function restrictionFor(
   return { write: { act: "move", from: question.clientId, to: clientId }, overridden: [] };
 }
 
-/** A Permission Grant can be revoked between the look-up and the write, and the write says
- * which check that made it fail, in the order the look-up asks them (ADR-0002). */
+/** The write says which check made it fail, in the order the look-up asks them (ADR-0002). */
 function refusal(refused: WriteRefused, wrongState: string): AppError {
   switch (refused) {
     case "not-visible":
       return new NotFoundError();
-    case "client-not-granted":
-      return new InvalidRequestError("No such Client.");
     case "wrong-state":
       return new ConflictError(wrongState);
   }

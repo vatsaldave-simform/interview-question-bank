@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useGrantedClients } from "@/features/clients/clients.queries";
+import { useClients } from "@/features/clients/clients.queries";
 import { whatWentWrong } from "@/platform/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -17,11 +17,11 @@ type QuestionClientChoiceProps = {
 
 export function QuestionClientChoice(props: QuestionClientChoiceProps) {
   const { clientId, onChange, children } = props;
-  const clients = useGrantedClients();
+  const clients = useClients();
   if (clients.isPending) {
     return (
       <div role="status" className="flex flex-col gap-3">
-        <span className="sr-only">Loading your Clients…</span>
+        <span className="sr-only">Loading the Clients…</span>
         <Skeleton className="bg-muted h-4 w-32" />
         <Skeleton className="bg-muted h-9 w-full" />
       </div>
@@ -32,7 +32,7 @@ export function QuestionClientChoice(props: QuestionClientChoiceProps) {
   if (clients.isError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Your Clients could not be loaded</AlertTitle>
+        <AlertTitle>The Clients could not be loaded</AlertTitle>
         <AlertDescription className="flex flex-col items-start gap-3">
           <p>Until they load, the Question cannot be restricted to a Client.</p>
           <p>{whatWentWrong(clients.error)}</p>
@@ -43,7 +43,7 @@ export function QuestionClientChoice(props: QuestionClientChoiceProps) {
       </Alert>
     );
   }
-  // With no Grant there is nothing to choose, and an empty list would look broken.
+  // With no Client there is nothing to choose, and an empty list would look broken.
   if (clients.data.length === 0) return null;
 
   return (

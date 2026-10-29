@@ -42,7 +42,7 @@ const unrestricted = aQuestion({
 });
 
 type BankOptions = {
-  granted?: Client[];
+  listed?: Client[];
   /** Answers a restriction change first, when a test wants it refused. `changeElsewhere`
    * changes the Question the way another Viewer would have. */
   refuse?: (
@@ -53,7 +53,7 @@ type BankOptions = {
 
 /** Holds `question` and changes its restriction the way the API would. */
 function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
-  const { granted = [acme, globex], refuse } = options;
+  const { listed = [acme, globex], refuse } = options;
   let current = question;
   const changeElsewhere = (changes: Partial<Question>) => {
     current = { ...current, ...changes };
@@ -61,7 +61,7 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
   return fakeBank(
     (asked) => aPageOf([current], asked),
     async (request, asked) => {
-      if (asked.pathname === "/api/clients") return answersWith({ clients: granted });
+      if (asked.pathname === "/api/clients") return answersWith({ clients: listed });
       if (asked.pathname === `/api/questions/${question.id}/history`) {
         return answersWith({ events: [] });
       }
@@ -78,7 +78,7 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
         current = { ...current, clients: [] };
       } else {
         const { clientId } = (await request.json()) as RestrictQuestionRequest;
-        current = { ...current, clients: granted.filter(({ id }) => id === clientId) };
+        current = { ...current, clients: listed.filter(({ id }) => id === clientId) };
       }
       return answersWith({ question: current });
     },
@@ -188,12 +188,12 @@ describe("changing a Question's Client restriction", () => {
     expect(toastsShown()).toHaveLength(0);
   });
 
-  it("shows no Client section on an unrestricted Question to a Viewer with no Grant", async () => {
-    aBankHolding(unrestricted, { granted: [] });
+  it("shows no Client section on an unrestricted Question when there is no Client", async () => {
+    aBankHolding(unrestricted, { listed: [] });
     renderTheWholeClient(`/questions/${unrestricted.id}/edit`);
 
     await screen.findByLabelText("Question");
-    await waitForElementToBeRemoved(() => screen.queryByText("Loading your Clients…"));
+    await waitForElementToBeRemoved(() => screen.queryByText("Loading the Clients…"));
     expect(screen.queryByRole("heading", { name: "Who can see it" })).toBeNull();
     expect(screen.queryByRole("combobox", { name: "Restrict to a Client" })).toBeNull();
     expect(screen.queryByText(/Client|restriction/)).toBeNull();
