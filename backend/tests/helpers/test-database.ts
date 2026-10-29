@@ -1,6 +1,11 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PrismaPg } from "@prisma/adapter-pg";
+import type { Client } from "pg";
 import { PrismaClient } from "../../src/generated/prisma/client.ts";
 import { createDatabase, type Database } from "../../src/platform/database.ts";
+
+const migrationsDir = fileURLToPath(new URL("../../prisma/migrations/", import.meta.url));
 
 /**
  * The suite truncates whatever it connects to, so it refuses to connect to anything
@@ -53,6 +58,23 @@ export async function makeShadowDatabase(database: Database): Promise<string> {
 
   url.pathname = `/${name}`;
   return url.toString();
+}
+
+/** The folder names of every migration, oldest first, which is the order Prisma applies them. */
+export function migrationNames(): string[] {
+  return readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+/**
+ * Runs one migration's SQL as it is written, for a test that has to stop the history
+ * part way and put rows in before the next step. Sent as one simple query, because a
+ * migration file holds several statements and a prepared statement takes only one.
+ */
+export async function applyMigration(connection: Client, name: string): Promise<void> {
+  await connection.query(readFileSync(`${migrationsDir}${name}/migration.sql`, "utf8"));
 }
 
 /** A database that keeps every statement it sends, so a test can assert what the query

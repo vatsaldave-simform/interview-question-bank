@@ -126,13 +126,17 @@ export async function seedBulkBank(
 
   const questionRows = [];
   const questionTagRows = [];
+  const questionClientRows = [];
   let restricted = 0;
 
   for (let n = 0; n < count; n += 1) {
     const key = `question:${n}`;
     const id = uuidFor(seed, key);
     const isRestricted = randomFor(seed, `${key}:restricted`) < restrictedShare;
-    if (isRestricted) restricted += 1;
+    if (isRestricted) {
+      restricted += 1;
+      questionClientRows.push({ questionId: id, clientId: client.id });
+    }
 
     const words = wordsFor(seed, key);
     questionRows.push({
@@ -158,13 +162,16 @@ export async function seedBulkBank(
     }
   }
 
-  // Tags after the Questions they point at. Both skip a row that is already there: the
-  // same seed value may run twice, and one Question may pick one Tag twice.
+  // Tags and Clients after the Questions they point at. Each skips a row that is already
+  // there, since the same seed value may run twice; Tags also, as a Question may pick one twice.
   const questionsWritten = await insertInBatches(questionRows, (rows) =>
     database.question.createMany({ data: rows, skipDuplicates: true }),
   );
   const tagsWritten = await insertInBatches(questionTagRows, (rows) =>
     database.questionTag.createMany({ data: rows, skipDuplicates: true }),
+  );
+  await insertInBatches(questionClientRows, (rows) =>
+    database.questionClient.createMany({ data: rows, skipDuplicates: true }),
   );
 
   return { questions: count, restricted, questionsWritten, tagsWritten };

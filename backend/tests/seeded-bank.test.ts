@@ -13,6 +13,7 @@ import {
 } from "../src/features/questions/questions.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
+import { questionsWhereTheClientsDisagree } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
@@ -89,6 +90,11 @@ describe("the seed", () => {
     const restricted = perClient.filter((group) => group.clientId !== null);
     expect(restricted).toHaveLength(seedClients.length);
     expect(perClient.some((group) => group.clientId === null)).toBe(true);
+  });
+
+  it("writes the join table to match each Question's Client", async () => {
+    expect(await database.questionClient.count()).toBeGreaterThan(0);
+    expect(await questionsWhereTheClientsDisagree(database)).toEqual([]);
   });
 
   it("seeds Questions in every Publication State", async () => {
