@@ -281,6 +281,9 @@ export async function insertQuestion(
         ...(question.source === undefined ? {} : { source: question.source }),
         ...(question.clientId === undefined ? {} : { clientId: question.clientId }),
         tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
+        clients: {
+          create: question.clientId === undefined ? [] : [{ clientId: question.clientId }],
+        },
       },
       select: questionFieldsToRead,
     });
@@ -605,6 +608,16 @@ async function changeLockedQuestion(
   });
   if (count === 0) return { refused: "wrong-state" };
 
+  if (plan.clientRow?.remove) {
+    await transaction.questionClient.deleteMany({
+      where: { questionId: id, clientId: plan.clientRow.remove },
+    });
+  }
+  if (plan.clientRow?.add) {
+    await transaction.questionClient.create({
+      data: { questionId: id, clientId: plan.clientRow.add },
+    });
+  }
   await insertChangeEvent(transaction, viewer, plan.event);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
@@ -669,6 +682,8 @@ type ChangePlan = {
   event: ChangeEventToInsert;
   /** The Client the Viewer must still hold a Grant for when the write lands. */
   grantedClient?: string;
+  /** The join table follows `clientId` until reads move to it (ADR-0050). */
+  clientRow?: { remove?: string; add?: string };
 };
 
 const changePlans: {
@@ -705,6 +720,7 @@ const changePlans: {
       payload: { clientId: { before: null, after: clientId } },
     },
     grantedClient: clientId,
+    clientRow: { add: clientId },
   }),
   // A Question Published since the caller looked is no longer its Author's to move.
   move: ({ from, to }, happened) => ({
@@ -716,10 +732,12 @@ const changePlans: {
       payload: { clientId: { before: from, after: to } },
     },
     grantedClient: to,
+    clientRow: { remove: from, add: to },
   }),
   "remove-restriction": ({ from }, happened) => ({
     startsFrom: { clientId: from },
     writes: { clientId: null },
     event: { ...happened, type: "question_declassified", payload: { clientId: from } },
+    clientRow: { remove: from },
   }),
 };
