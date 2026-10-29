@@ -68,7 +68,7 @@ export async function addQuestion(
       source: request.source ?? null,
       tags: [...request.tags],
     },
-    nearDuplicates: await findNearDuplicates(database, viewer, request.text),
+    nearDuplicates: await findNearDuplicates(database, request.text),
     confirmed: request.confirmedNotANearDuplicate,
   });
 
@@ -291,7 +291,7 @@ async function checkEditedText(
     act: "edit",
     questionId: question.id,
     attempted: questionAfter(question, request),
-    nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
+    nearDuplicates: await findNearDuplicatesForEdit(database, { id: question.id, text }),
     confirmed: request.confirmedNotANearDuplicate === true,
   });
 }
@@ -325,7 +325,7 @@ async function publicationFor(
     act: "publish",
     questionId: question.id,
     attempted: questionAfter(question),
-    nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
+    nearDuplicates: await findNearDuplicatesForPublication(database, question),
     confirmed: request.confirmedNotANearDuplicate,
   });
   return { write, overridden };

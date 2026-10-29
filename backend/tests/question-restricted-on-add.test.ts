@@ -9,7 +9,6 @@ import {
   historyOf,
   postQuestion,
   seedTheBank,
-  unknownQuestionId,
   whoDidWhat,
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
@@ -61,14 +60,12 @@ describe("adding a Question restricted to a Client", () => {
     expect(question.clients.map(({ id }) => id)).toEqual([secondClientId]);
   });
 
-  it("answers a Reviewer holding no Grant for it as if it did not exist", async () => {
+  it("hides it from nobody, a Reviewer holding no Grant for its Client included", async () => {
     const question = await addedAs(authorToken, firstClientId);
 
-    const restricted = await getQuestion(api, question.id, reviewerToken);
-    const unknown = await getQuestion(api, unknownQuestionId, reviewerToken);
+    const fetched = await getQuestion(api, question.id, reviewerToken);
 
-    expect(restricted.status).toBe(404);
-    expect(await restricted.text()).toBe(await unknown.text());
+    expect(fetched.status).toBe(200);
   });
 
   it("records it added and then restricted, both by the Author", async () => {

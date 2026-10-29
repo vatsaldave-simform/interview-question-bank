@@ -115,13 +115,10 @@ describe("restricting a Question to a Client, and removing the restriction", () 
       expect(await clientIdOf(publishedAndUnrestricted)).toBe(firstClientId);
     });
 
-    it("hides it at once from a Reviewer holding no Grant for the Client", async () => {
+    it("hides it from nobody, a Reviewer holding no Grant for the Client included", async () => {
       await questionAnswered(await restrict(publishedAndUnrestricted, firstClientId, authorToken));
 
-      await expectMissing(
-        await getQuestion(api, publishedAndUnrestricted, reviewerToken),
-        await getQuestion(api, unknownQuestionId, reviewerToken),
-      );
+      expect((await getQuestion(api, publishedAndUnrestricted, reviewerToken)).status).toBe(200);
     });
 
     it("records it as its own event naming the Author, and not as an edit", async () => {
@@ -199,9 +196,10 @@ describe("restricting a Question to a Client, and removing the restriction", () 
     });
 
     it("answers a Question the Viewer cannot see as one that does not exist", async () => {
+      // Pending and not the Reader's, so out of their sight whatever Client it names.
       await expectMissing(
-        await restrict(publishedForTheFirstClient, secondClientId, reviewerToken),
-        await restrict(unknownQuestionId, secondClientId, reviewerToken),
+        await restrict(pendingAndUnrestricted, firstClientId, readerToken),
+        await restrict(unknownQuestionId, firstClientId, readerToken),
       );
     });
 
@@ -373,15 +371,13 @@ describe("restricting a Question to a Client, and removing the restriction", () 
       expect(await clientIdOf(publishedForTheFirstClient)).toBe(firstClientId);
     });
 
-    it("lets a Reviewer remove it, which shows it to a Reader holding no Grant", async () => {
-      expect((await getQuestion(api, publishedForTheSecondClient, readerToken)).status).toBe(404);
-
+    it("lets a Reviewer remove it, and the Question names no Client after", async () => {
       const question = await questionAnswered(
         await removeRestriction(publishedForTheSecondClient, reviewerToken),
       );
 
       expect(question.clients).toEqual([]);
-      expect((await getQuestion(api, publishedForTheSecondClient, readerToken)).status).toBe(200);
+      expect(await clientIdOf(publishedForTheSecondClient)).toBeNull();
     });
 
     it("records it as its own event naming the Reviewer and the Client, and not as an edit", async () => {
@@ -396,12 +392,13 @@ describe("restricting a Question to a Client, and removing the restriction", () 
       expect(events.map(({ type }) => type)).not.toContain("question_edited");
     });
 
-    it("answers a Reviewer holding no Grant for the Client as if the Question did not exist", async () => {
+    it("answers a Question the Viewer cannot see as one that does not exist", async () => {
+      // Pending and not the Reader's, so out of their sight whatever Client it names.
       await expectMissing(
-        await removeRestriction(publishedForTheFirstClient, reviewerToken),
-        await removeRestriction(unknownQuestionId, reviewerToken),
+        await removeRestriction(pendingForTheFirstClient, readerToken),
+        await removeRestriction(unknownQuestionId, readerToken),
       );
-      expect(await clientIdOf(publishedForTheFirstClient)).toBe(firstClientId);
+      expect(await clientIdOf(pendingForTheFirstClient)).toBe(firstClientId);
     });
 
     it("refuses a Question with no restriction to remove", async () => {

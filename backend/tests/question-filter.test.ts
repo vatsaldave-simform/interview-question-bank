@@ -80,17 +80,17 @@ describe("filtering the bank by Category", () => {
     }
   });
 
-  it("keeps a Client-restricted Question out of a page for a Viewer holding no Grant", async () => {
+  it("puts a Question that names a Client in the page of a Viewer holding no Grant for it", async () => {
     const query = queryForEveryMatch([{ category: "technology", tagIds: technology }]);
-    // The bulk bank restricts to this Client, and the Reviewer holds no Grant for it.
-    // Not "no Client at all": the Reviewer does hold a Grant for the other seeded one.
-    const restrictedTo = await clientIdNamed(database, seedClient.name);
+    // The bulk bank names this Client, and the Reviewer holds no Grant for it.
+    const named = await clientIdNamed(database, seedClient.name);
 
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
     const seenByReader = await findVisibleQuestions(database, reader, query);
 
-    expect(seenByReviewer.every((question) => !question.clients.some(({ id }) => id === restrictedTo))).toBe(true);
-    expect(seenByReader.some((question) => question.clients.some(({ id }) => id === restrictedTo))).toBe(true);
+    expect(seenByReviewer.some(({ clients }) => clients.some(({ id }) => id === named))).toBe(true);
+    // The whole bank is Published, so the two pages are the same page.
+    expect(seenByReviewer.map(({ id }) => id)).toEqual(seenByReader.map(({ id }) => id));
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {
@@ -111,7 +111,7 @@ describe("filtering the bank by Category", () => {
     expect(sqlLog.statements).toHaveLength(1);
     const [page] = sqlLog.statements;
     expect(page).toContain("LIMIT");
-    expect(page).toContain("permission_grants");
+    expect(page).toContain(`q."publicationState" = 'published'`);
     expect(page!.match(/EXISTS \(SELECT 1 FROM question_tags/g)).toHaveLength(2);
     // Both columns, because the id is what settles a createdAt tie between pages.
     expect(page).toMatch(/ORDER BY q\."createdAt" DESC, q\.id DESC/);

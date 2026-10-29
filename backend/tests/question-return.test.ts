@@ -174,11 +174,10 @@ describe("returning a Published Question to its Author", () => {
     }
   });
 
-  it("answers a Reviewer holding no Grant for the Client as if the Question were not there", async () => {
+  it("lets a Reviewer holding no Grant for the Client return it", async () => {
     const response = await returnIt(publishedForTheFirstClient, reviewerToken);
-    const nothing = await returnIt(unknownQuestionId, reviewerToken);
 
-    expect(await statusAndBody(response)).toBe(await statusAndBody(nothing));
+    expect(response.status).toBe(200);
   });
 
   it("refuses to return a Question that is not Published", async () => {

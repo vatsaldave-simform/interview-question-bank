@@ -109,21 +109,13 @@ export async function sameAnswerInJavaScript(
   const questions = await database.question.findMany({
     select: {
       id: true,
-      clientId: true,
       publicationState: true,
       authorId: true,
       createdAt: true,
       tags: { select: { tagId: true } },
     },
   });
-  const grants = await database.permissionGrant.findMany({
-    where: { viewerId: viewer.id },
-    select: { clientId: true },
-  });
-  const granted = new Set(grants.map((grant) => grant.clientId));
-
   return questions
-    .filter((question) => question.clientId === null || granted.has(question.clientId))
     .filter(
       (question) =>
         viewer.role === "reviewer" ||
@@ -231,12 +223,6 @@ export const alsoInMuchOfTheBulkBank = bankVocabulary[1];
 
 /** A word only one seeded Question holds, and only in its Answer Notes. */
 export const inOneAnswerNoteOnly = "merging";
-
-/** A word only the second Client's Questions hold. */
-export const inTheOtherClientsQuestionsOnly = "booking";
-
-/** A word one Published Question of each Client holds, and nothing in the open bank. */
-export const inBothClientsQuestions = "migrate";
 
 /** A word no Question in the bank holds, which is what a genuine zero-match is. */
 export const inNoQuestionAtAll = "kubernetes";

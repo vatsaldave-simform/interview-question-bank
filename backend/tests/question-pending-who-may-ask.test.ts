@@ -17,6 +17,7 @@ const {
   aboutTheClientsRendering: pendingForTheFirstClient,
   aboutTheOtherClientsIntake: pendingForTheSecondClient,
   aboutTheClientsLogo: rejectedForTheFirstClient,
+  aboutTheOtherClientsFrameworks: rejectedForTheSecondClient,
 } = seededQuestionIds;
 
 type List = "pending" | "own";
@@ -66,10 +67,14 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
     expect(response.status).toBe(403);
   });
 
-  it("hands a Reviewer the Pending Questions Visible to them", async () => {
+  it("hands a Reviewer every Pending Question, whatever Clients it names", async () => {
     const response = await getList(api, "pending", {}, reviewerToken);
 
-    expect(await idsQueued(response)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient]);
+    expect(await idsQueued(response)).toEqual([
+      pendingAndUnrestricted,
+      pendingForTheFirstClient,
+      pendingForTheSecondClient,
+    ]);
   });
 
   it("refuses an Author's own list to a Reader, who can have added nothing", async () => {
@@ -82,7 +87,9 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
     const response = await getList(api, "own", {}, authorToken);
 
     expect(await idsListed(response)).toEqual([
+      rejectedForTheSecondClient,
       rejectedForTheFirstClient,
+      pendingForTheSecondClient,
       pendingForTheFirstClient,
       rejectedAndUnrestricted,
       pendingAndUnrestricted,
@@ -126,7 +133,7 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
 
     expect(response.status).toBe(200);
     const body = questionListResponseSchema.parse(await response.json());
-    expect(body.questions.map((question) => question.id)).toEqual([pendingForTheFirstClient]);
+    expect(body.questions.map((question) => question.id)).toEqual([rejectedForTheFirstClient]);
     expect(body.limit).toBe(1);
     expect(body.offset).toBe(1);
   });

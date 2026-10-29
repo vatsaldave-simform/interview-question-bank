@@ -102,33 +102,30 @@ describe("rating a Question", () => {
     expect((await rate(rejected, { value: 3 }, reviewerToken)).status).toBe(409);
   });
 
-  it("answers a Reader rating a Pending id, a restricted id and a missing id the same", async () => {
+  it("answers a Reader rating a Pending id, whatever Client it names, as a missing id", async () => {
     const answers = [
       await statusAndBody(await rate(pending, { value: 3 }, readerToken)),
-      await statusAndBody(await rate(publishedForTheSecondClient, { value: 3 }, readerToken)),
-      // Both restricted and Pending, so the two checks are held together and not one at a time.
       await statusAndBody(await rate(pendingForTheSecondClient, { value: 3 }, readerToken)),
       await statusAndBody(await rate(unknownQuestionId, { value: 3 }, readerToken)),
     ];
 
     expect(answers[0]).toMatch(/^404 /);
     expect(new Set(answers).size).toBe(1);
-    // The Viewer holding the Grant can rate that same restricted Question, so the match
-    // above is the check at work and not a route that answers 404 to everything.
-    expect((await rate(publishedForTheSecondClient, { value: 3 }, reviewerToken)).status).toBe(200);
+    // A Published one under a Client the Reader holds no Grant for takes the rating, so the
+    // match above is the check at work and not a route that answers 404 to everything.
+    expect((await rate(publishedForTheSecondClient, { value: 3 }, readerToken)).status).toBe(200);
   });
 
-  it("answers a Viewer holding no Grant the same way for each of them", async () => {
+  it("answers a Viewer holding no Grant at all the same way, and lets them rate what is Published", async () => {
     const answers = [
       await statusAndBody(await rate(pending, { value: 3 }, noGrantToken)),
-      await statusAndBody(await rate(publishedForTheFirstClient, { value: 3 }, noGrantToken)),
       await statusAndBody(await rate(pendingForTheFirstClient, { value: 3 }, noGrantToken)),
       await statusAndBody(await rate(unknownQuestionId, { value: 3 }, noGrantToken)),
     ];
 
     expect(answers[0]).toMatch(/^404 /);
     expect(new Set(answers).size).toBe(1);
-    expect((await rate(publishedForTheFirstClient, { value: 3 }, readerToken)).status).toBe(200);
+    expect((await rate(publishedForTheFirstClient, { value: 3 }, noGrantToken)).status).toBe(200);
   });
 
   it("answers a malformed id as a missing one", async () => {

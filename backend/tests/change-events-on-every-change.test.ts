@@ -155,8 +155,8 @@ describe("the trace a change leaves", () => {
     const refused: [string, string][] = [
       // A Reader may not edit a Question they can see perfectly well.
       [seededQuestionIds.aboutTypeScript, readerToken],
-      // This one the Reviewer holds no Permission Grant for, so it is not even there.
-      [seededQuestionIds.aboutTheClientsPipeline, reviewerToken],
+      // Pending and not the Reader's, so it is not even there.
+      [seededQuestionIds.aboutDisagreeing, readerToken],
     ];
 
     for (const [id, token] of refused) {

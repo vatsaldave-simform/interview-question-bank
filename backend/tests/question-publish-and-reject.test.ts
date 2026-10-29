@@ -149,17 +149,18 @@ describe("Publishing and Rejecting a Pending Question", () => {
     }
   });
 
-  it("answers a Reviewer holding no Grant for the Client as if the Question were not there", async () => {
+  it("answers a Reader acting on a Pending Question as if the Question were not there", async () => {
+    // The Reader may not see it, so the visibility check answers before the role rule does.
     for (const act of ["publish", "reject"] as const) {
       const response = await postReviewAct(
         api,
         pendingForTheFirstClient,
         act,
-        reviewerToken,
+        readerToken,
         bodyFor(act),
       );
 
-      expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, reviewerToken));
+      expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, readerToken));
     }
   });
 

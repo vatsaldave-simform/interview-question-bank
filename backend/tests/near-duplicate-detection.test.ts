@@ -34,9 +34,7 @@ describe("finding what a submission closely resembles", () => {
   });
 
   it("names the Question a submission resembles, with its text and how close it is", async () => {
-    const author = await viewerByRole(database, "author");
-
-    const nearDuplicates = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
+    const nearDuplicates = await findNearDuplicates(database, nearlyTheTypeScriptOne);
 
     expect(nearDuplicates.map((near) => near.questionId)).toEqual([seededQuestionIds.aboutTypeScript]);
     expect(nearDuplicates[0]!.similarity).toBeGreaterThanOrEqual(nearDuplicateThreshold);
@@ -44,54 +42,37 @@ describe("finding what a submission closely resembles", () => {
   });
 
   it("names nothing for a Question on the same subject that is not a copy of one", async () => {
-    const author = await viewerByRole(database, "author");
-
     const nearDuplicates = await findNearDuplicates(
       database,
-      author,
       aboutTypeScriptWithoutBeingTheSameQuestion,
     );
 
     expect(nearDuplicates).toEqual([]);
   });
 
-  it("never names a restricted Question to a Viewer holding no Grant for its Client", async () => {
-    // The Reader holds the first Client's Grant and not the second's, and the Question
-    // this text copies belongs to the second.
-    const reader = await viewerByRole(database, "reader");
-
-    const nearDuplicates = await findNearDuplicates(database, reader, nearlyTheOtherClientsBookingOne);
-
-    expect(nearDuplicates).toEqual([]);
-  });
-
-  it("names that same Question to a Viewer who does hold the Grant", async () => {
-    const reviewer = await viewerByRole(database, "reviewer");
-
-    const nearDuplicates = await findNearDuplicates(database, reviewer, nearlyTheOtherClientsBookingOne);
+  // Used to be left out for a Viewer holding no Grant for the Client it names.
+  it("names a Question whatever Clients it names", async () => {
+    const nearDuplicates = await findNearDuplicates(database, nearlyTheOtherClientsBookingOne);
 
     expect(nearDuplicates.map((near) => near.questionId)).toEqual([
       seededQuestionIds.aboutTheOtherClientsBooking,
     ]);
   });
 
-  it("never names a Pending Question, even to a Reviewer whose queue it is in", async () => {
-    const reviewer = await viewerByRole(database, "reviewer");
-
-    const nearDuplicates = await findNearDuplicates(database, reviewer, nearlyThePendingOne);
+  it("never names a Pending Question", async () => {
+    const nearDuplicates = await findNearDuplicates(database, nearlyThePendingOne);
 
     expect(nearDuplicates).toEqual([]);
   });
 
   it("measures the Question text and not the Answer Notes (ADR-0004)", async () => {
-    const author = await viewerByRole(database, "author");
     // Word for word the Answer Notes of the seeded TypeScript Question. Were the Notes
     // in the comparison, this would be the closest thing in the bank by a long way.
     const theAnswerNotesOfOne =
       "A good answer reaches declaration merging and the fact that interfaces are open, " +
       "then says which they reach for by default and why.";
 
-    const nearDuplicates = await findNearDuplicates(database, author, theAnswerNotesOfOne);
+    const nearDuplicates = await findNearDuplicates(database, theAnswerNotesOfOne);
 
     expect(nearDuplicates).toEqual([]);
   });
@@ -122,7 +103,7 @@ describe("finding what a submission closely resembles", () => {
       });
     }
 
-    const nearDuplicates = await findNearDuplicates(database, author, nearlyTheTypeScriptOne);
+    const nearDuplicates = await findNearDuplicates(database, nearlyTheTypeScriptOne);
 
     expect(nearDuplicates).toHaveLength(mostNearDuplicatesNamed);
   });

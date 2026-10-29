@@ -116,8 +116,6 @@ export async function findEventsAboutVisibleQuestion(
   return findEventsOfQuestion(database, viewer, id);
 }
 
-/** Only ever narrowed from both checks, so the queue is no way around a Permission
- * Grant (ADR-0013). */
 export function findPendingQuestionsForReview(
   database: Database,
   viewer: Viewer,
@@ -134,8 +132,6 @@ export function findPendingQuestionsForReview(
   );
 }
 
-/** Still narrowed from both checks, so an Author loses sight of their own Question under
- * a Client they hold no Grant for, exactly as the fetch does (ADR-0002). */
 export function findOwnUnpublishedQuestions(
   database: Database,
   viewer: Viewer,
@@ -190,8 +186,8 @@ export function searchVisibleQuestions(
  * plan committed as evidence is the plan of the statement that ships and cannot get out
  * of sync with it (issue #12).
  *
- * Handing this out opens no second way to the questions table: both checks are built in,
- * and there is no argument that removes them or adds a condition of its own (ADR-0003).
+ * Handing this out opens no second way to the questions table: the visibility check is built
+ * in, and there is no argument that removes it or adds a condition of its own (ADR-0003).
  */
 export function searchStatement(
   viewer: Viewer,
@@ -219,20 +215,18 @@ export function searchStatement(
  * about a Question waiting in a queue they may not see (ADR-0014). */
 export function findNearDuplicates(
   database: Database,
-  viewer: Viewer,
   text: string,
 ): Promise<NearDuplicate[]> {
-  return findNearDuplicatesAmong(database, viewer, text, { states: ["published"] });
+  return findNearDuplicatesAmong(database, text, { states: ["published"] });
 }
 
 /** The Questions a submission is checked against, without the one being edited, which
  * would always be its own Near-Duplicate (ADR-0014). */
 export function findNearDuplicatesForEdit(
   database: Database,
-  viewer: Viewer,
   question: { id: string; text: string },
 ): Promise<NearDuplicate[]> {
-  return findNearDuplicatesAmong(database, viewer, question.text, {
+  return findNearDuplicatesAmong(database, question.text, {
     states: ["published"],
     excluding: question.id,
   });
@@ -242,10 +236,9 @@ export function findNearDuplicatesForEdit(
  * Question being Published, which would always be its own Near-Duplicate (ADR-0014). */
 export function findNearDuplicatesForPublication(
   database: Database,
-  viewer: Viewer,
   question: { id: string; text: string },
 ): Promise<NearDuplicate[]> {
-  return findNearDuplicatesAmong(database, viewer, question.text, {
+  return findNearDuplicatesAmong(database, question.text, {
     states: ["published", "pending"],
     excluding: question.id,
   });
@@ -370,8 +363,8 @@ async function readQuestionRows(
   }));
 }
 
-/** Every read but the search goes through this, and `narrowing` is AND-ed with both
- * checks, so it can only ever narrow them (ADR-0003). */
+/** Every read but the search goes through this, and `narrowing` is AND-ed with the
+ * visibility check, so it can only ever narrow it (ADR-0003). */
 function visibleQuestionsStatement(
   viewer: Viewer,
   narrowing: readonly Prisma.Sql[],
@@ -423,21 +416,9 @@ function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.
 /** Not exported, and with no version that skips a check: a caller who can write their
  * own condition is the second way in that ends the guarantee (ADR-0003). */
 function visibleQuestions(viewer: Viewer): Prisma.Sql {
-  // No second check for a Reviewer, which could not widen the first anyway (ADR-0013).
-  if (viewer.role === "reviewer") return visibleTo(viewer);
-  return Prisma.sql`${visibleTo(viewer)} AND (
-    q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid
-  )`;
-}
-
-/** The first check, on its own because detection pairs it with a narrower second check
- * (ADR-0002, ADR-0014). */
-function visibleTo(viewer: Viewer): Prisma.Sql {
-  return Prisma.sql`(
-    q."clientId" IS NULL
-    OR EXISTS (SELECT 1 FROM permission_grants g
-                WHERE g."clientId" = q."clientId" AND g."viewerId" = ${viewer.id}::uuid)
-  )`;
+ // A Reviewer sees every Question, because the queue is theirs to work (ADR-0013).
+  if (viewer.role === "reviewer") return Prisma.sql`true`;
+  return Prisma.sql`(q."publicationState" = 'published' OR q."authorId" = ${viewer.id}::uuid)`;
 }
 
 function visibleQuestionWithId(viewer: Viewer, id: string): Prisma.Sql {
@@ -456,7 +437,6 @@ function carryingOneOf({ tagIds }: TagsInCategory): Prisma.Sql {
  * Visible Questions alone (ADR-0007). */
 async function findNearDuplicatesAmong(
   database: Database,
-  viewer: Viewer,
   text: string,
   { states, excluding }: NearDuplicateReach,
 ): Promise<NearDuplicate[]> {
@@ -465,8 +445,7 @@ async function findNearDuplicatesAmong(
       FROM (
         SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
           FROM questions q
-         WHERE ${visibleTo(viewer)}
-           AND q."publicationState" = ANY(${[...states]}::"PublicationState"[])
+         WHERE q."publicationState" = ANY(${[...states]}::"PublicationState"[])
            ${excluding === undefined ? Prisma.empty : Prisma.sql`AND q.id <> ${excluding}::uuid`}
          -- Ordered by distance rather than by similarity, because distance is what the
          -- GiST index can answer; the two are the same order (ADR-0004).
@@ -564,8 +543,8 @@ async function editLockedQuestion(
   return after;
 }
 
-/** By id, not checked again: the lock already found it Visible, and a Permission Grant revoked
- * since then would make a checked read lose a write that is already made. */
+/** By id, not checked again: the lock already found it Visible, and a write that moved its
+ * Publication State could make a checked read lose a write that is already made. */
 async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
   const written = await transaction.question.findUniqueOrThrow({
     where: { id },

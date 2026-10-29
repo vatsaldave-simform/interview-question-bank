@@ -88,7 +88,7 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
 
 // The Reviewer is the case that matters: Pending hides nothing from them, so only the
 // Client restriction stands between them and this Question (ADR-0013).
-describe("a Question both restricted and Pending, for a Viewer holding no Grant", () => {
+describe("a Pending Question that names a Client, for a Viewer holding no Grant", () => {
   let api: TestApi;
 
   beforeAll(async () => {
@@ -99,7 +99,8 @@ describe("a Question both restricted and Pending, for a Viewer holding no Grant"
     await api.stop();
   });
 
-  for (const role of ["reader", "author", "reviewer"] as const) {
+  // Out of their sight because it is Pending, and not because of its Client.
+  for (const role of ["reader", "author"] as const) {
     it(`answers a ${role} exactly as it answers an id that does not exist`, async () => {
       const token = await logInHoldingNoGrant(api, role);
 
@@ -111,7 +112,15 @@ describe("a Question both restricted and Pending, for a Viewer holding no Grant"
     });
   }
 
-  it("hands the same Question to its Author, who holds the Grant", async () => {
+  it("hands it to a Reviewer, whose queue it is in", async () => {
+    const token = await logInHoldingNoGrant(api, "reviewer");
+
+    const found = await getQuestion(api, pendingForTheFirstClient, token);
+
+    expect(found.status).toBe(200);
+  });
+
+  it("hands the same Question to its Author", async () => {
     const token = await logIn(api, seededViewer("author"));
 
     const found = await getQuestion(api, pendingForTheFirstClient, token);

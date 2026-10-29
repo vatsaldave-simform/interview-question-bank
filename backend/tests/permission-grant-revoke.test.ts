@@ -9,10 +9,9 @@ import {
   getQuestions,
   seedTheBank,
   seededQuestionIds,
-  unknownQuestionId,
   viewerByRole,
 } from "./helpers/question-bank.ts";
-import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
+import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 function grantRevokedEvents(api: TestApi) {
   return api.database.changeEvent.findMany({ where: { type: "permission_grant_revoked" } });
@@ -123,7 +122,7 @@ describe("the next request after a Grant is revoked", () => {
   let api: TestApi;
   let administratorToken: string;
   let clientId: string;
-  const restricted = seededQuestionIds.aboutTheClientsPipeline;
+  const named = seededQuestionIds.aboutTheClientsPipeline;
 
   beforeAll(async () => {
     api = await startTestApi();
@@ -142,37 +141,17 @@ describe("the next request after a Grant is revoked", () => {
     return questionListResponseSchema.parse(await response.json()).questions.map(({ id }) => id);
   }
 
-  it("cannot reach that Client's Questions, on the token the Viewer already held", async () => {
+  // A Client hides nothing any more (ADR-0050), so a revoked Grant takes nothing out of sight.
+  it("leaves that Client's Questions in reach, on the token the Viewer already held", async () => {
     const reader = await viewerByRole(api.database, "reader");
     const readerToken = await logIn(api, seededViewer("reader"));
-    // Reached before, so "cannot reach after" is the revocation and not the seed.
-    expect((await getQuestion(api, restricted, readerToken)).status).toBe(200);
-    expect(await questionIdsListed(readerToken)).toContain(restricted);
 
     const revoked = await deleteGrant(api, clientId, reader.id, administratorToken);
     expect(revoked.status).toBe(204);
 
-    expect(await statusAndBody(await getQuestion(api, restricted, readerToken))).toBe(
-      await statusAndBody(await getQuestion(api, unknownQuestionId, readerToken)),
-    );
-    expect(await questionIdsListed(readerToken)).not.toContain(restricted);
+    expect((await getQuestion(api, named, readerToken)).status).toBe(200);
+    expect(await questionIdsListed(readerToken)).toContain(named);
     expect(await clientNamesListed(api, readerToken)).toEqual([]);
-  });
-
-  it("answers an Author's own Question under that Client as one that does not exist", async () => {
-    // The seeded Author wrote every seeded Question, the restricted one included.
-    const author = await viewerByRole(api.database, "author");
-    const authorToken = await logIn(api, seededViewer("author"));
-    const question = await api.database.question.findUniqueOrThrow({ where: { id: restricted } });
-    expect(question.authorId).toBe(author.id);
-    expect(question.clientId).toBe(clientId);
-    expect((await getQuestion(api, restricted, authorToken)).status).toBe(200);
-
-    await deleteGrant(api, clientId, author.id, administratorToken);
-
-    expect(await statusAndBody(await getQuestion(api, restricted, authorToken))).toBe(
-      await statusAndBody(await getQuestion(api, unknownQuestionId, authorToken)),
-    );
   });
 
   it("leaves the Viewer's other Grants working", async () => {
@@ -183,8 +162,5 @@ describe("the next request after a Grant is revoked", () => {
     await deleteGrant(api, clientId, reviewer.id, administratorToken);
 
     expect(await clientNamesListed(api, administratorToken)).toEqual([seedOtherClient.name]);
-    const ids = await questionIdsListed(administratorToken);
-    expect(ids).toContain(seededQuestionIds.aboutTheOtherClientsBooking);
-    expect(ids).not.toContain(restricted);
   });
 });

@@ -280,10 +280,12 @@ describe("the hosted seed's Questions", () => {
     for (const question of pending) expect(queued).toContain(question.id);
   });
 
-  it("shows each Reader only the Clients they hold a Grant for", async () => {
-    expect(await clientsSeenBy("shane.austin@iqb.test")).toEqual([harbourline.name]);
-    expect(await clientsSeenBy("cody.rhodes@iqb.test")).toEqual([brightwater.name]);
-    expect(await clientsSeenBy("dwayne.rook@iqb.test")).toEqual([]);
+  it("shows every Reader the same Clients, whatever Grants they hold", async () => {
+    const seen = await clientsSeenBy("shane.austin@iqb.test");
+
+    expect(seen).toEqual(expect.arrayContaining([harbourline.name, brightwater.name]));
+    expect(await clientsSeenBy("cody.rhodes@iqb.test")).toEqual(seen);
+    expect(await clientsSeenBy("dwayne.rook@iqb.test")).toEqual(seen);
   });
 
   // The seed skips the check an Author meets, so without this an edit to one of these

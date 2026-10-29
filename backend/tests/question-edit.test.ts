@@ -9,6 +9,7 @@ import {
   seedTheBank,
   seededQuestionIds,
   unknownQuestionId,
+  aViewer,
   viewerByRole,
 } from "./helpers/question-bank.ts";
 import { writeVisibleQuestion } from "../src/features/questions/questions.repository.ts";
@@ -16,9 +17,8 @@ import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts
 
 /**
  * A second Author, because the seed holds one Viewer per role and "someone else's
- * Question" needs two of them. They hold no Permission Grant, which is fine: every
- * Question they are asked about here is unrestricted. The row is written directly
- * because creating a Viewer over HTTP is #25.
+ * Question" needs two of them. The row is written directly because creating a Viewer
+ * over HTTP is #25.
  */
 async function logInAsASecondAuthor(api: TestApi): Promise<string> {
   const credentials = {
@@ -47,11 +47,11 @@ async function logInAsASecondAuthor(api: TestApi): Promise<string> {
  */
 describe("editing a Question over HTTP", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the first Client too, and may edit nothing. */
+  /** May edit nothing. */
   let readerToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
+  /** Holds no Grant for the first Client, which hides nothing from them any more. */
   let reviewerToken: string;
   /** Author of nothing, holder of nothing. */
   let otherAuthorToken: string;
@@ -145,12 +145,10 @@ describe("editing a Question over HTTP", () => {
     expect(questionResponseSchema.parse(await response.json()).question.text).toBe(newText);
   });
 
-  it("lets a Reviewer change a Question only their Permission Grant makes Visible", async () => {
-    // The unrestricted case above would pass with no Grant involved at all; this one is
-    // the second Client's, which the Reviewer reaches only because they hold the Grant.
+  it("lets a Reviewer change a Question that names a Client they hold no Grant for", async () => {
     const response = await patchQuestion(
       api,
-      seededQuestionIds.aboutTheOtherClientsBooking,
+      seededQuestionIds.aboutTheClientsPipeline,
       { text: newText },
       reviewerToken,
     );
@@ -255,17 +253,14 @@ describe("editing a Question over HTTP", () => {
 });
 
 /**
- * The half of the rule the whole project is built around, on the write path. A Question
- * restricted to a Client a Viewer holds no Permission Grant for answers an edit exactly
- * as an id that names nothing — the same status and the same bytes — whatever role the
- * Viewer holds. A Reviewer included: "a Reviewer may edit any Question" has always meant
- * any Visible one (ADR-0002).
+ * The visibility rule on the write path. A Question the Viewer cannot see answers an edit
+ * exactly as an id that names nothing — the same status and the same bytes — whatever
+ * role the Viewer holds (ADR-0002).
  */
 describe("editing a Question that is not Visible", () => {
   let api: TestApi;
   let authorToken: string;
   let readerToken: string;
-  let reviewerToken: string;
   /** Author of nothing, holder of nothing. */
   let otherAuthorToken: string;
 
@@ -274,7 +269,6 @@ describe("editing a Question that is not Visible", () => {
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     readerToken = await logIn(api, seededViewer("reader"));
-    reviewerToken = await logIn(api, seededViewer("reviewer"));
     otherAuthorToken = await logInAsASecondAuthor(api);
   });
   beforeEach(async () => {
@@ -288,30 +282,19 @@ describe("editing a Question that is not Visible", () => {
 
   /** What editing this id and editing an id that names nothing both look like. */
   async function editingLooksLikeNothingThere(id: string, token: string): Promise<void> {
-    const restricted = await patchQuestion(api, id, edit, token);
+    const hidden = await patchQuestion(api, id, edit, token);
     const nothing = await patchQuestion(api, unknownQuestionId, edit, token);
 
-    expect(await statusAndBody(restricted)).toBe(await statusAndBody(nothing));
-    expect(restricted.status).toBe(404);
+    expect(await statusAndBody(hidden)).toBe(await statusAndBody(nothing));
+    expect(hidden.status).toBe(404);
   }
 
-  it("answers a Reviewer holding no Grant for that Client as if the Question were not there", async () => {
-    await editingLooksLikeNothingThere(seededQuestionIds.aboutTheClientsPipeline, reviewerToken);
-  });
-
-  it("answers an Author holding no Grant for that Client the same way", async () => {
-    await editingLooksLikeNothingThere(seededQuestionIds.aboutTheOtherClientsBooking, authorToken);
-  });
-
-  it("answers a Reader holding no Grant for that Client the same way", async () => {
-    await editingLooksLikeNothingThere(seededQuestionIds.aboutTheOtherClientsBooking, readerToken);
-  });
-
   it("answers a Reader editing a Pending Question as if it were not there", async () => {
-    // Not restricted to any Client: this one is out of reach because it is Pending and a
-    // Reader is not its Author. Without it, the edit path could check Permission Grants
-    // alone and every other test here would still pass.
     await editingLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, readerToken);
+  });
+
+  it("answers a Reader editing a Rejected Question the same way", async () => {
+    await editingLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, readerToken);
   });
 
   it("answers an Author editing another Author's Pending Question the same way", async () => {
@@ -345,7 +328,7 @@ describe("editing a Question that is not Visible", () => {
     const visible = await patchQuestion(api, seededQuestionIds.aboutTypeScript, edit, readerToken);
     const notVisible = await patchQuestion(
       api,
-      seededQuestionIds.aboutTheOtherClientsBooking,
+      seededQuestionIds.aboutDisagreeing,
       edit,
       readerToken,
     );
@@ -358,16 +341,11 @@ describe("editing a Question that is not Visible", () => {
     // Without this, both 404s above would be satisfied by a Question nobody can edit.
     const refused = await patchQuestion(
       api,
-      seededQuestionIds.aboutTheClientsPipeline,
+      seededQuestionIds.aboutDisagreeing,
       edit,
-      reviewerToken,
+      otherAuthorToken,
     );
-    const allowed = await patchQuestion(
-      api,
-      seededQuestionIds.aboutTheClientsPipeline,
-      edit,
-      authorToken,
-    );
+    const allowed = await patchQuestion(api, seededQuestionIds.aboutDisagreeing, edit, authorToken);
 
     expect(refused.status).toBe(404);
     expect(allowed.status).toBe(200);
@@ -375,9 +353,9 @@ describe("editing a Question that is not Visible", () => {
   });
 
   it("leaves the Question untouched after the refused edit", async () => {
-    await patchQuestion(api, seededQuestionIds.aboutTheClientsPipeline, edit, reviewerToken);
+    await patchQuestion(api, seededQuestionIds.aboutDisagreeing, edit, otherAuthorToken);
 
-    const stored = await getQuestion(api, seededQuestionIds.aboutTheClientsPipeline, authorToken);
+    const stored = await getQuestion(api, seededQuestionIds.aboutDisagreeing, authorToken);
     const question = questionResponseSchema.parse(await stored.json()).question;
     expect(question.text).not.toBe(edit.text);
   });
@@ -385,8 +363,7 @@ describe("editing a Question that is not Visible", () => {
 
 /**
  * The write is scoped on its own, and the look-up that runs before it in the service is
- * not what makes it safe. Called directly, because over HTTP the two always run together:
- * seeing the difference would mean revoking a Permission Grant between them.
+ * not what makes it safe. Called directly, because over HTTP the two always run together.
  */
 describe("the edit's own visibility check", () => {
   let api: TestApi;
@@ -404,43 +381,43 @@ describe("the edit's own visibility check", () => {
 
   const rewritten = "Rewritten by a write that should never have reached this row.";
 
-  /** The first Client's Question, which the Reviewer holds no Grant for. */
-  const restricted = seededQuestionIds.aboutTheClientsPipeline;
+  /** Pending and the seeded Author's, so out of every other Author's sight. */
+  const hidden = seededQuestionIds.aboutDisagreeing;
 
   const textOf = async (id: string): Promise<string> =>
     (await api.database.question.findUniqueOrThrow({ where: { id }, select: { text: true } })).text;
 
-  it("writes nothing for a Viewer holding no Grant for that Client", async () => {
-    const before = await textOf(restricted);
-    const reviewer = await viewerByRole(api.database, "reviewer");
+  it("writes nothing for an Author who did not write that Pending Question", async () => {
+    const before = await textOf(hidden);
+    const stranger = await aViewer(api.database, "author");
 
-    const edited = await writeVisibleQuestion(api.database, reviewer, restricted, {
+    const edited = await writeVisibleQuestion(api.database, stranger, hidden, {
       act: "edit",
       text: rewritten,
     });
 
     expect(edited).toEqual({ refused: "not-visible" });
-    expect(await textOf(restricted)).toBe(before);
+    expect(await textOf(hidden)).toBe(before);
   });
 
-  it("writes for a Viewer who does hold it, so the refusal above is not a no-op", async () => {
+  it("writes for the Author who did, so the refusal above is not a no-op", async () => {
     const author = await viewerByRole(api.database, "author");
 
-    const edited = await writeVisibleQuestion(api.database, author, restricted, {
+    const edited = await writeVisibleQuestion(api.database, author, hidden, {
       act: "edit",
       text: rewritten,
     });
 
     expect(edited).toMatchObject({ question: { text: rewritten } });
-    expect(await textOf(restricted)).toBe(rewritten);
+    expect(await textOf(hidden)).toBe(rewritten);
   });
 
   it("leaves the Tags alone when it refuses", async () => {
-    const before = await api.database.questionTag.count({ where: { questionId: restricted } });
-    const reviewer = await viewerByRole(api.database, "reviewer");
+    const before = await api.database.questionTag.count({ where: { questionId: hidden } });
+    const stranger = await aViewer(api.database, "author");
 
-    await writeVisibleQuestion(api.database, reviewer, restricted, { act: "edit", tagIds: [] });
+    await writeVisibleQuestion(api.database, stranger, hidden, { act: "edit", tagIds: [] });
 
-    expect(await api.database.questionTag.count({ where: { questionId: restricted } })).toBe(before);
+    expect(await api.database.questionTag.count({ where: { questionId: hidden } })).toBe(before);
   });
 });
