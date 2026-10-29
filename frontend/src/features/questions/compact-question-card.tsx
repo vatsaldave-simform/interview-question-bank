@@ -1,7 +1,7 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { ClientRestriction } from "@/features/questions/client-restriction";
+import { QuestionClients } from "@/features/questions/question-clients";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { RejectionReason } from "@/features/questions/rejection-reason";
 import { ListCard } from "@/ui/list-card";
@@ -42,7 +42,7 @@ export function CompactQuestionCard({
         <div className="flex flex-wrap items-center gap-2">
           {badges}
           <QuestionTags tags={question.tags} />
-          <ClientRestriction client={question.client} />
+          <QuestionClients clients={question.clients} />
         </div>
         <RowDetails>{details}</RowDetails>
         {question.reason !== null && <RejectionReason reason={question.reason} />}

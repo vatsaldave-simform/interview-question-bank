@@ -195,8 +195,8 @@ describe("the hosted seed's Questions", () => {
       ...everyRow,
     });
     const names = seen
-      .filter((question) => hostedIds.has(question.id) && question.client !== null)
-      .map((question) => question.client!.name);
+      .filter((question) => hostedIds.has(question.id))
+      .flatMap((question) => question.clients.map(({ name }) => name));
     return [...new Set(names)].sort();
   }
 

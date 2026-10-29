@@ -23,7 +23,7 @@ const pending = aQuestion({
   text: "How would you migrate this client's reporting pipeline?",
   answerNotes: "Listen for how they would run the old and new side by side.",
   publicationState: "pending",
-  client: { id: "c0000000-0000-4000-8000-000000000001", name: "Acme" },
+  clients: [{ id: "c0000000-0000-4000-8000-000000000001", name: "Acme" }],
   provenance: "adapted",
   source: "Designing Data-Intensive Applications",
 });
@@ -56,9 +56,6 @@ describe("the Question page", () => {
 
     const details = await detailsOf(pending);
     expect(details.getByText("Pending")).toBeVisible();
-    expect(
-      details.getByText("Only Viewers with a Grant for Acme can see this Question."),
-    ).toBeVisible();
     expect(details.getByRole("region", { name: "Where it came from" })).toBeVisible();
     expect(details.queryByText(pending.answerNotes)).not.toBeInTheDocument();
     expect(details.queryByRole("link", { name: "Edit" })).not.toBeInTheDocument();
@@ -76,14 +73,14 @@ describe("the Question page", () => {
     expect(theActs().getByRole("button", { name: "Reject" })).toBeVisible();
   });
 
-  it("shows the Tags and the Client restriction with the Answer Notes", async () => {
+  it("shows the Tags and the Clients with the Answer Notes", async () => {
     aBankHolding([pending]);
     renderTheWholeClient(`/questions/${pending.id}`);
 
     await detailsOf(pending);
     const notes = within(screen.getByRole("region", { name: "Answer Notes" }));
     expect(notes.getByText(pending.answerNotes)).toBeVisible();
-    expect(notes.getByText("Restricted to Acme")).toBeVisible();
+    expect(notes.getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
   });
 
   it("offers Return to its Author, with Your Rating and History in the side card", async () => {

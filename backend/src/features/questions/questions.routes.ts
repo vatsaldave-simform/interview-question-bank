@@ -204,12 +204,13 @@ async function toResponse(
   return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
 }
 
-/** The Question as the API answers with it: only the timestamp changes, and anything added
- * beside it, like the queue's author, is kept. */
+/** The Question as the API answers with it: the old Client column is dropped, the timestamp
+ * changes, and anything added beside it, like the queue's author, is kept. */
 function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
   createdAt,
+  clientId: _oldColumn,
   ...question
-}: Q): Omit<Q, "createdAt"> & Question {
+}: Q): Omit<Q, "createdAt" | "clientId"> & Question {
   return { ...question, createdAt: createdAt.toISOString() };
 }
 

@@ -89,8 +89,8 @@ describe("filtering the bank by Category", () => {
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
     const seenByReader = await findVisibleQuestions(database, reader, query);
 
-    expect(seenByReviewer.every((question) => question.client?.id !== restrictedTo)).toBe(true);
-    expect(seenByReader.some((question) => question.client?.id === restrictedTo)).toBe(true);
+    expect(seenByReviewer.every((question) => !question.clients.some(({ id }) => id === restrictedTo))).toBe(true);
+    expect(seenByReader.some((question) => question.clients.some(({ id }) => id === restrictedTo))).toBe(true);
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {

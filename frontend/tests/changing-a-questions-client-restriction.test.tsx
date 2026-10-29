@@ -32,7 +32,7 @@ const aReviewer = aViewer({
 const restricted = aQuestion({
   id: "a0000000-0000-4000-8000-000000000062",
   text: "What would you change first in Acme's billing service?",
-  client: acme,
+  clients: [acme],
 });
 
 const unrestricted = aQuestion({
@@ -75,10 +75,10 @@ function aBankHolding(question: Question, options: BankOptions = {}): FakeApi {
       const refused = refuse?.(act, changeElsewhere);
       if (refused !== undefined) return refused;
       if (act === "remove-restriction") {
-        current = { ...current, client: null };
+        current = { ...current, clients: [] };
       } else {
         const { clientId } = (await request.json()) as RestrictQuestionRequest;
-        current = { ...current, client: granted.find(({ id }) => id === clientId) ?? null };
+        current = { ...current, clients: granted.filter(({ id }) => id === clientId) };
       }
       return answersWith({ question: current });
     },
@@ -113,15 +113,14 @@ describe("changing a Question's Client restriction", () => {
 
     await restrictTo("Acme");
 
-    expect(await screen.findByText("Restricted to Acme")).toBeVisible();
+    expect(await screen.findByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
     expect(await theToastSaying("It is now restricted to Acme.")).toBeVisible();
     expect(await changesSent(api)).toEqual([{ act: "restrict", body: { clientId: acme.id } }]);
 
     const trail = within(screen.getByRole("navigation", { name: "breadcrumb" }));
     await userEvent.click(trail.getByRole("link", { name: unrestricted.text }));
-    expect(
-      await screen.findByText("Only Viewers with a Grant for Acme can see this Question."),
-    ).toBeVisible();
+    await screen.findByRole("heading", { level: 1, name: unrestricted.text });
+    expect(screen.getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
   });
 
   it("keeps the restriction in a card of its own, apart from the edit's Save", async () => {
@@ -129,10 +128,10 @@ describe("changing a Question's Client restriction", () => {
     renderTheWholeClient(`/questions/${restricted.id}/edit`);
 
     const whoCanSeeIt = await screen.findByRole("region", { name: "Who can see it" });
-    expect(within(whoCanSeeIt).getByText("Restricted to Acme")).toBeVisible();
+    expect(within(whoCanSeeIt).getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
     expect(await within(whoCanSeeIt).findByRole("button", { name: "Restrict" })).toBeVisible();
     expect(within(whoCanSeeIt).queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getAllByText("Restricted to Acme")).toHaveLength(1);
+    expect(screen.getAllByRole("list", { name: "Clients" })).toHaveLength(1);
   });
 
   it("lets a Reviewer remove a restriction, and shows it is gone", async () => {
@@ -142,7 +141,7 @@ describe("changing a Question's Client restriction", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Remove the restriction" }));
 
-    await waitFor(() => expect(screen.queryByText("Restricted to Acme")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Clients" })).toBeNull());
     expect(await changesSent(api)).toEqual([{ act: "remove-restriction", body: undefined }]);
     expect(await theToastSaying("The restriction was removed.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Remove the restriction" })).toBeNull();
@@ -165,7 +164,7 @@ describe("changing a Question's Client restriction", () => {
     const refusal = await screen.findByRole("alert");
     expect(refusal).toHaveTextContent("The restriction was not changed.");
     expect(refusal).toHaveTextContent("Only a Reviewer may remove a Client restriction.");
-    expect(screen.getByText("Restricted to Acme")).toBeVisible();
+    expect(screen.getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
     expect(toastsShown()).toHaveLength(0);
   });
 
@@ -185,7 +184,7 @@ describe("changing a Question's Client restriction", () => {
     await restrictTo("Globex");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(moveRefused);
-    expect(screen.getByText("Restricted to Acme")).toBeVisible();
+    expect(screen.getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
     expect(toastsShown()).toHaveLength(0);
   });
 
@@ -206,7 +205,7 @@ describe("changing a Question's Client restriction", () => {
     aBankHolding(restricted, {
       refuse: (act, changeElsewhere) => {
         if (act !== "remove-restriction") return undefined;
-        changeElsewhere({ client: null });
+        changeElsewhere({ clients: [] });
         return refusesWith(409, "conflict", removedFirst);
       },
     });
@@ -215,7 +214,7 @@ describe("changing a Question's Client restriction", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Remove the restriction" }));
 
     // Gone once the Question is asked for again, which is when the refusal used to vanish.
-    await waitFor(() => expect(screen.queryByText("Restricted to Acme")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Clients" })).toBeNull());
     expect(screen.getByRole("alert")).toHaveTextContent(removedFirst);
   });
 });

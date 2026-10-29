@@ -83,7 +83,7 @@ describe("the newest Questions on Home", () => {
         { category: "seniority", tag: "senior" },
         { category: "question-type", tag: "practical" },
       ],
-      client: aClient(),
+      clients: [aClient()],
       rating: { average: 4.6, count: 18, mine: null },
       createdAt: new Date(2026, 9, 18, 12, 0).toISOString(),
     });
@@ -94,7 +94,7 @@ describe("the newest Questions on Home", () => {
     const row = within((await panel.findByRole("link", { name: restricted.text })).closest("li")!);
     const tags = within(row.getByRole("list", { name: "Tags" })).getAllByRole("listitem");
     expect(tags.map((tag) => tag.textContent)).toEqual(["node", "senior"]);
-    expect(row.getByText("Restricted to Northwind Trading")).toBeVisible();
+    expect(row.getByRole("list", { name: "Clients" })).toHaveTextContent("Northwind Trading");
     expect(row.getByText("4.6 out of 5 from 18 Ratings")).toBeVisible();
     expect(row.getByText(/^Added/)).toHaveTextContent("Added 2 days ago");
   });

@@ -1,7 +1,7 @@
 import type { ListQuestionsRequest } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
-import { ClientRestriction } from "@/features/questions/client-restriction";
+import { QuestionClients } from "@/features/questions/question-clients";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
@@ -52,7 +52,7 @@ export function RecentlyAddedQuestions() {
                   <PublicationStateBadge state={question.publicationState} />
                 )}
                 <QuestionTags tags={question.tags.slice(0, tagsShown)} />
-                <ClientRestriction client={question.client} />
+                <QuestionClients clients={question.clients} />
                 {ratingIsShown(question) && <AverageRating rating={question.rating} />}
                 <WhenAdded createdAt={question.createdAt} />
               </RowDetails>

@@ -53,7 +53,7 @@ describe("the browse screen", () => {
       aQuestion({
         id: "a0000000-0000-4000-8000-000000000002",
         text: "Restricted to a Client",
-        client: { id: "c0000000-0000-4000-8000-000000000001", name: "Acme" },
+        clients: [{ id: "c0000000-0000-4000-8000-000000000001", name: "Acme" }],
       }),
       aQuestion({
         id: "a0000000-0000-4000-8000-000000000003",

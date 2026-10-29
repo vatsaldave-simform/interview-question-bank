@@ -22,14 +22,18 @@ import {
 import { findClientGrantedTo } from "../clients/clients.repository.ts";
 import type { Database, Transaction } from "../../platform/database.ts";
 
-/** A Question as the rest of the code sees one: its Client and its Tags carry names, not
+/** A Question as the rest of the code sees one: its Clients and its Tags carry names, not
  * ids alone. */
 export type QuestionFromDb = {
   id: string;
   text: string;
   answerNotes: string;
   authorId: string;
-  client: Client | null;
+  /** Read from `question_clients`, never from the old column (ADR-0050). */
+  clients: Client[];
+  /** The old column, for the restrict, move and remove-restriction acts alone until they
+   * go; never sent in a response. */
+  clientId: string | null;
   publicationState: PublicationState;
   reason: string | null;
   provenance: Provenance;
@@ -300,11 +304,11 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
-    if (added.client !== null) {
+    if (added.clientId !== null) {
       await insertChangeEvent(transaction, viewer, {
         type: "question_classified",
         questionId: added.id,
-        payload: { clientId: { before: null, after: added.client.id } },
+        payload: { clientId: { before: null, after: added.clientId } },
       });
     }
 
@@ -391,13 +395,18 @@ function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.
   // `order` may name the page's own columns as `page.<column>`.
   return Prisma.sql`
     WITH page AS (${pickPage})
-    SELECT q.id, q.text, q."answerNotes", q."authorId",
-           (SELECT json_build_object('id', cl.id, 'name', cl.name)
-              FROM clients cl WHERE cl.id = q."clientId") AS client,
+    SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
+           coalesce(cls.clients, '[]'::json) AS clients,
            q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
       FROM page
       JOIN questions q ON q.id = page.id
+      LEFT JOIN LATERAL (
+        SELECT json_agg(json_build_object('id', cl.id, 'name', cl.name) ORDER BY cl.name) AS clients
+        FROM question_clients qc
+        JOIN clients cl ON cl.id = qc."clientId"
+        WHERE qc."questionId" = q.id
+      ) cls ON TRUE
       -- After the page has been cut, so the Tags of a Question the page left out are
       -- never gathered.
       LEFT JOIN LATERAL (
@@ -478,6 +487,7 @@ function distinctTagIds(tagIds: readonly string[]): string[] {
 function toQuestionFromDb(question: QuestionRow): QuestionFromDb {
   return {
     ...question,
+    clients: question.clients.map(({ client }) => client),
     tags: question.tags.map(({ tag }) => ({
       // Parsed rather than cast: a Category row outside the closed list means the rows
       // and the code are out of sync, which the seed prevents, so fail loudly (ADR-0024).
@@ -648,7 +658,12 @@ const questionFieldsToRead = {
   text: true,
   answerNotes: true,
   authorId: true,
-  client: { select: { id: true, name: true } },
+  clientId: true,
+  // The same order the hand-written reads give, so a write answers as a read would.
+  clients: {
+    select: { client: { select: { id: true, name: true } } },
+    orderBy: { client: { name: "asc" } },
+  },
   publicationState: true,
   reason: true,
   provenance: true,

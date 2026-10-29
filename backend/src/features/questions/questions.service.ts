@@ -225,7 +225,7 @@ function namedPerCategory(
 /** Which write an act becomes. Restricting a Question that already has a Client moves it. */
 function writeActFor(act: QuestionAct, question: QuestionFromDb): QuestionWrite["act"] {
   if (act.act !== "restrict") return act.act;
-  return question.client === null ? "restrict" : "move";
+  return question.clientId === null ? "restrict" : "move";
 }
 
 /** Null when there is nothing to write. */
@@ -248,10 +248,10 @@ async function prepareWrite(
     case "restrict":
       return restrictionFor(database, viewer, question, act.clientId);
     case "remove-restriction":
-      if (question.client === null) {
+      if (question.clientId === null) {
         throw new ConflictError("This Question has no Client restriction to remove.");
       }
-      return { write: { act: "remove-restriction", from: question.client.id }, overridden: [] };
+      return { write: { act: "remove-restriction", from: question.clientId }, overridden: [] };
   }
 }
 
@@ -341,8 +341,8 @@ async function restrictionFor(
 ): Promise<PreparedWrite | null> {
   await checkGrantedClient(database, viewer, clientId);
 
-  if (question.client === null) return { write: { act: "restrict", clientId }, overridden: [] };
-  if (question.client.id === clientId) return null;
+  if (question.clientId === null) return { write: { act: "restrict", clientId }, overridden: [] };
+  if (question.clientId === clientId) return null;
   // After the Client, because the advice is only worth giving when the move could then work.
   if (!mayMoveToAnotherClient(viewer, question)) {
     throw new ForbiddenError(
@@ -350,7 +350,7 @@ async function restrictionFor(
         "you, and you can move it then.",
     );
   }
-  return { write: { act: "move", from: question.client.id, to: clientId }, overridden: [] };
+  return { write: { act: "move", from: question.clientId, to: clientId }, overridden: [] };
 }
 
 /** A Permission Grant can be revoked between the look-up and the write, and the write says

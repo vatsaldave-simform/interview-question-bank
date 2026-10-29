@@ -48,17 +48,15 @@ export type QuestionTag = z.infer<typeof questionTagSchema>;
 export const unknownTagsSchema = z.object({ tags: z.array(z.string()).min(1) }).strict();
 export type UnknownTags = z.infer<typeof unknownTagsSchema>;
 
-/**
- * A Question as every response describes one. The Client's name is safe to send: a Viewer
- * reading this either holds the Grant for that Client or the Question is unrestricted (ADR-0044).
- */
+/** A Question as every response describes one. */
 export const questionSchema = z
   .object({
     id: z.uuid(),
     text: z.string(),
     answerNotes: z.string(),
     authorId: z.uuid(),
-    client: clientSchema.nullable(),
+    /** Ordered by name, so the same Question always reads the same way; empty for none. */
+    clients: z.array(clientSchema),
     publicationState: publicationStateSchema,
     /** Why it was Rejected, and null again once it is resubmitted or Published. */
     reason: z.string().nullable(),

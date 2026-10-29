@@ -12,7 +12,7 @@ import { Link } from "@tanstack/react-router";
 import { StarIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
-import { ClientRestriction } from "@/features/questions/client-restriction";
+import { QuestionClients } from "@/features/questions/question-clients";
 import {
   PublishButton,
   ReasonAct,
@@ -88,10 +88,10 @@ function AnswerNotes({ question }: { question: Question }) {
             <RejectionReason reason={question.reason} />
           </section>
         )}
-        {(question.tags.length > 0 || question.client !== null) && (
+        {(question.tags.length > 0 || question.clients.length > 0) && (
           <div className="flex flex-wrap items-center gap-2">
             <QuestionTags tags={question.tags} />
-            <ClientRestriction client={question.client} />
+            <QuestionClients clients={question.clients} />
           </div>
         )}
         <h2 id="answer-notes" className={cn(smallHeading, "text-[0.9375rem]")}>
@@ -119,11 +119,6 @@ function AboutThisQuestion({ question }: { question: Question }) {
           <PublicationStateBadge state={question.publicationState} />
           <p className="text-muted-foreground">{state.meaning}</p>
         </QuestionDetail>
-        {question.client !== null && (
-          <QuestionDetail id="who-can-see-it" title="Who can see it">
-            <p>Only Viewers with a Grant for {question.client.name} can see this Question.</p>
-          </QuestionDetail>
-        )}
         <WhereItCameFrom question={question} />
         {ratingIsShown(question) && (
           <QuestionDetail id="rating" title="Rating">
