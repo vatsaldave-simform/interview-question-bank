@@ -60,28 +60,40 @@ async function writeAQuestion(): Promise<void> {
 
 const addIt = () => userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
-describe("restricting a new Question to a Client", () => {
-  it("offers every Client the API lists, set to no restriction", async () => {
+const clientBox = async (name: string) => screen.findByRole("checkbox", { name });
+
+describe("naming a new Question's Clients", () => {
+  it("offers every Client the API lists, none of them chosen", async () => {
     aBankListing([acme, globex]);
     renderTheWholeClient("/questions/new");
 
-    const choice = await screen.findByRole("combobox", { name: "Restrict to a Client" });
-    const offered = within(choice)
-      .getAllByRole("option")
-      .map((option) => option.textContent);
-    expect(offered).toEqual(["No restriction", "Acme", "Globex"]);
-    expect(choice).toHaveDisplayValue("No restriction");
+    const field = await screen.findByRole("group", { name: "Clients" });
+    const offered = within(field).getAllByRole("checkbox");
+    expect(offered.map((box) => box.closest("label")?.textContent)).toEqual(["Acme", "Globex"]);
+    for (const box of offered) expect(box).not.toBeChecked();
   });
 
-  it("sends the chosen Client's id", async () => {
+  it("sends every Client chosen", async () => {
     const api = aBankListing([acme, globex]);
     renderTheWholeClient("/questions/new");
 
     await writeAQuestion();
-    await userEvent.selectOptions(
-      await screen.findByRole("combobox", { name: "Restrict to a Client" }),
-      "Globex",
-    );
+    await userEvent.click(await clientBox("Globex"));
+    await userEvent.click(await clientBox("Acme"));
+    await addIt();
+
+    await screen.findByRole("heading", { level: 1, name: added.text });
+    expect(await clientsSent(api)).toEqual([[globex.id, acme.id]]);
+  });
+
+  it("drops a Client chosen and then unchosen", async () => {
+    const api = aBankListing([acme, globex]);
+    renderTheWholeClient("/questions/new");
+
+    await writeAQuestion();
+    await userEvent.click(await clientBox("Acme"));
+    await userEvent.click(await clientBox("Globex"));
+    await userEvent.click(await clientBox("Acme"));
     await addIt();
 
     await screen.findByRole("heading", { level: 1, name: added.text });
@@ -92,7 +104,7 @@ describe("restricting a new Question to a Client", () => {
     const api = aBankListing([acme]);
     renderTheWholeClient("/questions/new");
 
-    await screen.findByRole("combobox", { name: "Restrict to a Client" });
+    await clientBox("Acme");
     await writeAQuestion();
     await addIt();
 
@@ -106,7 +118,7 @@ describe("restricting a new Question to a Client", () => {
 
     await screen.findByLabelText("Question");
     await waitForElementToBeRemoved(() => screen.queryByText("Loading the Clients…"));
-    expect(screen.queryByRole("combobox", { name: "Restrict to a Client" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Clients" })).toBeNull();
     expect(screen.queryByText(/Client/)).toBeNull();
   });
 
@@ -119,14 +131,12 @@ describe("restricting a new Question to a Client", () => {
     renderTheWholeClient("/questions/new");
 
     expect(await screen.findByText("The Clients could not be loaded")).toBeVisible();
-    expect(
-      screen.getByText("Until they load, the Question cannot be restricted to a Client."),
-    ).toBeVisible();
+    expect(screen.getByText("Until they load, the Question's Clients cannot be chosen.")).toBeVisible();
 
     answer = () => answersWith({ clients: [acme] });
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
-    expect(await screen.findByRole("combobox", { name: "Restrict to a Client" })).toBeVisible();
+    expect(await clientBox("Acme")).toBeVisible();
     expect(screen.queryByText("The Clients could not be loaded")).toBeNull();
   });
 
@@ -135,10 +145,7 @@ describe("restricting a new Question to a Client", () => {
     renderTheWholeClient("/questions/new");
 
     await writeAQuestion();
-    await userEvent.selectOptions(
-      await screen.findByRole("combobox", { name: "Restrict to a Client" }),
-      "Acme",
-    );
+    await userEvent.click(await clientBox("Acme"));
     await addIt();
 
     const refusal = await screen.findByRole("alert");

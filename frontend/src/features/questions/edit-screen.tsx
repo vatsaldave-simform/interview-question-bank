@@ -1,4 +1,5 @@
 import {
+  type Client,
   editQuestionRequestSchema,
   type EditQuestionRequest,
   type NearDuplicate,
@@ -67,14 +68,20 @@ function sameTags(one: readonly QuestionTag[], other: readonly QuestionTag[]): b
   return keys.size === otherKeys.size && [...keys].every((key) => otherKeys.has(key));
 }
 
+function sameClients(clientIds: readonly string[], clients: readonly Client[]): boolean {
+  const chosen = new Set(clientIds);
+  return chosen.size === clients.length && clients.every(({ id }) => chosen.has(id));
+}
+
 /** Only what the Viewer changed, so the history records the edit they made rather than
  * every field the form happens to hold. */
 function changesIn(draft: QuestionDraft, question: Question) {
-  const { text, answerNotes, tags } = draft;
+  const { text, answerNotes, tags, clientIds } = draft;
   return {
     ...(text.trim() === question.text ? {} : { text }),
     ...(answerNotes.trim() === question.answerNotes ? {} : { answerNotes }),
     ...(sameTags(tags, question.tags) ? {} : { tags }),
+    ...(sameClients(clientIds, question.clients) ? {} : { clientIds }),
   };
 }
 
@@ -140,7 +147,12 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
   return (
     <>
       <QuestionForm
-        initial={{ text: opened.text, answerNotes: opened.answerNotes, tags: opened.tags }}
+        initial={{
+          text: opened.text,
+          answerNotes: opened.answerNotes,
+          tags: opened.tags,
+          clientIds: opened.clients.map(({ id }) => id),
+        }}
         problems={problems}
         refusal={
           refusal === null ? null : { title: "The Question was not saved", message: refusal }

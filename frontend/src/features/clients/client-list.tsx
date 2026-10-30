@@ -27,7 +27,7 @@ export function ClientList() {
   return (
     <AddDialog
       title="Create a Client"
-      description="Questions can then be restricted to it."
+      description="Questions can then name it."
       form={(close) => (
         <CreateClientForm
           onCreated={(client) => {
@@ -56,7 +56,7 @@ export function ClientList() {
           />
         ) : clients.data.length === 0 ? (
           <EmptyList icon={Building2Icon} title="No Client yet" action={addAClient}>
-            Add a Client, and Questions can then be restricted to it.
+            Add a Client, and Questions can then name it.
           </EmptyList>
         ) : (
           <ul

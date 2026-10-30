@@ -4,6 +4,7 @@ import {
   type DraftProblems,
   type QuestionDraft,
 } from "@/features/questions/question-problems";
+import { ClientsField } from "@/features/questions/clients-field";
 import { TagsField } from "@/features/questions/tags-field";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -88,6 +89,10 @@ export function QuestionForm(props: QuestionFormProps) {
             chosen={draft.tags}
             problem={problems.tags}
             onChange={(tags) => setDraft({ ...draft, tags })}
+          />
+          <ClientsField
+            chosen={draft.clientIds}
+            onChange={(clientIds) => setDraft({ ...draft, clientIds })}
           />
           {children}
         </FieldGroup>
