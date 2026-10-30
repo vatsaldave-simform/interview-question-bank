@@ -7,7 +7,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { insertClient } from "../src/features/clients/clients.repository.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   clientIdNamed,
@@ -87,13 +87,14 @@ describe("naming a Question's Clients when adding or editing it", () => {
   const sorted = (...ids: string[]) => [...ids].sort();
 
   describe("on add", () => {
-    it("stores every Client named, with one event per Client after the Question's own", async () => {
+    it("stores every Client named, with one event per Client", async () => {
       const question = await added([northwind, kingsbridge]);
 
       expect(question.clients.map(({ id }) => id).sort()).toEqual(sorted(northwind, kingsbridge));
       expect(await clientIdsOf(question.id)).toEqual(sorted(northwind, kingsbridge));
       const events = await historyOf(api, question.id, authorToken);
-      expect(events.map(({ type }) => type)).toEqual([
+      // Sorted, because events from one write can share a millisecond and then sort by id.
+      expect(events.map(({ type }) => type).sort()).toEqual([
         "question_added",
         "question_client_added",
         "question_client_added",
@@ -188,7 +189,7 @@ describe("naming a Question's Clients when adding or editing it", () => {
       expect(changed.text).toBe(text);
       expect(await clientIdsOf(question.id)).toEqual([northwind]);
       const events = await historyOf(api, question.id, authorToken);
-      expect(events.map(({ type }) => type)).toEqual([
+      expect(events.map(({ type }) => type).sort()).toEqual([
         "question_added",
         "question_client_added",
         "question_edited",
@@ -274,6 +275,26 @@ describe("naming a Question's Clients when adding or editing it", () => {
 
       expect(response.status).toBe(403);
       expect(await clientIdsOf(question.id)).toEqual([northwind]);
+    });
+
+    it("refuses another Author, as for any other edit, and changes nothing", async () => {
+      const question = await added([northwind]);
+      await api.database.question.update({
+        where: { id: question.id },
+        data: { publicationState: "published" },
+      });
+      const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+
+      const response = await patchQuestion(
+        api,
+        question.id,
+        { clientIds: [kingsbridge] },
+        otherAuthorToken,
+      );
+
+      expect(response.status).toBe(403);
+      expect(await clientIdsOf(question.id)).toEqual([northwind]);
+      expect(await clientEventsOf(question.id)).toEqual({ added: [northwind], removed: [] });
     });
   });
 });

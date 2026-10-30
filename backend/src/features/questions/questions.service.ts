@@ -180,8 +180,8 @@ function idOf(found: ReadonlyMap<string, string>, { category, tag }: QuestionTag
   return id;
 }
 
-/** Each Client once, and every one of them real, so a refusal comes before anything is
- * written. Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
+/** Each Client once and every one real, checked before anything is written, and any Viewer
+ * may name any Client because a Client hides nothing (ADR-0050). */
 async function clientIdsNamed(
   database: Database,
   clientIds: readonly string[],

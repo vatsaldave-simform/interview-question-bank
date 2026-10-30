@@ -465,39 +465,36 @@ function toQuestionFromDb(question: QuestionRow): QuestionFromDb {
   };
 }
 
-/**
- * Makes the Question name exactly these Clients, and says which ones that added and
- * removed. A Client named twice counts once.
- */
+/** Makes the Question name exactly these Clients, and says which ones that added and
+ * removed. */
 async function replaceClientsOf(
   transaction: Transaction,
   questionId: string,
   clientIds: readonly string[],
 ): Promise<ClientsChanged> {
- const replacedClients =  await transaction.$queryRaw<{change: "added" | "removed"; clientId: string}[]>`
-       WITH deleted AS  (DELETE FROM question_clients
-        WHERE "questionId" = ${questionId}::uuid
-        AND "clientId"  <> ALL(${[...clientIds]}::uuid[])
-        RETURNING "clientId"),
-        inserted AS (
-        INSERT INTO question_clients ("questionId", "clientId")
-        SELECT ${questionId}::uuid, id
+  // One snapshot for both, which is safe only because they never touch the same row.
+  const changes = await transaction.$queryRaw<ClientChange[]>`
+    WITH deleted AS (
+      DELETE FROM question_clients
+       WHERE "questionId" = ${questionId}::uuid
+         AND "clientId" <> ALL(${[...clientIds]}::uuid[])
+      RETURNING "clientId"
+    ),
+    inserted AS (
+      INSERT INTO question_clients ("questionId", "clientId")
+      SELECT ${questionId}::uuid, id
         FROM unnest(${[...clientIds]}::uuid[]) AS id
-        ON CONFLICT DO NOTHING
-        RETURNING "clientId"
-        )
-        SELECT 'added' AS change, "clientId" FROM inserted
-        UNION ALL
-        SELECT 'removed' AS change, "clientId" FROM deleted`;
- 
-   
+      ON CONFLICT DO NOTHING
+      RETURNING "clientId"
+    )
+    SELECT 'added' AS change, "clientId" FROM inserted
+    UNION ALL
+    SELECT 'removed' AS change, "clientId" FROM deleted
+  `;
+
   return {
-    added: replacedClients
-      .filter(({ change }) => change === "added")
-      .map(({ clientId }) => clientId),
-    removed: replacedClients
-      .filter(({ change }) => change === "removed")
-      .map(({ clientId }) => clientId),
+    added: changes.filter(({ change }) => change === "added").map(({ clientId }) => clientId),
+    removed: changes.filter(({ change }) => change === "removed").map(({ clientId }) => clientId),
   };
 }
 
@@ -538,6 +535,16 @@ async function recordOverride(
     questionId,
     payload: { nearDuplicates: [...overridden] },
   });
+}
+
+/** By id, not checked again: this transaction just added it or found it Visible, and a write
+ * that moved its Publication State could make a checked read lose a write already made. */
+async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
+  const written = await transaction.question.findUniqueOrThrow({
+    where: { id },
+    select: questionFieldsToRead,
+  });
+  return toQuestionFromDb(written);
 }
 
 /** Holds the row until the transaction ends, so of two writes at once the second waits
@@ -594,16 +601,6 @@ async function editLockedQuestion(
   }
   await recordClientsChanged(transaction, viewer, id, clients);
   return after;
-}
-
-/** By id, not checked again: the lock already found it Visible, and a write that moved its
- * Publication State could make a checked read lose a write that is already made. */
-async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
-  const written = await transaction.question.findUniqueOrThrow({
-    where: { id },
-    select: questionFieldsToRead,
-  });
-  return toQuestionFromDb(written);
 }
 
 /** Null when the edit changed nothing: a request may name a field and give it the value
@@ -688,6 +685,8 @@ const questionFieldsToRead = {
 type QuestionRow = Prisma.QuestionGetPayload<{ select: typeof questionFieldsToRead }>;
 
 type ClientsChanged = { added: readonly string[]; removed: readonly string[] };
+
+type ClientChange = { change: "added" | "removed"; clientId: string };
 
 const noClientsChanged: ClientsChanged = { added: [], removed: [] };
 

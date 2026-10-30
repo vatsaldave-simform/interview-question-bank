@@ -84,7 +84,7 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
-    /** The Clients that have asked it. A repeated id counts once. */
+    /** The Clients that have asked it, where a repeated id counts once. */
     clientIds: z.array(z.uuid()).optional(),
     /** The Author's own word that a match detection found is wrong, which is the only
      * thing that stores a Question detection has refused once. */
@@ -103,7 +103,7 @@ export const editQuestionRequestSchema = z
     text: z.string().trim().min(1).optional(),
     answerNotes: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).optional(),
-    /** Every Client the Question names after the edit. A repeated id counts once. */
+    /** Every Client the Question names after the edit, where a repeated id counts once. */
     clientIds: z.array(z.uuid()).optional(),
     /** Optional rather than defaulted, so an edit's body holds only what it changes (ADR-0014). */
     confirmedNotANearDuplicate: z.boolean().optional(),
