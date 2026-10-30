@@ -78,7 +78,7 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
     const checked = addQuestionRequestSchema.safeParse({
       ...draft,
       ...provenanceIn(provenanceChoice),
-      ...(clientId === null ? {} : { clientId }),
+      ...(clientId === null ? {} : { clientIds: [clientId] }),
     });
     if (!checked.success) {
       // The message is for a field this form does not show, which only a page out of date

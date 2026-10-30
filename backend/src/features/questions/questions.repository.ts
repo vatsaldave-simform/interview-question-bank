@@ -62,17 +62,19 @@ export type NewQuestion = {
   answerNotes: string;
   provenance: Provenance;
   source?: string;
-  /** A Client the caller has checked exists. */
-  clientId?: string;
+  /** Clients the caller has checked exist; none when left out. */
+  clientIds?: readonly string[];
   tagIds: readonly string[];
 };
 
-/** What an edit changes. A part left out stays as it is; `tagIds`, when named, replaces
- * every Tag the Question carried. */
+/** What an edit changes. A part left out stays as it is; `tagIds` and `clientIds`, when
+ * named, replace every Tag or Client the Question had. */
 export type QuestionEdit = {
   text?: string;
   answerNotes?: string;
   tagIds?: readonly string[];
+  /** Clients the caller has checked exist. */
+  clientIds?: readonly string[];
 };
 
 export type QuestionWrite = Change | ({ act: "edit" } & QuestionEdit);
@@ -275,11 +277,7 @@ export async function insertQuestion(
         authorId: viewer.id,
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
-        ...(question.clientId === undefined ? {} : { clientId: question.clientId }),
         tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
-        clients: {
-          create: question.clientId === undefined ? [] : [{ clientId: question.clientId }],
-        },
       },
       select: questionFieldsToRead,
     });
@@ -296,16 +294,11 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
-    if (added.clientId !== null) {
-      await insertChangeEvent(transaction, viewer, {
-        type: "question_classified",
-        questionId: added.id,
-        payload: { clientId: { before: null, after: added.clientId } },
-      });
-    }
+    const clients = await replaceClientsOf(transaction, added.id, question.clientIds ?? []);
+    await recordClientsChanged(transaction, viewer, added.id, clients);
 
     await recordOverride(transaction, viewer, added.id, overridden);
-    return added;
+    return readLockedQuestion(transaction, added.id);
   });
 }
 
@@ -475,6 +468,65 @@ function toQuestionFromDb(question: QuestionRow): QuestionFromDb {
   };
 }
 
+/**
+ * Makes the Question name exactly these Clients, and says which ones that added and
+ * removed. A Client named twice counts once.
+ */
+async function replaceClientsOf(
+  transaction: Transaction,
+  questionId: string,
+  clientIds: readonly string[],
+): Promise<ClientsChanged> {
+ const replacedClients =  await transaction.$queryRaw<{change: "added" | "removed"; clientId: string}[]>`
+       WITH deleted AS  (DELETE FROM question_clients
+        WHERE "questionId" = ${questionId}::uuid
+        AND "clientId"  <> ALL(${[...clientIds]}::uuid[])
+        RETURNING "clientId"),
+        inserted AS (
+        INSERT INTO question_clients ("questionId", "clientId")
+        SELECT ${questionId}::uuid, id
+        FROM unnest(${[...clientIds]}::uuid[]) AS id
+        ON CONFLICT DO NOTHING
+        RETURNING "clientId"
+        )
+        SELECT 'added' AS change, "clientId" FROM inserted
+        UNION ALL
+        SELECT 'removed' AS change, "clientId" FROM deleted`;
+ 
+   
+  return {
+    added: replacedClients
+      .filter(({ change }) => change === "added")
+      .map(({ clientId }) => clientId),
+    removed: replacedClients
+      .filter(({ change }) => change === "removed")
+      .map(({ clientId }) => clientId),
+  };
+}
+
+/** One event per Client, so a history can say each one that came and went (ADR-0050). */
+async function recordClientsChanged(
+  transaction: Transaction,
+  viewer: Viewer,
+  questionId: string,
+  { added, removed }: ClientsChanged,
+): Promise<void> {
+  for (const clientId of removed) {
+    await insertChangeEvent(transaction, viewer, {
+      type: "question_client_removed",
+      questionId,
+      payload: { clientId },
+    });
+  }
+  for (const clientId of added) {
+    await insertChangeEvent(transaction, viewer, {
+      type: "question_client_added",
+      questionId,
+      payload: { clientId },
+    });
+  }
+}
+
 /** A Transaction, not a Database, so the override is written with the act it let through
  * or not at all. */
 async function recordOverride(
@@ -528,6 +580,10 @@ async function editLockedQuestion(
       data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
     });
   }
+  const clients =
+    edit.clientIds === undefined
+      ? noClientsChanged
+      : await replaceClientsOf(transaction, id, edit.clientIds);
 
   const after = await readLockedQuestion(transaction, id);
   const changed = whatChanged(before, after);
@@ -539,6 +595,7 @@ async function editLockedQuestion(
     });
     await recordOverride(transaction, viewer, id, overridden);
   }
+  await recordClientsChanged(transaction, viewer, id, clients);
   return after;
 }
 
@@ -643,6 +700,10 @@ const questionFieldsToRead = {
 } satisfies Prisma.QuestionSelect;
 
 type QuestionRow = Prisma.QuestionGetPayload<{ select: typeof questionFieldsToRead }>;
+
+type ClientsChanged = { added: readonly string[]; removed: readonly string[] };
+
+const noClientsChanged: ClientsChanged = { added: [], removed: [] };
 
 type ChangeDetails = {
   publish: Record<never, never>;

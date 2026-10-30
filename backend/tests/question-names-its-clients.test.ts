@@ -63,7 +63,7 @@ describe("a Question names every Client it carries", () => {
     questions.find((question) => question.id === id)?.clients;
 
   it("names them when a Question is added", async () => {
-    expect((await added({ clientId: client.id })).clients).toEqual([client]);
+    expect((await added({ clientIds: [client.id] })).clients).toEqual([client]);
     expect((await added({})).clients).toEqual([]);
   });
 

@@ -43,13 +43,13 @@ function aBankListing(
   );
 }
 
-/** The Client each addition named, or undefined where it named none. */
+/** The Clients each addition named, or undefined where it named none. */
 async function clientsSent(api: FakeApi): Promise<unknown[]> {
   const additions = api.sent.filter(
     (request) => request.method === "POST" && new URL(request.url).pathname === "/api/questions",
   );
   const bodies = await Promise.all(additions.map((request) => request.json()));
-  return bodies.map((body: AddQuestionRequest) => body.clientId);
+  return bodies.map((body: AddQuestionRequest) => body.clientIds);
 }
 
 async function writeAQuestion(): Promise<void> {
@@ -85,7 +85,7 @@ describe("restricting a new Question to a Client", () => {
     await addIt();
 
     await screen.findByRole("heading", { level: 1, name: added.text });
-    expect(await clientsSent(api)).toEqual([globex.id]);
+    expect(await clientsSent(api)).toEqual([[globex.id]]);
   });
 
   it("names no Client when none is chosen", async () => {

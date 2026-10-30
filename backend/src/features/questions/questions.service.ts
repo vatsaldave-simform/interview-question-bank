@@ -39,7 +39,7 @@ import {
   type TagsInCategory,
   type WriteRefused,
 } from "./questions.repository.ts";
-import { findClientById } from "../clients/clients.repository.ts";
+import { findClientById, findClientsByIds } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -57,7 +57,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  if (request.clientId !== undefined) await checkClientExists(database, request.clientId);
+  const clientIds = await clientIdsNamed(database, request.clientIds ?? []);
   const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "add",
     questionId: null,
@@ -80,7 +80,7 @@ export async function addQuestion(
       answerNotes: request.answerNotes,
       provenance: request.provenance,
       ...(request.source === undefined ? {} : { source: request.source }),
-      ...(request.clientId === undefined ? {} : { clientId: request.clientId }),
+      clientIds,
       tagIds,
     },
     overridden,
@@ -185,7 +185,18 @@ function idOf(found: ReadonlyMap<string, string>, { category, tag }: QuestionTag
   return id;
 }
 
-/** Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
+/** Each Client once, and every one of them real, so a refusal comes before anything is
+ * written. Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
+async function clientIdsNamed(
+  database: Database,
+  clientIds: readonly string[],
+): Promise<string[]> {
+  const named = [...new Set(clientIds)];
+  const found = await findClientsByIds(database, named);
+  if (found.length !== named.length) throw new InvalidRequestError("No such Client.");
+  return named;
+}
+
 async function checkClientExists(database: Database, clientId: string): Promise<void> {
   if ((await findClientById(database, clientId)) === null) {
     throw new InvalidRequestError("No such Client.");
@@ -257,6 +268,10 @@ async function editFor(
   request: EditQuestionRequest,
 ): Promise<PreparedWrite> {
   const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
+  const clientIds =
+    request.clientIds === undefined
+      ? undefined
+      : await clientIdsNamed(database, request.clientIds);
   const overridden = await checkEditedText(database, viewer, question, request);
   return {
     write: {
@@ -264,6 +279,7 @@ async function editFor(
       ...(request.text === undefined ? {} : { text: request.text }),
       ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
       ...(tagIds === undefined ? {} : { tagIds }),
+      ...(clientIds === undefined ? {} : { clientIds }),
     },
     overridden,
   };

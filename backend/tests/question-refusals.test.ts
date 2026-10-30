@@ -25,7 +25,7 @@ describe("refusing a Question", () => {
     ["no Provenance at all", { provenance: undefined }],
     ["a Provenance outside the closed vocabulary", { provenance: "borrowed" }],
     ["a Tag naming a Category that does not exist", { tags: [{ category: "vibes", tag: "good" }] }],
-    ["a Client, which restricting is not this endpoint's to do", { clientId: crypto.randomUUID() }],
+    ["the old single Client field, which a list replaced", { clientId: crypto.randomUUID() }],
   ])("refuses %s at the edge", async (_case, overrides) => {
     const response = await postQuestion(api, aQuestion(overrides), token);
 

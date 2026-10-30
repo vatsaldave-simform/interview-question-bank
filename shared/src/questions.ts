@@ -84,9 +84,8 @@ export const addQuestionRequestSchema = z
     provenance: provenanceSchema,
     source: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).default([]),
-    /** Named here rather than restricted afterwards, which would leave the new Question
-     * open to every Reviewer in between (ADR-0018). */
-    clientId: z.uuid().optional(),
+    /** The Clients that have asked it. A repeated id counts once. */
+    clientIds: z.array(z.uuid()).optional(),
     /** The Author's own word that a match detection found is wrong, which is the only
      * thing that stores a Question detection has refused once. */
     confirmedNotANearDuplicate: z.boolean().default(false),
@@ -95,23 +94,25 @@ export const addQuestionRequestSchema = z
 export type AddQuestionRequest = z.infer<typeof addQuestionRequestSchema>;
 
 /**
- * What an edit names: the parts it leaves out stay as they are, and Tags are replaced
- * whole. Strict, so an edit reaching for the Publication State or the Client is refused
- * at the edge, because moving a Question between States and widening its restriction are
- * a Reviewer's acts rather than edits (ADR-0013, ADR-0018).
+ * What an edit names: the parts it leaves out stay as they are, and Tags and Clients are
+ * replaced whole. Strict, so an edit reaching for the Publication State is refused at the
+ * edge, because moving a Question between States is its own act (ADR-0013).
  */
 export const editQuestionRequestSchema = z
   .object({
     text: z.string().trim().min(1).optional(),
     answerNotes: z.string().trim().min(1).optional(),
     tags: z.array(questionTagSchema).optional(),
+    /** Every Client the Question names after the edit. A repeated id counts once. */
+    clientIds: z.array(z.uuid()).optional(),
     /** Optional rather than defaulted, so an edit's body holds only what it changes (ADR-0014). */
     confirmedNotANearDuplicate: z.boolean().optional(),
   })
   .strict()
   .refine(
-    ({ text, answerNotes, tags }) => [text, answerNotes, tags].some((named) => named !== undefined),
-    { message: "An edit names at least one of text, answerNotes or tags." },
+    ({ text, answerNotes, tags, clientIds }) =>
+      [text, answerNotes, tags, clientIds].some((named) => named !== undefined),
+    { message: "An edit names at least one of text, answerNotes, tags or clientIds." },
   );
 export type EditQuestionRequest = z.infer<typeof editQuestionRequestSchema>;
 
