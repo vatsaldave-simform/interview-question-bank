@@ -2,10 +2,12 @@ import { categoryNames, type CategoryName } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   bankVocabulary,
+  bulkClientPrefix,
   bulkTagPrefix,
   seedBulkBank,
   type BulkBankConfig,
 } from "../src/features/questions/bulk-bank.seed.ts";
+import { seedClient } from "../src/features/clients/clients.seed.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { questionsWithTheOldColumnFilled, seedTheBank } from "./helpers/question-bank.ts";
@@ -21,13 +23,12 @@ const fromTheBulkBank = { id: { notIn: seedQuestions.map((question) => question.
 type BankRow = {
   id: string;
   createdAt: Date;
-  namesAClient: boolean;
+  clients: string[];
   tags: string[];
 };
 
-/** Everything a second run has to write again. Tag values rather than Tag ids, and
- * whether a Question names a Client rather than which one it names: the database
- * writes those ids, and they differ between two empty databases. */
+/** Everything a second run has to write again. Tag values and Client names rather than
+ * their ids: the database writes those ids, and they differ between two empty databases. */
 async function bulkBankRows(database: Database): Promise<BankRow[]> {
   const questions = await database.question.findMany({
     where: fromTheBulkBank,
@@ -38,13 +39,13 @@ async function bulkBankRows(database: Database): Promise<BankRow[]> {
       createdAt: true,
       publicationState: true,
       provenance: true,
-      clients: { select: { clientId: true } },
+      clients: { select: { client: { select: { name: true } } } },
       tags: { select: { tag: { select: { value: true } } } },
     },
   });
   return questions.map(({ clients, tags, ...question }) => ({
     ...question,
-    namesAClient: clients.length > 0,
+    clients: clients.map(({ client }) => client.name).sort(),
     tags: tags.map(({ tag }) => tag.value).sort(),
   }));
 }
@@ -58,6 +59,17 @@ async function tagPopularity(database: Database, category: CategoryName): Promis
     _count: { _all: true },
   });
   return carried.map((tag) => tag._count._all).sort((one, other) => other - one);
+}
+
+/** How many of the bulk bank's Questions name each of its own Clients, commonest first.
+ * A Client no Question names is absent rather than zero. */
+async function bulkClientReach(database: Database): Promise<number[]> {
+  const named = await database.questionClient.groupBy({
+    by: ["clientId"],
+    where: { question: fromTheBulkBank, client: { name: { startsWith: bulkClientPrefix } } },
+    _count: { _all: true },
+  });
+  return named.map((client) => client._count._all).sort((one, other) => other - one);
 }
 
 /** How many of the bulk bank's Questions a keyword search finds, asked the way the search
@@ -114,17 +126,37 @@ describe("the bulk bank", () => {
     expect(added).toBeGreaterThan(0);
   });
 
-  it("names a Client on roughly a fifth and none on the rest", async () => {
+  it("names the seeded Client on roughly a fifth", async () => {
+    const namingTheSeededClient = { clients: { some: { client: { name: seedClient.name } } } };
+
     const naming = await database.question.count({
-      where: { AND: [fromTheBulkBank, { clients: { some: {} } }] },
-    });
-    const namingNone = await database.question.count({
-      where: { AND: [fromTheBulkBank, { clients: { none: {} } }] },
+      where: { AND: [fromTheBulkBank, namingTheSeededClient] },
     });
 
     expect(naming).toBeGreaterThan(bulk.count * 0.1);
     expect(naming).toBeLessThan(bulk.count * 0.3);
-    expect(namingNone).toBe(bulk.count - naming);
+  });
+
+  it("makes some of its own Clients far more often named than others", async () => {
+    const reach = await bulkClientReach(database);
+
+    const commonest = reach[0]!;
+    const rarest = reach[reach.length - 1]!;
+    // Without a rare Client there is no filter selective enough for the planner to
+    // drive from question_clients, and no plan to compare an index against (ADR-0011).
+    expect(reach.length).toBeGreaterThan(10);
+    expect(commonest).toBeGreaterThan(rarest * 5);
+  });
+
+  it("names more than one Client on some Questions and none on others", async () => {
+    const perQuestion = await database.questionClient.groupBy({
+      by: ["questionId"],
+      where: { question: fromTheBulkBank },
+      _count: { _all: true },
+    });
+
+    expect(perQuestion.some((question) => question._count._all > 1)).toBe(true);
+    expect(perQuestion.length).toBeLessThan(bulk.count);
   });
 
   it("leaves the old Client column empty", async () => {
@@ -244,6 +276,8 @@ describe("seeding the bulk bank again", () => {
       database.question.count(),
       database.questionTag.count(),
       database.tag.count(),
+      database.questionClient.count(),
+      database.client.count(),
     ]);
 
     const summary = await seedBulkBank(database, bulk);
@@ -254,6 +288,8 @@ describe("seeding the bulk bank again", () => {
         database.question.count(),
         database.questionTag.count(),
         database.tag.count(),
+        database.questionClient.count(),
+        database.client.count(),
       ]),
     ).toEqual(before);
   });
