@@ -13,7 +13,7 @@ import {
 } from "../src/features/questions/questions.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWhereTheColumnIsNotTheFirstClient } from "./helpers/question-bank.ts";
+import { questionsWithTheOldColumnFilled } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
@@ -81,36 +81,31 @@ describe("the seed", () => {
     expect([...first].filter((email) => second.has(email))).toEqual([]);
   });
 
-  it("restricts a Question to each Client and leaves some restricted to neither", async () => {
-    const perClient = await database.question.groupBy({
+  it("names each Client on some Question and leaves some Questions naming none", async () => {
+    const perClient = await database.questionClient.groupBy({
       by: ["clientId"],
       _count: { _all: true },
     });
+    const namingNone = await database.question.count({ where: { clients: { none: {} } } });
 
-    const restricted = perClient.filter((group) => group.clientId !== null);
-    expect(restricted).toHaveLength(seedClients.length);
-    expect(perClient.some((group) => group.clientId === null)).toBe(true);
+    expect(perClient).toHaveLength(seedClients.length);
+    expect(namingNone).toBeGreaterThan(0);
   });
 
-  it("puts each Question's first Client by name in the old column", async () => {
-    expect(await database.questionClient.count()).toBeGreaterThan(0);
-    expect(await questionsWhereTheColumnIsNotTheFirstClient(database)).toEqual([]);
+  it("leaves the old Client column empty", async () => {
+    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
-  it("names both Clients on one Question, and the first by name in the old column", async () => {
+  it("names both Clients on one Question", async () => {
     const named = await database.question.findMany({
       where: { clients: { some: {} } },
-      select: {
-        client: { select: { name: true } },
-        clients: { select: { client: { select: { name: true } } } },
-      },
+      select: { clients: { select: { client: { select: { name: true } } } } },
     });
 
     const several = named.filter(({ clients }) => clients.length > 1);
     expect(several).toHaveLength(1);
     const names = several[0]!.clients.map(({ client }) => client.name).sort();
     expect(names).toEqual([seedOtherClient.name, seedClient.name].sort());
-    expect(several[0]!.client?.name).toBe(names[0]);
   });
 
   it("seeds Questions in every Publication State", async () => {
@@ -130,7 +125,7 @@ describe("the seed", () => {
     for (const seeded of seedClients) {
       const states = await database.question.groupBy({
         by: ["publicationState"],
-        where: { client: { name: seeded.name } },
+        where: { clients: { some: { client: { name: seeded.name } } } },
         _count: { _all: true },
       });
 
@@ -147,9 +142,12 @@ describe("the seed", () => {
     expect(administrators).toBeGreaterThan(0);
   });
 
-  it("seeds a Question that is both restricted to the Client and Pending", async () => {
+  it("seeds a Question that both names the Client and is Pending", async () => {
     const both = await database.question.findFirst({
-      where: { publicationState: "pending", client: { name: seedClient.name } },
+      where: {
+        publicationState: "pending",
+        clients: { some: { client: { name: seedClient.name } } },
+      },
     });
 
     expect(both).not.toBeNull();

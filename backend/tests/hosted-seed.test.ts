@@ -26,7 +26,7 @@ import {
 } from "../src/features/viewers/hosted-viewers.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWhereTheColumnIsNotTheFirstClient } from "./helpers/question-bank.ts";
+import { questionsWithTheOldColumnFilled } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /** A password per hosted Viewer, each one different so a mix-up shows. */
@@ -219,8 +219,8 @@ describe("the hosted seed's Questions", () => {
     await database.$disconnect();
   });
 
-  it("puts each Question's first Client by name in the old column", async () => {
-    expect(await questionsWhereTheColumnIsNotTheFirstClient(database)).toEqual([]);
+  it("leaves the old Client column empty", async () => {
+    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   it("writes 51 Questions, all by John", async () => {

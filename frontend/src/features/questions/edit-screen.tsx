@@ -7,7 +7,6 @@ import {
 } from "@iqb/shared";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EditRestrictionForm } from "@/features/questions/edit-restriction-form";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
 import { QuestionForm } from "@/features/questions/question-form";
 import { QuestionNotShown } from "@/features/questions/question-not-shown";
@@ -149,7 +148,6 @@ function EditForm({ question, onSaved }: { question: Question; onSaved: () => vo
         sending={edit.isPending}
         submit={{ label: "Save", sendingLabel: "Saving…" }}
         onSubmit={submit}
-        after={<EditRestrictionForm question={question} />}
       />
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog

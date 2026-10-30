@@ -144,7 +144,6 @@ export async function seedBulkBank(
       text: questionText(seed, key, words),
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
-      clientId: isRestricted ? client.id : null,
       // What a Reader's query filters on, so the plans measure a Reader's bank (ADR-0029).
       publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,

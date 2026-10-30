@@ -30,9 +30,6 @@ export type QuestionFromDb = {
   authorId: string;
   /** Read from `question_clients`, never from the old column (ADR-0050). */
   clients: Client[];
-  /** The old column, for the restrict, move and remove-restriction acts alone until they
-   * go; never sent in a response. */
-  clientId: string | null;
   publicationState: PublicationState;
   reason: string | null;
   provenance: Provenance;
@@ -380,7 +377,7 @@ function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.
   // `order` may name the page's own columns as `page.<column>`.
   return Prisma.sql`
     WITH page AS (${pickPage})
-    SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
+    SELECT q.id, q.text, q."answerNotes", q."authorId",
            coalesce(cls.clients, '[]'::json) AS clients,
            q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
@@ -645,16 +642,6 @@ async function changeLockedQuestion(
   });
   if (count === 0) return { refused: "wrong-state" };
 
-  if (plan.clientRow?.remove) {
-    await transaction.questionClient.deleteMany({
-      where: { questionId: id, clientId: plan.clientRow.remove },
-    });
-  }
-  if (plan.clientRow?.add) {
-    await transaction.questionClient.create({
-      data: { questionId: id, clientId: plan.clientRow.add },
-    });
-  }
   await insertChangeEvent(transaction, viewer, plan.event);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
@@ -685,7 +672,6 @@ const questionFieldsToRead = {
   text: true,
   answerNotes: true,
   authorId: true,
-  clientId: true,
   // The same order the hand-written reads give, so a write answers as a read would.
   clients: {
     select: { client: { select: { id: true, name: true } } },
@@ -710,9 +696,6 @@ type ChangeDetails = {
   reject: { reason: string };
   resubmit: Record<never, never>;
   return: { reason: string };
-  restrict: { clientId: string };
-  move: { from: string; to: string };
-  "remove-restriction": { from: string };
 };
 
 type ChangeAct = keyof ChangeDetails;
@@ -726,8 +709,6 @@ type ChangePlan = {
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
   event: ChangeEventToInsert;
-  /** The join table follows `clientId` until reads move to it (ADR-0050). */
-  clientRow?: { remove?: string; add?: string };
 };
 
 const changePlans: {
@@ -753,33 +734,5 @@ const changePlans: {
     startsFrom: { publicationState: "published" },
     writes: { publicationState: "rejected", reason },
     event: { ...happened, type: "question_returned", payload: { reason } },
-  }),
-  // The event types keep the old word "classified" (ADR-0027).
-  restrict: ({ clientId }, happened) => ({
-    startsFrom: { clientId: null },
-    writes: { clientId },
-    event: {
-      ...happened,
-      type: "question_classified",
-      payload: { clientId: { before: null, after: clientId } },
-    },
-    clientRow: { add: clientId },
-  }),
-  // A Question Published since the caller looked is no longer its Author's to move.
-  move: ({ from, to }, happened) => ({
-    startsFrom: { clientId: from, publicationState: { not: "published" } },
-    writes: { clientId: to },
-    event: {
-      ...happened,
-      type: "question_classified",
-      payload: { clientId: { before: from, after: to } },
-    },
-    clientRow: { remove: from, add: to },
-  }),
-  "remove-restriction": ({ from }, happened) => ({
-    startsFrom: { clientId: from },
-    writes: { clientId: null },
-    event: { ...happened, type: "question_declassified", payload: { clientId: from } },
-    clientRow: { remove: from },
   }),
 };

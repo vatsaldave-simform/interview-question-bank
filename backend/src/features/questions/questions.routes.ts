@@ -5,7 +5,6 @@ import {
   publishQuestionRequestSchema,
   questionPageRequestSchema,
   rejectQuestionRequestSchema,
-  restrictQuestionRequestSchema,
   returnQuestionRequestSchema,
   rolesThatMayAddAQuestion,
   type PendingQuestionListResponse,
@@ -170,27 +169,6 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  router.post("/:id/restrict", async (req, res) => {
-    const viewer = authenticatedViewer(req);
-    const id = questionIdNamed(req);
-    const request = restrictQuestionRequestSchema.parse(req.body);
-
-    const question = await actOnQuestion(database, viewer, id, { act: "restrict", ...request });
-
-    const body = await toResponse(database, viewer, question);
-    res.json(body);
-  });
-
-  router.post("/:id/remove-restriction", async (req, res) => {
-    const viewer = authenticatedViewer(req);
-    const id = questionIdNamed(req);
-
-    const question = await actOnQuestion(database, viewer, id, { act: "remove-restriction" });
-
-    const body = await toResponse(database, viewer, question);
-    res.json(body);
-  });
-
   router.use("/:id/rating", ratingRoutes(database));
 
   return router;
@@ -204,12 +182,10 @@ async function toResponse(
   return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
 }
 
-/** Drops the old Client column, which only the restrict acts read until #194. */
 function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
   createdAt,
-  clientId: _oldColumn,
   ...question
-}: Q): Omit<Q, "createdAt" | "clientId"> & Question {
+}: Q): Omit<Q, "createdAt"> & Question {
   return { ...question, createdAt: createdAt.toISOString() };
 }
 

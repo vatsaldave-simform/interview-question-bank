@@ -1,5 +1,4 @@
 import type { Viewer, ViewerRole } from "./auth.js";
-import type { PublicationState } from "./questions.js";
 
 /* The API refuses by these, and the page asks the same ones only to hide a button the API
  * would refuse (ADR-0045). */
@@ -50,20 +49,3 @@ export function mayReject(viewer: Viewer, question: Authored): boolean {
 export function mayResubmit(viewer: Viewer, question: Authored): boolean {
   return question.authorId === viewer.id && mayEdit(viewer, question);
 }
-
-/** Its own Author only, Reviewers included, because another Viewer's Restriction could hide
- * the Question from its Author, which to them is deletion (ADR-0018). */
-export const mayRestrict = mayResubmit;
-
-/** Only while it is out of the bank, which is how a Question on the wrong Client is fixed
- * (ADR-0018). */
-export function mayMoveToAnotherClient(
-  viewer: Viewer,
-  question: Authored & { publicationState: PublicationState },
-): boolean {
-  return mayRestrict(viewer, question) && question.publicationState !== "published";
-}
-
-/** A Reviewer's alone, in every Publication State, because it shows the Question to the whole
- * bank (ADR-0018). */
-export const mayRemoveRestriction = mayPublish;
