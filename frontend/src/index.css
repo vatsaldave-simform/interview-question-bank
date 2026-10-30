@@ -36,9 +36,9 @@
   --color-pending-border: var(--pending-border);
   --color-rejected: var(--rejected);
   --color-rejected-foreground: var(--rejected-foreground);
-  --color-restricted: var(--restricted);
-  --color-restricted-foreground: var(--restricted-foreground);
-  --color-restricted-border: var(--restricted-border);
+  --color-client: var(--client);
+  --color-client-foreground: var(--client-foreground);
+  --color-client-border: var(--client-border);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -142,9 +142,9 @@
   --rejected: color-mix(in oklch, var(--brand-strong) 15%, transparent);
   /* Its own value, so a change to the error red does not reach the Rejected chip. */
   --rejected-foreground: color-mix(in oklch, var(--brand-strong) 62%, oklch(0 0 0));
-  --restricted: var(--brand-deep);
-  --restricted-foreground: oklch(1 0 0);
-  --restricted-border: var(--brand-deep);
+  --client: var(--brand-deep);
+  --client-foreground: oklch(1 0 0);
+  --client-border: var(--brand-deep);
   /* More see-through than a card, because the sidebar holds short labels and no long reading. */
   --sidebar: var(--sidebar-glass);
   --sidebar-glass: oklch(1 0 0 / 50%);
@@ -223,9 +223,9 @@
   --pending-border: color-mix(in oklch, var(--brand-tint) 55%, transparent);
   --rejected: color-mix(in oklch, var(--brand-strong) 30%, transparent);
   --rejected-foreground: color-mix(in oklch, var(--brand-action) 50%, oklch(1 0 0));
-  --restricted: var(--brand-tint);
-  --restricted-foreground: var(--brand-deep);
-  --restricted-border: var(--brand-tint);
+  --client: var(--brand-tint);
+  --client-foreground: var(--brand-deep);
+  --client-border: var(--brand-tint);
   --sidebar-glass: color-mix(
     in oklch,
     color-mix(in oklch, var(--brand-deep) 80%, oklch(0 0 0)) 52%,

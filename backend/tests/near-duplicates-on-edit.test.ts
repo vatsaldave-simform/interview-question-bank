@@ -207,7 +207,7 @@ describe("editing a Published Question's text into one that resembles another", 
     expect(response.status).toBe(200);
   });
 
-  it("never names a restricted Question the editor holds no Grant for", async () => {
+  it("names a Question that names a Client the editor holds no Grant for", async () => {
     const response = await patchQuestion(
       api,
       seededQuestionIds.aboutTypeScript,
@@ -215,7 +215,9 @@ describe("editing a Published Question's text into one that resembles another", 
       authorToken,
     );
 
-    expect(response.status).toBe(200);
+    expect(await nearDuplicatesNamed(response)).toEqual([
+      seededQuestionIds.aboutTheOtherClientsBooking,
+    ]);
   });
 
   it("holds a Reviewer editing to Published Questions alone, as it holds an Author", async () => {

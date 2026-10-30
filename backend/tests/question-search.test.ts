@@ -57,12 +57,12 @@ describe("searching the bank by keyword", () => {
     expect(found!.tags).toContainEqual({ category: "seniority", tag: "mid" });
   });
 
-  it("keeps a Client-restricted Question from a Viewer holding no Grant", async () => {
+  it("finds a Published Question that names a Client for a Viewer holding no Grant for it", async () => {
     const seenByReader = await search(reader, "pipeline");
     const seenByReviewer = await search(reviewer, "pipeline");
 
     expect(seenByReader.map((question) => question.id)).toEqual([aboutTheClientsPipeline]);
-    expect(seenByReviewer).toEqual([]);
+    expect(seenByReviewer.map((question) => question.id)).toEqual([aboutTheClientsPipeline]);
   });
 
   it("keeps a Pending Question from a Reader and shows it to a Reviewer", async () => {
@@ -170,9 +170,6 @@ describe("keyword search alongside a Category filter", () => {
       SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
         FROM questions q, websearch_to_tsquery('english', ${keywords}) AS search(query)
        WHERE q."searchVector" @@ search.query
-         AND (q."clientId" IS NULL
-              OR EXISTS (SELECT 1 FROM permission_grants g
-                          WHERE g."clientId" = q."clientId" AND g."viewerId" = ${reader.id}::uuid))
          AND (q."publicationState" = 'published' OR q."authorId" = ${reader.id}::uuid)
     `;
     const topByRank = everyMatch
@@ -229,7 +226,7 @@ describe("keyword search alongside a Category filter", () => {
     expect(sqlLog.statements).toHaveLength(1);
     const [statement] = sqlLog.statements;
     expect(statement).toContain("websearch_to_tsquery");
-    expect(statement).toContain("permission_grants");
+    expect(statement).toContain(`q."publicationState" = 'published'`);
     expect(statement!.match(/EXISTS \(SELECT 1 FROM question_tags/g)).toHaveLength(2);
   });
 });

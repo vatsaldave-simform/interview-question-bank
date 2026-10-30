@@ -109,21 +109,13 @@ export async function sameAnswerInJavaScript(
   const questions = await database.question.findMany({
     select: {
       id: true,
-      clientId: true,
       publicationState: true,
       authorId: true,
       createdAt: true,
       tags: { select: { tagId: true } },
     },
   });
-  const grants = await database.permissionGrant.findMany({
-    where: { viewerId: viewer.id },
-    select: { clientId: true },
-  });
-  const granted = new Set(grants.map((grant) => grant.clientId));
-
   return questions
-    .filter((question) => question.clientId === null || granted.has(question.clientId))
     .filter(
       (question) =>
         viewer.role === "reviewer" ||
@@ -219,6 +211,8 @@ export const seededQuestionIds = {
   aboutTheClientsLogo: "a0000000-0000-4000-8000-000000000008",
   /** Rejected, and restricted to the second Client. */
   aboutTheOtherClientsFrameworks: "a0000000-0000-4000-8000-000000000009",
+  /** Published, and naming both Clients, the second of them first by name. */
+  aboutSharingAComponentLibrary: "a0000000-0000-4000-8000-000000000010",
 } as const;
 
 /** The word the most bulk Questions carry — about half of them — so a search on it
@@ -231,12 +225,6 @@ export const alsoInMuchOfTheBulkBank = bankVocabulary[1];
 
 /** A word only one seeded Question holds, and only in its Answer Notes. */
 export const inOneAnswerNoteOnly = "merging";
-
-/** A word only the second Client's Questions hold. */
-export const inTheOtherClientsQuestionsOnly = "booking";
-
-/** A word one Published Question of each Client holds, and nothing in the open bank. */
-export const inBothClientsQuestions = "migrate";
 
 /** A word no Question in the bank holds, which is what a genuine zero-match is. */
 export const inNoQuestionAtAll = "kubernetes";
@@ -327,15 +315,22 @@ export async function historyOf(api: TestApi, id: string, token: string): Promis
   return questionHistoryResponseSchema.parse(await response.json()).events;
 }
 
-/** Every Question whose `clientId` and join table rows do not name the same Clients, for
- * a test that a write kept the two in step (ADR-0050). Empty when they all agree. */
-export async function questionsWhereTheClientsDisagree(database: Database): Promise<string[]> {
+/** Every Question whose `clientId` is not its first Client by name, which a seed writes
+ * there (ADR-0050). */
+export async function questionsWhereTheColumnIsNotTheFirstClient(
+  database: Database,
+): Promise<string[]> {
   const rows = await database.$queryRaw<{ id: string }[]>`
     SELECT q.id FROM questions q
-      LEFT JOIN question_clients qc ON qc."questionId" = q.id
-     GROUP BY q.id, q."clientId"
-    HAVING array_remove(array_agg(qc."clientId"), NULL)
-           IS DISTINCT FROM array_remove(ARRAY[q."clientId"], NULL)
+      LEFT JOIN LATERAL (
+        SELECT qc."clientId"
+          FROM question_clients qc
+          JOIN clients cl ON cl.id = qc."clientId"
+         WHERE qc."questionId" = q.id
+         ORDER BY cl.name
+         LIMIT 1
+      ) first ON true
+     WHERE q."clientId" IS DISTINCT FROM first."clientId"
   `;
   return rows.map((row) => row.id);
 }

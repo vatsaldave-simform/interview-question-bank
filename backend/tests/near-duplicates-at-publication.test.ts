@@ -110,12 +110,14 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     ]);
   });
 
-  it("never names a restricted Pending Question the Reviewer holds no Grant for", async () => {
+  it("names a Pending Question that names a Client the Reviewer holds no Grant for", async () => {
     const id = await addAQuestion(api, { text: nearlyTheClientsRenderingOne }, authorToken);
 
     const response = await postReviewAct(api, id, "publish", reviewerToken);
 
-    expect((await questionAnswered(response)).publicationState).toBe("published");
+    expect(await nearDuplicatesNamed(response)).toEqual([
+      seededQuestionIds.aboutTheClientsRendering,
+    ]);
   });
 
   it("never names a Rejected Question, which is in neither the bank nor the queue", async () => {

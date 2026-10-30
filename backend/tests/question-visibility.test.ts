@@ -1,24 +1,20 @@
 import type { ViewerRole } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.ts";
 import { findVisibleQuestionById } from "../src/features/questions/questions.repository.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { clientIdNamed, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** The seeded Questions this file reasons about, by what makes each one interesting. */
-const publishedAndUnrestricted = seedQuestions[0]!.id;
-const publishedAndRestricted = seedQuestions[1]!.id;
-const pendingAndUnrestricted = seedQuestions[2]!.id;
-const rejectedAndUnrestricted = seedQuestions[3]!.id;
-const pendingAndRestricted = seedQuestions[4]!.id;
+const publishedWithNoClient = seedQuestions[0]!.id;
+const publishedWithAClient = seedQuestions[1]!.id;
+const pendingWithNoClient = seedQuestions[2]!.id;
+const rejectedWithNoClient = seedQuestions[3]!.id;
+const pendingWithAClient = seedQuestions[4]!.id;
 
-/**
- * The one function every later read builds on. Visibility is checked first and
- * Publication State second (ADR-0002, ADR-0003, ADR-0013), asserted here rather than
- * over HTTP because this is where the condition either exists or does not.
- */
+/** Asserted on the query function rather than over HTTP, because this is where the rule
+ * either exists or does not (ADR-0003, ADR-0050). */
 describe("fetching a Question through the shared query function", () => {
   let database: Database;
 
@@ -32,58 +28,42 @@ describe("fetching a Question through the shared query function", () => {
     await database.$disconnect();
   });
 
-  it("hands a Viewer holding the Permission Grant the restricted Question", async () => {
-    const holder = await viewer("reader");
+  it("hands every Viewer a Published Question that names a Client", async () => {
+    for (const role of ["reader", "author", "reviewer"] as const) {
+      const found = await findVisibleQuestionById(database, await viewer(role), publishedWithAClient);
 
-    const found = await findVisibleQuestionById(database, holder, publishedAndRestricted);
-
-    expect(found?.id).toBe(publishedAndRestricted);
+      expect(found?.id).toBe(publishedWithAClient);
+    }
   });
 
-  it("answers a Viewer holding no Grant exactly as it answers for an id that does not exist", async () => {
-    const withoutGrant = await viewer("reviewer");
+  // A Client hides nothing (ADR-0050), so holding no Grant at all changes nothing.
+  it("hands that same Question to a Viewer who holds no Grant at all", async () => {
+    const noGrants = await database.viewer.create({
+      data: { email: "no-grants@iqb.test", passwordHash: "not used by this test", role: "reader" },
+      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
+    });
 
-    const restricted = await findVisibleQuestionById(database, withoutGrant, publishedAndRestricted);
-    const neverExisted = await findVisibleQuestionById(database, withoutGrant, crypto.randomUUID());
+    const found = await findVisibleQuestionById(database, noGrants, publishedWithAClient);
 
-    expect(restricted).toBeNull();
-    expect(neverExisted).toBeNull();
+    expect(found?.id).toBe(publishedWithAClient);
   });
 
-  it("shows an unrestricted Question to every authenticated Viewer", async () => {
+  it("shows a Question that names no Client to every Viewer", async () => {
     for (const role of ["reader", "author", "reviewer"] as const) {
       const found = await findVisibleQuestionById(
         database,
         await viewer(role),
-        publishedAndUnrestricted,
+        publishedWithNoClient,
       );
 
-      expect(found?.id).toBe(publishedAndUnrestricted);
+      expect(found?.id).toBe(publishedWithNoClient);
     }
-  });
-
-  it("keeps the Client restriction out of reach of a Grant for a different Client", async () => {
-    const other = await database.client.create({ data: { name: "Some Other Client" } });
-    const stranger = await database.viewer.create({
-      data: {
-        email: "stranger@iqb.test",
-        passwordHash: "not used by this test",
-        role: "reviewer",
-        permissionGrants: { create: { clientId: other.id } },
-      },
-      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
-    });
-
-    const found = await findVisibleQuestionById(database, stranger, publishedAndRestricted);
-
-    expect(found).toBeNull();
-    expect(seedClient.name).not.toBe(other.name);
   });
 
   it("answers a Reader a Pending Question exactly as an id that does not exist", async () => {
     const reader = await viewer("reader");
 
-    const pending = await findVisibleQuestionById(database, reader, pendingAndUnrestricted);
+    const pending = await findVisibleQuestionById(database, reader, pendingWithNoClient);
     const neverExisted = await findVisibleQuestionById(database, reader, crypto.randomUUID());
 
     expect(pending).toBeNull();
@@ -93,7 +73,7 @@ describe("fetching a Question through the shared query function", () => {
   it("answers a Reader a Rejected Question exactly as an id that does not exist", async () => {
     const reader = await viewer("reader");
 
-    const rejected = await findVisibleQuestionById(database, reader, rejectedAndUnrestricted);
+    const rejected = await findVisibleQuestionById(database, reader, rejectedWithNoClient);
 
     expect(rejected).toBeNull();
   });
@@ -101,44 +81,50 @@ describe("fetching a Question through the shared query function", () => {
   it("hands the Author their own Pending and Rejected Questions back", async () => {
     const author = await viewer("author");
 
-    const pending = await findVisibleQuestionById(database, author, pendingAndUnrestricted);
-    const rejected = await findVisibleQuestionById(database, author, rejectedAndUnrestricted);
+    const pending = await findVisibleQuestionById(database, author, pendingWithNoClient);
+    const rejected = await findVisibleQuestionById(database, author, rejectedWithNoClient);
 
-    expect(pending?.id).toBe(pendingAndUnrestricted);
-    expect(rejected?.id).toBe(rejectedAndUnrestricted);
+    expect(pending?.id).toBe(pendingWithNoClient);
+    expect(rejected?.id).toBe(rejectedWithNoClient);
   });
 
   it("hands a Reviewer a Pending Question that is Visible to them", async () => {
     const reviewer = await viewer("reviewer");
 
-    const found = await findVisibleQuestionById(database, reviewer, pendingAndUnrestricted);
+    const found = await findVisibleQuestionById(database, reviewer, pendingWithNoClient);
 
-    expect(found?.id).toBe(pendingAndUnrestricted);
+    expect(found?.id).toBe(pendingWithNoClient);
   });
 
-  // Both checks at once, which ADR-0013 says have to hold together and not merely one
-  // at a time: the review role is not a way around a Permission Grant.
-  it("keeps a Question that is both restricted and Pending from a Reviewer holding no Grant", async () => {
+  it("hands a Reviewer a Pending Question that names a Client they hold no Grant for", async () => {
     const reviewer = await viewer("reviewer");
 
-    const found = await findVisibleQuestionById(database, reviewer, pendingAndRestricted);
-    const neverExisted = await findVisibleQuestionById(database, reviewer, crypto.randomUUID());
+    const found = await findVisibleQuestionById(database, reviewer, pendingWithAClient);
+
+    expect(found?.id).toBe(pendingWithAClient);
+  });
+
+  // A Client opens nothing either: the Publication State rule is all that is left.
+  it("answers a Reader a Pending Question that names a Client exactly as one that does not exist", async () => {
+    const reader = await viewer("reader");
+
+    const found = await findVisibleQuestionById(database, reader, pendingWithAClient);
+    const neverExisted = await findVisibleQuestionById(database, reader, crypto.randomUUID());
 
     expect(found).toBeNull();
     expect(neverExisted).toBeNull();
   });
 
-  // The Author rule runs after the visibility check, never instead of it (ADR-0002). Only
-  // #37 can reach this state through the API, so the row is written directly.
-  it("keeps an Author's own Pending Question out of reach when its Client is not theirs", async () => {
+  it("hands an Author their own Pending Question under a Client nobody holds a Grant for", async () => {
     const author = await viewer("author");
     const elsewhere = await database.client.create({ data: { name: "A Client Nobody Holds" } });
     const own = await database.question.create({
       data: {
-        text: "A Question its Author can no longer see.",
-        answerNotes: "Unreachable, and deliberately so.",
+        text: "A Question its Author used to lose sight of.",
+        answerNotes: "Reachable again now that a Client hides nothing.",
         authorId: author.id,
         clientId: elsewhere.id,
+        clients: { create: [{ clientId: elsewhere.id }] },
         provenance: "original",
       },
       select: { id: true },
@@ -146,23 +132,6 @@ describe("fetching a Question through the shared query function", () => {
 
     const found = await findVisibleQuestionById(database, author, own.id);
 
-    expect(found).toBeNull();
-  });
-
-  it("hands that same Question to a Reviewer who does hold the Grant", async () => {
-    const clientId = await clientIdNamed(database, seedClient.name);
-    const permitted = await database.viewer.create({
-      data: {
-        email: "permitted-reviewer@iqb.test",
-        passwordHash: "not used by this test",
-        role: "reviewer",
-        permissionGrants: { create: { clientId } },
-      },
-      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
-    });
-
-    const found = await findVisibleQuestionById(database, permitted, pendingAndRestricted);
-
-    expect(found?.id).toBe(pendingAndRestricted);
+    expect(found?.id).toBe(own.id);
   });
 });

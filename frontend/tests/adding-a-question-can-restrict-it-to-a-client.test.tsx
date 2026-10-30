@@ -23,16 +23,16 @@ const globex: Client = { id: "c0000000-0000-4000-8000-000000000002", name: "Glob
 
 const added = aQuestion({ id: "a0000000-0000-4000-8000-000000000051" });
 
-/** A bank where the signed-in Viewer holds a Grant for each of `granted`, and which takes
- * any addition, answering `answerTheAddition` when a test gives one. */
-function aBankGranting(
-  granted: Client[],
+/** A bank listing `listed` as its Clients, and which takes any addition, answering
+ * `answerTheAddition` when a test gives one. */
+function aBankListing(
+  listed: Client[],
   answerTheAddition: () => Response = () => answersWith({ question: added }, 201),
 ): FakeApi {
   return fakeBank(
     (asked) => aPageOf([], asked),
     (request, asked) => {
-      if (asked.pathname === "/api/clients") return answersWith({ clients: granted });
+      if (asked.pathname === "/api/clients") return answersWith({ clients: listed });
       if (request.method === "POST" && asked.pathname === "/api/questions") {
         return answerTheAddition();
       }
@@ -61,8 +61,8 @@ async function writeAQuestion(): Promise<void> {
 const addIt = () => userEvent.click(screen.getByRole("button", { name: "Send for review" }));
 
 describe("restricting a new Question to a Client", () => {
-  it("offers only the Clients the Viewer holds a Grant for, set to no restriction", async () => {
-    aBankGranting([acme, globex]);
+  it("offers every Client the API lists, set to no restriction", async () => {
+    aBankListing([acme, globex]);
     renderTheWholeClient("/questions/new");
 
     const choice = await screen.findByRole("combobox", { name: "Restrict to a Client" });
@@ -74,7 +74,7 @@ describe("restricting a new Question to a Client", () => {
   });
 
   it("sends the chosen Client's id", async () => {
-    const api = aBankGranting([acme, globex]);
+    const api = aBankListing([acme, globex]);
     renderTheWholeClient("/questions/new");
 
     await writeAQuestion();
@@ -89,7 +89,7 @@ describe("restricting a new Question to a Client", () => {
   });
 
   it("names no Client when none is chosen", async () => {
-    const api = aBankGranting([acme]);
+    const api = aBankListing([acme]);
     renderTheWholeClient("/questions/new");
 
     await screen.findByRole("combobox", { name: "Restrict to a Client" });
@@ -100,12 +100,12 @@ describe("restricting a new Question to a Client", () => {
     expect(await clientsSent(api)).toEqual([undefined]);
   });
 
-  it("offers no choice to a Viewer who holds no Grant", async () => {
-    aBankGranting([]);
+  it("offers no choice when there is no Client", async () => {
+    aBankListing([]);
     renderTheWholeClient("/questions/new");
 
     await screen.findByLabelText("Question");
-    await waitForElementToBeRemoved(() => screen.queryByText("Loading your Clients…"));
+    await waitForElementToBeRemoved(() => screen.queryByText("Loading the Clients…"));
     expect(screen.queryByRole("combobox", { name: "Restrict to a Client" })).toBeNull();
     expect(screen.queryByText(/Client/)).toBeNull();
   });
@@ -118,7 +118,7 @@ describe("restricting a new Question to a Client", () => {
     );
     renderTheWholeClient("/questions/new");
 
-    expect(await screen.findByText("Your Clients could not be loaded")).toBeVisible();
+    expect(await screen.findByText("The Clients could not be loaded")).toBeVisible();
     expect(
       screen.getByText("Until they load, the Question cannot be restricted to a Client."),
     ).toBeVisible();
@@ -127,11 +127,11 @@ describe("restricting a new Question to a Client", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(await screen.findByRole("combobox", { name: "Restrict to a Client" })).toBeVisible();
-    expect(screen.queryByText("Your Clients could not be loaded")).toBeNull();
+    expect(screen.queryByText("The Clients could not be loaded")).toBeNull();
   });
 
   it("shows the API's refusal of a Client in the API's own words", async () => {
-    aBankGranting([acme], () => refusesWith(400, "invalid_request", "No such Client."));
+    aBankListing([acme], () => refusesWith(400, "invalid_request", "No such Client."));
     renderTheWholeClient("/questions/new");
 
     await writeAQuestion();

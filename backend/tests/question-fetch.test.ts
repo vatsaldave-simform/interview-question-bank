@@ -5,9 +5,9 @@ import { logIn, seededViewer } from "./helpers/auth.ts";
 import { getQuestion, seedTheBank, unknownQuestionId } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
-const publishedAndUnrestricted = seedQuestions[0]!.id;
-const publishedAndRestricted = seedQuestions[1]!.id;
-const pendingAndRestricted = seedQuestions[4]!.id;
+const publishedWithNoClient = seedQuestions[0]!.id;
+const publishedWithAClient = seedQuestions[1]!.id;
+const pendingWithAClient = seedQuestions[4]!.id;
 
 /**
  * What a caller can and cannot learn from `GET /api/questions/:id`. The query function
@@ -25,49 +25,36 @@ describe("fetching a Question over HTTP", () => {
     await api.stop();
   });
 
-  it("returns the restricted Question to a Viewer holding the Permission Grant", async () => {
-    // The seeded Reader holds the Grant; a Grant is a separate fact from a role.
-    const token = await logIn(api, seededViewer("reader"));
+  // A Client hides nothing (ADR-0050): the Reviewer holds no Grant for this one's Client.
+  it("hands a Viewer holding no Grant a Published Question that names a Client", async () => {
+    const token = await logIn(api, seededViewer("reviewer"));
 
-    const response = await getQuestion(api, publishedAndRestricted, token);
+    const response = await getQuestion(api, publishedWithAClient, token);
 
     expect(response.status).toBe(200);
     const body = questionResponseSchema.parse(await response.json());
-    expect(body.question.id).toBe(publishedAndRestricted);
+    expect(body.question.id).toBe(publishedWithAClient);
   });
 
-  it("answers a Viewer holding no Grant with the same status and the same bytes as an unknown id", async () => {
-    const token = await logIn(api, seededViewer("reviewer"));
+  it("answers a Reader a Pending Question that names a Client with an unknown id's bytes", async () => {
+    const token = await logIn(api, seededViewer("reader"));
 
-    const restricted = await getQuestion(api, publishedAndRestricted, token);
+    const pending = await getQuestion(api, pendingWithAClient, token);
     const unknown = await getQuestion(api, unknownQuestionId, token);
 
-    expect(restricted.status).toBe(unknown.status);
-    expect(restricted.status).toBe(404);
-    expect(await restricted.text()).toBe(await unknown.text());
+    expect(pending.status).toBe(404);
+    expect(await pending.text()).toBe(await unknown.text());
   });
 
-  // Both checks at once, which ADR-0013 says have to hold together: this Question
-  // is restricted AND Pending, and the Reviewer holds no Grant for its Client.
-  it("answers a Question that is both restricted and Pending with those same bytes", async () => {
-    const token = await logIn(api, seededViewer("reviewer"));
-
-    const both = await getQuestion(api, pendingAndRestricted, token);
-    const unknown = await getQuestion(api, unknownQuestionId, token);
-
-    expect(both.status).toBe(404);
-    expect(await both.text()).toBe(await unknown.text());
-  });
-
-  it("returns an unrestricted Question to every authenticated Viewer", async () => {
+  it("returns a Question that names no Client to every authenticated Viewer", async () => {
     for (const role of ["reader", "author", "reviewer"] as const) {
       const token = await logIn(api, seededViewer(role));
 
-      const response = await getQuestion(api, publishedAndUnrestricted, token);
+      const response = await getQuestion(api, publishedWithNoClient, token);
 
       expect(response.status).toBe(200);
       const body = questionResponseSchema.parse(await response.json());
-      expect(body.question.id).toBe(publishedAndUnrestricted);
+      expect(body.question.id).toBe(publishedWithNoClient);
     }
   });
 
@@ -82,7 +69,7 @@ describe("fetching a Question over HTTP", () => {
   });
 
   it("refuses an unauthenticated caller, and says nothing about the Question", async () => {
-    const response = await api.request(`/api/questions/${publishedAndUnrestricted}`);
+    const response = await api.request(`/api/questions/${publishedWithNoClient}`);
 
     expect(response.status).toBe(401);
   });

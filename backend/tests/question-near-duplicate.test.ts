@@ -132,16 +132,20 @@ describe("submitting a Question that resembles one already in the bank", () => {
     expect(response.status).toBe(201);
   });
 
-  it("never tells an Author about a restricted Question they hold no Grant for", async () => {
+  it("tells an Author about a Question that names a Client they hold no Grant for", async () => {
     const response = await postQuestion(
       api,
       aQuestion({ text: nearlyTheOtherClientsBookingOne }),
       authorToken,
     );
 
-    expect(response.status).toBe(201);
-    // The 201 alone would also be what a refusal that had been mishandled looked like.
-    expect(await eventsOfKind("near_duplicate_refused")).toEqual([]);
+    expect(response.status).toBe(409);
+    const found = nearDuplicatesFoundSchema.parse(
+      apiErrorSchema.parse(await response.json()).error.details,
+    );
+    expect(found.nearDuplicates.map((near) => near.questionId)).toEqual([
+      seededQuestionIds.aboutTheOtherClientsBooking,
+    ]);
   });
 
   it("never tells an Author about a Pending Question, and does once it is Published", async () => {
@@ -163,14 +167,20 @@ describe("submitting a Question that resembles one already in the bank", () => {
     expect(found.nearDuplicates.map((near) => near.questionId)).toEqual([waiting]);
   });
 
-  it("holds a Reviewer to the same rule, for the Client they hold no Grant for", async () => {
+  it("tells a Reviewer the same, for the Client they hold no Grant for", async () => {
     const response = await postQuestion(
       api,
       aQuestion({ text: nearlyTheFirstClientsPipelineOne }),
       reviewerToken,
     );
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(409);
+    const found = nearDuplicatesFoundSchema.parse(
+      apiErrorSchema.parse(await response.json()).error.details,
+    );
+    expect(found.nearDuplicates.map((near) => near.questionId)).toEqual([
+      seededQuestionIds.aboutTheClientsPipeline,
+    ]);
   });
 
   it("records the refused submission, naming no Question and holding what was attempted", async () => {

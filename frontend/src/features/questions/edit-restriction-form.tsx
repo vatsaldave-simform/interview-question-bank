@@ -1,8 +1,8 @@
 import type { Question } from "@iqb/shared";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { useGrantedClients } from "@/features/clients/clients.queries";
-import { ClientRestriction } from "@/features/questions/client-restriction";
+import { useClients } from "@/features/clients/clients.queries";
+import { QuestionClients } from "@/features/questions/question-clients";
 import { QuestionClientChoice } from "@/features/questions/question-client-choice";
 import {
   useChangeRestriction,
@@ -15,20 +15,23 @@ import { Button } from "@/ui/shadcn/button";
 /** In the edit form's card but sent apart from it, because an edit refuses a Client and a
  * restriction change is its own Change Event (ADR-0018). */
 export function EditRestrictionForm({ question }: { question: Question }) {
-  const clients = useGrantedClients();
+  const clients = useClients();
   const change = useChangeRestriction(question.id);
-  const [clientId, setClientId] = useState(question.client?.id ?? null);
+  // The one Client the restrict act works on, which is the first by name until #194.
+  const restrictedTo = question.clients[0] ?? null;
+  const [clientId, setClientId] = useState(restrictedTo?.id ?? null);
   const [refusal, setRefusal] = useState<string | null>(null);
 
   function send(restrictionChange: RestrictionChange): void {
     setRefusal(null);
     change.mutate(restrictionChange, {
       onSuccess: ({ question: changed }) => {
-        setClientId(changed.client?.id ?? null);
+        const restrictedNow = changed.clients[0] ?? null;
+        setClientId(restrictedNow?.id ?? null);
         toast.success(
-          changed.client === null
+          restrictedNow === null
             ? "The restriction was removed."
-            : `It is now restricted to ${changed.client.name}.`,
+            : `It is now restricted to ${restrictedNow.name}.`,
         );
       },
       onError: (reason) => setRefusal(whatWentWrong(reason)),
@@ -41,18 +44,18 @@ export function EditRestrictionForm({ question }: { question: Question }) {
   }
 
   // Nothing to choose and nothing to remove, and an unrestricted Question shows no badge.
-  if (clients.data?.length === 0 && question.client === null) return null;
+  if (clients.data?.length === 0 && restrictedTo === null) return null;
 
   return (
     <section
-      aria-labelledby="who-can-see-it"
+      aria-labelledby="question-clients"
       className="border-border flex flex-col gap-3 border-t pt-section"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 id="who-can-see-it" className="text-lg font-semibold">
-          Who can see it
+        <h2 id="question-clients" className="text-lg font-semibold">
+          Clients
         </h2>
-        <ClientRestriction client={question.client} />
+        <QuestionClients clients={question.clients} />
       </div>
       <p className="text-muted-foreground text-sm">
         This changes straight away. It is not part of Save.
@@ -68,7 +71,7 @@ export function EditRestrictionForm({ question }: { question: Question }) {
               type="submit"
               size="sm"
               disabled={
-                clientId === null || clientId === question.client?.id || change.isPending
+                clientId === null || clientId === restrictedTo?.id || change.isPending
               }
             >
               Restrict
@@ -77,7 +80,7 @@ export function EditRestrictionForm({ question }: { question: Question }) {
         </QuestionClientChoice>
       </form>
       {/* Offered to every Viewer, because only the API says who may remove it (ADR-0002). */}
-      {question.client !== null && (
+      {restrictedTo !== null && (
         <Button
           variant="outline"
           size="sm"

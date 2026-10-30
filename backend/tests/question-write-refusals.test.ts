@@ -1,8 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { writeVisibleQuestion } from "../src/features/questions/questions.repository.ts";
 import {
-  clientIdNamed,
+  aViewer,
   resetTheQuestions,
   seedTheBank,
   seededQuestionIds,
@@ -13,8 +12,6 @@ import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 const {
   aboutTypeScript: publishedAndUnrestricted,
   aboutDisagreeing: pendingAndUnrestricted,
-  // The Author holds the first Client's Grant, and the seeded Reviewer does not.
-  aboutTheClientsPipeline: publishedForTheFirstClient,
 } = seededQuestionIds;
 
 /**
@@ -24,12 +21,10 @@ const {
  */
 describe("why the write on an existing Question wrote nothing", () => {
   let api: TestApi;
-  let secondClientId: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
-    secondClientId = await clientIdNamed(api.database, seedOtherClient.name);
   });
   beforeEach(async () => {
     await resetTheQuestions(api.database);
@@ -42,20 +37,21 @@ describe("why the write on an existing Question wrote nothing", () => {
     api.database.changeEvent.count({ where: { questionId: id } });
 
   it("says not-visible for a Question the Viewer cannot see, and writes nothing", async () => {
-    const reviewer = await viewerByRole(api.database, "reviewer");
-    const before = await eventsAbout(publishedForTheFirstClient);
+    // Pending and the seeded Author's, so out of this other Author's sight.
+    const stranger = await aViewer(api.database, "author");
+    const before = await eventsAbout(pendingAndUnrestricted);
 
-    const written = await writeVisibleQuestion(api.database, reviewer, publishedForTheFirstClient, {
-      act: "return",
+    const written = await writeVisibleQuestion(api.database, stranger, pendingAndUnrestricted, {
+      act: "reject",
       reason: "Written by a Viewer who should never have reached this row.",
     });
 
     expect(written).toEqual({ refused: "not-visible" });
     const stored = await api.database.question.findUniqueOrThrow({
-      where: { id: publishedForTheFirstClient },
+      where: { id: pendingAndUnrestricted },
     });
-    expect(stored.publicationState).toBe("published");
-    expect(await eventsAbout(publishedForTheFirstClient)).toBe(before);
+    expect(stored.publicationState).toBe("pending");
+    expect(await eventsAbout(pendingAndUnrestricted)).toBe(before);
   });
 
   it("says wrong-state for a Question not in the state the act starts from", async () => {
@@ -68,21 +64,6 @@ describe("why the write on an existing Question wrote nothing", () => {
 
     expect(written).toEqual({ refused: "wrong-state" });
     expect(await eventsAbout(publishedAndUnrestricted)).toBe(before);
-  });
-
-  it("says client-not-granted for a Client the Viewer holds no Grant for", async () => {
-    const author = await viewerByRole(api.database, "author");
-
-    const written = await writeVisibleQuestion(api.database, author, publishedAndUnrestricted, {
-      act: "restrict",
-      clientId: secondClientId,
-    });
-
-    expect(written).toEqual({ refused: "client-not-granted" });
-    const stored = await api.database.question.findUniqueOrThrow({
-      where: { id: publishedAndUnrestricted },
-    });
-    expect(stored.clientId).toBeNull();
   });
 
   it("answers with the Question when it wrote, so the refusals above are not a no-op", async () => {

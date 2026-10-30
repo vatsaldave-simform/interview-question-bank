@@ -5,10 +5,7 @@ import { insertClient } from "./clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import { ConflictError } from "../../platform/errors.ts";
 
-/**
- * Creating a Client grants nobody anything, the creator included: an Administrator sees
- * it only after issuing themselves a Permission Grant, in the open (ADR-0015).
- */
+/** Every Viewer sees the new Client at once, because a Client hides nothing (ADR-0050). */
 export async function createClient(
   database: Database,
   viewer: Viewer,

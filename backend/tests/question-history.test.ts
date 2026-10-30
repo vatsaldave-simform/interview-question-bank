@@ -31,7 +31,7 @@ function getHistory(api: TestApi, id: string, token: string): Promise<Response> 
  */
 describe("the history of a Question", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
   /** Holds a Grant for the first Client, and may edit nothing. */
   let readerToken: string;
@@ -157,14 +157,12 @@ describe("the history of a Question that is not Visible", () => {
   let api: TestApi;
   let authorToken: string;
   let readerToken: string;
-  let reviewerToken: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     readerToken = await logIn(api, seededViewer("reader"));
-    reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
   beforeEach(async () => {
     await resetTheQuestions(api.database);
@@ -175,19 +173,15 @@ describe("the history of a Question that is not Visible", () => {
 
   /** What asking for this history and asking for one that names nothing both look like. */
   async function historyLooksLikeNothingThere(id: string, token: string): Promise<void> {
-    const restricted = await getHistory(api, id, token);
+    const hidden = await getHistory(api, id, token);
     const nothing = await getHistory(api, unknownQuestionId, token);
 
-    expect(await statusAndBody(restricted)).toBe(await statusAndBody(nothing));
-    expect(restricted.status).toBe(404);
+    expect(await statusAndBody(hidden)).toBe(await statusAndBody(nothing));
+    expect(hidden.status).toBe(404);
   }
 
-  it("answers a Reviewer holding no Grant for that Client as if the Question were not there", async () => {
-    await historyLooksLikeNothingThere(seededQuestionIds.aboutTheClientsPipeline, reviewerToken);
-  });
-
-  it("answers a Reader holding no Grant for that Client the same way", async () => {
-    await historyLooksLikeNothingThere(seededQuestionIds.aboutTheOtherClientsBooking, readerToken);
+  it("answers a Reader asking for a Rejected Question's history as if it were not there", async () => {
+    await historyLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, readerToken);
   });
 
   it("answers a Reader asking about a Pending Question the same way", async () => {
@@ -208,13 +202,13 @@ describe("the history of a Question that is not Visible", () => {
     // Without this, the 404s above would be satisfied by a Question nobody can reach.
     await patchQuestion(
       api,
-      seededQuestionIds.aboutTheClientsPipeline,
-      { text: "Edited by the one Viewer who holds the Grant." },
+      seededQuestionIds.aboutDisagreeing,
+      { text: "Edited by its Author while it is still Pending." },
       authorToken,
     );
 
-    const refused = await getHistory(api, seededQuestionIds.aboutTheClientsPipeline, reviewerToken);
-    const allowed = await getHistory(api, seededQuestionIds.aboutTheClientsPipeline, authorToken);
+    const refused = await getHistory(api, seededQuestionIds.aboutDisagreeing, readerToken);
+    const allowed = await getHistory(api, seededQuestionIds.aboutDisagreeing, authorToken);
 
     expect(refused.status).toBe(404);
     expect(allowed.status).toBe(200);

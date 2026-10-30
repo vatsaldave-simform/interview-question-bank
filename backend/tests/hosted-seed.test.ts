@@ -1,4 +1,9 @@
-import { categoryNames, nearDuplicateThreshold, type Viewer } from "@iqb/shared";
+import {
+  categoryNames,
+  nearDuplicateThreshold,
+  type PublicationState,
+  type Viewer,
+} from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "../src/features/auth/password.ts";
 import { seedClientsAndGrants } from "../src/features/clients/clients.seed.ts";
@@ -21,7 +26,7 @@ import {
 } from "../src/features/viewers/hosted-viewers.seed.ts";
 import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWhereTheClientsDisagree } from "./helpers/question-bank.ts";
+import { questionsWhereTheColumnIsNotTheFirstClient } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /** A password per hosted Viewer, each one different so a mix-up shows. */
@@ -195,8 +200,8 @@ describe("the hosted seed's Questions", () => {
       ...everyRow,
     });
     const names = seen
-      .filter((question) => hostedIds.has(question.id) && question.client !== null)
-      .map((question) => question.client!.name);
+      .filter((question) => hostedIds.has(question.id))
+      .flatMap((question) => question.clients.map(({ name }) => name));
     return [...new Set(names)].sort();
   }
 
@@ -214,17 +219,17 @@ describe("the hosted seed's Questions", () => {
     await database.$disconnect();
   });
 
-  it("writes the join table to match each Question's Client", async () => {
-    expect(await questionsWhereTheClientsDisagree(database)).toEqual([]);
+  it("puts each Question's first Client by name in the old column", async () => {
+    expect(await questionsWhereTheColumnIsNotTheFirstClient(database)).toEqual([]);
   });
 
-  it("writes 50 Questions, all by John", async () => {
+  it("writes 51 Questions, all by John", async () => {
     const stored = await database.question.findMany({
       where: { id: { in: [...hostedIds] } },
       select: { author: { select: { email: true } } },
     });
 
-    expect(stored).toHaveLength(50);
+    expect(stored).toHaveLength(51);
     expect(new Set(stored.map((question) => question.author.email))).toEqual(
       new Set(["john.doe@iqb.test"]),
     );
@@ -244,27 +249,23 @@ describe("the hosted seed's Questions", () => {
   });
 
   it("leaves 38 open to everyone and gives each Client Published and Pending Questions", async () => {
-    const groups = await database.question.groupBy({
-      by: ["clientId", "publicationState"],
-      where: { id: { in: [...hostedIds] } },
-      _count: { _all: true },
-    });
-    const count = async (clientName: string | null, state: string) => {
-      const clientId =
-        clientName === null
-          ? null
-          : (await database.client.findUniqueOrThrow({ where: { name: clientName } })).id;
-      const group = groups.find((g) => g.clientId === clientId && g.publicationState === state);
-      return group?._count._all ?? 0;
-    };
+    // Read from the join table, so the Question two Clients asked counts once for each.
+    const count = (clientName: string | null, state: PublicationState) =>
+      database.question.count({
+        where: {
+          id: { in: [...hostedIds] },
+          publicationState: state,
+          clients: clientName === null ? { none: {} } : { some: { client: { name: clientName } } },
+        },
+      });
 
     expect([await count(null, "published"), await count(null, "pending")]).toEqual([35, 3]);
     expect([await count(harbourline.name, "published"), await count(harbourline.name, "pending")])
-      .toEqual([3, 1]);
+      .toEqual([4, 1]);
     expect([await count(brightwater.name, "published"), await count(brightwater.name, "pending")])
       .toEqual([2, 2]);
     expect([await count(fernhill.name, "published"), await count(fernhill.name, "pending")])
-      .toEqual([3, 1]);
+      .toEqual([4, 1]);
   });
 
   it("puts every Pending hosted Question in Jane's review queue", async () => {
@@ -280,10 +281,12 @@ describe("the hosted seed's Questions", () => {
     for (const question of pending) expect(queued).toContain(question.id);
   });
 
-  it("shows each Reader only the Clients they hold a Grant for", async () => {
-    expect(await clientsSeenBy("shane.austin@iqb.test")).toEqual([harbourline.name]);
-    expect(await clientsSeenBy("cody.rhodes@iqb.test")).toEqual([brightwater.name]);
-    expect(await clientsSeenBy("dwayne.rook@iqb.test")).toEqual([]);
+  it("shows every Reader the same Clients, whatever Grants they hold", async () => {
+    const seen = await clientsSeenBy("shane.austin@iqb.test");
+
+    expect(seen).toEqual(expect.arrayContaining([harbourline.name, brightwater.name]));
+    expect(await clientsSeenBy("cody.rhodes@iqb.test")).toEqual(seen);
+    expect(await clientsSeenBy("dwayne.rook@iqb.test")).toEqual(seen);
   });
 
   // The seed skips the check an Author meets, so without this an edit to one of these

@@ -1,6 +1,5 @@
 import type { Viewer, ViewerRole } from "@iqb/shared";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.ts";
 import {
   findOwnUnpublishedQuestions,
   findPendingQuestionsForReview,
@@ -9,7 +8,6 @@ import {
 import type { Database } from "../src/platform/database.ts";
 import {
   aViewer,
-  clientIdNamed,
   seedTheBank,
   seededQuestionIds,
   viewerByRole,
@@ -23,6 +21,7 @@ const {
   aboutTheClientsRendering: pendingForTheFirstClient,
   aboutTheOtherClientsIntake: pendingForTheSecondClient,
   aboutTheClientsLogo: rejectedForTheFirstClient,
+  aboutTheOtherClientsFrameworks: rejectedForTheSecondClient,
 } = seededQuestionIds;
 
 const wholeFirstPage = { limit: 50, offset: 0 };
@@ -54,23 +53,17 @@ describe("the lists of Questions not yet in the bank", () => {
   });
 
   describe("the Reviewer's Pending queue", () => {
-    it("leaves out the Pending Questions of a Client the Reviewer holds no Grant for", async () => {
-      // The seeded Reviewer holds a Grant for the second Client and none for the first.
+    it("holds the Pending Questions of every Client, whatever Grants the Reviewer holds", async () => {
+      // The seeded Reviewer holds no Grant for the first Client, and its Question is here.
       const reviewer = await viewer("reviewer");
 
       const queue = await findPendingQuestionsForReview(database, reviewer, wholeFirstPage);
 
-      expect(ids(queue)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient]);
-    });
-
-    it("holds that Client's Pending Question for a Reviewer who does hold the Grant", async () => {
-      const reviewer = await aViewer(database, "reviewer", [
-        await clientIdNamed(database, seedClient.name),
+      expect(ids(queue)).toEqual([
+        pendingAndUnrestricted,
+        pendingForTheFirstClient,
+        pendingForTheSecondClient,
       ]);
-
-      const queue = await findPendingQuestionsForReview(database, reviewer, wholeFirstPage);
-
-      expect(ids(queue)).toEqual([pendingAndUnrestricted, pendingForTheFirstClient]);
     });
 
     it("holds no Published and no Rejected Question", async () => {
@@ -80,7 +73,7 @@ describe("the lists of Questions not yet in the bank", () => {
         wholeFirstPage,
       );
 
-      expect(queue.map((question) => question.publicationState)).toEqual(["pending", "pending"]);
+      expect(queue.map((question) => question.publicationState)).toEqual(["pending", "pending", "pending"]);
       expect(ids(queue)).not.toContain(rejectedAndUnrestricted);
     });
 
@@ -90,7 +83,12 @@ describe("the lists of Questions not yet in the bank", () => {
 
       const queue = await findPendingQuestionsForReview(database, reviewer, wholeFirstPage);
 
-      expect(ids(queue)).toEqual([pendingAndUnrestricted, pendingForTheSecondClient, added.id]);
+      expect(ids(queue)).toEqual([
+        pendingAndUnrestricted,
+        pendingForTheFirstClient,
+        pendingForTheSecondClient,
+        added.id,
+      ]);
     });
 
     it("hands back the page it is asked for", async () => {
@@ -101,7 +99,7 @@ describe("the lists of Questions not yet in the bank", () => {
         offset: 1,
       });
 
-      expect(ids(second)).toEqual([pendingForTheSecondClient]);
+      expect(ids(second)).toEqual([pendingForTheFirstClient]);
     });
   });
 
@@ -114,7 +112,9 @@ describe("the lists of Questions not yet in the bank", () => {
 
       expect(ids(own)).toEqual([
         added.id,
+        rejectedForTheSecondClient,
         rejectedForTheFirstClient,
+        pendingForTheSecondClient,
         pendingForTheFirstClient,
         rejectedAndUnrestricted,
         pendingAndUnrestricted,
@@ -133,16 +133,16 @@ describe("the lists of Questions not yet in the bank", () => {
       expect(ids(theirsListed)).toEqual([theirs.id]);
     });
 
-    it("leaves out the Author's own Pending Question under a Client they hold no Grant for", async () => {
-      // The seeded Author wrote the second Client's Pending Question but holds a Grant
-      // for the first Client only.
+    it("holds the Author's own Pending Question under a Client they hold no Grant for", async () => {
+      // The seeded Author wrote the second Client's Pending Question and holds no Grant
+      // for that Client.
       const own = await findOwnUnpublishedQuestions(
         database,
         await viewer("author"),
         wholeFirstPage,
       );
 
-      expect(ids(own)).not.toContain(pendingForTheSecondClient);
+      expect(ids(own)).toContain(pendingForTheSecondClient);
     });
 
     it("is empty for a Reviewer who wrote nothing", async () => {

@@ -169,24 +169,19 @@ describe("listing Questions over HTTP", () => {
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
   });
 
-  it("never puts a Client-restricted Question in a page for a Viewer holding no Grant", async () => {
-    // The Reviewer holds no Grant for this Client, and does hold one for the other
-    // seeded Client, so the check is "not this one" rather than "not restricted at all".
-    const restrictedTo = await clientIdNamed(api.database, seedClient.name);
+  it("puts a Question that names a Client in the page of a Viewer holding no Grant for it", async () => {
+    // The Reviewer holds no Grant for this Client.
+    const named = await clientIdNamed(api.database, seedClient.name);
 
     const forReviewer = await getQuestions(api, { limit: maxQuestionPageSize }, reviewerToken);
     const forReader = await getQuestions(api, { limit: maxQuestionPageSize }, readerToken);
 
     const seenByReviewer = questionListResponseSchema.parse(await forReviewer.json());
     const seenByReader = questionListResponseSchema.parse(await forReader.json());
-    // Non-empty first, or "no restricted Question here" would be true of nothing.
-    expect(seenByReviewer.questions.length).toBeGreaterThan(0);
-    expect(
-      seenByReviewer.questions.every((question) => question.client?.id !== restrictedTo),
-    ).toBe(true);
-    expect(seenByReader.questions.some((question) => question.client?.id === restrictedTo)).toBe(
-      true,
-    );
+    const names = ({ clients }: { clients: { id: string }[] }) =>
+      clients.some(({ id }) => id === named);
+    expect(seenByReviewer.questions.some(names)).toBe(true);
+    expect(seenByReader.questions.some(names)).toBe(true);
   });
 
   it("returns the Questions a keyword and a Category filter both match", async () => {

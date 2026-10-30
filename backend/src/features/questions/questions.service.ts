@@ -39,7 +39,7 @@ import {
   type TagsInCategory,
   type WriteRefused,
 } from "./questions.repository.ts";
-import { findClientGrantedTo } from "../clients/clients.repository.ts";
+import { findClientById } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -57,7 +57,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  if (request.clientId !== undefined) await checkGrantedClient(database, viewer, request.clientId);
+  if (request.clientId !== undefined) await checkClientExists(database, request.clientId);
   const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "add",
     questionId: null,
@@ -68,7 +68,7 @@ export async function addQuestion(
       source: request.source ?? null,
       tags: [...request.tags],
     },
-    nearDuplicates: await findNearDuplicates(database, viewer, request.text),
+    nearDuplicates: await findNearDuplicates(database, request.text),
     confirmed: request.confirmedNotANearDuplicate,
   });
 
@@ -185,14 +185,9 @@ function idOf(found: ReadonlyMap<string, string>, { category, tag }: QuestionTag
   return id;
 }
 
-/** A restriction the Viewer holds no Grant for would hide the Question from the Viewer who
- * set it, and a Client they cannot see is answered as one that does not exist (ADR-0018). */
-async function checkGrantedClient(
-  database: Database,
-  viewer: Viewer,
-  clientId: string,
-): Promise<void> {
-  if ((await findClientGrantedTo(database, viewer.id, clientId)) === null) {
+/** Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
+async function checkClientExists(database: Database, clientId: string): Promise<void> {
+  if ((await findClientById(database, clientId)) === null) {
     throw new InvalidRequestError("No such Client.");
   }
 }
@@ -225,7 +220,7 @@ function namedPerCategory(
 /** Which write an act becomes. Restricting a Question that already has a Client moves it. */
 function writeActFor(act: QuestionAct, question: QuestionFromDb): QuestionWrite["act"] {
   if (act.act !== "restrict") return act.act;
-  return question.client === null ? "restrict" : "move";
+  return question.clientId === null ? "restrict" : "move";
 }
 
 /** Null when there is nothing to write. */
@@ -248,10 +243,10 @@ async function prepareWrite(
     case "restrict":
       return restrictionFor(database, viewer, question, act.clientId);
     case "remove-restriction":
-      if (question.client === null) {
+      if (question.clientId === null) {
         throw new ConflictError("This Question has no Client restriction to remove.");
       }
-      return { write: { act: "remove-restriction", from: question.client.id }, overridden: [] };
+      return { write: { act: "remove-restriction", from: question.clientId }, overridden: [] };
   }
 }
 
@@ -291,7 +286,7 @@ async function checkEditedText(
     act: "edit",
     questionId: question.id,
     attempted: questionAfter(question, request),
-    nearDuplicates: await findNearDuplicatesForEdit(database, viewer, { id: question.id, text }),
+    nearDuplicates: await findNearDuplicatesForEdit(database, { id: question.id, text }),
     confirmed: request.confirmedNotANearDuplicate === true,
   });
 }
@@ -325,7 +320,7 @@ async function publicationFor(
     act: "publish",
     questionId: question.id,
     attempted: questionAfter(question),
-    nearDuplicates: await findNearDuplicatesForPublication(database, viewer, question),
+    nearDuplicates: await findNearDuplicatesForPublication(database, question),
     confirmed: request.confirmedNotANearDuplicate,
   });
   return { write, overridden };
@@ -339,10 +334,10 @@ async function restrictionFor(
   question: QuestionFromDb,
   clientId: string,
 ): Promise<PreparedWrite | null> {
-  await checkGrantedClient(database, viewer, clientId);
+  await checkClientExists(database, clientId);
 
-  if (question.client === null) return { write: { act: "restrict", clientId }, overridden: [] };
-  if (question.client.id === clientId) return null;
+  if (question.clientId === null) return { write: { act: "restrict", clientId }, overridden: [] };
+  if (question.clientId === clientId) return null;
   // After the Client, because the advice is only worth giving when the move could then work.
   if (!mayMoveToAnotherClient(viewer, question)) {
     throw new ForbiddenError(
@@ -350,17 +345,13 @@ async function restrictionFor(
         "you, and you can move it then.",
     );
   }
-  return { write: { act: "move", from: question.client.id, to: clientId }, overridden: [] };
+  return { write: { act: "move", from: question.clientId, to: clientId }, overridden: [] };
 }
 
-/** A Permission Grant can be revoked between the look-up and the write, and the write says
- * which check that made it fail, in the order the look-up asks them (ADR-0002). */
 function refusal(refused: WriteRefused, wrongState: string): AppError {
   switch (refused) {
     case "not-visible":
       return new NotFoundError();
-    case "client-not-granted":
-      return new InvalidRequestError("No such Client.");
     case "wrong-state":
       return new ConflictError(wrongState);
   }

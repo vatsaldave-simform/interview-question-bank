@@ -158,10 +158,10 @@ describe("Administrator authority", () => {
     await appoint(api, readerId, administratorToken);
     const readerAdministratorToken = await logIn(api, seededViewer("reader"));
 
-    // Restricted to the second Client, which the Reader holds no Permission Grant for.
+    // Pending, which a Reader may not see whatever else they hold.
     const response = await getQuestion(
       api,
-      seededQuestionIds.aboutTheOtherClientsBooking,
+      seededQuestionIds.aboutDisagreeing,
       readerAdministratorToken,
     );
 
