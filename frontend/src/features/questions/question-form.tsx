@@ -4,6 +4,7 @@ import {
   type DraftProblems,
   type QuestionDraft,
 } from "@/features/questions/question-problems";
+import { ClientsField } from "@/features/questions/clients-field";
 import { TagsField } from "@/features/questions/tags-field";
 import { Alert, AlertDescription, AlertTitle } from "@/ui/shadcn/alert";
 import { Button } from "@/ui/shadcn/button";
@@ -23,14 +24,12 @@ type QuestionFormProps = {
   onSubmit: (draft: QuestionDraft) => void;
   /** Fields only one of the two forms has, shown after the ones they share. */
   children?: ReactNode;
-  /** Shown in the same card after the form, for what is sent apart from it. */
-  after?: ReactNode;
 };
 
 /** Checking and sending the draft belong to the screen, because adding and editing check it
  * against different schemas. */
 export function QuestionForm(props: QuestionFormProps) {
-  const { initial, problems, refusal, sending, submit, cancel, onSubmit, children, after } = props;
+  const { initial, problems, refusal, sending, submit, cancel, onSubmit, children } = props;
   const [draft, setDraft] = useState(initial);
   const form = useRef<HTMLFormElement>(null);
 
@@ -91,6 +90,10 @@ export function QuestionForm(props: QuestionFormProps) {
             problem={problems.tags}
             onChange={(tags) => setDraft({ ...draft, tags })}
           />
+          <ClientsField
+            chosen={draft.clientIds}
+            onChange={(clientIds) => setDraft({ ...draft, clientIds })}
+          />
           {children}
         </FieldGroup>
         <div className="flex flex-wrap gap-2.5">
@@ -100,7 +103,6 @@ export function QuestionForm(props: QuestionFormProps) {
           {cancel}
         </div>
       </form>
-      {after}
     </Card>
   );
 }

@@ -289,6 +289,8 @@ model Rating {
 enum ChangeEventType {
   question_added
   question_edited
+  question_client_added
+  question_client_removed
   near_duplicate_refused
   near_duplicate_overridden
   administrator_appointed

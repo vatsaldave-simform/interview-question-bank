@@ -40,7 +40,7 @@ try {
 
   console.log(
     `The bank from seed value "${options.seed}" holds ${summary.questions} Questions, ` +
-      `${summary.restricted} of them restricted to a Client.`,
+      `${summary.namingAClient} of them naming a Client.`,
   );
   console.log(
     `This run wrote ${summary.questionsWritten} Questions and ${summary.tagsWritten} ` +

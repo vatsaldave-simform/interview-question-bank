@@ -1,11 +1,8 @@
 import {
   categoryNames,
   mayEdit,
-  mayMoveToAnotherClient,
   mayPublish,
   mayReject,
-  mayRemoveRestriction,
-  mayRestrict,
   mayResubmit,
   mayReturn,
   type AddQuestionRequest,
@@ -18,7 +15,6 @@ import {
   type QuestionAdded,
   type QuestionTag,
   type RejectQuestionRequest,
-  type RestrictQuestionRequest,
   type ReturnQuestionRequest,
   type UnknownTags,
   type Viewer,
@@ -39,7 +35,7 @@ import {
   type TagsInCategory,
   type WriteRefused,
 } from "./questions.repository.ts";
-import { findClientById } from "../clients/clients.repository.ts";
+import { findClientsByIds } from "../clients/clients.repository.ts";
 import type { Database } from "../../platform/database.ts";
 import {
   ConflictError,
@@ -57,7 +53,7 @@ export async function addQuestion(
   request: AddQuestionRequest,
 ): Promise<QuestionFromDb> {
   const tagIds = await tagIdsNamed(database, request.tags);
-  if (request.clientId !== undefined) await checkClientExists(database, request.clientId);
+  const clientIds = await clientIdsNamed(database, request.clientIds ?? []);
   const overridden = await refuseUnlessConfirmed(database, viewer, {
     act: "add",
     questionId: null,
@@ -80,7 +76,7 @@ export async function addQuestion(
       answerNotes: request.answerNotes,
       provenance: request.provenance,
       ...(request.source === undefined ? {} : { source: request.source }),
-      ...(request.clientId === undefined ? {} : { clientId: request.clientId }),
+      clientIds,
       tagIds,
     },
     overridden,
@@ -123,11 +119,10 @@ export async function actOnQuestion(
 ): Promise<QuestionFromDb> {
   const question = await findVisibleQuestionById(database, viewer, id);
   if (question === null) throw new NotFoundError();
-  const rule = actRules[writeActFor(act, question)];
+  const rule = actRules[act.act];
   if (!rule.may(viewer, question)) throw new ForbiddenError(rule.forbidden);
 
   const prepared = await prepareWrite(database, viewer, question, act);
-  if (prepared === null) return question;
 
   const written = await writeVisibleQuestion(
     database,
@@ -185,11 +180,16 @@ function idOf(found: ReadonlyMap<string, string>, { category, tag }: QuestionTag
   return id;
 }
 
-/** Any Viewer may name any Client, because a Client hides nothing (ADR-0050). */
-async function checkClientExists(database: Database, clientId: string): Promise<void> {
-  if ((await findClientById(database, clientId)) === null) {
-    throw new InvalidRequestError("No such Client.");
-  }
+/** Each Client once and every one real, checked before anything is written, and any Viewer
+ * may name any Client because a Client hides nothing (ADR-0050). */
+async function clientIdsNamed(
+  database: Database,
+  clientIds: readonly string[],
+): Promise<string[]> {
+  const named = [...new Set(clientIds)];
+  const found = await findClientsByIds(database, named);
+  if (found.length !== named.length) throw new InvalidRequestError("No such Client.");
+  return named;
 }
 
 async function refuseUnlessConfirmed(
@@ -217,19 +217,12 @@ function namedPerCategory(
     .filter(({ tags }) => tags.length > 0);
 }
 
-/** Which write an act becomes. Restricting a Question that already has a Client moves it. */
-function writeActFor(act: QuestionAct, question: QuestionFromDb): QuestionWrite["act"] {
-  if (act.act !== "restrict") return act.act;
-  return question.clientId === null ? "restrict" : "move";
-}
-
-/** Null when there is nothing to write. */
 async function prepareWrite(
   database: Database,
   viewer: Viewer,
   question: QuestionFromDb,
   act: QuestionAct,
-): Promise<PreparedWrite | null> {
+): Promise<PreparedWrite> {
   switch (act.act) {
     case "edit":
       return editFor(database, viewer, question, act);
@@ -240,13 +233,6 @@ async function prepareWrite(
       return { write: { act: act.act, reason: act.reason }, overridden: [] };
     case "resubmit":
       return { write: { act: "resubmit" }, overridden: [] };
-    case "restrict":
-      return restrictionFor(database, viewer, question, act.clientId);
-    case "remove-restriction":
-      if (question.clientId === null) {
-        throw new ConflictError("This Question has no Client restriction to remove.");
-      }
-      return { write: { act: "remove-restriction", from: question.clientId }, overridden: [] };
   }
 }
 
@@ -257,6 +243,10 @@ async function editFor(
   request: EditQuestionRequest,
 ): Promise<PreparedWrite> {
   const tagIds = request.tags === undefined ? undefined : await tagIdsNamed(database, request.tags);
+  const clientIds =
+    request.clientIds === undefined
+      ? undefined
+      : await clientIdsNamed(database, request.clientIds);
   const overridden = await checkEditedText(database, viewer, question, request);
   return {
     write: {
@@ -264,6 +254,7 @@ async function editFor(
       ...(request.text === undefined ? {} : { text: request.text }),
       ...(request.answerNotes === undefined ? {} : { answerNotes: request.answerNotes }),
       ...(tagIds === undefined ? {} : { tagIds }),
+      ...(clientIds === undefined ? {} : { clientIds }),
     },
     overridden,
   };
@@ -326,28 +317,6 @@ async function publicationFor(
   return { write, overridden };
 }
 
-/** Null when it is already restricted to that Client, which changes nothing and records
- * nothing. */
-async function restrictionFor(
-  database: Database,
-  viewer: Viewer,
-  question: QuestionFromDb,
-  clientId: string,
-): Promise<PreparedWrite | null> {
-  await checkClientExists(database, clientId);
-
-  if (question.clientId === null) return { write: { act: "restrict", clientId }, overridden: [] };
-  if (question.clientId === clientId) return null;
-  // After the Client, because the advice is only worth giving when the move could then work.
-  if (!mayMoveToAnotherClient(viewer, question)) {
-    throw new ForbiddenError(
-      "A Published Question cannot be moved to another Client. A Reviewer can return it to " +
-        "you, and you can move it then.",
-    );
-  }
-  return { write: { act: "move", from: question.clientId, to: clientId }, overridden: [] };
-}
-
 function refusal(refused: WriteRefused, wrongState: string): AppError {
   switch (refused) {
     case "not-visible":
@@ -386,11 +355,7 @@ type QuestionAct =
   | ({ act: "reject" } & RejectQuestionRequest)
   // Its own act, because an edit alone leaves a Rejected Question where it is (ADR-0013).
   | { act: "resubmit" }
-  | ({ act: "return" } & ReturnQuestionRequest)
-  | ({ act: "restrict" } & RestrictQuestionRequest)
-  // Its own act rather than a restrict naming no Client, because only a Reviewer may do it
-  // (ADR-0018).
-  | { act: "remove-restriction" };
+  | ({ act: "return" } & ReturnQuestionRequest);
 
 type ActRule = {
   may: (viewer: Viewer, question: QuestionFromDb) => boolean;
@@ -400,8 +365,6 @@ type ActRule = {
   wrongState: string;
 };
 
-const restrictionChanged = "This Question's Client restriction changed meanwhile. Load it again.";
-
 /** One row per write, so a missing one does not compile. */
 const actRules: Record<QuestionWrite["act"], ActRule> = {
   // Never said today, because an edit starts from any state.
@@ -410,18 +373,6 @@ const actRules: Record<QuestionWrite["act"], ActRule> = {
   reject: { may: mayReject, wrongState: "Only a Pending Question can be Rejected." },
   resubmit: { may: mayResubmit, wrongState: "Only a Rejected Question can be resubmitted." },
   return: { may: mayReturn, wrongState: "Only a Published Question can be returned." },
-  restrict: { may: mayRestrict, wrongState: restrictionChanged },
-  // Whether it may leave its Client is asked further in, in `restrictionFor`.
-  move: {
-    may: mayRestrict,
-    wrongState:
-      "This Question's Client restriction or Publication State changed meanwhile. Load it again.",
-  },
-  "remove-restriction": {
-    may: mayRemoveRestriction,
-    forbidden: "Only a Reviewer may remove a Client restriction.",
-    wrongState: restrictionChanged,
-  },
 };
 
 type PreparedWrite = { write: QuestionWrite; overridden: NearDuplicate[] };

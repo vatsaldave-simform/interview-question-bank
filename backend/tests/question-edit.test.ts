@@ -219,7 +219,7 @@ describe("editing a Question over HTTP", () => {
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
   });
 
-  it("refuses an edit reaching for the Publication State or the Client at the edge", async () => {
+  it("refuses an edit reaching for the Publication State or the old Client field at the edge", async () => {
     const reachingFurther = [
       { publicationState: "published" },
       { clientId: null },

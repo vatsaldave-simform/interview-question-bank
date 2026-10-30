@@ -88,7 +88,7 @@ const answerNotesFrames: readonly AnswerNotesFrame[] = [
   (a, b) => `Watch for an answer that treats ${a} as free, and ask what ${b} costs first.`,
 ];
 
-const restrictedShare = 0.2;
+const namingAClientShare = 0.2;
 const provenances: readonly Provenance[] = ["original", "adapted", "inherited"];
 
 /** Rows go in this many at a time, so a bank is not one enormous statement. */
@@ -97,7 +97,7 @@ const batchSize = 500;
 export type BulkBankSummary = {
   /** The bank this seed value stands for, whether or not this run had to write it. */
   questions: number;
-  restricted: number;
+  namingAClient: number;
   /** What this run wrote; zero for both when the bank was already there. */
   questionsWritten: number;
   tagsWritten: number;
@@ -127,14 +127,16 @@ export async function seedBulkBank(
   const questionRows = [];
   const questionTagRows = [];
   const questionClientRows = [];
-  let restricted = 0;
+  let namingAClient = 0;
 
   for (let n = 0; n < count; n += 1) {
     const key = `question:${n}`;
     const id = uuidFor(seed, key);
-    const isRestricted = randomFor(seed, `${key}:restricted`) < restrictedShare;
-    if (isRestricted) {
-      restricted += 1;
+    // The key keeps its old word, so the same Questions name a Client as when the plans were
+    // measured (ADR-0011).
+    const namesAClient = randomFor(seed, `${key}:restricted`) < namingAClientShare;
+    if (namesAClient) {
+      namingAClient += 1;
       questionClientRows.push({ questionId: id, clientId: client.id });
     }
 
@@ -144,7 +146,6 @@ export async function seedBulkBank(
       text: questionText(seed, key, words),
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
-      clientId: isRestricted ? client.id : null,
       // What a Reader's query filters on, so the plans measure a Reader's bank (ADR-0029).
       publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,
@@ -174,7 +175,7 @@ export async function seedBulkBank(
     database.questionClient.createMany({ data: rows, skipDuplicates: true }),
   );
 
-  return { questions: count, restricted, questionsWritten, tagsWritten };
+  return { questions: count, namingAClient, questionsWritten, tagsWritten };
 }
 
 /**

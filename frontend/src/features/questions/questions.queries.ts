@@ -13,7 +13,6 @@ import {
   type QuestionResponse,
   type RateQuestionRequest,
   type RejectQuestionRequest,
-  type RestrictQuestionRequest,
   type ReturnQuestionRequest,
 } from "@iqb/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -164,32 +163,6 @@ export function useMoveQuestion(id: string) {
     onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
     // After a refusal too, because a 409 means someone else moved it first, and every list
     // holding it is out of date either way.
-    onSettled: (answer) =>
-      queryClient.invalidateQueries({
-        queryKey: ["questions"],
-        // An answer is the Question as it now is, so it is not asked for again.
-        predicate: ({ queryKey }) =>
-          answer === undefined || queryKey[1] !== "one" || queryKey[2] !== id,
-      }),
-  });
-}
-
-/** Removing is its own act rather than a restrict naming no Client, because only a Reviewer
- * may do it (ADR-0018). */
-export type RestrictionChange =
-  | { act: "restrict"; request: RestrictQuestionRequest }
-  | { act: "remove-restriction" };
-
-export function useChangeRestriction(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (change: RestrictionChange) =>
-      callApi(`/api/questions/${encodeURIComponent(id)}/${change.act}`, questionResponseSchema, {
-        method: "POST",
-        body: "request" in change ? change.request : undefined,
-      }),
-    onSuccess: (answer) => queryClient.setQueryData(["questions", "one", id], answer),
-    // After a refusal too, because it can mean someone else changed the restriction first.
     onSettled: (answer) =>
       queryClient.invalidateQueries({
         queryKey: ["questions"],

@@ -66,7 +66,7 @@ describe("an empty Clients", () => {
 
     const empty = await theEmptyList("No Client yet");
     expect(
-      empty.getByText("Add a Client, and Questions can then be restricted to it."),
+      empty.getByText("Add a Client, and Questions can then name it."),
     ).toBeVisible();
     expect(screen.getAllByRole("button", { name: "Add a Client" })).toHaveLength(1);
     await userEvent.click(empty.getByRole("button", { name: "Add a Client" }));

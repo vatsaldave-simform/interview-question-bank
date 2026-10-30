@@ -315,23 +315,13 @@ export async function historyOf(api: TestApi, id: string, token: string): Promis
   return questionHistoryResponseSchema.parse(await response.json()).events;
 }
 
-/** Every Question whose `clientId` is not its first Client by name, which a seed writes
- * there (ADR-0050). */
-export async function questionsWhereTheColumnIsNotTheFirstClient(
-  database: Database,
-): Promise<string[]> {
-  const rows = await database.$queryRaw<{ id: string }[]>`
-    SELECT q.id FROM questions q
-      LEFT JOIN LATERAL (
-        SELECT qc."clientId"
-          FROM question_clients qc
-          JOIN clients cl ON cl.id = qc."clientId"
-         WHERE qc."questionId" = q.id
-         ORDER BY cl.name
-         LIMIT 1
-      ) first ON true
-     WHERE q."clientId" IS DISTINCT FROM first."clientId"
-  `;
+/** Every Question with anything in the old Client column, which no write fills any more
+ * and which #196 drops (ADR-0051). */
+export async function questionsWithTheOldColumnFilled(database: Database): Promise<string[]> {
+  const rows = await database.question.findMany({
+    where: { clientId: { not: null } },
+    select: { id: true },
+  });
   return rows.map((row) => row.id);
 }
 

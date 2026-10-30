@@ -12,7 +12,6 @@ import {
   type ProvenanceChoice,
 } from "@/features/questions/contribute-provenance-fields";
 import { NearDuplicateDialog, nearDuplicatesIn } from "@/features/questions/near-duplicate-dialog";
-import { QuestionClientChoice } from "@/features/questions/question-client-choice";
 import { QuestionForm } from "@/features/questions/question-form";
 import {
   checkRefused,
@@ -24,7 +23,7 @@ import { useAddQuestion } from "@/features/questions/questions.queries";
 import { PageHeader } from "@/ui/page-header";
 import { Button } from "@/ui/shadcn/button";
 
-const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [] };
+const emptyDraft: QuestionDraft = { text: "", answerNotes: "", tags: [], clientIds: [] };
 
 /** A Source belongs only to an Adapted Question, and a blank one names nothing. */
 function provenanceIn({ provenance, source }: ProvenanceChoice) {
@@ -49,7 +48,6 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
     provenance: null,
     source: "",
   });
-  const [clientId, setClientId] = useState<string | null>(null);
   const [problems, setProblems] = useState<DraftProblems>({});
   const [refusal, setRefusal] = useState<string | null>(null);
   const [refusedAsNearDuplicate, setRefusedAsNearDuplicate] =
@@ -74,11 +72,11 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
     });
   }
 
-  function submit(draft: QuestionDraft): void {
+  function submit({ clientIds, ...draft }: QuestionDraft): void {
     const checked = addQuestionRequestSchema.safeParse({
       ...draft,
+      ...(clientIds.length === 0 ? {} : { clientIds }),
       ...provenanceIn(provenanceChoice),
-      ...(clientId === null ? {} : { clientId }),
     });
     if (!checked.success) {
       // The message is for a field this form does not show, which only a page out of date
@@ -128,7 +126,6 @@ export function ContributeScreen({ onAdded }: { onAdded: (question: Question) =>
           problems={problems}
           onChange={setProvenanceChoice}
         />
-        <QuestionClientChoice clientId={clientId} onChange={setClientId} />
       </QuestionForm>
       {refusedAsNearDuplicate !== null && (
         <NearDuplicateDialog

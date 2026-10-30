@@ -8,7 +8,7 @@ import {
 } from "../src/features/questions/bulk-bank.seed.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWhereTheColumnIsNotTheFirstClient, seedTheBank } from "./helpers/question-bank.ts";
+import { questionsWithTheOldColumnFilled, seedTheBank } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
@@ -21,12 +21,12 @@ const fromTheBulkBank = { id: { notIn: seedQuestions.map((question) => question.
 type BankRow = {
   id: string;
   createdAt: Date;
-  restricted: boolean;
+  namesAClient: boolean;
   tags: string[];
 };
 
 /** Everything a second run has to write again. Tag values rather than Tag ids, and
- * whether a Question is restricted rather than which Client it names: the database
+ * whether a Question names a Client rather than which one it names: the database
  * writes those ids, and they differ between two empty databases. */
 async function bulkBankRows(database: Database): Promise<BankRow[]> {
   const questions = await database.question.findMany({
@@ -38,13 +38,13 @@ async function bulkBankRows(database: Database): Promise<BankRow[]> {
       createdAt: true,
       publicationState: true,
       provenance: true,
-      clientId: true,
+      clients: { select: { clientId: true } },
       tags: { select: { tag: { select: { value: true } } } },
     },
   });
-  return questions.map(({ clientId, tags, ...question }) => ({
+  return questions.map(({ clients, tags, ...question }) => ({
     ...question,
-    restricted: clientId !== null,
+    namesAClient: clients.length > 0,
     tags: tags.map(({ tag }) => tag.value).sort(),
   }));
 }
@@ -114,21 +114,21 @@ describe("the bulk bank", () => {
     expect(added).toBeGreaterThan(0);
   });
 
-  it("restricts roughly a fifth to a Client and leaves the rest unrestricted", async () => {
-    const restricted = await database.question.count({
-      where: { AND: [fromTheBulkBank, { clientId: { not: null } }] },
+  it("names a Client on roughly a fifth and none on the rest", async () => {
+    const naming = await database.question.count({
+      where: { AND: [fromTheBulkBank, { clients: { some: {} } }] },
     });
-    const unrestricted = await database.question.count({
-      where: { AND: [fromTheBulkBank, { clientId: null }] },
+    const namingNone = await database.question.count({
+      where: { AND: [fromTheBulkBank, { clients: { none: {} } }] },
     });
 
-    expect(restricted).toBeGreaterThan(bulk.count * 0.1);
-    expect(restricted).toBeLessThan(bulk.count * 0.3);
-    expect(unrestricted).toBe(bulk.count - restricted);
+    expect(naming).toBeGreaterThan(bulk.count * 0.1);
+    expect(naming).toBeLessThan(bulk.count * 0.3);
+    expect(namingNone).toBe(bulk.count - naming);
   });
 
-  it("puts each Question's first Client by name in the old column", async () => {
-    expect(await questionsWhereTheColumnIsNotTheFirstClient(database)).toEqual([]);
+  it("leaves the old Client column empty", async () => {
+    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   // The small seed holds the other states.

@@ -81,12 +81,18 @@ function whatHappened(event: ChangeEvent): string {
     case "question_returned":
       return `returned this Question to its Author: ${event.payload.reason}`;
     // "A Client", not its name, because the API sends only the id.
+    case "question_client_added":
+      return "added a Client to this Question";
+    case "question_client_removed":
+      return "removed a Client from this Question";
+    // Restrictions from before a Client stopped hiding anything, read in today's words
+    // (ADR-0050).
     case "question_classified":
       return event.payload.clientId.before === null
-        ? "restricted this Question to a Client"
-        : "moved this Question to another Client";
+        ? "added a Client to this Question"
+        : "removed a Client from this Question and added another";
     case "question_declassified":
-      return "removed this Question's Client restriction, so the whole bank can see it";
+      return "removed a Client from this Question";
     case "near_duplicate_overridden": {
       const { nearDuplicates } = event.payload;
       return `confirmed this Question is different from ${nearDuplicatesWording(nearDuplicates)}`;

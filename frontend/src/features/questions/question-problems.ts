@@ -2,7 +2,12 @@ import { refusedFieldsSchema, unknownTagsSchema, type QuestionTag } from "@iqb/s
 import { ApiFailure, whatWentWrong } from "@/platform/api-client";
 
 /** A Question as the form holds it while it is being written. */
-export type QuestionDraft = { text: string; answerNotes: string; tags: QuestionTag[] };
+export type QuestionDraft = {
+  text: string;
+  answerNotes: string;
+  tags: QuestionTag[];
+  clientIds: string[];
+};
 
 /** Provenance and Source are fields only the add form has, so the draft does not hold them. */
 type DraftField = keyof QuestionDraft | "provenance" | "source";
@@ -11,6 +16,7 @@ export const draftFields = [
   "text",
   "answerNotes",
   "tags",
+  "clientIds",
   "provenance",
   "source",
 ] as const satisfies readonly DraftField[];
@@ -23,6 +29,7 @@ const problemWording: Record<DraftField, string> = {
   text: "Write the Question.",
   answerNotes: "Write what a good answer looks like.",
   tags: "Choose the Tags from the ones shown.",
+  clientIds: "Choose the Clients from the ones shown.",
   provenance: "Choose where the Question came from.",
   source: "Name the work it was adapted from.",
 };

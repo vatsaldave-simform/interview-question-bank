@@ -185,6 +185,48 @@ describe("a Question's history", () => {
     expect(first).toHaveTextContent("What does satisfies do in TypeScript?");
   });
 
+  it("says a Client was added or removed, old restrictions included", async () => {
+    const clientEvent = (n: number, kind: Pick<ChangeEvent, "type" | "payload">): ChangeEvent =>
+      ({
+        ...added,
+        id: `e0000000-0000-4000-8000-00000000001${n}`,
+        ...kind,
+      }) as ChangeEvent;
+    const clientA = "c0000000-0000-4000-8000-000000000001";
+    const clientB = "c0000000-0000-4000-8000-000000000002";
+    const events = [
+      clientEvent(1, { type: "question_client_added", payload: { clientId: clientA } }),
+      clientEvent(2, { type: "question_client_removed", payload: { clientId: clientA } }),
+      // Stored before a Client stopped hiding Questions, and never rewritten.
+      clientEvent(3, {
+        type: "question_classified",
+        payload: { clientId: { before: null, after: clientA } },
+      }),
+      clientEvent(4, {
+        type: "question_classified",
+        payload: { clientId: { before: clientA, after: clientB } },
+      }),
+      clientEvent(5, { type: "question_declassified", payload: { clientId: clientB } }),
+    ];
+    aBankWhoseHistoryIs(() => answersWith({ events }));
+
+    renderTheWholeClient(`/questions/${question.id}`);
+
+    const entries = await historyEntries();
+    // The line without its time, so one wording cannot pass as the start of another.
+    const said = entries.map((entry) => {
+      const time = within(entry).getByRole("time").textContent ?? "";
+      return entry.textContent?.replace(time, "").trim();
+    });
+    expect(said).toEqual([
+      "author@iqb.test added a Client to this Question",
+      "author@iqb.test removed a Client from this Question",
+      "author@iqb.test added a Client to this Question",
+      "author@iqb.test removed a Client from this Question and added another",
+      "author@iqb.test removed a Client from this Question",
+    ]);
+  });
+
   it("reports a history that could not be read, and still shows the Question", async () => {
     const answers = [
       refusesWith(500, "internal_error", "Something went wrong on our side."),

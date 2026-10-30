@@ -9,6 +9,10 @@ export function findClientById(database: Database, id: string): Promise<Client |
   return database.client.findUnique({ where: { id }, select: publicFields });
 }
 
+export function findClientsByIds(database: Database, ids: readonly string[]): Promise<Client[]> {
+  return database.client.findMany({ where: { id: { in: [...ids] } }, select: publicFields });
+}
+
 export function insertClient(database: DatabaseOrTransaction, name: string): Promise<Client> {
   return database.client.create({ data: { name }, select: publicFields });
 }

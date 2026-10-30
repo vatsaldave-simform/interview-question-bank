@@ -30,9 +30,6 @@ export type QuestionFromDb = {
   authorId: string;
   /** Read from `question_clients`, never from the old column (ADR-0050). */
   clients: Client[];
-  /** The old column, for the restrict, move and remove-restriction acts alone until they
-   * go; never sent in a response. */
-  clientId: string | null;
   publicationState: PublicationState;
   reason: string | null;
   provenance: Provenance;
@@ -62,17 +59,19 @@ export type NewQuestion = {
   answerNotes: string;
   provenance: Provenance;
   source?: string;
-  /** A Client the caller has checked exists. */
-  clientId?: string;
+  /** Clients the caller has checked exist; none when left out. */
+  clientIds?: readonly string[];
   tagIds: readonly string[];
 };
 
-/** What an edit changes. A part left out stays as it is; `tagIds`, when named, replaces
- * every Tag the Question carried. */
+/** What an edit changes. A part left out stays as it is; `tagIds` and `clientIds`, when
+ * named, replace every Tag or Client the Question had. */
 export type QuestionEdit = {
   text?: string;
   answerNotes?: string;
   tagIds?: readonly string[];
+  /** Clients the caller has checked exist. */
+  clientIds?: readonly string[];
 };
 
 export type QuestionWrite = Change | ({ act: "edit" } & QuestionEdit);
@@ -275,11 +274,7 @@ export async function insertQuestion(
         authorId: viewer.id,
         provenance: question.provenance,
         ...(question.source === undefined ? {} : { source: question.source }),
-        ...(question.clientId === undefined ? {} : { clientId: question.clientId }),
         tags: { create: distinctTagIds(question.tagIds).map((tagId) => ({ tagId })) },
-        clients: {
-          create: question.clientId === undefined ? [] : [{ clientId: question.clientId }],
-        },
       },
       select: questionFieldsToRead,
     });
@@ -296,16 +291,11 @@ export async function insertQuestion(
         tags: added.tags,
       },
     });
-    if (added.clientId !== null) {
-      await insertChangeEvent(transaction, viewer, {
-        type: "question_classified",
-        questionId: added.id,
-        payload: { clientId: { before: null, after: added.clientId } },
-      });
-    }
+    const clients = await replaceClientsOf(transaction, added.id, question.clientIds ?? []);
+    await recordClientsChanged(transaction, viewer, added.id, clients);
 
     await recordOverride(transaction, viewer, added.id, overridden);
-    return added;
+    return readLockedQuestion(transaction, added.id);
   });
 }
 
@@ -387,7 +377,7 @@ function questionRowsStatement(pickPage: Prisma.Sql, order: Prisma.Sql): Prisma.
   // `order` may name the page's own columns as `page.<column>`.
   return Prisma.sql`
     WITH page AS (${pickPage})
-    SELECT q.id, q.text, q."answerNotes", q."authorId", q."clientId",
+    SELECT q.id, q.text, q."answerNotes", q."authorId",
            coalesce(cls.clients, '[]'::json) AS clients,
            q."publicationState", q.reason, q.provenance, q.source, q."createdAt",
            coalesce(carried.tags, '[]'::json) AS tags
@@ -475,6 +465,62 @@ function toQuestionFromDb(question: QuestionRow): QuestionFromDb {
   };
 }
 
+/** Makes the Question name exactly these Clients, and says which ones that added and
+ * removed. */
+async function replaceClientsOf(
+  transaction: Transaction,
+  questionId: string,
+  clientIds: readonly string[],
+): Promise<ClientsChanged> {
+  // One snapshot for both, which is safe only because they never touch the same row.
+  const changes = await transaction.$queryRaw<ClientChange[]>`
+    WITH deleted AS (
+      DELETE FROM question_clients
+       WHERE "questionId" = ${questionId}::uuid
+         AND "clientId" <> ALL(${[...clientIds]}::uuid[])
+      RETURNING "clientId"
+    ),
+    inserted AS (
+      INSERT INTO question_clients ("questionId", "clientId")
+      SELECT ${questionId}::uuid, id
+        FROM unnest(${[...clientIds]}::uuid[]) AS id
+      ON CONFLICT DO NOTHING
+      RETURNING "clientId"
+    )
+    SELECT 'added' AS change, "clientId" FROM inserted
+    UNION ALL
+    SELECT 'removed' AS change, "clientId" FROM deleted
+  `;
+
+  return {
+    added: changes.filter(({ change }) => change === "added").map(({ clientId }) => clientId),
+    removed: changes.filter(({ change }) => change === "removed").map(({ clientId }) => clientId),
+  };
+}
+
+/** One event per Client, so a history can say each one that came and went (ADR-0050). */
+async function recordClientsChanged(
+  transaction: Transaction,
+  viewer: Viewer,
+  questionId: string,
+  { added, removed }: ClientsChanged,
+): Promise<void> {
+  for (const clientId of removed) {
+    await insertChangeEvent(transaction, viewer, {
+      type: "question_client_removed",
+      questionId,
+      payload: { clientId },
+    });
+  }
+  for (const clientId of added) {
+    await insertChangeEvent(transaction, viewer, {
+      type: "question_client_added",
+      questionId,
+      payload: { clientId },
+    });
+  }
+}
+
 /** A Transaction, not a Database, so the override is written with the act it let through
  * or not at all. */
 async function recordOverride(
@@ -489,6 +535,16 @@ async function recordOverride(
     questionId,
     payload: { nearDuplicates: [...overridden] },
   });
+}
+
+/** By id, not checked again: this transaction just added it or found it Visible, and a write
+ * that moved its Publication State could make a checked read lose a write already made. */
+async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
+  const written = await transaction.question.findUniqueOrThrow({
+    where: { id },
+    select: questionFieldsToRead,
+  });
+  return toQuestionFromDb(written);
 }
 
 /** Holds the row until the transaction ends, so of two writes at once the second waits
@@ -528,6 +584,10 @@ async function editLockedQuestion(
       data: distinctTagIds(edit.tagIds).map((tagId) => ({ questionId: id, tagId })),
     });
   }
+  const clients =
+    edit.clientIds === undefined
+      ? noClientsChanged
+      : await replaceClientsOf(transaction, id, edit.clientIds);
 
   const after = await readLockedQuestion(transaction, id);
   const changed = whatChanged(before, after);
@@ -539,17 +599,8 @@ async function editLockedQuestion(
     });
     await recordOverride(transaction, viewer, id, overridden);
   }
+  await recordClientsChanged(transaction, viewer, id, clients);
   return after;
-}
-
-/** By id, not checked again: the lock already found it Visible, and a write that moved its
- * Publication State could make a checked read lose a write that is already made. */
-async function readLockedQuestion(transaction: Transaction, id: string): Promise<QuestionFromDb> {
-  const written = await transaction.question.findUniqueOrThrow({
-    where: { id },
-    select: questionFieldsToRead,
-  });
-  return toQuestionFromDb(written);
 }
 
 /** Null when the edit changed nothing: a request may name a field and give it the value
@@ -588,16 +639,6 @@ async function changeLockedQuestion(
   });
   if (count === 0) return { refused: "wrong-state" };
 
-  if (plan.clientRow?.remove) {
-    await transaction.questionClient.deleteMany({
-      where: { questionId: id, clientId: plan.clientRow.remove },
-    });
-  }
-  if (plan.clientRow?.add) {
-    await transaction.questionClient.create({
-      data: { questionId: id, clientId: plan.clientRow.add },
-    });
-  }
   await insertChangeEvent(transaction, viewer, plan.event);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
@@ -628,7 +669,6 @@ const questionFieldsToRead = {
   text: true,
   answerNotes: true,
   authorId: true,
-  clientId: true,
   // The same order the hand-written reads give, so a write answers as a read would.
   clients: {
     select: { client: { select: { id: true, name: true } } },
@@ -644,14 +684,17 @@ const questionFieldsToRead = {
 
 type QuestionRow = Prisma.QuestionGetPayload<{ select: typeof questionFieldsToRead }>;
 
+type ClientsChanged = { added: readonly string[]; removed: readonly string[] };
+
+type ClientChange = { change: "added" | "removed"; clientId: string };
+
+const noClientsChanged: ClientsChanged = { added: [], removed: [] };
+
 type ChangeDetails = {
   publish: Record<never, never>;
   reject: { reason: string };
   resubmit: Record<never, never>;
   return: { reason: string };
-  restrict: { clientId: string };
-  move: { from: string; to: string };
-  "remove-restriction": { from: string };
 };
 
 type ChangeAct = keyof ChangeDetails;
@@ -665,8 +708,6 @@ type ChangePlan = {
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
   event: ChangeEventToInsert;
-  /** The join table follows `clientId` until reads move to it (ADR-0050). */
-  clientRow?: { remove?: string; add?: string };
 };
 
 const changePlans: {
@@ -692,33 +733,5 @@ const changePlans: {
     startsFrom: { publicationState: "published" },
     writes: { publicationState: "rejected", reason },
     event: { ...happened, type: "question_returned", payload: { reason } },
-  }),
-  // The event types keep the old word "classified" (ADR-0027).
-  restrict: ({ clientId }, happened) => ({
-    startsFrom: { clientId: null },
-    writes: { clientId },
-    event: {
-      ...happened,
-      type: "question_classified",
-      payload: { clientId: { before: null, after: clientId } },
-    },
-    clientRow: { add: clientId },
-  }),
-  // A Question Published since the caller looked is no longer its Author's to move.
-  move: ({ from, to }, happened) => ({
-    startsFrom: { clientId: from, publicationState: { not: "published" } },
-    writes: { clientId: to },
-    event: {
-      ...happened,
-      type: "question_classified",
-      payload: { clientId: { before: from, after: to } },
-    },
-    clientRow: { remove: from, add: to },
-  }),
-  "remove-restriction": ({ from }, happened) => ({
-    startsFrom: { clientId: from },
-    writes: { clientId: null },
-    event: { ...happened, type: "question_declassified", payload: { clientId: from } },
-    clientRow: { remove: from },
   }),
 };

@@ -12,8 +12,8 @@ const database = createDatabase(env.DATABASE_URL, { poolMax: env.DATABASE_POOL_M
 
 try {
   await seedViewerAccounts(database);
-  // The order is the dependency: Grants are held by Viewers, and a restricted Question
-  // points at the Client.
+  // The order is the dependency: Grants are held by Viewers, and a Question names its
+  // Clients.
   await seedClientsAndGrants(database);
   await seedQuestionBank(database);
   // Written to stdout rather than through the logger: this is a command someone runs

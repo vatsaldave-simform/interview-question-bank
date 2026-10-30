@@ -150,6 +150,13 @@ export type QuestionClassified = z.infer<typeof questionClassifiedSchema>;
 export const questionDeclassifiedSchema = z.object({ clientId: z.uuid() }).strict();
 export type QuestionDeclassified = z.infer<typeof questionDeclassifiedSchema>;
 
+/** One Client per event, so an edit that names three new Clients writes three (ADR-0050). */
+export const questionClientAddedSchema = z.object({ clientId: z.uuid() }).strict();
+export type QuestionClientAdded = z.infer<typeof questionClientAddedSchema>;
+
+export const questionClientRemovedSchema = z.object({ clientId: z.uuid() }).strict();
+export type QuestionClientRemoved = z.infer<typeof questionClientRemovedSchema>;
+
 /**
  * Whether an event hangs off a Question. Only a refused Near-Duplicate may go either way:
  * nothing was stored when it was a new submission, and a Question exists when it was an
@@ -276,6 +283,16 @@ export const changeEventKinds = {
   },
   question_declassified: {
     payload: questionDeclassifiedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_client_added: {
+    payload: questionClientAddedSchema,
+    question: "required",
+    namesAnotherQuestion: false,
+  },
+  question_client_removed: {
+    payload: questionClientRemovedSchema,
     question: "required",
     namesAnotherQuestion: false,
   },

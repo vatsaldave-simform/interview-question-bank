@@ -226,9 +226,6 @@ export async function seedQuestionBank(
     if (clients.length !== new Set(named).size) {
       throw new Error(`Question ${question.id} names a Client that was never seeded.`);
     }
-    // The old column holds one Client, the first by name, so code rolled back to before
-    // `question_clients` was read still finds one of them (ADR-0050).
-    const [first] = clients;
     await database.question.upsert({
       where: { id: question.id },
       update: {},
@@ -237,7 +234,6 @@ export async function seedQuestionBank(
         text: question.text,
         answerNotes: question.answerNotes,
         authorId: author.id,
-        ...(first === undefined ? {} : { clientId: first.id }),
         publicationState: question.publicationState,
         ...(question.reason === undefined ? {} : { reason: question.reason }),
         provenance: question.provenance,
