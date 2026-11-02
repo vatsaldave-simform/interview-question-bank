@@ -249,5 +249,6 @@ describe("listing Questions over HTTP", () => {
     expect(categoryNames).not.toContain("limit");
     expect(categoryNames).not.toContain("offset");
     expect(categoryNames).not.toContain("keywords");
+    expect(categoryNames).not.toContain("client");
   });
 });

@@ -184,6 +184,12 @@ const tagValuesSchema = z
   .union([tagValueSchema, z.array(tagValueSchema).min(1)])
   .transform((named) => (Array.isArray(named) ? named : [named]));
 
+/** Clients are named by id, repeated like a Tag value. Only the database knows which ids
+ * are Clients, so the schema checks the shape and the handler checks the rest. */
+const clientIdsSchema = z
+  .union([z.uuid(), z.array(z.uuid()).min(1)])
+  .transform((named) => (Array.isArray(named) ? named : [named]));
+
 /** One optional parameter per Category, built from the closed list so that a Category
  * added to it is filterable without a second edit here (ADR-0024). */
 const tagValuesPerCategory = Object.fromEntries(
@@ -207,13 +213,16 @@ export type QuestionPageRequest = z.infer<typeof questionPageRequestSchema>;
 
 /**
  * The filter as a URL carries it: `?technology=typescript&technology=react&seniority=senior`,
- * with `&keywords=cache` to search as well. Repeats within one parameter are the OR and
- * separate parameters are the AND, so the URL says what the rule is. Strict, which is what
+ * with `&client=<id>` to filter by Client and `&keywords=cache` to search as well. Repeats
+ * within one parameter are the OR and separate parameters are the AND, so the URL says what
+ * the rule is. Strict, which is what
  * refuses an unknown Category at the edge with no database lookup (ADR-0025).
  */
 export const listQuestionsRequestSchema = z
   .object({
     ...tagValuesPerCategory,
+    /** OR-ed like the Tags of one Category, and AND-ed with each Category (ADR-0025). */
+    client: clientIdsSchema.optional(),
     /** Absent and empty mean the same thing, so `?keywords=` alone asks for the whole
      * bank rather than for nothing. */
     keywords: z
