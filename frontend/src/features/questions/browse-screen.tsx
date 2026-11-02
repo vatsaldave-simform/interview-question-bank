@@ -36,7 +36,9 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
     <div className="mx-auto flex max-w-5xl flex-col gap-section">
       <PageHeader
         title="Browse"
-        description="Every Published Question you can see. Search, or narrow it by Category."
+        description={
+          "Every Published Question you can see. Search, or narrow it by Category or Client."
+        }
         action={mayAddAQuestion && <AddAQuestionButton />}
       />
       <div className="flex flex-wrap items-center gap-2" aria-label="Filters" role="group">

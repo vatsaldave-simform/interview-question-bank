@@ -18,6 +18,7 @@ const addressValuePerCategory = Object.fromEntries(
  * the API would refuse rather than this schema quietly dropping it. */
 export const browseSearchSchema = z.looseObject({
   ...addressValuePerCategory,
+  client: addressValueSchema,
   keywords: addressValueSchema,
   offset: z.union([z.number(), z.string(), z.array(z.string())]).optional(),
 });
@@ -26,6 +27,11 @@ export type BrowseSearch = z.infer<typeof browseSearchSchema>;
 /** The Tags the address names in one Category, however many times it names them. */
 export function tagsIn(search: BrowseSearch, category: CategoryName): string[] {
   return [search[category] ?? []].flat();
+}
+
+/** The Client ids the address names, however many times it names them. */
+export function clientsIn(search: BrowseSearch): string[] {
+  return [search.client ?? []].flat();
 }
 
 export type ListRequestFromAddress = { request: ListQuestionsRequest } | { problem: string };
