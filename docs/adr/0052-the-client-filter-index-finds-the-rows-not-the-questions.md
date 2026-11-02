@@ -16,9 +16,9 @@ The plans are in
 
 ## What we measured
 
-A bank of 10,004 Published Questions from the bulk seed. Pages are pages touched, the number
-ADR-0011 compared on. Timings here are a few milliseconds and move by tenths between runs, so
-the pages are the number to trust.
+A bank of 10,010 Questions from the bulk seed and the small seed, 10,004 of them Published.
+Pages are pages touched, the number ADR-0011 compared on. Timings here are a few milliseconds
+and move by tenths between runs, so the pages are the number to trust.
 
 | scenario | pages before | pages after |
 | --- | ---: | ---: |
@@ -34,8 +34,10 @@ the pages are the number to trust.
 
 **A common Client walks the questions newest first, before and after.** It checks each one
 against `question_clients` and stops when it has a page. That check asks "does this Question
-name this Client?", and the primary key answers it, because `questionId` comes first in it.
-This is ADR-0011's early-stop plan, and the new index plays no part in it.
+name this Client?", which names both columns, so either index answers it in one step. Before,
+the primary key did. After, the planner takes the new index for one Client and the primary
+key for two, and the pages do not change. This is ADR-0011's early-stop plan, and the index
+it uses for the check makes no difference to it.
 
 **A rare Client starts from the Client instead.** Before the index, the planner had to read
 all of `question_clients`, 79 pages, to find the rows for one Client. The primary key could

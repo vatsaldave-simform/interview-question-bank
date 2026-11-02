@@ -167,7 +167,7 @@ export function listStatement(
 ): Prisma.Sql {
   const narrowing = [
     ...tagsPerCategory.map(carryingOneOf),
-    ...(clientIds?.length ? [namingOneOf(clientIds)] : []),
+    ...namingOneOf(clientIds),
   ];
 
   return visibleQuestionsStatement(viewer, narrowing, newestFirst, { limit, offset });
@@ -198,7 +198,7 @@ export function searchStatement(
   const conditions = [
     visibleQuestions(viewer),
     ...tagsPerCategory.map(carryingOneOf),
-    ...(clientIds?.length ? [namingOneOf(clientIds)] : []),
+    ...namingOneOf(clientIds),
   ];
 
   return questionRowsStatement(
@@ -430,12 +430,15 @@ function carryingOneOf({ tagIds }: TagsInCategory): Prisma.Sql {
                                AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
 }
 
-/** One for all the Clients named, beside the one per Category (ADR-0011); the callers add
- * it only when a Client is named, so the statement without one is unchanged. */
-function namingOneOf(clientIds: readonly string[]): Prisma.Sql {
-  return Prisma.sql`EXISTS (SELECT 1 FROM question_clients qc
-                             WHERE qc."questionId" = q.id
-                               AND qc."clientId" = ANY(${[...clientIds]}::uuid[]))`;
+/** One for all the Clients named, beside the one per Category (ADR-0011), and none when no
+ * Client is named, so the statement without one is the statement from before the filter. */
+function namingOneOf(clientIds: readonly string[] = []): Prisma.Sql[] {
+  if (clientIds.length === 0) return [];
+  return [
+    Prisma.sql`EXISTS (SELECT 1 FROM question_clients qc
+                        WHERE qc."questionId" = q.id
+                          AND qc."clientId" = ANY(${[...clientIds]}::uuid[]))`,
+  ];
 }
 
 /** Closest first and none below the threshold, over Question text alone (ADR-0004), and

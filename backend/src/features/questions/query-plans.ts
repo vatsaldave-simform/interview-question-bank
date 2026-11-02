@@ -238,10 +238,8 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
   ];
 }
 
-/**
- * The Client filter alone and beside each other filter. A common Client and a rare one,
- * because ADR-0011 found the planner answers a broad filter and a narrow one differently.
- */
+/** The Client filter alone and beside each other filter, for a common Client and a rare one,
+ * because ADR-0011 found the planner answers a broad filter and a narrow one differently. */
 export async function scenariosForTheClientFilter(database: Database): Promise<PlanScenario[]> {
   const { viewer, commonTag, commonClient, secondClient, rareClient, handfulClient } =
     await whatTheBankHolds(database);
@@ -346,8 +344,8 @@ async function whatTheBankHolds(database: Database) {
   const seniority = await tagsByReach(database, "seniority");
   // A Client no Question names would be a filter that measures nothing.
   const clients = (await clientsByReach(database)).filter((client) => client.questions > 0);
-  // The rare Client is the bulk bank's rarest, which reaches about as much of the bank as
-  // the rare Tag. A Client of the small seed is named by a handful and is measured apart.
+  // The bulk bank's rarest, which reaches about as much of the bank as the rare Tag, since a
+  // Client of the small seed is named by only a handful and is measured on its own.
   const bulkClients = clients.filter((client) => client.name.startsWith(bulkClientPrefix));
   return {
     viewer: await seededViewers(database),

@@ -83,9 +83,8 @@ export async function addQuestion(
   );
 }
 
-/** Named Tags become ids grouped by Category, which is the only shape either query
- * function accepts; neither looks a name up itself (ADR-0003). Client ids are checked
- * the same way, so an unknown one is refused rather than matching nothing. */
+/** Named Tags become ids grouped by Category and named Clients are checked to exist, so
+ * neither query function looks anything up itself and an unknown one is refused (ADR-0003). */
 export async function listQuestions(
   database: Database,
   viewer: Viewer,
