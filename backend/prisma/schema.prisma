@@ -263,6 +263,9 @@ model QuestionClient {
   client     Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
 
   @@id([questionId, clientId])
+  // The other direction of the primary key, for a Client filter that starts from the
+  // Client (ADR-0052).
+  @@index([clientId, questionId])
   @@map("question_clients")
 }
 
