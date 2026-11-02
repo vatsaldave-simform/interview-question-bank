@@ -7,7 +7,7 @@ import {
 import { Prisma } from "../../generated/prisma/client.ts";
 import type { Database } from "../../platform/database.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
-import { bankVocabulary } from "./bulk-bank.seed.ts";
+import { bankVocabulary, bulkClientPrefix } from "./bulk-bank.seed.ts";
 import {
   listStatement,
   searchStatement,
@@ -47,7 +47,8 @@ export type PlannedRead = keyof typeof scenariosFor;
  */
 export async function vacuumAndAnalyze(database: Database): Promise<void> {
   await database.$executeRawUnsafe(
-    "VACUUM (ANALYZE) questions, question_tags, tags, categories, permission_grants",
+    "VACUUM (ANALYZE) questions, question_tags, question_clients, tags, categories, " +
+      "permission_grants",
   );
 }
 
@@ -237,10 +238,79 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
   ];
 }
 
+/**
+ * The Client filter alone and beside each other filter. A common Client and a rare one,
+ * because ADR-0011 found the planner answers a broad filter and a narrow one differently.
+ */
+export async function scenariosForTheClientFilter(database: Database): Promise<PlanScenario[]> {
+  const { viewer, commonTag, commonClient, secondClient, rareClient, handfulClient } =
+    await whatTheBankHolds(database);
+
+  const broadWord = bankVocabulary[0];
+
+  return [
+    {
+      name: "a common Client",
+      why:
+        "Matches much of the bank, so walking the newest-first index fills a page quickly. The " +
+        "baseline every other plan is read against.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [], clientIds: [commonClient.id], ...page },
+    },
+    {
+      name: "a rare Client",
+      why:
+        "Matches little of the bank, so walking newest first checks many Questions per match. " +
+        "This is where starting from question_clients should win, if an index lets it.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [], clientIds: [rareClient.id], ...page },
+    },
+    {
+      name: "a Client on a handful of Questions",
+      why:
+        "The far end of the same line: so few matches that reading the whole join table is " +
+        "cheap however it is indexed.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [], clientIds: [handfulClient.id], ...page },
+    },
+    {
+      name: "two Clients",
+      why: "Two Clients OR-ed inside one EXISTS, as two Tags of one Category are.",
+      viewer: viewer.reader,
+      list: { tagsPerCategory: [], clientIds: [commonClient.id, secondClient.id], ...page },
+    },
+    {
+      name: "a common Client and a common Tag",
+      why: "One EXISTS for the Client beside one for the Category, the shape ADR-0011 chose.",
+      viewer: viewer.reader,
+      list: {
+        tagsPerCategory: [inCategory("technology", commonTag)],
+        clientIds: [commonClient.id],
+        ...page,
+      },
+    },
+    {
+      name: "a common Client and a broad keyword",
+      why:
+        "The search index and the Client filter can each drive the query, and the planner has " +
+        "to choose, as ADR-0029 found for a Tag.",
+      viewer: viewer.reader,
+      search: { keywords: broadWord, tagsPerCategory: [], clientIds: [commonClient.id], ...page },
+    },
+    {
+      name: "a rare Client and a broad keyword",
+      why: "The same pair with the selective half moved onto the Client.",
+      viewer: viewer.reader,
+      search: { keywords: broadWord, tagsPerCategory: [], clientIds: [rareClient.id], ...page },
+    },
+  ];
+}
+
 /** Each read the plans can be captured for, by the name `pnpm db:measure:plans` takes. */
 export const scenariosFor = {
   search: scenariosForTheSearch,
   list: scenariosForTheList,
+  client: scenariosForTheClientFilter,
 } satisfies Record<string, (database: Database) => Promise<PlanScenario[]>>;
 
 /** Twice, keeping the second. The first run pays for pages that are not in the cache
@@ -274,11 +344,20 @@ export function readPlan(plan: string): Omit<CapturedPlan, "scenario" | "plan"> 
 async function whatTheBankHolds(database: Database) {
   const technology = await tagsByReach(database, "technology");
   const seniority = await tagsByReach(database, "seniority");
+  // A Client no Question names would be a filter that measures nothing.
+  const clients = (await clientsByReach(database)).filter((client) => client.questions > 0);
+  // The rare Client is the bulk bank's rarest, which reaches about as much of the bank as
+  // the rare Tag. A Client of the small seed is named by a handful and is measured apart.
+  const bulkClients = clients.filter((client) => client.name.startsWith(bulkClientPrefix));
   return {
     viewer: await seededViewers(database),
     commonTag: technology[0]!,
     rareTag: technology[technology.length - 1]!,
     commonSeniority: seniority[0]!,
+    commonClient: clients[0]!,
+    secondClient: clients[1]!,
+    rareClient: bulkClients[bulkClients.length - 1]!,
+    handfulClient: clients[clients.length - 1]!,
   };
 }
 
@@ -293,6 +372,18 @@ async function tagsByReach(database: Database, category: CategoryName): Promise<
      WHERE c.name = ${category}
      GROUP BY t.id, t.value
      ORDER BY questions DESC, t.value ASC
+  `;
+}
+
+/** Every Client with how many Questions name it, commonest first, read from the bank for
+ * the reason `tagsByReach` is. */
+async function clientsByReach(database: Database): Promise<ClientReach[]> {
+  return database.$queryRaw<ClientReach[]>`
+    SELECT c.id, c.name, count(qc."questionId")::int AS questions
+      FROM clients c
+      LEFT JOIN question_clients qc ON qc."clientId" = c.id
+     GROUP BY c.id, c.name
+     ORDER BY questions DESC, c.name ASC
   `;
 }
 
@@ -344,6 +435,8 @@ function pagesTouched(line: string): number {
 type Scenario = { name: string; why: string; viewer: Viewer };
 
 type TagReach = { id: string; value: string; questions: number };
+
+type ClientReach = { id: string; name: string; questions: number };
 
 const page = { limit: defaultQuestionPageSize, offset: 0 };
 

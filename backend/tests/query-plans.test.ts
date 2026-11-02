@@ -72,7 +72,7 @@ describe("capturing a plan", () => {
     await database.$disconnect();
   });
 
-  it.each(["search", "list"] as const)(
+  it.each(["search", "list", "client"] as const)(
     "measures the statement the %s sends, for every scenario",
     async (read) => {
       const scenarios = await scenariosFor[read](database);
@@ -88,8 +88,8 @@ describe("capturing a plan", () => {
     },
   );
 
-  it.each(["search", "list"] as const)(
-    "aims the %s scenarios at Tags the bank actually carries, and at all three roles",
+  it.each(["search", "list", "client"] as const)(
+    "aims the %s scenarios at Tags and Clients the bank actually has",
     async (read) => {
       const scenarios = await scenariosFor[read](database);
 
@@ -99,13 +99,20 @@ describe("capturing a plan", () => {
       expect(await database.tag.count({ where: { id: { in: named } } })).toBe(
         new Set(named).size,
       );
-      expect(new Set(scenarios.map((scenario) => scenario.viewer.role))).toEqual(
-        new Set(["reader", "author", "reviewer"]),
+      const clients = scenarios.flatMap((scenario) => [...(queryOf(scenario).clientIds ?? [])]);
+      expect(await database.client.count({ where: { id: { in: clients } } })).toBe(
+        new Set(clients).size,
       );
+      // The Client set is all the Reader's: the role is measured by the other two sets.
+      if (read !== "client") {
+        expect(new Set(scenarios.map((scenario) => scenario.viewer.role))).toEqual(
+          new Set(["reader", "author", "reviewer"]),
+        );
+      }
     },
   );
 
-  it.each(["search", "list"] as const)(
+  it.each(["search", "list", "client"] as const)(
     "asks each %s scenario for a different part of the bank",
     async (read) => {
       const scenarios = await scenariosFor[read](database);
