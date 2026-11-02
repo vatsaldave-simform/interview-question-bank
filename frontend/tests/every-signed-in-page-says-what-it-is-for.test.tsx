@@ -41,7 +41,7 @@ describe("every signed-in page", () => {
     {
       address: "/questions",
       title: "Browse",
-      says: "Every Published Question you can see. Search, or narrow it by Category.",
+      says: "Every Published Question you can see. Search, or narrow it by Category or Client.",
     },
     {
       address: "/questions/new",

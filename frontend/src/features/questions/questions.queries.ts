@@ -24,12 +24,12 @@ import { stringifySearch } from "@/platform/search-params";
  * request and share one cache entry. */
 function questionListPath(request: ListQuestionsRequest): string {
   const tags = Object.fromEntries(categoryNames.map((name) => [name, request[name]]));
-  const { keywords, limit, offset } = request;
-  return `/api/questions${stringifySearch({ ...tags, keywords, limit, offset })}`;
+  const { client, keywords, limit, offset } = request;
+  return `/api/questions${stringifySearch({ ...tags, client, keywords, limit, offset })}`;
 }
 
-/** One request for the Tags, the search and the page, because combining two answers here
- * would be the client deciding what matches. */
+/** One request for the Tags, the Clients, the search and the page, because combining two
+ * answers here would be the browser deciding what matches. */
 export function useQuestionList(request: ListQuestionsRequest | null) {
   const path = request === null ? null : questionListPath(request);
   return useQuery({

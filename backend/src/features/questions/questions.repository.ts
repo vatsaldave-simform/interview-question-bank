@@ -47,6 +47,8 @@ export type TagsInCategory = { category: CategoryName; tagIds: readonly string[]
 export type QuestionQuery = QuestionPage & {
   /** One entry per Category named; none of them means the whole bank the Viewer sees. */
   tagsPerCategory: readonly TagsInCategory[];
+  /** A Question naming any one of these; absent or empty means any Question at all. */
+  clientIds?: readonly string[];
 };
 
 /** What a Viewer typed, alongside the same filters the list takes. */
@@ -161,12 +163,14 @@ export function findVisibleQuestions(
  * argument that removes a check or adds a condition (ADR-0003). */
 export function listStatement(
   viewer: Viewer,
-  { tagsPerCategory, limit, offset }: QuestionQuery,
+  { tagsPerCategory, limit, offset, clientIds }: QuestionQuery,
 ): Prisma.Sql {
-  return visibleQuestionsStatement(viewer, tagsPerCategory.map(carryingOneOf), newestFirst, {
-    limit,
-    offset,
-  });
+  const narrowing = [
+    ...tagsPerCategory.map(carryingOneOf),
+    ...namingOneOf(clientIds),
+  ];
+
+  return visibleQuestionsStatement(viewer, narrowing, newestFirst, { limit, offset });
 }
 
 /** Keyword search across Question text and Answer Notes, matched against the stored
@@ -189,9 +193,13 @@ export function searchVisibleQuestions(
  */
 export function searchStatement(
   viewer: Viewer,
-  { keywords, tagsPerCategory, limit, offset }: QuestionSearch,
+  { keywords, tagsPerCategory, limit, offset, clientIds }: QuestionSearch,
 ): Prisma.Sql {
-  const conditions = [visibleQuestions(viewer), ...tagsPerCategory.map(carryingOneOf)];
+  const conditions = [
+    visibleQuestions(viewer),
+    ...tagsPerCategory.map(carryingOneOf),
+    ...namingOneOf(clientIds),
+  ];
 
   return questionRowsStatement(
     Prisma.sql`
@@ -420,6 +428,17 @@ function carryingOneOf({ tagIds }: TagsInCategory): Prisma.Sql {
   return Prisma.sql`EXISTS (SELECT 1 FROM question_tags qt
                              WHERE qt."questionId" = q.id
                                AND qt."tagId" = ANY(${[...tagIds]}::uuid[]))`;
+}
+
+/** One for all the Clients named, beside the one per Category (ADR-0011), and none when no
+ * Client is named, so the statement without one is the statement from before the filter. */
+function namingOneOf(clientIds: readonly string[] = []): Prisma.Sql[] {
+  if (clientIds.length === 0) return [];
+  return [
+    Prisma.sql`EXISTS (SELECT 1 FROM question_clients qc
+                        WHERE qc."questionId" = q.id
+                          AND qc."clientId" = ANY(${[...clientIds]}::uuid[]))`,
+  ];
 }
 
 /** Closest first and none below the threshold, over Question text alone (ADR-0004), and

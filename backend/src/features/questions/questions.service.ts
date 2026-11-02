@@ -83,8 +83,8 @@ export async function addQuestion(
   );
 }
 
-/** Named Tags become ids grouped by Category, which is the only shape either query
- * function accepts; neither looks a name up itself (ADR-0003). */
+/** Named Tags become ids grouped by Category and named Clients are checked to exist, so
+ * neither query function looks anything up itself and an unknown one is refused (ADR-0003). */
 export async function listQuestions(
   database: Database,
   viewer: Viewer,
@@ -100,7 +100,9 @@ export async function listQuestions(
     category,
     tagIds: tags.map((named) => idOf(found, named)),
   }));
-  const page = { tagsPerCategory, limit: request.limit, offset: request.offset };
+  const clientIds =
+    request.client === undefined ? [] : await clientIdsNamed(database, request.client);
+  const page = { tagsPerCategory, clientIds, limit: request.limit, offset: request.offset };
 
   // Keywords change the order as well as the answer: most relevant first rather than
   // newest first (ADR-0026).

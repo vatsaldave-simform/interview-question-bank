@@ -81,6 +81,18 @@ export async function commonestTags(
   return { ids, values: ids.map((id) => byId.get(id)!) };
 }
 
+/** The ids of the Clients most of the bank names, commonest first, for the reason
+ * `commonestTags` picks common Tags. */
+export async function commonestClients(database: Database, howMany: number): Promise<string[]> {
+  const named = await database.questionClient.groupBy({
+    by: ["clientId"],
+    _count: { _all: true },
+    orderBy: { _count: { clientId: "desc" } },
+    take: howMany,
+  });
+  return named.map((client) => client.clientId);
+}
+
 /** The list request itself, for a test that wants to read the response it got. */
 export function getQuestions(
   api: TestApi,

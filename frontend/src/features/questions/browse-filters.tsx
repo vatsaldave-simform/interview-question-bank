@@ -1,6 +1,7 @@
-import type { CategoryName, CategoryWithTags } from "@iqb/shared";
+import type { CategoryName } from "@iqb/shared";
 import { ChevronDownIcon } from "lucide-react";
-import { tagsIn, type BrowseSearch } from "@/features/questions/browse.schema";
+import { useClients } from "@/features/clients/clients.queries";
+import { clientsIn, tagsIn, type BrowseSearch } from "@/features/questions/browse.schema";
 import { useCategories } from "@/features/questions/questions.queries";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -15,10 +16,11 @@ type BrowseFiltersProps = {
   onSearchChange: (search: BrowseSearch) => void;
 };
 
-/** Two Tags picked in one Category widen it, and Tags picked in two Categories narrow
- * across them, which is how the API reads the filter (ADR-0025). */
+/** Two Tags picked in one Category widen it, as two Clients do, and each Category and the
+ * Clients narrow across each other, which is how the API reads the filter (ADR-0025). */
 export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
   const categories = useCategories();
+  const clients = useClients();
 
   if (categories.isPending) {
     return <p className="text-muted-foreground text-sm">Loading the Tags…</p>;
@@ -34,30 +36,56 @@ export function BrowseFilters({ search, onSearchChange }: BrowseFiltersProps) {
     );
   }
 
-  function setTags(name: CategoryName, tags: string[]) {
+  function setChosen(name: CategoryName | "client", chosen: string[]) {
     // A new filter starts at its first page, since the old page number means nothing now.
-    onSearchChange({ ...search, [name]: tags.length === 0 ? undefined : tags, offset: undefined });
+    onSearchChange({
+      ...search,
+      [name]: chosen.length === 0 ? undefined : chosen,
+      offset: undefined,
+    });
   }
 
-  return categories.data.map((category) => (
-    <CategoryFilter
-      key={category.name}
-      category={category}
-      chosen={tagsIn(search, category.name)}
-      onChange={(tags) => setTags(category.name, tags)}
-    />
-  ));
+  return (
+    <>
+      {categories.data.map((category) => (
+        <FilterPill
+          key={category.name}
+          label={category.displayName}
+          choices={category.tags.map((tag) => ({ value: tag, name: tag }))}
+          chosen={tagsIn(search, category.name)}
+          onChange={(tags) => setChosen(category.name, tags)}
+        />
+      ))}
+      {/* Left out until the Clients arrive, so a Client list that fails never blocks browsing
+          by Tag. */}
+      {clients.isSuccess && clients.data.length > 0 && (
+        <FilterPill
+          label="Client"
+          choices={clients.data.map((client) => ({ value: client.id, name: client.name }))}
+          chosen={clientsIn(search)}
+          onChange={(ids) => setChosen("client", ids)}
+        />
+      )}
+    </>
+  );
 }
 
-type CategoryFilterProps = {
-  category: CategoryWithTags;
+/** What the address holds, and what the menu shows for it: a Tag is both, a Client is
+ * named in the menu but sent by id. */
+type Choice = { value: string; name: string };
+
+type FilterPillProps = {
+  label: string;
+  choices: readonly Choice[];
   chosen: readonly string[];
-  onChange: (tags: string[]) => void;
+  onChange: (chosen: string[]) => void;
 };
 
-function CategoryFilter({ category, chosen, onChange }: CategoryFilterProps) {
+function FilterPill({ label, choices, chosen, onChange }: FilterPillProps) {
   const [only] = chosen;
-  const summary = chosen.length === 0 ? "Any" : chosen.length === 1 ? only : `${chosen.length} chosen`;
+  const onlyName = choices.find((choice) => choice.value === only)?.name ?? only;
+  const summary =
+    chosen.length === 0 ? "Any" : chosen.length === 1 ? onlyName : `${chosen.length} chosen`;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -65,7 +93,7 @@ function CategoryFilter({ category, chosen, onChange }: CategoryFilterProps) {
           type="button"
           className="border-(--glass-edge) bg-card focus-visible:ring-ring/50 inline-flex h-10.5 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium shadow-sm outline-none [backdrop-filter:var(--glass-blur-card)] focus-visible:ring-[3px]"
         >
-          <span className="text-muted-foreground">{category.displayName} ·</span>{" "}
+          <span className="text-muted-foreground">{label} ·</span>{" "}
           {/* A fixed width, so that picking a Tag does not move the pills beside this one. */}
           <span className="w-22 truncate text-left">{summary}</span>
           <ChevronDownIcon aria-hidden="true" className="text-muted-foreground size-4" />
@@ -73,17 +101,17 @@ function CategoryFilter({ category, chosen, onChange }: CategoryFilterProps) {
       </DropdownMenuTrigger>
       {/* The bulk bank puts dozens of Tags in one Category, so the menu scrolls. */}
       <DropdownMenuContent align="start" className="max-h-72 min-w-48">
-        {category.tags.map((tag) => (
+        {choices.map(({ value, name }) => (
           <DropdownMenuCheckboxItem
-            key={tag}
-            checked={chosen.includes(tag)}
+            key={value}
+            checked={chosen.includes(value)}
             onCheckedChange={(checked) =>
-              onChange(checked ? [...chosen, tag] : chosen.filter((one) => one !== tag))
+              onChange(checked ? [...chosen, value] : chosen.filter((one) => one !== value))
             }
-            // Stays open, so that several Tags can be picked in one go.
+            // Stays open, so that several can be picked in one go.
             onSelect={(event) => event.preventDefault()}
           >
-            {tag}
+            {name}
           </DropdownMenuCheckboxItem>
         ))}
       </DropdownMenuContent>

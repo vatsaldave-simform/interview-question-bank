@@ -17,6 +17,9 @@ export const defaultBulkBank: BulkBankConfig = { count: 10_000, seed: "bulk-bank
 /** What this file's own Tag values start with, so nobody reads one as curated. */
 export const bulkTagPrefix = "bulk-";
 
+/** The same for the Clients it adds. */
+export const bulkClientPrefix = "Bulk Client ";
+
 type CategoryTagging = {
   /** Tag values added beside the ones the small seed wrote. */
   extraTags: number;
@@ -89,6 +92,12 @@ const answerNotesFrames: readonly AnswerNotesFrame[] = [
 ];
 
 const namingAClientShare = 0.2;
+
+/** The Clients added beside the seeded one, named the way Tags are carried: by part of
+ * the bank, some on far more Questions than others, so a Client filter has a common and
+ * a rare case to be measured on (ADR-0011). */
+const bulkClients = { count: 20, coverage: 0.6, maxPerQuestion: 2 };
+
 const provenances: readonly Provenance[] = ["original", "adapted", "inherited"];
 
 /** Rows go in this many at a time, so a bank is not one enormous statement. */
@@ -104,11 +113,13 @@ export type BulkBankSummary = {
 };
 
 type TagRow = { id: string; value: string };
+type ClientRow = { id: string; name: string };
 
 /**
  * A bank big enough to time a query against, kept off `pnpm db:seed` so that seed stays
  * short enough to read. It builds on that seed rather than beside it: the Categories,
- * the Author and the Client it hangs Questions from are that seed's rows.
+ * the Author and one Client it hangs Questions from are that seed's rows. It adds Tags
+ * and Clients of its own beside them.
  */
 export async function seedBulkBank(
   database: Database,
@@ -123,6 +134,7 @@ export async function seedBulkBank(
     where: { name: seedClient.name },
     select: { id: true },
   });
+  const clients = await seedBulkClients(database, seed);
 
   const questionRows = [];
   const questionTagRows = [];
@@ -135,10 +147,18 @@ export async function seedBulkBank(
     // The key keeps its old word, so the same Questions name a Client as when the plans were
     // measured (ADR-0011).
     const namesAClient = randomFor(seed, `${key}:restricted`) < namingAClientShare;
-    if (namesAClient) {
-      namingAClient += 1;
-      questionClientRows.push({ questionId: id, clientId: client.id });
+    if (namesAClient) questionClientRows.push({ questionId: id, clientId: client.id });
+
+    const namesABulkClient = randomFor(seed, `${key}:names:clients`) < bulkClients.coverage;
+    if (namesABulkClient) {
+      const howMany =
+        1 + Math.floor(randomFor(seed, `${key}:count:clients`) * bulkClients.maxPerQuestion);
+      for (let pick = 0; pick < howMany; pick += 1) {
+        const named = pickTag(clients, randomFor(seed, `${key}:client:${pick}`));
+        questionClientRows.push({ questionId: id, clientId: named.id });
+      }
     }
+    if (namesAClient || namesABulkClient) namingAClient += 1;
 
     const words = wordsFor(seed, key);
     questionRows.push({
@@ -164,7 +184,7 @@ export async function seedBulkBank(
   }
 
   // Tags and Clients after the Questions they point at. Each skips a row that is already
-  // there, since the same seed value may run twice; Tags also, as a Question may pick one twice.
+  // there, since the same seed value may run twice, and a Question may pick one twice.
   const questionsWritten = await insertInBatches(questionRows, (rows) =>
     database.question.createMany({ data: rows, skipDuplicates: true }),
   );
@@ -212,6 +232,28 @@ async function seedBulkTags(
   return tagsPerCategory;
 }
 
+/** Safe to run twice, like the Tags: a Client already there is left as it is. */
+async function seedBulkClients(database: Database, seed: string): Promise<ClientRow[]> {
+  const clients: ClientRow[] = [];
+  for (let n = 0; n < bulkClients.count; n += 1) {
+    const name = `${bulkClientPrefix}${String(n).padStart(2, "0")}`;
+    clients.push(
+      await database.client.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+        select: { id: true, name: true },
+      }),
+    );
+  }
+  // Popular in a fixed order that is not the alphabet, for the reason Tags are.
+  return clients.sort(
+    (one, other) =>
+      randomFor(seed, `popularity:client/${one.name}`) -
+      randomFor(seed, `popularity:client/${other.name}`),
+  );
+}
+
 /** A fixed order that is not the alphabet, so a common Tag is not always one whose
  * value starts with an early letter. */
 function inPopularityOrder(seed: string, category: CategoryName, tags: TagRow[]): TagRow[] {
@@ -223,8 +265,8 @@ function inPopularityOrder(seed: string, category: CategoryName, tags: TagRow[])
 }
 
 /** Weighted toward the front, so some Tags are carried by a third of the bank and some
- * by one Question in fifty (ADR-0011). */
-function pickTag(tags: TagRow[], random: number): TagRow {
+ * by one Question in fifty (ADR-0011). Clients are picked the same way. */
+function pickTag<Row>(tags: readonly Row[], random: number): Row {
   return tags[Math.floor(random ** 2.2 * tags.length)]!;
 }
 
