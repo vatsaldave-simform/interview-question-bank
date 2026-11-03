@@ -105,13 +105,12 @@ describe("fetching a Question through the shared query function", () => {
 
   it("hands an Author their own Pending Question that names a Client", async () => {
     const author = await viewer("author");
-    const elsewhere = await database.client.create({ data: { name: "A Client Nobody Holds" } });
+    const elsewhere = await database.client.create({ data: { name: "A Client only this test names" } });
     const own = await database.question.create({
       data: {
         text: "A Question its Author used to lose sight of.",
         answerNotes: "Reachable again now that a Client hides nothing.",
         authorId: author.id,
-        clientId: elsewhere.id,
         clients: { create: [{ clientId: elsewhere.id }] },
         provenance: "original",
       },

@@ -10,8 +10,8 @@ import { findEveryClient } from "./clients.repository.ts";
 import { createClient } from "./clients.service.ts";
 import type { Database } from "../../platform/database.ts";
 
-/** There is deliberately no route that deletes a Client: its Questions' restrictions would
- * point at nothing, and that reads as no restriction at all (ADR-0017). */
+/** There is deliberately no route that deletes a Client: the Questions that name it would
+ * point at nothing (ADR-0017). */
 export function clientRoutes(database: Database): Router {
   const router = Router();
 

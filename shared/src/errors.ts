@@ -3,8 +3,8 @@ import { z } from "zod";
 /**
  * The codes the API answers with.
  *
- * `not_found` covers both "no such Question" and "a Question you hold no Permission
- * Grant for", deliberately: the two must be indistinguishable (ADR-0002).
+ * `not_found` covers both "no such Question" and "a Question you may not see",
+ * deliberately: the two must be indistinguishable (ADR-0002).
  */
 export const errorCodes = [
   "invalid_request",

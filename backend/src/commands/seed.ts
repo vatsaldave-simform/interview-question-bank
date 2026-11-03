@@ -11,8 +11,8 @@ const env = readEnv();
 const database = createDatabase(env.DATABASE_URL, { poolMax: env.DATABASE_POOL_MAX });
 
 try {
-  await seedViewerAccounts(database);
   // The order is the dependency: a Question has an Author and names its Clients.
+  await seedViewerAccounts(database);
   await seedClientList(database);
   await seedQuestionBank(database);
   // Written to stdout rather than through the logger: this is a command someone runs

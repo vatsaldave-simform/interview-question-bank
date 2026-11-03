@@ -119,7 +119,7 @@ describe("the history of a Question", () => {
   });
 
   it("lets a Reader read the history of a Question they can see", async () => {
-    // Published and unrestricted, so a Reader reaches it; a Question just added is
+    // Published, so a Reader reaches it; a Question just added is
     // Pending, which is a reason of its own to be out of reach.
     const id = seededQuestionIds.aboutTypeScript;
     await patchQuestion(api, id, { text: newText }, authorToken);

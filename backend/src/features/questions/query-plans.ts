@@ -47,8 +47,7 @@ export type PlannedRead = keyof typeof scenariosFor;
  */
 export async function vacuumAndAnalyze(database: Database): Promise<void> {
   await database.$executeRawUnsafe(
-    "VACUUM (ANALYZE) questions, question_tags, question_clients, tags, categories, " +
-      "permission_grants",
+    "VACUUM (ANALYZE) questions, question_tags, question_clients, tags, categories",
   );
 }
 

@@ -145,16 +145,6 @@ describe("naming a Question's Clients when adding or editing it", () => {
 
       expect(response.status).toBe(400);
     });
-
-    it("no longer writes the old Client column", async () => {
-      const question = await added([northwind]);
-
-      const stored = await api.database.question.findUniqueOrThrow({
-        where: { id: question.id },
-        select: { clientId: true },
-      });
-      expect(stored.clientId).toBeNull();
-    });
   });
 
   describe("on edit", () => {

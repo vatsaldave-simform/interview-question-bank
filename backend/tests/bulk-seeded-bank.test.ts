@@ -10,7 +10,7 @@ import {
 import { seedClient } from "../src/features/clients/clients.seed.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWithTheOldColumnFilled, seedTheBank } from "./helpers/question-bank.ts";
+import { seedTheBank } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** Far smaller than a bank worth timing, and big enough to still have a spread. */
@@ -157,10 +157,6 @@ describe("the bulk bank", () => {
 
     expect(perQuestion.some((question) => question._count._all > 1)).toBe(true);
     expect(perQuestion.length).toBeLessThan(bulk.count);
-  });
-
-  it("leaves the old Client column empty", async () => {
-    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   // The small seed holds the other states.

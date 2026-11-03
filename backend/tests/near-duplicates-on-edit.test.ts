@@ -15,7 +15,7 @@ import {
 } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
-/** A reworded copy of the Published, unrestricted TypeScript Question. */
+/** A reworded copy of the Published TypeScript Question, which names no Client. */
 const nearlyTheTypeScriptOne =
   "Explain the difference between an interface and a type in TypeScript.";
 

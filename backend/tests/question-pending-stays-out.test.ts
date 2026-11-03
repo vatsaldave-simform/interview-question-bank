@@ -10,7 +10,7 @@ import {
 } from "./helpers/question-bank.ts";
 import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts";
 
-/** Pending, unrestricted, written by the seeded Author, and carrying only this Tag. */
+/** Pending, naming no Client, written by the seeded Author, and carrying only this Tag. */
 const pendingAndUnrestricted = seededQuestionIds.aboutDisagreeing;
 const inThePendingQuestionOnly = "disagreed";
 const tagOnThePendingQuestion = { "question-type": "behavioural" };

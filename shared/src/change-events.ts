@@ -67,10 +67,9 @@ export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
 export type ClientCreated = z.infer<typeof clientCreatedSchema>;
 
 /** Grants are gone (ADR-0051). This stays so the old Grant events still read. */
-export const permissionGrantSchema = z
+const permissionGrantSchema = z
   .object({ client: clientSchema, viewer: namedViewerSchema })
   .strict();
-export type PermissionGrant = z.infer<typeof permissionGrantSchema>;
 
 /** The Viewer this names may be the one who issued it (ADR-0015). */
 export const permissionGrantIssuedSchema = z.object({ grant: permissionGrantSchema }).strict();

@@ -198,13 +198,13 @@ export async function idsQueued(response: Response): Promise<string[]> {
 
 /** Seeded Questions a test names by hand. The ids are fixed by `questions.seed.ts`. */
 export const seededQuestionIds = {
-  /** Published and unrestricted. Its Answer Notes are the only place "merging" appears. */
+  /** Published, and naming no Client. Its Answer Notes are the only place "merging" appears. */
   aboutTypeScript: "a0000000-0000-4000-8000-000000000001",
   /** Published, and naming the first Client. */
   aboutTheClientsPipeline: "a0000000-0000-4000-8000-000000000002",
-  /** Pending and unrestricted, so a Reader may not reach it and a Reviewer may. */
+  /** Pending, and naming no Client, so a Reader may not reach it and a Reviewer may. */
   aboutDisagreeing: "a0000000-0000-4000-8000-000000000003",
-  /** Rejected and unrestricted. */
+  /** Rejected, and naming no Client. */
   aboutTwoPlusTwo: "a0000000-0000-4000-8000-000000000004",
   /** Pending, and naming the first Client. */
   aboutTheClientsRendering: "a0000000-0000-4000-8000-000000000005",
@@ -318,16 +318,6 @@ export async function historyOf(api: TestApi, id: string, token: string): Promis
   });
   if (response.status !== 200) throw new Error(`Reading ${id} failed with ${response.status}.`);
   return questionHistoryResponseSchema.parse(await response.json()).events;
-}
-
-/** Every Question with anything in the old Client column, which no write fills any more
- * and which #196 drops (ADR-0051). */
-export async function questionsWithTheOldColumnFilled(database: Database): Promise<string[]> {
-  const rows = await database.question.findMany({
-    where: { clientId: { not: null } },
-    select: { id: true },
-  });
-  return rows.map((row) => row.id);
 }
 
 /** The Question a response carries, failing loudly with the status and body otherwise. */

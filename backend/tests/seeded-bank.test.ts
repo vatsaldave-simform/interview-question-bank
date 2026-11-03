@@ -13,7 +13,6 @@ import {
 } from "../src/features/questions/questions.seed.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWithTheOldColumnFilled } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
@@ -69,10 +68,6 @@ describe("the seed", () => {
 
     expect(perClient).toHaveLength(seedClients.length);
     expect(namingNone).toBeGreaterThan(0);
-  });
-
-  it("leaves the old Client column empty", async () => {
-    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   it("names both Clients on one Question", async () => {
