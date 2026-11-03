@@ -1,6 +1,6 @@
 import { ratingResponseSchema, type RatingSummary } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   getQuestion,
@@ -32,7 +32,7 @@ describe("rating a Question", () => {
   let authorToken: string;
   /** The other way round from the Reader. */
   let reviewerToken: string;
-  let noGrantToken: string;
+  let otherReaderToken: string;
 
   beforeAll(async () => {
     api = await startTestApi();
@@ -40,7 +40,7 @@ describe("rating a Question", () => {
     readerToken = await logIn(api, seededViewer("reader"));
     authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
-    noGrantToken = await logInHoldingNoGrant(api, "reader");
+    otherReaderToken = await logInAsAnother(api, "reader");
   });
   beforeEach(async () => {
     await resetTheQuestions(api.database);
@@ -118,14 +118,14 @@ describe("rating a Question", () => {
 
   it("answers a Viewer holding no Grant at all the same way, and lets them rate what is Published", async () => {
     const answers = [
-      await statusAndBody(await rate(pending, { value: 3 }, noGrantToken)),
-      await statusAndBody(await rate(pendingForTheFirstClient, { value: 3 }, noGrantToken)),
-      await statusAndBody(await rate(unknownQuestionId, { value: 3 }, noGrantToken)),
+      await statusAndBody(await rate(pending, { value: 3 }, otherReaderToken)),
+      await statusAndBody(await rate(pendingForTheFirstClient, { value: 3 }, otherReaderToken)),
+      await statusAndBody(await rate(unknownQuestionId, { value: 3 }, otherReaderToken)),
     ];
 
     expect(answers[0]).toMatch(/^404 /);
     expect(new Set(answers).size).toBe(1);
-    expect((await rate(publishedForTheFirstClient, { value: 3 }, noGrantToken)).status).toBe(200);
+    expect((await rate(publishedForTheFirstClient, { value: 3 }, otherReaderToken)).status).toBe(200);
   });
 
   it("answers a malformed id as a missing one", async () => {

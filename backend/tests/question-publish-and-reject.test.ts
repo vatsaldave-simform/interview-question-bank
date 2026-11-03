@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   getQuestion,
@@ -176,7 +176,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("refuses an Author Rejecting a Pending Question that is not theirs", async () => {
-    const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+    const otherAuthorToken = await logInAsAnother(api, "author");
 
     const response = await postReviewAct(
       api,
@@ -239,7 +239,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("Publishes once, and records once, when two Reviewers Publish at the same moment", async () => {
-    const otherReviewerToken = await logInHoldingNoGrant(api, "reviewer");
+    const otherReviewerToken = await logInAsAnother(api, "reviewer");
 
     const answers = await Promise.all([
       postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),

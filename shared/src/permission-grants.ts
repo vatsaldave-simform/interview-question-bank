@@ -1,12 +1,5 @@
 import { z } from "zod";
-import { namedViewerSchema } from "./auth.js";
-import { clientSchema } from "./clients.js";
-
-/** The pair and nothing else: which Viewer may see which Client's Questions. */
-export const permissionGrantSchema = z
-  .object({ client: clientSchema, viewer: namedViewerSchema })
-  .strict();
-export type PermissionGrant = z.infer<typeof permissionGrantSchema>;
+import { permissionGrantSchema } from "./change-events.js";
 
 /** The Client is in the path, so the body names only the Viewer. */
 export const issuePermissionGrantRequestSchema = z.object({ viewerId: z.uuid() }).strict();

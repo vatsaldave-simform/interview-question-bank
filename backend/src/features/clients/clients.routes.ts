@@ -6,7 +6,6 @@ import {
 import { Router } from "express";
 import { authenticatedViewer } from "../auth/authenticated-viewer.ts";
 import { requireAdministrator } from "../auth/require-administrator.middleware.ts";
-import { permissionGrantRoutes } from "../permission-grants/permission-grants.routes.ts";
 import { findEveryClient } from "./clients.repository.ts";
 import { createClient } from "./clients.service.ts";
 import type { Database } from "../../platform/database.ts";
@@ -23,15 +22,8 @@ export function clientRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // The checks sit on these two routes and not the router, because listing the Clients is
-  // open to every Viewer.
-  router.get("/all", requireAdministrator(), async (_req, res) => {
-    const clients = await findEveryClient(database);
-
-    const body: ClientListResponse = { clients };
-    res.json(body);
-  });
-
+  // The check sits on this route and not the router, because listing the Clients is open
+  // to every Viewer.
   router.post("/", requireAdministrator(), async (req, res) => {
     const request = createClientRequestSchema.parse(req.body);
 
@@ -40,8 +32,6 @@ export function clientRoutes(database: Database): Router {
     const body: ClientResponse = { client };
     res.status(201).json(body);
   });
-
-  router.use("/:clientId/grants", permissionGrantRoutes(database));
 
   return router;
 }

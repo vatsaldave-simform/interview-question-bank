@@ -1,6 +1,6 @@
 import { questionListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   idsListed,
@@ -97,7 +97,7 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
   });
 
   it("hands an Author their own Pending Question and not another Author's", async () => {
-    const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+    const otherAuthorToken = await logInAsAnother(api, "author");
     const theirs = await addAQuestion(
       api,
       { text: "Which of your own past designs would you now argue against, and why?" },

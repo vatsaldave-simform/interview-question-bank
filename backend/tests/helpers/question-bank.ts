@@ -170,18 +170,13 @@ export function viewerByRole(database: Database, role: ViewerRole): Promise<View
   });
 }
 
-/** A new Viewer holding exactly the Grants named, and no others. */
-export function aViewer(
-  database: Database,
-  role: ViewerRole,
-  grantedClientIds: readonly string[] = [],
-): Promise<Viewer> {
+/** A new Viewer of the role, for a test that needs someone other than the seeded one. */
+export function aViewer(database: Database, role: ViewerRole): Promise<Viewer> {
   return database.viewer.create({
     data: {
       email: `${role}-${crypto.randomUUID()}@iqb.test`,
       passwordHash: "not used by this test",
       role,
-      permissionGrants: { create: grantedClientIds.map((clientId) => ({ clientId })) },
     },
     select: viewerFieldsToRead,
   });

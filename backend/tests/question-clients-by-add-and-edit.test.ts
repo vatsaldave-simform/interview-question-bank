@@ -7,7 +7,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { seedClient, seedOtherClient } from "../src/features/clients/clients.seed.ts";
 import { insertClient } from "../src/features/clients/clients.repository.ts";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   clientIdNamed,
@@ -283,7 +283,7 @@ describe("naming a Question's Clients when adding or editing it", () => {
         where: { id: question.id },
         data: { publicationState: "published" },
       });
-      const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+      const otherAuthorToken = await logInAsAnother(api, "author");
 
       const response = await patchQuestion(
         api,

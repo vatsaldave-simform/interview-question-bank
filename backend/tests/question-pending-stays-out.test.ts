@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   getQuestion,
   getQuestions,
@@ -32,7 +32,7 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
     await seedTheBank(api.database);
     outsiders = {
       reader: await logIn(api, seededViewer("reader")),
-      otherAuthor: await logInHoldingNoGrant(api, "author"),
+      otherAuthor: await logInAsAnother(api, "author"),
     };
     itsAuthorToken = await logIn(api, seededViewer("author"));
   });
@@ -88,7 +88,7 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
 
 // The Reviewer is the case that matters: Pending hides nothing from them, so only the
 // Client restriction stands between them and this Question (ADR-0013).
-describe("a Pending Question that names a Client, for a Viewer holding no Grant", () => {
+describe("a Pending Question that names a Client", () => {
   let api: TestApi;
 
   beforeAll(async () => {
@@ -102,7 +102,7 @@ describe("a Pending Question that names a Client, for a Viewer holding no Grant"
   // Out of their sight because it is Pending, and not because of its Client.
   for (const role of ["reader", "author"] as const) {
     it(`answers a ${role} exactly as it answers an id that does not exist`, async () => {
-      const token = await logInHoldingNoGrant(api, role);
+      const token = await logInAsAnother(api, role);
 
       const both = await getQuestion(api, pendingForTheFirstClient, token);
       const unknown = await getQuestion(api, unknownQuestionId, token);
@@ -113,7 +113,7 @@ describe("a Pending Question that names a Client, for a Viewer holding no Grant"
   }
 
   it("hands it to a Reviewer, whose queue it is in", async () => {
-    const token = await logInHoldingNoGrant(api, "reviewer");
+    const token = await logInAsAnother(api, "reviewer");
 
     const found = await getQuestion(api, pendingForTheFirstClient, token);
 

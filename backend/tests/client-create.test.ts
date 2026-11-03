@@ -49,14 +49,6 @@ describe("creating a Client", () => {
     expect(events[0]?.payload).toEqual({ client: { id: client.id, name: "Harbour Logistics" } });
   });
 
-  it("gives the creator no Permission Grant for it", async () => {
-    const response = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
-    const { client } = clientResponseSchema.parse(await response.json());
-
-    const grants = await api.database.permissionGrant.count({ where: { clientId: client.id } });
-    expect(grants).toBe(0);
-  });
-
   it("trims the name before storing it", async () => {
     const response = await postClient(api, { name: "  Harbour Logistics  " }, administratorToken);
 

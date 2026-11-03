@@ -6,7 +6,6 @@ import {
 } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
-import { clientNamesListed } from "./helpers/clients.ts";
 import { refreshCookieHeader, refreshCookieValue } from "./helpers/cookies.ts";
 import { addAQuestion, getQuestion, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { tokenMailedTo } from "./helpers/set-password-link.ts";
@@ -339,27 +338,5 @@ describe("Deactivating and reactivating a Viewer", () => {
     expect(events.map(({ type, viewerEmail }) => ({ type, viewerEmail }))).toEqual([
       { type: "question_added", viewerEmail: seededViewer("author").email },
     ]);
-  });
-
-  it("gives a reactivated Viewer the same Clients, with no Grant issued again", async () => {
-    const clientsBefore = await clientNamesListed(api, await logIn(api, seededViewer("author")));
-    const grantsBefore = await api.database.permissionGrant.findMany({
-      where: { viewerId: authorId },
-      orderBy: { id: "asc" },
-    });
-    expect(clientsBefore).not.toEqual([]);
-
-    await deactivate(api, authorId, administratorToken);
-    await reactivate(api, authorId, administratorToken);
-
-    const clientsAfter = await clientNamesListed(api, await logIn(api, seededViewer("author")));
-    expect(clientsAfter).toEqual(clientsBefore);
-    const grantsAfter = await api.database.permissionGrant.findMany({
-      where: { viewerId: authorId },
-      orderBy: { id: "asc" },
-    });
-    expect(grantsAfter).toEqual(grantsBefore);
-    const issued = await api.database.changeEvent.count({ where: { type: "permission_grant_issued" } });
-    expect(issued).toBe(0);
   });
 });

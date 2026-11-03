@@ -1,14 +1,7 @@
 import { questionListResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { seedClient } from "../src/features/clients/clients.seed.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
-  logIn,
-  logInHoldingGrantsFor,
-  logInHoldingNoGrant,
-  seededViewer,
-} from "./helpers/auth.ts";
-import {
-  clientIdNamed,
   getQuestion,
   getQuestions,
   historyOf,
@@ -103,11 +96,8 @@ describe("returning a Published Question to its Author", () => {
     expect(listed).toMatchObject({ publicationState: "rejected", reason: returnBody.reason });
   });
 
-  it("hides a Question restricted to a Client from that Client's Readers, and hands it to its Author", async () => {
-    const clientId = await clientIdNamed(api.database, seedClient.name);
-    const grantedReviewerToken = await logInHoldingGrantsFor(api, "reviewer", [clientId]);
-
-    await questionAnswered(await returnIt(publishedForTheFirstClient, grantedReviewerToken));
+  it("hides a Question naming a Client from Readers like any other, and hands it to its Author", async () => {
+    await questionAnswered(await returnIt(publishedForTheFirstClient, reviewerToken));
 
     const returned = await getQuestion(api, publishedForTheFirstClient, readerToken);
     const nothing = await getQuestion(api, unknownQuestionId, readerToken);
@@ -198,7 +188,7 @@ describe("returning a Published Question to its Author", () => {
   });
 
   it("returns once, and records once, when two Reviewers return it at the same moment", async () => {
-    const otherReviewerToken = await logInHoldingNoGrant(api, "reviewer");
+    const otherReviewerToken = await logInAsAnother(api, "reviewer");
 
     const answers = await Promise.all([
       returnIt(publishedAndUnrestricted, reviewerToken),
