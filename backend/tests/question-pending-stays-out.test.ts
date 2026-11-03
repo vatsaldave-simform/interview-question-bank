@@ -15,7 +15,7 @@ const pendingAndUnrestricted = seededQuestionIds.aboutDisagreeing;
 const inThePendingQuestionOnly = "disagreed";
 const tagOnThePendingQuestion = { "question-type": "behavioural" };
 
-/** Pending, and restricted to the first Client, whose Grant its Author holds. */
+/** Pending, and naming the first Client. */
 const pendingForTheFirstClient = seededQuestionIds.aboutTheClientsRendering;
 
 /** All four ways into the bank, because each is its own query and one of them could

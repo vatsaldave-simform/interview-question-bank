@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { loadEnvFile, readEnv } from "../platform/env.ts";
 import { createDatabase } from "../platform/database.ts";
 import { seedViewerAccounts, seedViewers } from "../features/viewers/viewers.seed.ts";
-import { seedClients, seedClientsAndGrants } from "../features/clients/clients.seed.ts";
+import { seedClients, seedClientList } from "../features/clients/clients.seed.ts";
 import { seedQuestionBank, seedQuestions } from "../features/questions/questions.seed.ts";
 
 loadEnvFile(fileURLToPath(new URL("../../../.env", import.meta.url)));
@@ -12,9 +12,8 @@ const database = createDatabase(env.DATABASE_URL, { poolMax: env.DATABASE_POOL_M
 
 try {
   await seedViewerAccounts(database);
-  // The order is the dependency: Grants are held by Viewers, and a Question names its
-  // Clients.
-  await seedClientsAndGrants(database);
+  // The order is the dependency: a Question has an Author and names its Clients.
+  await seedClientList(database);
   await seedQuestionBank(database);
   // Written to stdout rather than through the logger: this is a command someone runs
   // and reads, not a service emitting structured lines.

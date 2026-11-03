@@ -33,9 +33,8 @@ describe("the history of a Question", () => {
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the first Client, and may edit nothing. */
+  /** May edit nothing. */
   let readerToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
   let authorId: string;
   let reviewerId: string;
@@ -185,8 +184,7 @@ describe("the history of a Question that is not Visible", () => {
   });
 
   it("answers a Reader asking about a Pending Question the same way", async () => {
-    // Not restricted to any Client: out of reach because it is Pending and a Reader is
-    // not its Author. Without it, the history could check Permission Grants alone.
+    // Out of reach because it is Pending and a Reader is not its Author.
     await historyLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, readerToken);
   });
 

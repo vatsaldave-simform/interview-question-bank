@@ -36,18 +36,6 @@ describe("fetching a Question through the shared query function", () => {
     }
   });
 
-  // A Client hides nothing (ADR-0050), so holding no Grant at all changes nothing.
-  it("hands that same Question to a Viewer who holds no Grant at all", async () => {
-    const noGrants = await database.viewer.create({
-      data: { email: "no-grants@iqb.test", passwordHash: "not used by this test", role: "reader" },
-      select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
-    });
-
-    const found = await findVisibleQuestionById(database, noGrants, publishedWithAClient);
-
-    expect(found?.id).toBe(publishedWithAClient);
-  });
-
   it("shows a Question that names no Client to every Viewer", async () => {
     for (const role of ["reader", "author", "reviewer"] as const) {
       const found = await findVisibleQuestionById(
@@ -96,7 +84,7 @@ describe("fetching a Question through the shared query function", () => {
     expect(found?.id).toBe(pendingWithNoClient);
   });
 
-  it("hands a Reviewer a Pending Question that names a Client they hold no Grant for", async () => {
+  it("hands a Reviewer a Pending Question that names a Client", async () => {
     const reviewer = await viewer("reviewer");
 
     const found = await findVisibleQuestionById(database, reviewer, pendingWithAClient);
@@ -115,7 +103,7 @@ describe("fetching a Question through the shared query function", () => {
     expect(neverExisted).toBeNull();
   });
 
-  it("hands an Author their own Pending Question under a Client nobody holds a Grant for", async () => {
+  it("hands an Author their own Pending Question that names a Client", async () => {
     const author = await viewer("author");
     const elsewhere = await database.client.create({ data: { name: "A Client Nobody Holds" } });
     const own = await database.question.create({

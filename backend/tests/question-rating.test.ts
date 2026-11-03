@@ -27,7 +27,6 @@ const {
 /** Over HTTP, because "cannot be told apart" means the status and the bytes (ADR-0002). */
 describe("rating a Question", () => {
   let api: TestApi;
-  /** Holds a Grant for the first Client and none for the second. */
   let readerToken: string;
   let authorToken: string;
   /** The other way round from the Reader. */
@@ -111,12 +110,12 @@ describe("rating a Question", () => {
 
     expect(answers[0]).toMatch(/^404 /);
     expect(new Set(answers).size).toBe(1);
-    // A Published one under a Client the Reader holds no Grant for takes the rating, so the
+    // A Published one naming a Client takes the rating, so the
     // match above is the check at work and not a route that answers 404 to everything.
     expect((await rate(publishedForTheSecondClient, { value: 3 }, readerToken)).status).toBe(200);
   });
 
-  it("answers a Viewer holding no Grant at all the same way, and lets them rate what is Published", async () => {
+  it("answers another Reader the same way, and lets them rate what is Published", async () => {
     const answers = [
       await statusAndBody(await rate(pending, { value: 3 }, otherReaderToken)),
       await statusAndBody(await rate(pendingForTheFirstClient, { value: 3 }, otherReaderToken)),

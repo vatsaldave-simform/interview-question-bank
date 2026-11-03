@@ -80,9 +80,9 @@ describe("filtering the bank by Category", () => {
     }
   });
 
-  it("puts a Question that names a Client in the page of a Viewer holding no Grant for it", async () => {
+  it("puts a Question that names a Client in every Viewer's page", async () => {
     const query = queryForEveryMatch([{ category: "technology", tagIds: technology }]);
-    // The bulk bank names this Client, and the Reviewer holds no Grant for it.
+    // The bulk bank names this Client.
     const named = await clientIdNamed(database, seedClient.name);
 
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);

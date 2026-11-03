@@ -37,11 +37,9 @@ const bodyFor = (act: "publish" | "reject") => (act === "reject" ? rejectBody : 
  */
 describe("Publishing and Rejecting a Pending Question", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the first Client too. */
   let readerToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
 
   beforeAll(async () => {

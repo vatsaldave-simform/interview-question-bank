@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { loadEnvFile, readEnv } from "../platform/env.ts";
 import { createDatabase } from "../platform/database.ts";
 import { seedViewerAccounts } from "../features/viewers/viewers.seed.ts";
-import { seedClientsAndGrants } from "../features/clients/clients.seed.ts";
+import { seedClientList } from "../features/clients/clients.seed.ts";
 import { seedQuestionBank } from "../features/questions/questions.seed.ts";
 import {
   defaultBulkBank,
@@ -31,7 +31,7 @@ try {
   // runs that seed first. The other direction never happens: `pnpm db:seed` is what
   // someone runs to get a working database, and it stays short enough to read.
   await seedViewerAccounts(database);
-  await seedClientsAndGrants(database);
+  await seedClientList(database);
   await seedQuestionBank(database);
 
   const startedAt = Date.now();

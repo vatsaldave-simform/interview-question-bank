@@ -25,8 +25,8 @@ describe("fetching a Question over HTTP", () => {
     await api.stop();
   });
 
-  // A Client hides nothing (ADR-0050): the Reviewer holds no Grant for this one's Client.
-  it("hands a Viewer holding no Grant a Published Question that names a Client", async () => {
+  // A Client hides nothing (ADR-0050).
+  it("hands a Reviewer a Published Question that names a Client", async () => {
     const token = await logIn(api, seededViewer("reviewer"));
 
     const response = await getQuestion(api, publishedWithAClient, token);

@@ -18,13 +18,11 @@ import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 const nearlyTheCacheOne =
   "How would you introduce a cache without making its staleness somebody else's problem?";
 
-/** A reworded copy of a Pending Question restricted to the first Client, which the
- * Reviewer holds no Grant for. */
+/** A reworded copy of a Pending Question naming the first Client. */
 const nearlyTheClientsRenderingOne =
   "Walk me through the trade-offs of this client's current React rendering strategy.";
 
-/** A reworded copy of a Pending Question restricted to the second Client, which the
- * Reviewer holds the Grant for. */
+/** A reworded copy of a Pending Question naming the second Client. */
 const nearlyTheOtherClientsIntakeOne =
   "Which part of this client's intake process would you automate first, and why?";
 
@@ -38,9 +36,7 @@ const nearlyTheRejectedOne = "What is 2+2?";
  */
 describe("Publishing a Question that resembles one already in the bank or the queue", () => {
   let api: TestApi;
-  /** Holds a Grant for the first Client. */
   let authorToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
   const reviewerEmail = seededViewer("reviewer").email;
 
@@ -100,7 +96,7 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     expect((await questionAnswered(response)).publicationState).toBe("published");
   });
 
-  it("names a restricted Pending Question the Reviewer holds the Grant for", async () => {
+  it("names a Pending Question that names the second Client", async () => {
     const id = await addAQuestion(api, { text: nearlyTheOtherClientsIntakeOne }, authorToken);
 
     const response = await postReviewAct(api, id, "publish", reviewerToken);
@@ -110,7 +106,7 @@ describe("Publishing a Question that resembles one already in the bank or the qu
     ]);
   });
 
-  it("names a Pending Question that names a Client the Reviewer holds no Grant for", async () => {
+  it("names a Pending Question that names the first Client", async () => {
     const id = await addAQuestion(api, { text: nearlyTheClientsRenderingOne }, authorToken);
 
     const response = await postReviewAct(api, id, "publish", reviewerToken);

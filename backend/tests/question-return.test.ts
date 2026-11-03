@@ -22,7 +22,6 @@ import { startTestApi, statusAndBody, type TestApi } from "./helpers/test-api.ts
 const {
   // The only Question whose Answer Notes hold `inOneAnswerNoteOnly`.
   aboutTypeScript: publishedAndUnrestricted,
-  // The Author and the Reader hold the first Client's Grant, and the seeded Reviewer does not.
   aboutTheClientsPipeline: publishedForTheFirstClient,
   aboutDisagreeing: pendingAndUnrestricted,
   aboutTwoPlusTwo: rejectedAndUnrestricted,
@@ -36,11 +35,9 @@ const returnBody = { reason: "This belongs to a Client. Restrict it before it go
  */
 describe("returning a Published Question to its Author", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the first Client too. */
   let readerToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
 
   beforeAll(async () => {
@@ -164,7 +161,7 @@ describe("returning a Published Question to its Author", () => {
     }
   });
 
-  it("lets a Reviewer holding no Grant for the Client return it", async () => {
+  it("lets a Reviewer return a Question that names a Client", async () => {
     const response = await returnIt(publishedForTheFirstClient, reviewerToken);
 
     expect(response.status).toBe(200);

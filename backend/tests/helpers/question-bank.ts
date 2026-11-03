@@ -15,7 +15,7 @@ import {
   type BulkBankConfig,
 } from "../../src/features/questions/bulk-bank.seed.ts";
 import type { TagsInCategory } from "../../src/features/questions/questions.repository.ts";
-import { seedClientsAndGrants } from "../../src/features/clients/clients.seed.ts";
+import { seedClientList } from "../../src/features/clients/clients.seed.ts";
 import { seedQuestionBank } from "../../src/features/questions/questions.seed.ts";
 import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../../src/platform/database.ts";
@@ -27,15 +27,15 @@ import { truncateAll } from "./test-database.ts";
 export async function seedTheBank(database: Database): Promise<void> {
   await truncateAll(database);
   await seedViewerAccounts(database);
-  await seedClientsAndGrants(database);
+  await seedClientList(database);
   await seedQuestionBank(database);
 }
 
 /**
- * The Questions back as the seed writes them, leaving the Viewers, the Clients and the
- * Permission Grants alone. For a test that changes a Question and wants the next one to
- * start from the seeded bank: truncating everything would change the Viewer ids too, and
- * every access token already handed out would stop naming anybody.
+ * The Questions back as the seed writes them, leaving the Viewers and the Clients alone.
+ * For a test that changes a Question and wants the next one to start from the seeded bank:
+ * truncating everything would change the Viewer ids too, and every access token already
+ * handed out would stop naming anybody.
  *
  * Truncated rather than deleted, because a Change Event cannot be deleted and neither can
  * a Question one names. No row trigger fires on a truncate, which is what leaves the test
@@ -200,23 +200,21 @@ export async function idsQueued(response: Response): Promise<string[]> {
 export const seededQuestionIds = {
   /** Published and unrestricted. Its Answer Notes are the only place "merging" appears. */
   aboutTypeScript: "a0000000-0000-4000-8000-000000000001",
-  /** Published, and restricted to the first Client: the Reader holds the Grant and the
-   * Reviewer does not, which is the pair worth searching for. */
+  /** Published, and naming the first Client. */
   aboutTheClientsPipeline: "a0000000-0000-4000-8000-000000000002",
   /** Pending and unrestricted, so a Reader may not reach it and a Reviewer may. */
   aboutDisagreeing: "a0000000-0000-4000-8000-000000000003",
   /** Rejected and unrestricted. */
   aboutTwoPlusTwo: "a0000000-0000-4000-8000-000000000004",
-  /** Pending, and restricted to the first Client, whose Grant its Author holds. */
+  /** Pending, and naming the first Client. */
   aboutTheClientsRendering: "a0000000-0000-4000-8000-000000000005",
-  /** Published, and restricted to the second Client, so the Reviewer holds the Grant and
-   * the Reader does not. The other way round from the pipeline one. */
+  /** Published, and naming the second Client. */
   aboutTheOtherClientsBooking: "a0000000-0000-4000-8000-000000000006",
-  /** Pending, and restricted to the second Client. */
+  /** Pending, and naming the second Client. */
   aboutTheOtherClientsIntake: "a0000000-0000-4000-8000-000000000007",
-  /** Rejected, and restricted to the first Client. */
+  /** Rejected, and naming the first Client. */
   aboutTheClientsLogo: "a0000000-0000-4000-8000-000000000008",
-  /** Rejected, and restricted to the second Client. */
+  /** Rejected, and naming the second Client. */
   aboutTheOtherClientsFrameworks: "a0000000-0000-4000-8000-000000000009",
   /** Published, and naming both Clients, the second of them first by name. */
   aboutSharingAComponentLibrary: "a0000000-0000-4000-8000-000000000010",

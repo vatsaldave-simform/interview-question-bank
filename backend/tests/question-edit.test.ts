@@ -48,7 +48,6 @@ describe("editing a Question over HTTP", () => {
   let authorToken: string;
   /** May edit nothing. */
   let readerToken: string;
-  /** Holds no Grant for the first Client, which hides nothing from them any more. */
   let reviewerToken: string;
   /** Author of nothing, holder of nothing. */
   let otherAuthorToken: string;
@@ -142,7 +141,7 @@ describe("editing a Question over HTTP", () => {
     expect(questionResponseSchema.parse(await response.json()).question.text).toBe(newText);
   });
 
-  it("lets a Reviewer change a Question that names a Client they hold no Grant for", async () => {
+  it("lets a Reviewer change a Question that names a Client", async () => {
     const response = await patchQuestion(
       api,
       seededQuestionIds.aboutTheClientsPipeline,

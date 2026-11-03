@@ -39,7 +39,7 @@ describe("listing the Categories and their Tags over HTTP", () => {
     );
   });
 
-  it("answers every Viewer with the same bytes, whatever Grants they hold", async () => {
+  it("answers every Viewer with the same bytes", async () => {
     const answers: string[] = [];
     for (const role of ["reader", "author", "reviewer"] as const) {
       const token = await logIn(api, seededViewer(role));
@@ -51,9 +51,8 @@ describe("listing the Categories and their Tags over HTTP", () => {
     expect(new Set(answers).size).toBe(1);
   });
 
-  // The Reader holds no Grant for the second Client. The filter already answers this Tag
-  // with an empty page rather than a refusal, so listing it tells them nothing new.
-  it("lists a Tag that only a Question the Viewer cannot see carries", async () => {
+  // Every Tag is listed, whichever Questions carry it.
+  it("lists a Tag that only the second Client's Questions carry", async () => {
     const token = await logIn(api, seededViewer("reader"));
 
     const body = categoryListResponseSchema.parse(await (await getCategories(api, token)).json());
