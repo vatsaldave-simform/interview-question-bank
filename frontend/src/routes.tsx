@@ -2,7 +2,6 @@ import { createRoute, createRouter, redirect } from "@tanstack/react-router";
 import { authRoutes } from "@/features/auth/auth.routes";
 import { signOut } from "@/features/auth/sign-in";
 import { clientRoutes } from "@/features/clients/clients.routes";
-import { permissionGrantRoutes } from "@/features/permission-grants/permission-grants.routes";
 import { browseSearchSchema } from "@/features/questions/browse.schema";
 import { useAnyQuestionWaiting } from "@/features/questions/questions.queries";
 import { questionRoutes } from "@/features/questions/questions.routes";
@@ -93,7 +92,6 @@ const routeTree = rootRoute.addChildren([
       ...roleRequestRoutes,
       ...viewerRoutes,
       ...clientRoutes,
-      ...permissionGrantRoutes,
     ]),
     accountRoute,
   ]),

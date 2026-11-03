@@ -30,8 +30,8 @@ function aBankCreatingClients(clients: Client[], created: () => Response) {
   return fakeBank(
     (asked) => aPageOf([], asked),
     async (request, asked) => {
-      if (asked.pathname === "/api/clients/all") return answersWith({ clients });
-      if (asked.pathname !== "/api/clients" || request.method !== "POST") return undefined;
+      if (asked.pathname !== "/api/clients") return undefined;
+      if (request.method === "GET") return answersWith({ clients });
       const answer = created();
       if (answer.ok) clients.push(((await answer.clone().json()) as { client: Client }).client);
       return answer;
@@ -70,7 +70,8 @@ describe("creating a Client from the administration console", () => {
     expect(screen.queryByRole("form", { name: "Create a Client" })).not.toBeInTheDocument();
     const [sent] = creations(api);
     expect(await sent?.json()).toEqual({ name: "Kingsbridge Health" });
-    expect(await screen.findByRole("link", { name: "Kingsbridge Health" })).toBeVisible();
+    const list = within(await screen.findByRole("list", { name: "Clients" }));
+    expect(await list.findByText("Kingsbridge Health")).toBeVisible();
   });
 
   it("refuses a name of only spaces on its field, and sends nothing", async () => {
@@ -128,8 +129,8 @@ describe("creating a Client from the administration console", () => {
   it("can still be started when the Client list fails to load", async () => {
     fakeBank(
       (asked) => aPageOf([], asked),
-      (_request, asked) =>
-        asked.pathname === "/api/clients/all"
+      (request, asked) =>
+        asked.pathname === "/api/clients" && request.method === "GET"
           ? refusesWith(500, "internal_error", "Something went wrong on our side.")
           : undefined,
     );
@@ -143,8 +144,8 @@ describe("creating a Client from the administration console", () => {
     let answerTheList: (answer: Response) => void = () => {};
     fakeBank(
       (asked) => aPageOf([], asked),
-      (_request, asked) =>
-        asked.pathname === "/api/clients/all"
+      (request, asked) =>
+        asked.pathname === "/api/clients" && request.method === "GET"
           ? new Promise<Response>((answer) => (answerTheList = answer))
           : undefined,
     );

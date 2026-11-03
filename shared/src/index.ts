@@ -3,7 +3,6 @@ export * from "./change-events.js";
 export * from "./clients.js";
 export * from "./errors.js";
 export * from "./health.js";
-export * from "./permission-grants.js";
 export * from "./questions.js";
 export * from "./question-acts.js";
 export * from "./role-requests.js";

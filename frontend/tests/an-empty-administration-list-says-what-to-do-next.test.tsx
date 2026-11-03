@@ -3,25 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, anAdministrator, answersWith } from "./helpers/fake-api";
+import { anAdministrator } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
-
-const northwind = aClient();
 
 // Every list in the console is empty, unless a test says otherwise.
 beforeEach(() => {
   replaceSession({ status: "unknown" });
   signInAs(anAdministrator);
-  fakeBank(
-    (asked) => aPageOf([], asked),
-    (_request, asked) => {
-      if (asked.pathname === `/api/clients/${northwind.id}/grants`) {
-        return answersWith({ grants: [] });
-      }
-      return undefined;
-    },
-  );
+  fakeBank((asked) => aPageOf([], asked));
 });
 
 afterEach(() => {
@@ -71,19 +61,5 @@ describe("an empty Clients", () => {
     expect(screen.getAllByRole("button", { name: "Add a Client" })).toHaveLength(1);
     await userEvent.click(empty.getByRole("button", { name: "Add a Client" }));
     expect(await screen.findByRole("dialog", { name: "Create a Client" })).toBeVisible();
-  });
-});
-
-describe("a Client with no Permission Grant", () => {
-  it("says nobody can see its Questions yet, and how to change that", async () => {
-    renderTheWholeClient(`/administration/clients/${northwind.id}`);
-
-    const empty = await theEmptyList("Nobody can see this Client's Questions yet");
-    expect(
-      empty.getByText(
-        "Questions restricted to this Client stay hidden until you issue a Viewer a Permission Grant for it.",
-      ),
-    ).toBeVisible();
-    expect(empty.getByRole("button", { name: "Issue a Permission Grant" })).toBeVisible();
   });
 });
