@@ -57,7 +57,7 @@ describe("searching the bank by keyword", () => {
     expect(found!.tags).toContainEqual({ category: "seniority", tag: "mid" });
   });
 
-  it("finds a Published Question that names a Client for a Viewer holding no Grant for it", async () => {
+  it("finds a Published Question that names a Client for every Viewer", async () => {
     const seenByReader = await search(reader, "pipeline");
     const seenByReviewer = await search(reviewer, "pipeline");
 

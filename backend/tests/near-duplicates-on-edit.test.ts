@@ -15,17 +15,15 @@ import {
 } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
-/** A reworded copy of the Published, unrestricted TypeScript Question. */
+/** A reworded copy of the Published TypeScript Question, which names no Client. */
 const nearlyTheTypeScriptOne =
   "Explain the difference between an interface and a type in TypeScript.";
 
-/** A reworded copy of the Published Question restricted to the second Client, which the
- * Author holds no Grant for. */
+/** A reworded copy of the Published Question naming the second Client. */
 const nearlyTheOtherClientsBookingOne =
   "How would you move this client's Python booking service onto the shared data model?";
 
-/** A reworded copy of the Pending Question restricted to the second Client, which the
- * Reviewer holds the Grant for. */
+/** A reworded copy of the Pending Question naming the second Client. */
 const nearlyTheOtherClientsIntakeOne =
   "Which part of this client's intake process would you automate first, and why?";
 
@@ -41,9 +39,8 @@ const nearlyTheCachingOne =
  */
 describe("editing a Published Question's text into one that resembles another", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
   const authorEmail = seededViewer("author").email;
 
@@ -207,7 +204,7 @@ describe("editing a Published Question's text into one that resembles another", 
     expect(response.status).toBe(200);
   });
 
-  it("names a Question that names a Client the editor holds no Grant for", async () => {
+  it("names a Question that names a Client", async () => {
     const response = await patchQuestion(
       api,
       seededQuestionIds.aboutTypeScript,

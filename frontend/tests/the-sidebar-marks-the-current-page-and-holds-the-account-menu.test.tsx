@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, anAdministrator, answersWith, aViewer } from "./helpers/fake-api";
+import { anAdministrator, answersWith, aViewer } from "./helpers/fake-api";
 import { aBankHolding, aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -141,25 +141,6 @@ describe("the sidebar", () => {
       );
     },
   );
-
-  it("keeps Clients marked on one Client's page", async () => {
-    const northwind = aClient();
-    signInAs(anAdministrator);
-    fakeBank(
-      (asked) => aPageOf([], asked),
-      (_request, asked) => {
-        if (asked.pathname === "/api/clients/all") return answersWith({ clients: [northwind] });
-        if (asked.pathname.endsWith("/grants")) return answersWith({ grants: [] });
-        return undefined;
-      },
-    );
-    renderTheWholeClient(`/administration/clients/${northwind.id}`);
-
-    await screen.findByRole("heading", { level: 1, name: northwind.name });
-    const sidebar = await theSidebar();
-    expect(sidebar.getByRole("link", { name: "Clients" })).toHaveAttribute("aria-current", "page");
-    expect(sidebar.getByRole("link", { name: "Viewers" })).not.toHaveAttribute("aria-current");
-  });
 
   it("opens a menu from the Viewer's email holding their account and Log out", async () => {
     renderTheWholeClient("/questions");

@@ -41,13 +41,12 @@ model Viewer {
   createdAt       DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
 
-  refreshTokens    RefreshToken[]
-  passwordTokens   PasswordToken[]
-  permissionGrants PermissionGrant[]
-  roleRequests     RoleRequest[]
-  questions        Question[]
-  changeEvents     ChangeEvent[]
-  ratings          Rating[]
+  refreshTokens  RefreshToken[]
+  passwordTokens PasswordToken[]
+  roleRequests   RoleRequest[]
+  questions      Question[]
+  changeEvents   ChangeEvent[]
+  ratings        Rating[]
 
   @@map("viewers")
 }
@@ -166,31 +165,16 @@ model Tag {
   @@map("tags")
 }
 
-/// An organisation a Question may be restricted to. Never deleted (ADR-0017).
+/// An organisation that has asked Questions in its interviews. It hides nothing (ADR-0050).
+/// Never deleted (ADR-0017).
 model Client {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @unique
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
-  permissionGrants PermissionGrant[]
-  questions        Question[]
-  questionClients  QuestionClient[]
+  questionClients QuestionClient[]
 
   @@map("clients")
-}
-
-/// The authority for one Viewer to see one Client's Questions.
-model PermissionGrant {
-  id        String   @id @default(uuid()) @db.Uuid
-  viewerId  String   @db.Uuid
-  viewer    Viewer   @relation(fields: [viewerId], references: [id])
-  clientId  String   @db.Uuid
-  client    Client   @relation(fields: [clientId], references: [id])
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-
-  @@unique([viewerId, clientId])
-  @@index([clientId])
-  @@map("permission_grants")
 }
 
 /// A single interview or screening question, with its Answer Notes, Tags and Provenance.
@@ -202,12 +186,6 @@ model Question {
   answerNotes      String
   authorId         String                   @db.Uuid
   author           Viewer                   @relation(fields: [authorId], references: [id])
-  /// At most one Client, and optional: unrestricted is the absence of a restriction
-  /// rather than a value meaning "everyone".
-  clientId         String?                  @db.Uuid
-  // Restrict, against Prisma's SET NULL default: a deleted Client would otherwise
-  // silently declassify every Question restricted to it (ADR-0017).
-  client           Client?                  @relation(fields: [clientId], references: [id], onDelete: Restrict)
   clients          QuestionClient[]
   publicationState PublicationState         @default(pending)
   /// Cleared on Publish or resubmit; the Change Events keep every earlier one.
@@ -235,7 +213,6 @@ model Question {
   // Load-bearing: the ordering index the combined filter's early-stop strategy walks,
   // and what makes pagination stable. Dropping it removes a plan (ADR-0011).
   @@index([createdAt(sort: Desc), id(sort: Desc)])
-  @@index([clientId])
   @@index([authorId])
   @@map("questions")
 }

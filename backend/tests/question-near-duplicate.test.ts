@@ -25,12 +25,11 @@ import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 const nearlyTheTypeScriptOne =
   "Explain the difference between an interface and a type in TypeScript.";
 
-/** A reworded copy of a Published Question restricted to the second Client, which the
- * Author holds no Permission Grant for. */
+/** A reworded copy of a Published Question naming the second Client. */
 const nearlyTheOtherClientsBookingOne =
   "How would you move this client's Python booking service onto the shared data model?";
 
-/** And the first Client's, which the Reviewer holds no Grant for: the mirror case. */
+/** And one naming the first Client. */
 const nearlyTheFirstClientsPipelineOne =
   "How would you migrate this client's reporting pipeline away from nightly batch jobs?";
 
@@ -132,7 +131,7 @@ describe("submitting a Question that resembles one already in the bank", () => {
     expect(response.status).toBe(201);
   });
 
-  it("tells an Author about a Question that names a Client they hold no Grant for", async () => {
+  it("tells an Author about a Question that names a Client", async () => {
     const response = await postQuestion(
       api,
       aQuestion({ text: nearlyTheOtherClientsBookingOne }),
@@ -167,7 +166,7 @@ describe("submitting a Question that resembles one already in the bank", () => {
     expect(found.nearDuplicates.map((near) => near.questionId)).toEqual([waiting]);
   });
 
-  it("tells a Reviewer the same, for the Client they hold no Grant for", async () => {
+  it("tells a Reviewer the same, for the other Client", async () => {
     const response = await postQuestion(
       api,
       aQuestion({ text: nearlyTheFirstClientsPipelineOne }),
@@ -224,8 +223,6 @@ describe("submitting a Question that resembles one already in the bank", () => {
   });
 
   it("never shows another Viewer the Question an override overrode", async () => {
-    // The Author holds the first Client's Grant and the Reviewer does not, so this text
-    // resembles a Question only one of them can read.
     const response = await postQuestion(
       api,
       aQuestion({
@@ -241,12 +238,11 @@ describe("submitting a Question that resembles one already in the bank", () => {
     });
     const events = questionHistoryResponseSchema.parse(await toTheReviewer.json()).events;
 
-    // The Reviewer may read this Question: it is Pending and carries no Client. What
-    // they may not read is the restricted Question its Author was warned about, and the
-    // event saying one existed is itself the leak (ADR-0028).
+    // The Reviewer may read this Question, because it is Pending. Only the Viewer an
+    // override event names may read it, whatever else they could read (ADR-0028).
     expect(events.map((event) => event.type)).toEqual<ChangeEventType[]>(["question_added"]);
     // Not the submitted text, which is the Author's own and says "reporting pipeline"
-    // too: the restricted Question itself, by the id and the wording only it has.
+    // too: the overridden Question itself, by the id and the wording only it has.
     expect(JSON.stringify(events)).not.toContain(seededQuestionIds.aboutTheClientsPipeline);
     expect(JSON.stringify(events)).not.toContain("off nightly batch jobs");
   });

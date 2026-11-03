@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   seedClient,
   seedClients,
-  seedClientsAndGrants,
+  seedClientList,
   seedOtherClient,
 } from "../src/features/clients/clients.seed.ts";
 import {
@@ -11,9 +11,8 @@ import {
   seedQuestionBank,
   seedQuestions,
 } from "../src/features/questions/questions.seed.ts";
-import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWithTheOldColumnFilled } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /**
@@ -27,7 +26,7 @@ describe("the seed", () => {
     database = createTestDatabase();
     await truncateAll(database);
     await seedViewerAccounts(database);
-    await seedClientsAndGrants(database);
+    await seedClientList(database);
     await seedQuestionBank(database);
   });
   afterAll(async () => {
@@ -52,33 +51,12 @@ describe("the seed", () => {
     }
   });
 
-  it("grants some Viewers permission for each Client and leaves others without one", async () => {
-    const grants = await database.permissionGrant.findMany({
-      include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
-    });
+  it("seeds each Client once, by name", async () => {
+    const clients = await database.client.findMany({ select: { name: true } });
 
-    for (const seeded of seedClients) {
-      const held = grants.filter((grant) => grant.client.name === seeded.name);
-      expect(held.map((grant) => grant.viewer.email).sort()).toEqual([...seeded.grantedTo].sort());
-      expect(seeded.grantedTo.length).toBeLessThan(seedViewers.length);
-    }
-    expect(grants).toHaveLength(seedClients.flatMap((seeded) => seeded.grantedTo).length);
-  });
-
-  // The pair the guarantee is proved with: a Viewer holding one of them holds neither
-  // the other nor nothing at all, so a search can cross the two Clients.
-  it("gives the two Clients no Viewer in common and leaves neither unheld", async () => {
-    const grants = await database.permissionGrant.findMany({
-      include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
-    });
-    const holdersOf = (name: string) =>
-      new Set(grants.filter((grant) => grant.client.name === name).map((g) => g.viewer.email));
-
-    const first = holdersOf(seedClient.name);
-    const second = holdersOf(seedOtherClient.name);
-    expect(first.size).toBeGreaterThan(0);
-    expect(second.size).toBeGreaterThan(0);
-    expect([...first].filter((email) => second.has(email))).toEqual([]);
+    expect(clients.map((client) => client.name).sort()).toEqual(
+      seedClients.map((seeded) => seeded.name).sort(),
+    );
   });
 
   it("names each Client on some Question and leaves some Questions naming none", async () => {
@@ -90,10 +68,6 @@ describe("the seed", () => {
 
     expect(perClient).toHaveLength(seedClients.length);
     expect(namingNone).toBeGreaterThan(0);
-  });
-
-  it("leaves the old Client column empty", async () => {
-    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   it("names both Clients on one Question", async () => {
@@ -119,8 +93,8 @@ describe("the seed", () => {
     );
   });
 
-  // So the queue and the Rejected path can be walked through a Grant for either Client,
-  // not only in the open bank.
+  // So the queue and the Rejected path can be walked for either Client, not only among
+  // the Questions that name none.
   it("seeds Questions in every Publication State for each Client", async () => {
     for (const seeded of seedClients) {
       const states = await database.question.groupBy({
@@ -171,7 +145,7 @@ describe("the seed", () => {
       select: { id: true, text: true },
     });
 
-    await seedClientsAndGrants(database);
+    await seedClientList(database);
     await seedQuestionBank(database);
 
     const after = await database.question.findUniqueOrThrow({
@@ -185,16 +159,16 @@ describe("the seed", () => {
     const before = await Promise.all([
       database.question.count(),
       database.tag.count(),
-      database.permissionGrant.count(),
+      database.client.count(),
     ]);
 
-    await seedClientsAndGrants(database);
+    await seedClientList(database);
     await seedQuestionBank(database);
 
     expect(await Promise.all([
       database.question.count(),
       database.tag.count(),
-      database.permissionGrant.count(),
+      database.client.count(),
     ])).toEqual(before);
   });
 });

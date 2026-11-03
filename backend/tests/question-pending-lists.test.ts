@@ -53,8 +53,7 @@ describe("the lists of Questions not yet in the bank", () => {
   });
 
   describe("the Reviewer's Pending queue", () => {
-    it("holds the Pending Questions of every Client, whatever Grants the Reviewer holds", async () => {
-      // The seeded Reviewer holds no Grant for the first Client, and its Question is here.
+    it("holds the Pending Questions of every Client", async () => {
       const reviewer = await viewer("reviewer");
 
       const queue = await findPendingQuestionsForReview(database, reviewer, wholeFirstPage);
@@ -133,9 +132,8 @@ describe("the lists of Questions not yet in the bank", () => {
       expect(ids(theirsListed)).toEqual([theirs.id]);
     });
 
-    it("holds the Author's own Pending Question under a Client they hold no Grant for", async () => {
-      // The seeded Author wrote the second Client's Pending Question and holds no Grant
-      // for that Client.
+    it("holds the Author's own Pending Question that names a Client", async () => {
+      // The seeded Author wrote the second Client's Pending Question.
       const own = await findOwnUnpublishedQuestions(
         database,
         await viewer("author"),

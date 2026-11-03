@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   addAQuestion,
   getQuestion,
@@ -37,11 +37,9 @@ const bodyFor = (act: "publish" | "reject") => (act === "reject" ? rejectBody : 
  */
 describe("Publishing and Rejecting a Pending Question", () => {
   let api: TestApi;
-  /** Author of every seeded Question, and holder of a Grant for the first Client. */
+  /** Author of every seeded Question. */
   let authorToken: string;
-  /** Holds a Grant for the first Client too. */
   let readerToken: string;
-  /** Holds a Grant for the second Client and none for the first. */
   let reviewerToken: string;
 
   beforeAll(async () => {
@@ -176,7 +174,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("refuses an Author Rejecting a Pending Question that is not theirs", async () => {
-    const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+    const otherAuthorToken = await logInAsAnother(api, "author");
 
     const response = await postReviewAct(
       api,
@@ -239,7 +237,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
   });
 
   it("Publishes once, and records once, when two Reviewers Publish at the same moment", async () => {
-    const otherReviewerToken = await logInHoldingNoGrant(api, "reviewer");
+    const otherReviewerToken = await logInAsAnother(api, "reviewer");
 
     const answers = await Promise.all([
       postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),

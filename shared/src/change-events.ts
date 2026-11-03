@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { namedViewerSchema, viewerRoleSchema } from "./auth.js";
 import { clientSchema } from "./clients.js";
-import { permissionGrantSchema } from "./permission-grants.js";
 import { nearDuplicateSchema, provenanceSchema, questionTagSchema } from "./questions.js";
 
 /**
@@ -66,6 +65,11 @@ export type RoleChanged = z.infer<typeof roleChangedSchema>;
 /** An Administrator creating a Client. */
 export const clientCreatedSchema = z.object({ client: clientSchema }).strict();
 export type ClientCreated = z.infer<typeof clientCreatedSchema>;
+
+/** Grants are gone (ADR-0051). This stays so the old Grant events still read. */
+const permissionGrantSchema = z
+  .object({ client: clientSchema, viewer: namedViewerSchema })
+  .strict();
 
 /** The Viewer this names may be the one who issued it (ADR-0015). */
 export const permissionGrantIssuedSchema = z.object({ grant: permissionGrantSchema }).strict();

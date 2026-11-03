@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, logInHoldingNoGrant, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   getQuestion,
   historyOf,
@@ -102,7 +102,7 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   });
 
   it("answers another Author resubmitting it as if it were not there", async () => {
-    const otherAuthorToken = await logInHoldingNoGrant(api, "author");
+    const otherAuthorToken = await logInAsAnother(api, "author");
 
     const response = await postReviewAct(
       api,

@@ -2,19 +2,12 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import {
-  aClient,
-  anAdministrator,
-  answersWith,
-  aQuestion,
-  refusesWith,
-} from "./helpers/fake-api";
+import { anAdministrator, answersWith, aQuestion, refusesWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { homeGreeting } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const question = aQuestion({ text: "What is a closure?", authorId: anAdministrator.id });
-const client = aClient();
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -24,8 +17,6 @@ beforeEach(() => {
     (_request, asked) => {
       if (asked.pathname === `/api/questions/${question.id}`) return answersWith({ question });
       if (asked.pathname.endsWith("/history")) return answersWith({ events: [] });
-      if (asked.pathname === "/api/clients/all") return answersWith({ clients: [client] });
-      if (asked.pathname.endsWith("/grants")) return answersWith({ grants: [] });
       return undefined;
     },
   );
@@ -88,21 +79,6 @@ describe("a page no sidebar link leads to", () => {
       `/questions/${question.id}`,
     );
     expect(within(here!).getByText("Edit")).toHaveAttribute("aria-current", "page");
-  });
-
-  it("shows one Client's page as Administration, then Clients, then the Client", async () => {
-    renderTheWholeClient(`/administration/clients/${client.id}`);
-
-    const [administration, clients, here] = await theTrailUnder(client.name);
-    expect(within(administration!).getByRole("link", { name: "Administration" })).toHaveAttribute(
-      "href",
-      "/administration",
-    );
-    expect(within(clients!).getByRole("link", { name: "Clients" })).toHaveAttribute(
-      "href",
-      "/administration/clients",
-    );
-    expect(within(here!).getByText(client.name)).toHaveAttribute("aria-current", "page");
   });
 
   it("cuts a long Question short in the trail, and keeps it whole in the title", async () => {

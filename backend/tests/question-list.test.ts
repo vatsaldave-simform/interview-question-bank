@@ -169,8 +169,7 @@ describe("listing Questions over HTTP", () => {
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
   });
 
-  it("puts a Question that names a Client in the page of a Viewer holding no Grant for it", async () => {
-    // The Reviewer holds no Grant for this Client.
+  it("puts a Question that names a Client in every Viewer's page", async () => {
     const named = await clientIdNamed(api.database, seedClient.name);
 
     const forReviewer = await getQuestions(api, { limit: maxQuestionPageSize }, reviewerToken);

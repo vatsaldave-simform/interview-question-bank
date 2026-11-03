@@ -49,7 +49,7 @@ export const seedCategories: readonly SeedCategory[] = [
 const seedAuthorEmail = seedViewerByRole("author").email;
 
 /**
- * Questions in every Publication State, restricted and unrestricted, so that both checks
+ * Questions in every Publication State, naming a Client and naming none, so that both
  * — and the two of them together — can be exercised from the first run.
  */
 export const seedQuestions: readonly SeedQuestion[] = [
@@ -116,8 +116,8 @@ export const seedQuestions: readonly SeedQuestion[] = [
       { category: "question-type", tag: "practical" },
     ],
   },
-  // The second Client's pair, Published and Pending like the first Client's, so neither
-  // Client is the restricted one. "migrate" is in this Question and the first Client's.
+  // The second Client's pair, Published and Pending like the first Client's, so the two
+  // Clients match. "migrate" is in this Question and the first Client's.
   {
     id: "a0000000-0000-4000-8000-000000000006",
     text: "How would you migrate this client's Python booking service onto the shared data model?",

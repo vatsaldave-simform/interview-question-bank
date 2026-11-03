@@ -2,13 +2,12 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aClient, anAdministrator, answersWith, aQuestion } from "./helpers/fake-api";
+import { anAdministrator, answersWith, aQuestion } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { homeGreeting } from "./helpers/home-page";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 const question = aQuestion({ authorId: anAdministrator.id });
-const client = aClient();
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
@@ -19,8 +18,6 @@ beforeEach(() => {
     (_request, asked) => {
       if (asked.pathname === `/api/questions/${question.id}`) return answersWith({ question });
       if (asked.pathname.endsWith("/history")) return answersWith({ events: [] });
-      if (asked.pathname === "/api/clients/all") return answersWith({ clients: [client] });
-      if (asked.pathname.endsWith("/grants")) return answersWith({ grants: [] });
       return undefined;
     },
   );
@@ -86,12 +83,7 @@ describe("every signed-in page", () => {
     {
       address: "/administration/clients",
       title: "Clients",
-      says: "Open a Client to see and change who holds a Permission Grant for it.",
-    },
-    {
-      address: `/administration/clients/${client.id}`,
-      title: client.name,
-      says: "The Viewers who may see the Questions restricted to this Client.",
+      says: "The organisations a Question can name as having asked it.",
     },
   ])("says what $address is for, under its title", async ({ address, title, says }) => {
     renderTheWholeClient(address);

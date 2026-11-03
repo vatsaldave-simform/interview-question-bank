@@ -23,10 +23,7 @@ function aBankWithOneClient() {
   return fakeBank(
     (asked) => aPageOf([], asked),
     (_request, asked) => {
-      if (asked.pathname === "/api/clients/all") return answersWith({ clients: [northwind] });
-      if (asked.pathname === `/api/clients/${northwind.id}/grants`) {
-        return answersWith({ grants: [] });
-      }
+      if (asked.pathname === "/api/clients") return answersWith({ clients: [northwind] });
       return undefined;
     },
   );
@@ -36,12 +33,6 @@ function aBankWithOneClient() {
 async function theAdministrationGroup() {
   const sidebar = within(await screen.findByRole("navigation", { name: "Main menu" }));
   return within(sidebar.getByRole("group", { name: "Administration" }));
-}
-
-function grantsAsked(api: ReturnType<typeof fakeBank>): string[] {
-  return api.sent
-    .map((request) => new URL(request.url).pathname)
-    .filter((path) => path.endsWith("/grants"));
 }
 
 describe("the administration pages", () => {
@@ -83,26 +74,12 @@ describe("the administration pages", () => {
     );
   });
 
-  it("list the Clients without asking for any Client's Grants", async () => {
-    const api = aBankWithOneClient();
+  it("list the Clients by name, with nothing to open, and Clients marked", async () => {
+    aBankWithOneClient();
     renderTheWholeClient("/administration/clients");
 
-    expect(await screen.findByRole("link", { name: northwind.name })).toBeVisible();
-    expect(grantsAsked(api)).toEqual([]);
-  });
-
-  it("open a Client's own page with its Grants, with Clients still marked", async () => {
-    const api = aBankWithOneClient();
-    renderTheWholeClient("/administration/clients");
-
-    await userEvent.click(await screen.findByRole("link", { name: northwind.name }));
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: northwind.name }),
-    ).toBeVisible();
-    expect(await screen.findByRole("heading", { name: "Nobody can see this Client's Questions yet" })).toBeVisible();
-    expect(window.location.pathname).toBe(`/administration/clients/${northwind.id}`);
-    expect(grantsAsked(api)).toEqual([`/api/clients/${northwind.id}/grants`]);
+    expect(await screen.findByText(northwind.name)).toBeVisible();
+    expect(screen.queryByRole("link", { name: northwind.name })).not.toBeInTheDocument();
     const menu = await theAdministrationGroup();
     expect(menu.getByRole("link", { name: "Clients" })).toHaveAttribute("aria-current", "page");
   });

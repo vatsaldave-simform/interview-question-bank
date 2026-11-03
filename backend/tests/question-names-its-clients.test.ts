@@ -20,7 +20,6 @@ const { aboutTypeScript, aboutTheClientsPipeline } = seededQuestionIds;
 
 describe("a Question names every Client it carries", () => {
   let api: TestApi;
-  /** Holds a Grant for the first Client. */
   let authorToken: string;
   let client: Client;
   let otherClient: Client;

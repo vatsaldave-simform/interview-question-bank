@@ -13,46 +13,10 @@ export async function clientNamesListed(api: TestApi, token: string): Promise<st
   return clientListResponseSchema.parse(await response.json()).clients.map(({ name }) => name);
 }
 
-/** Every Client, which only an Administrator may ask for. */
-export function getEveryClient(api: TestApi, token: string): Promise<Response> {
-  return api.request("/api/clients/all", { headers: { authorization: `Bearer ${token}` } });
-}
-
 export function postClient(api: TestApi, body: unknown, token: string): Promise<Response> {
   return api.request("/api/clients", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
-  });
-}
-
-export function postGrant(
-  api: TestApi,
-  clientId: string,
-  body: unknown,
-  token: string,
-): Promise<Response> {
-  return api.request(`/api/clients/${clientId}/grants`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-}
-
-export function getGrants(api: TestApi, clientId: string, token: string): Promise<Response> {
-  return api.request(`/api/clients/${clientId}/grants`, {
-    headers: { authorization: `Bearer ${token}` },
-  });
-}
-
-export function deleteGrant(
-  api: TestApi,
-  clientId: string,
-  viewerId: string,
-  token: string,
-): Promise<Response> {
-  return api.request(`/api/clients/${clientId}/grants/${viewerId}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
   });
 }

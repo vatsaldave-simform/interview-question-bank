@@ -6,7 +6,7 @@ import {
 } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "../src/features/auth/password.ts";
-import { seedClientsAndGrants } from "../src/features/clients/clients.seed.ts";
+import { seedClientList, seedClients } from "../src/features/clients/clients.seed.ts";
 import {
   brightwater,
   fernhill,
@@ -24,9 +24,8 @@ import {
   readHostedPasswords,
   seedHostedViewers,
 } from "../src/features/viewers/hosted-viewers.seed.ts";
-import { seedViewerAccounts, seedViewers } from "../src/features/viewers/viewers.seed.ts";
+import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { questionsWithTheOldColumnFilled } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 
 /** A password per hosted Viewer, each one different so a mix-up shows. */
@@ -125,58 +124,33 @@ describe("the hosted seed's Viewers", () => {
 describe("the hosted seed's Clients", () => {
   let database: Database;
 
-  /** Which hosted Client each Viewer holds a Grant for, by email. */
-  async function grantsHeld(): Promise<Record<string, string[]>> {
-    const grants = await database.permissionGrant.findMany({
-      include: { viewer: { select: { email: true } }, client: { select: { name: true } } },
-      orderBy: [{ viewer: { email: "asc" } }, { client: { name: "asc" } }],
-    });
-    const held: Record<string, string[]> = {};
-    for (const grant of grants) (held[grant.viewer.email] ??= []).push(grant.client.name);
-    return held;
-  }
-
   // The demo seed runs too, because the hosted bank sits beside it in the same database.
   beforeAll(async () => {
     database = createTestDatabase();
     await truncateAll(database);
     await seedViewerAccounts(database);
-    await seedClientsAndGrants(database);
+    await seedClientList(database);
     await seedHostedViewers(database, readHostedPasswords(passwordSource));
-    await seedClientsAndGrants(database, hostedClients);
+    await seedClientList(database, hostedClients);
   });
   afterAll(async () => {
     await database.$disconnect();
   });
 
-  it("grants John and Jane every hosted Client, and each Reader a different share", async () => {
-    const held = await grantsHeld();
+  it("seeds the hosted Clients beside the demo ones", async () => {
+    const clients = await database.client.findMany({ select: { name: true } });
 
-    const all = ["Brightwater Bank", "Fernhill Retail", "Harbourline Logistics"];
-    expect(held["john.doe@iqb.test"]).toEqual(all);
-    expect(held["jane.doe@iqb.test"]).toEqual(all);
-    expect(held["shane.austin@iqb.test"]).toEqual(["Harbourline Logistics"]);
-    expect(held["cody.rhodes@iqb.test"]).toEqual(["Brightwater Bank"]);
-    expect(held["dwayne.rook@iqb.test"]).toBeUndefined();
-  });
-
-  it("gives the demo Viewers no Grant for a hosted Client", async () => {
-    const held = await grantsHeld();
-    const hostedNames = new Set(hostedClients.map((client) => client.name));
-
-    for (const viewer of seedViewers) {
-      expect((held[viewer.email] ?? []).filter((name) => hostedNames.has(name))).toEqual([]);
-    }
+    expect(clients.map((client) => client.name).sort()).toEqual(
+      [...seedClients, ...hostedClients].map((client) => client.name).sort(),
+    );
   });
 
   it("adds nothing when it runs again", async () => {
-    const before = await Promise.all([database.client.count(), database.permissionGrant.count()]);
+    const before = await database.client.count();
 
-    await seedClientsAndGrants(database, hostedClients);
+    await seedClientList(database, hostedClients);
 
-    expect(
-      await Promise.all([database.client.count(), database.permissionGrant.count()]),
-    ).toEqual(before);
+    expect(await database.client.count()).toBe(before);
   });
 });
 
@@ -209,18 +183,14 @@ describe("the hosted seed's Questions", () => {
     database = createTestDatabase();
     await truncateAll(database);
     await seedViewerAccounts(database);
-    await seedClientsAndGrants(database);
+    await seedClientList(database);
     await seedQuestionBank(database);
     await seedHostedViewers(database, readHostedPasswords(passwordSource));
-    await seedClientsAndGrants(database, hostedClients);
+    await seedClientList(database, hostedClients);
     await seedQuestionBank(database, hostedBank);
   });
   afterAll(async () => {
     await database.$disconnect();
-  });
-
-  it("leaves the old Client column empty", async () => {
-    expect(await questionsWithTheOldColumnFilled(database)).toEqual([]);
   });
 
   it("writes 51 Questions, all by John", async () => {
@@ -281,7 +251,7 @@ describe("the hosted seed's Questions", () => {
     for (const question of pending) expect(queued).toContain(question.id);
   });
 
-  it("shows every Reader the same Clients, whatever Grants they hold", async () => {
+  it("shows every Reader the same Clients", async () => {
     const seen = await clientsSeenBy("shane.austin@iqb.test");
 
     expect(seen).toEqual(expect.arrayContaining([harbourline.name, brightwater.name]));

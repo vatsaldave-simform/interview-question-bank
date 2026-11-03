@@ -1,8 +1,7 @@
-import { Link } from "@tanstack/react-router";
-import { Building2Icon, ChevronRightIcon } from "lucide-react";
+import { Building2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { CreateClientForm } from "@/features/clients/create-client-form";
-import { useEveryClient } from "@/features/clients/clients.queries";
+import { useClients } from "@/features/clients/clients.queries";
 import { AddDialog, AddDialogButton } from "@/ui/add-dialog";
 import { EmptyList } from "@/ui/empty-list";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -21,7 +20,7 @@ function initialsOf(name: string): string {
 }
 
 export function ClientList() {
-  const clients = useEveryClient();
+  const clients = useClients();
   const addAClient = <AddDialogButton label="Add a Client" />;
 
   return (
@@ -42,7 +41,7 @@ export function ClientList() {
         <PageHeader
           title="Clients"
           titleId="clients"
-          description="Open a Client to see and change who holds a Permission Grant for it."
+          description="The organisations a Question can name as having asked it."
           // An empty list offers it in its place.
           action={clients.data?.length === 0 ? undefined : addAClient}
         />
@@ -72,17 +71,7 @@ export function ClientList() {
                   >
                     {initialsOf(client.name)}
                   </span>
-                  <CardTitle className="min-w-0 flex-1 leading-snug">
-                    {/* A link to the Client's page, so its Grants are asked for only when opened. */}
-                    <Link
-                      to="/administration/clients/$clientId"
-                      params={{ clientId: client.id }}
-                      className="outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-                    >
-                      {client.name}
-                    </Link>
-                  </CardTitle>
-                  <ChevronRightIcon aria-hidden="true" className="text-muted-foreground size-4.5" />
+                  <CardTitle className="min-w-0 flex-1 leading-snug">{client.name}</CardTitle>
                 </Card>
               </li>
             ))}

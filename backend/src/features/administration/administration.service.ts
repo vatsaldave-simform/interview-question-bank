@@ -173,8 +173,6 @@ export async function deactivateViewer(
   });
 }
 
-/** Nothing here restores Permission Grants, because Deactivating never removed them
- * (ADR-0017). */
 export async function reactivateViewer(
   database: Database,
   viewer: Viewer,
