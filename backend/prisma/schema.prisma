@@ -47,6 +47,7 @@ model Viewer {
   questions      Question[]
   changeEvents   ChangeEvent[]
   ratings        Rating[]
+  upvotes        Upvote[]
 
   @@map("viewers")
 }
@@ -203,6 +204,7 @@ model Question {
   tags         QuestionTag[]
   changeEvents ChangeEvent[]
   ratings      Rating[]
+  upvotes      Upvote[]
 
   // What makes the keyword search an index lookup rather than a scan (ADR-0004).
   @@index([searchVector], type: Gin)
@@ -262,6 +264,17 @@ model Rating {
   // The Question first, because a page's summaries are read by Question.
   @@unique([questionId, viewerId])
   @@map("ratings")
+}
+
+model Upvote {
+  questionId String   @db.Uuid
+  question   Question @relation(fields: [questionId], references: [id])
+  viewerId   String   @db.Uuid
+  viewer     Viewer   @relation(fields: [viewerId], references: [id])
+
+  // The Question first, because a page's counts are read by Question.
+  @@id([questionId, viewerId])
+  @@map("upvotes")
 }
 
 /// What happened to the bank. The tickets that Publish and Reject add their own

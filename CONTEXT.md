@@ -40,10 +40,13 @@ _Avoid_: dimension, facet, group, type
 A single value belonging to exactly one Category. A Question may carry several Tags within a Category.
 _Avoid_: label, keyword, topic, term
 
-**Rating**:
-One Viewer's opinion of one Question, revisable and never shown attributed: a Question carries
-only the average and the count. Only a Published Question is rated, and never by its own Author.
-_Avoid_: score, vote, review, feedback
+**Upvote**:
+One Viewer's mark that a Question is a good one. A Viewer gives a Question at most one, may take
+it back, and may upvote a Question they wrote. Only a Published Question gains Upvotes, and a
+returned one keeps those it has. Publishing a Question gives its Author's Upvote for them,
+unless they hold one already. There is no opposite mark. An Upvote is never shown
+attributed: a Question carries only how many it has, and whether the Viewer looking has given one.
+_Avoid_: rating, like, vote, star, score, review, feedback
 
 **Client**:
 An organisation that has asked a Question in its interviews. A Question may name several
@@ -69,7 +72,7 @@ Rejected, with the reason it was returned.
 
 **Reader**:
 A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
-all writes: a Reader may still record a Rating. Named Reader rather than "user" so that "user"
+all writes: a Reader may still Upvote. Named Reader rather than "user" so that "user"
 never competes with Viewer.
 _Avoid_: user, viewer-only, basic user
 
