@@ -5,13 +5,12 @@ import {
   questionHistoryResponseSchema,
   questionListResponseSchema,
   questionResponseSchema,
-  ratingResponseSchema,
+  upvoteResponseSchema,
   type AddQuestionRequest,
   type EditQuestionRequest,
   type ListQuestionsRequest,
   type PublishQuestionRequest,
   type QuestionResponse,
-  type RateQuestionRequest,
   type RejectQuestionRequest,
   type ReturnQuestionRequest,
 } from "@iqb/shared";
@@ -173,19 +172,19 @@ export function useMoveQuestion(id: string) {
   });
 }
 
-export function useRateQuestion(id: string) {
+/** Gives the Upvote, or takes it back, by the method alone: the path is the same. */
+export function useUpvoteQuestion(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (request: RateQuestionRequest) =>
-      callApi(`/api/questions/${encodeURIComponent(id)}/rating`, ratingResponseSchema, {
-        method: "PUT",
-        body: request,
+    mutationFn: ({ give }: { give: boolean }) =>
+      callApi(`/api/questions/${encodeURIComponent(id)}/upvote`, upvoteResponseSchema, {
+        method: give ? "PUT" : "DELETE",
       }),
-    onSuccess: async ({ rating }) => {
-      // Only the summary changes, and a Rating writes no Change Event, so the history
-      // stays as it is (ADR-0043).
+    onSuccess: async ({ upvotes }) => {
+      // Only the summary changes, and an Upvote writes no Change Event, so the history
+      // stays as it is (ADR-0053).
       queryClient.setQueryData<QuestionResponse>(["questions", "one", id], (held) =>
-        held === undefined ? held : { question: { ...held.question, rating } },
+        held === undefined ? held : { question: { ...held.question, upvotes } },
       );
       await queryClient.invalidateQueries({ queryKey: ["questions", "list"] });
     },

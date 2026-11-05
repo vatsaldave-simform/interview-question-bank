@@ -1,4 +1,4 @@
-import { StarIcon } from "lucide-react";
+import { ArrowBigUpIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 type SplitScreenProps = {
@@ -62,8 +62,8 @@ function SampleCards() {
       </div>
       <div className={`${cardClasses} top-30 left-[min(220px,40%)] w-60`}>
         <span className="flex items-center gap-1 text-xs">
-          <StarIcon className="fill-brand-action text-brand-action size-3.5" />
-          <b>4.6</b> out of 5 from 18 Ratings
+          <ArrowBigUpIcon className="fill-brand-action text-brand-action size-3.5" />
+          <b>18</b> Upvotes
         </span>
         <small className="text-brand-tint text-xs">
           Checked by a Reviewer before it is in the bank
