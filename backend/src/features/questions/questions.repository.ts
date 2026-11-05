@@ -659,8 +659,21 @@ async function changeLockedQuestion(
   if (count === 0) return { refused: "wrong-state" };
 
   await insertChangeEvent(transaction, viewer, plan.event);
+  if (plan.givesTheAuthorsUpvote) await giveTheAuthorsUpvote(transaction, id);
   await recordOverride(transaction, viewer, id, overridden);
   return { question: await readLockedQuestion(transaction, id) };
+}
+
+/** One statement rather than a check and then an insert, so an Upvote added in between
+ * is skipped instead of failing the whole Publish (ADR-0053). */
+async function giveTheAuthorsUpvote(transaction: Transaction, questionId: string): Promise<void> {
+  // The Author from the row, because the Viewer acting here is the Reviewer.
+  await transaction.$executeRaw`
+    INSERT INTO upvotes ("questionId", "viewerId")
+    SELECT id, "authorId" FROM questions
+     WHERE id = ${questionId}::uuid
+    ON CONFLICT ("questionId", "viewerId") DO NOTHING
+  `;
 }
 
 // Generic, because TypeScript cannot match a union of changes to a union of plans directly.
@@ -727,6 +740,8 @@ type ChangePlan = {
   startsFrom: Prisma.QuestionWhereInput;
   writes: Prisma.QuestionUncheckedUpdateManyInput;
   event: ChangeEventToInsert;
+  /** Written in the same transaction, so it lands only if the act does. */
+  givesTheAuthorsUpvote: boolean;
 };
 
 const changePlans: {
@@ -736,21 +751,25 @@ const changePlans: {
     startsFrom: { publicationState: "pending" },
     writes: { publicationState: "published", reason: null },
     event: { ...happened, type: "question_published", payload: {} },
+    givesTheAuthorsUpvote: true,
   }),
   reject: ({ reason }, happened) => ({
     startsFrom: { publicationState: "pending" },
     writes: { publicationState: "rejected", reason },
     event: { ...happened, type: "question_rejected", payload: { reason } },
+    givesTheAuthorsUpvote: false,
   }),
   resubmit: (_, happened) => ({
     startsFrom: { publicationState: "rejected" },
     writes: { publicationState: "pending", reason: null },
     event: { ...happened, type: "question_resubmitted", payload: {} },
+    givesTheAuthorsUpvote: false,
   }),
   // Rejected, so it waits for its Author rather than in the Reviewer's queue (ADR-0013).
   return: ({ reason }, happened) => ({
     startsFrom: { publicationState: "published" },
     writes: { publicationState: "rejected", reason },
     event: { ...happened, type: "question_returned", payload: { reason } },
+    givesTheAuthorsUpvote: false,
   }),
 };
