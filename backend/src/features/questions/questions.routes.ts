@@ -12,7 +12,6 @@ import {
   type QuestionHistoryResponse,
   type QuestionListResponse,
   type QuestionResponse,
-  type RatingSummary,
   type UpvoteSummary,
   type Viewer,
 } from "@iqb/shared";
@@ -28,10 +27,8 @@ import {
   type QuestionFromDb,
   type QuestionPage,
 } from "./questions.repository.ts";
-import { withRatingSummaries } from "../ratings/ratings.repository.ts";
-import { withUpvoteSummaries } from "../upvotes/upvotes.repository.ts";
+import { withUpvoteSummaries, withUpvoteSummary } from "../upvotes/upvotes.repository.ts";
 import { withAuthors } from "../viewers/viewers.repository.ts";
-import { ratingRoutes } from "../ratings/ratings.routes.ts";
 import { upvoteRoutes } from "../upvotes/upvotes.routes.ts";
 import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
@@ -68,7 +65,7 @@ export function questionRoutes(database: Database): Router {
     const questions = await findPendingQuestionsForReview(database, viewer, page);
 
     const authored = await withAuthors(database, questions);
-    const summarised = await withSummaries(database, viewer, authored);
+    const summarised = await withUpvoteSummaries(database, viewer, authored);
     const body: PendingQuestionListResponse = {
       questions: summarised.map(toQuestion),
       limit: page.limit,
@@ -172,7 +169,6 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  router.use("/:id/rating", ratingRoutes(database));
   router.use("/:id/upvote", upvoteRoutes(database));
 
   return router;
@@ -183,22 +179,10 @@ async function toResponse(
   viewer: Viewer,
   question: QuestionFromDb,
 ): Promise<QuestionResponse> {
-  const [summarised] = await withSummaries(database, viewer, [question]);
-  if (summarised === undefined) throw new Error(`No summaries came back for ${question.id}.`);
-  return { question: toQuestion(summarised) };
+  return { question: toQuestion(await withUpvoteSummary(database, viewer, question)) };
 }
 
-/** Both read beside the page, after it has been picked and ordered (ADR-0043). */
-async function withSummaries<Q extends { id: string }>(
-  database: Database,
-  viewer: Viewer,
-  questions: readonly Q[],
-): Promise<(Q & { rating: RatingSummary; upvotes: UpvoteSummary })[]> {
-  const rated = await withRatingSummaries(database, viewer, questions);
-  return withUpvoteSummaries(database, viewer, rated);
-}
-
-function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary; upvotes: UpvoteSummary }>({
+function toQuestion<Q extends QuestionFromDb & { upvotes: UpvoteSummary }>({
   createdAt,
   ...question
 }: Q): Omit<Q, "createdAt"> & Question {
@@ -211,6 +195,6 @@ async function toListResponse(
   questions: QuestionFromDb[],
   page: QuestionPage,
 ): Promise<QuestionListResponse> {
-  const summarised = await withSummaries(database, viewer, questions);
+  const summarised = await withUpvoteSummaries(database, viewer, questions);
   return { questions: summarised.map(toQuestion), limit: page.limit, offset: page.offset };
 }

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { namedViewerSchema } from "./auth.js";
 import { clientSchema } from "./clients.js";
-import { ratingSummarySchema } from "./ratings.js";
 import { upvoteSummarySchema } from "./upvotes.js";
 
 /** Where a Question came from. Every Question carries exactly one. */
@@ -64,7 +63,6 @@ export const questionSchema = z
     provenance: provenanceSchema,
     source: z.string().nullable(),
     tags: z.array(questionTagSchema),
-    rating: ratingSummarySchema,
     upvotes: upvoteSummarySchema,
     createdAt: z.iso.datetime(),
   })
