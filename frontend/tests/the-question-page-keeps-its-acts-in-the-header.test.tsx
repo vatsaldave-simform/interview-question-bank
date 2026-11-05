@@ -83,14 +83,14 @@ describe("the Question page", () => {
     expect(notes.getByRole("list", { name: "Clients" })).toHaveTextContent("Acme");
   });
 
-  it("offers Return to its Author, with Your Rating and History in the side card", async () => {
+  it("offers Return to its Author, with the Upvotes and History in the side card", async () => {
     signInAs(aReviewer);
     aBankHolding([published]);
     renderTheWholeClient(`/questions/${published.id}`);
 
     const details = await detailsOf(published);
     expect(details.getByText("Published")).toBeVisible();
-    expect(details.getByRole("group", { name: "Your Rating" })).toBeVisible();
+    expect(details.getByRole("button", { name: "Upvote" })).toBeVisible();
     expect(details.getByRole("region", { name: "History" })).toBeVisible();
     expect(theActs().getByRole("button", { name: "Return to its Author" })).toBeVisible();
   });

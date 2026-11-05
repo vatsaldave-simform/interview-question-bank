@@ -12,7 +12,7 @@ import {
   type QuestionHistoryResponse,
   type QuestionListResponse,
   type QuestionResponse,
-  type RatingSummary,
+  type UpvoteSummary,
   type Viewer,
 } from "@iqb/shared";
 import { Router } from "express";
@@ -27,9 +27,9 @@ import {
   type QuestionFromDb,
   type QuestionPage,
 } from "./questions.repository.ts";
-import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
+import { withUpvoteSummaries, withUpvoteSummary } from "../upvotes/upvotes.repository.ts";
 import { withAuthors } from "../viewers/viewers.repository.ts";
-import { ratingRoutes } from "../ratings/ratings.routes.ts";
+import { upvoteRoutes } from "../upvotes/upvotes.routes.ts";
 import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
@@ -65,9 +65,9 @@ export function questionRoutes(database: Database): Router {
     const questions = await findPendingQuestionsForReview(database, viewer, page);
 
     const authored = await withAuthors(database, questions);
-    const rated = await withRatingSummaries(database, viewer, authored);
+    const summarised = await withUpvoteSummaries(database, viewer, authored);
     const body: PendingQuestionListResponse = {
-      questions: rated.map(toQuestion),
+      questions: summarised.map(toQuestion),
       limit: page.limit,
       offset: page.offset,
     };
@@ -169,7 +169,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  router.use("/:id/rating", ratingRoutes(database));
+  router.use("/:id/upvote", upvoteRoutes(database));
 
   return router;
 }
@@ -179,10 +179,10 @@ async function toResponse(
   viewer: Viewer,
   question: QuestionFromDb,
 ): Promise<QuestionResponse> {
-  return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
+  return { question: toQuestion(await withUpvoteSummary(database, viewer, question)) };
 }
 
-function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
+function toQuestion<Q extends QuestionFromDb & { upvotes: UpvoteSummary }>({
   createdAt,
   ...question
 }: Q): Omit<Q, "createdAt"> & Question {
@@ -195,6 +195,6 @@ async function toListResponse(
   questions: QuestionFromDb[],
   page: QuestionPage,
 ): Promise<QuestionListResponse> {
-  const rated = await withRatingSummaries(database, viewer, questions);
-  return { questions: rated.map(toQuestion), limit: page.limit, offset: page.offset };
+  const summarised = await withUpvoteSummaries(database, viewer, questions);
+  return { questions: summarised.map(toQuestion), limit: page.limit, offset: page.offset };
 }

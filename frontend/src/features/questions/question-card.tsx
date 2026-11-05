@@ -1,8 +1,8 @@
 import type { Question } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
-import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { QuestionClients } from "@/features/questions/question-clients";
 import { QuestionTags } from "@/features/questions/question-tags";
+import { UpvoteCount, upvotesAreShown } from "@/features/questions/upvote-count";
 import { WhenAdded } from "@/features/questions/when-added";
 import { Card, CardTitle } from "@/ui/shadcn/card";
 
@@ -29,7 +29,7 @@ export function QuestionCard({ question }: { question: Question }) {
           <QuestionClients clients={question.clients} />
         </div>
         <div className="text-muted-foreground mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-          {ratingIsShown(question) && <AverageRating rating={question.rating} />}
+          {upvotesAreShown(question) && <UpvoteCount upvotes={question.upvotes} />}
           <WhenAdded createdAt={question.createdAt} />
         </div>
       </Card>

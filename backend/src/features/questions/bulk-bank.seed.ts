@@ -139,6 +139,7 @@ export async function seedBulkBank(
   const questionRows = [];
   const questionTagRows = [];
   const questionClientRows = [];
+  const upvoteRows = [];
   let namingAClient = 0;
 
   for (let n = 0; n < count; n += 1) {
@@ -171,6 +172,8 @@ export async function seedBulkBank(
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),
     });
+    // Every bulk Question is written Published, so each carries its Author's Upvote (ADR-0053).
+    upvoteRows.push({ questionId: id, viewerId: author.id });
 
     for (const [category, tags] of tagsPerCategory) {
       const tagging = taggingPerCategory[category];
@@ -183,8 +186,8 @@ export async function seedBulkBank(
     }
   }
 
-  // Tags and Clients after the Questions they point at. Each skips a row that is already
-  // there, since the same seed value may run twice, and a Question may pick one twice.
+  // Tags, Clients and Upvotes after the Questions they point at. Each skips a row that is
+  // already there, since the same seed value may run twice, and a Question may pick one twice.
   const questionsWritten = await insertInBatches(questionRows, (rows) =>
     database.question.createMany({ data: rows, skipDuplicates: true }),
   );
@@ -193,6 +196,9 @@ export async function seedBulkBank(
   );
   await insertInBatches(questionClientRows, (rows) =>
     database.questionClient.createMany({ data: rows, skipDuplicates: true }),
+  );
+  await insertInBatches(upvoteRows, (rows) =>
+    database.upvote.createMany({ data: rows, skipDuplicates: true }),
   );
 
   return { questions: count, namingAClient, questionsWritten, tagsWritten };

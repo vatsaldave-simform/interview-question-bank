@@ -1,5 +1,7 @@
 # Ratings are read beside the page, not into it
 
+> Ratings are replaced by Upvotes in ADR-0053. Reading them beside the page, and never ordering the bank by them, still holds.
+
 A Viewer rates a Published Question from 1 to 5, and can change their Rating later. Every
 Question in a response carries the average, the count, and the asking Viewer's own Rating. Nothing
 says who gave any other Rating (CONTEXT.md).

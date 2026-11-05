@@ -9,9 +9,7 @@ import {
   type Viewer,
 } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
-import { StarIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { QuestionClients } from "@/features/questions/question-clients";
 import {
   PublishButton,
@@ -28,8 +26,9 @@ import { QuestionNotShown } from "@/features/questions/question-not-shown";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { backToBrowse } from "@/features/questions/question-trail";
 import { useQuestion } from "@/features/questions/questions.queries";
-import { RatingControl } from "@/features/questions/rating-control";
 import { RejectionReason } from "@/features/questions/rejection-reason";
+import { UpvoteButton } from "@/features/questions/upvote-button";
+import { UpvoteCount, upvotesAreShown } from "@/features/questions/upvote-count";
 import { useSession } from "@/platform/session";
 import { PageHeader } from "@/ui/page-header";
 import { PageTrail } from "@/ui/page-trail";
@@ -120,19 +119,19 @@ function AboutThisQuestion({ question }: { question: Question }) {
           <p className="text-muted-foreground">{state.meaning}</p>
         </QuestionDetail>
         <WhereItCameFrom question={question} />
-        {ratingIsShown(question) && (
-          <QuestionDetail id="rating" title="Rating">
-            <div className="flex items-center gap-1.5">
-              {question.rating.average !== null && (
-                <StarIcon aria-hidden="true" className="fill-brand-action text-brand-action size-4" />
-              )}
-              <AverageRating rating={question.rating} />
-            </div>
+        {/* Offered by the Publication State alone: whether this Viewer may upvote is the API's
+            answer (ADR-0002). A returned Question shows the Upvotes it kept, with no button. */}
+        {question.publicationState === "published" ? (
+          <QuestionDetail id="upvotes" title="Upvotes">
+            <UpvoteButton question={question} />
           </QuestionDetail>
+        ) : (
+          upvotesAreShown(question) && (
+            <QuestionDetail id="upvotes" title="Upvotes">
+              <UpvoteCount upvotes={question.upvotes} />
+            </QuestionDetail>
+          )
         )}
-        {/* Offered by the Publication State alone: whether this Viewer may rate is the API's
-            answer (ADR-0002). */}
-        {question.publicationState === "published" && <RatingControl question={question} />}
         <QuestionHistory questionId={question.id} />
       </Card>
     </section>

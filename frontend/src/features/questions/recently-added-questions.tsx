@@ -1,10 +1,10 @@
 import type { ListQuestionsRequest } from "@iqb/shared";
 import { Link } from "@tanstack/react-router";
-import { AverageRating, ratingIsShown } from "@/features/questions/average-rating";
 import { QuestionClients } from "@/features/questions/question-clients";
 import { PublicationStateBadge } from "@/features/questions/publication-state-badge";
 import { QuestionTags } from "@/features/questions/question-tags";
 import { useQuestionList } from "@/features/questions/questions.queries";
+import { UpvoteCount, upvotesAreShown } from "@/features/questions/upvote-count";
 import { WhenAdded } from "@/features/questions/when-added";
 import { cardRow, cardRowLink, cardRows } from "@/ui/card-rows";
 import { ListNotLoaded } from "@/ui/list-not-loaded";
@@ -53,7 +53,7 @@ export function RecentlyAddedQuestions() {
                 )}
                 <QuestionTags tags={question.tags.slice(0, tagsShown)} />
                 <QuestionClients clients={question.clients} />
-                {ratingIsShown(question) && <AverageRating rating={question.rating} />}
+                {upvotesAreShown(question) && <UpvoteCount upvotes={question.upvotes} />}
                 <WhenAdded createdAt={question.createdAt} />
               </RowDetails>
             </li>

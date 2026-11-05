@@ -73,7 +73,7 @@ describe("the newest Questions on Home", () => {
     expect((await rowOf(older.text)).queryByText("Published")).not.toBeInTheDocument();
   });
 
-  it("show two Tags, the Client restriction, the Rating and when each was added", async () => {
+  it("show two Tags, the Client restriction, the Upvotes and when each was added", async () => {
     itIsNow(new Date(2026, 9, 20, 12, 0));
     const restricted = aQuestion({
       id: "a0000000-0000-4000-8000-000000000005",
@@ -84,7 +84,7 @@ describe("the newest Questions on Home", () => {
         { category: "question-type", tag: "practical" },
       ],
       clients: [aClient()],
-      rating: { average: 4.6, count: 18, mine: null },
+      upvotes: { count: 18, mine: false },
       createdAt: new Date(2026, 9, 18, 12, 0).toISOString(),
     });
     fakeBank((asked) => aPageOf([restricted], asked));
@@ -95,7 +95,7 @@ describe("the newest Questions on Home", () => {
     const tags = within(row.getByRole("list", { name: "Tags" })).getAllByRole("listitem");
     expect(tags.map((tag) => tag.textContent)).toEqual(["node", "senior"]);
     expect(row.getByRole("list", { name: "Clients" })).toHaveTextContent("Northwind Trading");
-    expect(row.getByText("4.6 out of 5 from 18 Ratings")).toBeVisible();
+    expect(row.getByText("18 Upvotes")).toBeInTheDocument();
     expect(row.getByText(/^Added/)).toHaveTextContent("Added 2 days ago");
   });
 
