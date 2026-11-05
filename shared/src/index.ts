@@ -7,3 +7,4 @@ export * from "./questions.js";
 export * from "./question-acts.js";
 export * from "./role-requests.js";
 export * from "./ratings.js";
+export * from "./upvotes.js";

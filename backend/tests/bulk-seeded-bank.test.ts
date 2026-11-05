@@ -170,6 +170,16 @@ describe("the bulk bank", () => {
     expect(states.map((state) => state.publicationState)).toEqual(["published"]);
   });
 
+  it("gives every Question its Author's Upvote and nobody else's, as Publishing would", async () => {
+    const upvotes = await database.upvote.findMany({
+      where: { question: fromTheBulkBank },
+      select: { viewerId: true, question: { select: { authorId: true } } },
+    });
+
+    expect(upvotes).toHaveLength(bulk.count);
+    expect(upvotes.every(({ viewerId, question }) => viewerId === question.authorId)).toBe(true);
+  });
+
   it("makes some Tags of a Category far more common than others", async () => {
     const popularity = await tagPopularity(database, "technology");
 

@@ -240,6 +240,11 @@ export async function seedQuestionBank(
         ...(question.source === undefined ? {} : { source: question.source }),
         tags: { create: question.tags.map((reference) => ({ tagId: tagId(tagIds, reference) })) },
         clients: { create: clients.map(({ id }) => ({ clientId: id })) },
+        // Given here, since a seeded Question is written Published and never goes through
+        // Publishing, which is what gives it otherwise (ADR-0053).
+        ...(question.publicationState === "published"
+          ? { upvotes: { create: { viewerId: author.id } } }
+          : {}),
       },
     });
   }

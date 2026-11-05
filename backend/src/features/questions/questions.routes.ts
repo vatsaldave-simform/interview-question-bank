@@ -13,6 +13,7 @@ import {
   type QuestionListResponse,
   type QuestionResponse,
   type RatingSummary,
+  type UpvoteSummary,
   type Viewer,
 } from "@iqb/shared";
 import { Router } from "express";
@@ -27,9 +28,11 @@ import {
   type QuestionFromDb,
   type QuestionPage,
 } from "./questions.repository.ts";
-import { withRatingSummaries, withRatingSummary } from "../ratings/ratings.repository.ts";
+import { withRatingSummaries } from "../ratings/ratings.repository.ts";
+import { withUpvoteSummaries } from "../upvotes/upvotes.repository.ts";
 import { withAuthors } from "../viewers/viewers.repository.ts";
 import { ratingRoutes } from "../ratings/ratings.routes.ts";
+import { upvoteRoutes } from "../upvotes/upvotes.routes.ts";
 import { questionIdNamed } from "./question-id.ts";
 import { NotFoundError } from "../../platform/errors.ts";
 import type { Database } from "../../platform/database.ts";
@@ -65,9 +68,9 @@ export function questionRoutes(database: Database): Router {
     const questions = await findPendingQuestionsForReview(database, viewer, page);
 
     const authored = await withAuthors(database, questions);
-    const rated = await withRatingSummaries(database, viewer, authored);
+    const summarised = await withSummaries(database, viewer, authored);
     const body: PendingQuestionListResponse = {
-      questions: rated.map(toQuestion),
+      questions: summarised.map(toQuestion),
       limit: page.limit,
       offset: page.offset,
     };
@@ -170,6 +173,7 @@ export function questionRoutes(database: Database): Router {
   });
 
   router.use("/:id/rating", ratingRoutes(database));
+  router.use("/:id/upvote", upvoteRoutes(database));
 
   return router;
 }
@@ -179,10 +183,22 @@ async function toResponse(
   viewer: Viewer,
   question: QuestionFromDb,
 ): Promise<QuestionResponse> {
-  return { question: toQuestion(await withRatingSummary(database, viewer, question)) };
+  const [summarised] = await withSummaries(database, viewer, [question]);
+  if (summarised === undefined) throw new Error(`No summaries came back for ${question.id}.`);
+  return { question: toQuestion(summarised) };
 }
 
-function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary }>({
+/** Both read beside the page, after it has been picked and ordered (ADR-0043). */
+async function withSummaries<Q extends { id: string }>(
+  database: Database,
+  viewer: Viewer,
+  questions: readonly Q[],
+): Promise<(Q & { rating: RatingSummary; upvotes: UpvoteSummary })[]> {
+  const rated = await withRatingSummaries(database, viewer, questions);
+  return withUpvoteSummaries(database, viewer, rated);
+}
+
+function toQuestion<Q extends QuestionFromDb & { rating: RatingSummary; upvotes: UpvoteSummary }>({
   createdAt,
   ...question
 }: Q): Omit<Q, "createdAt"> & Question {
@@ -195,6 +211,6 @@ async function toListResponse(
   questions: QuestionFromDb[],
   page: QuestionPage,
 ): Promise<QuestionListResponse> {
-  const rated = await withRatingSummaries(database, viewer, questions);
-  return { questions: rated.map(toQuestion), limit: page.limit, offset: page.offset };
+  const summarised = await withSummaries(database, viewer, questions);
+  return { questions: summarised.map(toQuestion), limit: page.limit, offset: page.offset };
 }
