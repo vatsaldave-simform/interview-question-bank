@@ -298,9 +298,35 @@ Reviewer editing too. Nothing else an edit changes is checked, and neither is an
 Pending Question, since Publishing it will check it. The override is the same
 `"confirmedNotANearDuplicate": true`, sent beside the fields being changed.
 
-**The threshold is 0.45**, on the zero-to-one scale `pg_trgm` measures similarity on.
+**Two checks, both of which must pass.** First, the letters two Questions share must score
+0.45 or more. Second, the two must have exactly the same subject words. A Near-Duplicate is
+the same question in other words, so a Question that adds, drops or changes a subject is a
+different one, however alike the text looks (ADR-0054). The letters alone could not tell
+those apart on short Questions:
+
+| Pair | Letters | Same subject words? | Near-Duplicate? |
+| --- | --- | --- | --- |
+| What is React? / What is CSR in React? | 0.70 | no: `csr` is new | no |
+| What is CSR in React? / What is SSR in React? | 0.74 | no: `csr` against `ssr` | no |
+| What is React? / What is Redux? | 0.56 | no | no |
+| Explain the difference between a type and an interface in TypeScript. / How does an interface differ from a type in TypeScript? | 0.46 | yes | yes |
+| What is a closure? / What is a closure in JavaScript? | 0.58 | no: `javascript` is new | no, an accepted miss |
+| How would you migrate this client's Python booking service… / …move this client's… | 0.88 | no: `migrat` against `move` | no, an accepted miss |
+
+**Subject words** are what is left once Postgres has split the text, reduced each word to its
+root and dropped common English filler (the `english` setting keyword search uses), and once
+the words people use to ask a question ("explain", "describe", "difference"…) are dropped too.
+A Question with no subject words left is never a Near-Duplicate. The word check misses some
+real Near-Duplicates on purpose: a swapped word or an added clause brings in a word the other
+lacks. When unsure, a miss is the cheaper mistake, since a Reviewer can still catch it.
+
+The 20 closest by letters are checked, and at most 3 are named, so that the word check
+throwing out the closest few cannot hide a real match further down.
+
+**The letter threshold is 0.45**, on the zero-to-one scale `pg_trgm` measures similarity on.
 Trigram similarity ignores word order and punctuation, so it is measuring the words two
-Questions share. Measured against this bank and rewordings of it:
+Questions share. Measured against this bank and rewordings of it, before the word check
+existed:
 
 | Pair | Similarity |
 | --- | --- |
@@ -316,7 +342,8 @@ Every genuine Near-Duplicate scores 0.56 or above and nothing that is not one re
 0.45 sits in the gap with room either side. `pg_trgm`'s own default of 0.3 is inside the
 noise for text this long and would refuse honest submissions. The number is
 `nearDuplicateThreshold` in `shared/src/questions.ts`; change it there and the measurements
-above are what to re-run.
+above are what to re-run. The word check now turns away the "trailing clause added" and "one
+word swapped" pairs, since each brings in a word the other lacks.
 
 **Both outcomes leave a trace.** A refused submission is recorded as a Change Event naming
 no Question — nothing was stored — and carrying the whole attempt, which is why the history

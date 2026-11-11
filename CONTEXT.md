@@ -104,8 +104,11 @@ on reads and writes alike.
 _Avoid_: permitted, allowed, accessible
 
 **Near-Duplicate**:
-A Question whose text closely resembles that of another Question, judged only among the Questions
-the acting Viewer can reach at the moment the text is written.
+A Question that asks the same thing as another Question in other words, judged only among the
+Questions the acting Viewer can reach at the moment the text is written. A Question that adds,
+drops or changes a subject is a different Question, however alike the text looks: "What is CSR
+in React?" is not a Near-Duplicate of "What is React?", but "What is a closure in JavaScript?" is
+one of "What is a closure?".
 _Avoid_: duplicate, similar question, match
 
 ### Change tracking

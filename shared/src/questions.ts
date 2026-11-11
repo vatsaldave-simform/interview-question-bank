@@ -146,6 +146,26 @@ export const nearDuplicateThreshold = 0.45;
  * the closest few, and a longer list is a wall rather than help. */
 export const mostNearDuplicatesNamed = 3;
 
+/** How many of the closest Questions by letters get the word check, so that the check
+ * throwing out the closest few cannot hide a real match further down (ADR-0054). */
+export const nearDuplicateCandidates = 20;
+
+/**
+ * Words that say how a Question is asked and never what it is about, so they never decide a
+ * Near-Duplicate (ADR-0054). Written as the roots Postgres's `english` setting cuts words
+ * down to, since those are what get compared. A word that might name a subject stays out,
+ * because dropping it would refuse Questions on different subjects.
+ */
+export const askingWords = [
+  "explain", "explan",
+  "describ", "descript",
+  "defin", "definit",
+  "differ", "differenti", "distinguish",
+  "compar", "comparison", "contrast", "versus", "vs",
+  "mean", "tell", "give", "exampl", "walk",
+  "elabor", "outlin", "illustr",
+] as const;
+
 /**
  * A Question a submission closely resembles, and how closely. The text is safe to send:
  * detection only ever looks at Questions the submitting Viewer can already read (ADR-0007).

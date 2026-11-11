@@ -21,7 +21,7 @@ const nearlyTheTypeScriptOne =
 
 /** A reworded copy of the Published Question naming the second Client. */
 const nearlyTheOtherClientsBookingOne =
-  "How would you move this client's Python booking service onto the shared data model?";
+  "How would you migrate this client's Python booking service onto a shared data model?";
 
 /** A reworded copy of the Pending Question naming the second Client. */
 const nearlyTheOtherClientsIntakeOne =
@@ -31,7 +31,7 @@ const nearlyTheOtherClientsIntakeOne =
 const aboutCaching =
   "How would you introduce a cache without making staleness someone else's problem?";
 const nearlyTheCachingOne =
-  "How would you introduce a cache without making its staleness somebody else's problem?";
+  "How would you introduce a cache without making its staleness someone else's problem?";
 
 /**
  * Detection runs on an edit that changes a Published Question's text, so a sound Question

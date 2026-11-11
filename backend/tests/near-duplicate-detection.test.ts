@@ -9,7 +9,7 @@ import { createTestDatabase } from "./helpers/test-database.ts";
 const nearlyTheTypeScriptOne =
   "Explain the difference between an interface and a type in TypeScript.";
 const nearlyTheOtherClientsBookingOne =
-  "How would you move this client's Python booking service onto the shared data model?";
+  "How would you migrate this client's Python booking service onto a shared data model?";
 const nearlyThePendingOne =
   "Describe a time you disagreed with a technical decision, and what you did about it.";
 
@@ -93,7 +93,7 @@ describe("finding what a submission closely resembles", () => {
     for (let copy = 0; copy < mostNearDuplicatesNamed + 2; copy += 1) {
       await database.question.create({
         data: {
-          text: `Explain the difference between a type and an interface in TypeScript. (${copy})`,
+          text: `Explain the difference between a type and an interface in TypeScript${"!".repeat(copy + 1)}`,
           answerNotes: "One of several copies, so that the cap has something to cut.",
           authorId: author.id,
           publicationState: "published",

@@ -1,6 +1,8 @@
 import {
+  askingWords,
   categoryNameSchema,
   mostNearDuplicatesNamed,
+  nearDuplicateCandidates,
   type ChangeEvent,
   type Client,
   nearDuplicateThreshold,
@@ -442,26 +444,40 @@ function namingOneOf(clientIds: readonly string[] = []): Prisma.Sql[] {
 }
 
 /** Closest first and none below the threshold, over Question text alone (ADR-0004), and
- * only among the Publication States the caller names (ADR-0007). */
+ * only among the Publication States the caller names (ADR-0007). A match must also have
+ * the same subject words, which the letters alone cannot tell on short Questions (ADR-0054). */
 async function findNearDuplicatesAmong(
   database: Database,
   text: string,
   { states, excluding }: NearDuplicateReach,
 ): Promise<NearDuplicate[]> {
   return database.$queryRaw<NearDuplicate[]>`
+    WITH submitted AS (
+      SELECT ARRAY(SELECT unnest(tsvector_to_array(to_tsvector('english', ${text})))
+                   EXCEPT
+                   SELECT unnest(${[...askingWords]}::text[])) AS words
+    )
     SELECT nearest.id AS "questionId", nearest.text, nearest.similarity
       FROM (
-        SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity
+        SELECT q.id, q.text, similarity(q.text, ${text}) AS similarity,
+               ARRAY(SELECT unnest(tsvector_to_array(to_tsvector('english', q.text)))
+                     EXCEPT
+                     SELECT unnest(${[...askingWords]}::text[])) AS words
           FROM questions q
          WHERE q."publicationState" = ANY(${[...states]}::"PublicationState"[])
            ${excluding === undefined ? Prisma.empty : Prisma.sql`AND q.id <> ${excluding}::uuid`}
          -- Ordered by distance rather than by similarity, because distance is what the
          -- GiST index can answer; the two are the same order (ADR-0004).
          ORDER BY q.text <-> ${text}
-         LIMIT ${mostNearDuplicatesNamed}
-      ) nearest
+         LIMIT ${nearDuplicateCandidates}
+      ) nearest, submitted
      WHERE nearest.similarity >= ${nearDuplicateThreshold}
+       -- Checked both ways because the two word lists can come back in any order (ADR-0054).
+       AND submitted.words @> nearest.words
+       AND nearest.words @> submitted.words
+       AND cardinality(submitted.words) > 0
      ORDER BY nearest.similarity DESC, nearest.id DESC
+     LIMIT ${mostNearDuplicatesNamed}
   `;
 }
 
