@@ -27,15 +27,15 @@ const nearlyTheTypeScriptOne =
 
 /** A reworded copy of a Published Question naming the second Client. */
 const nearlyTheOtherClientsBookingOne =
-  "How would you move this client's Python booking service onto the shared data model?";
+  "How would you migrate this client's Python booking service onto a shared data model?";
 
 /** And one naming the first Client. */
 const nearlyTheFirstClientsPipelineOne =
-  "How would you migrate this client's reporting pipeline away from nightly batch jobs?";
+  "How would you migrate this client's reporting pipeline off its nightly batch jobs?";
 
 /** The text `aQuestion` sends, reworded. */
 const nearlyTheCacheOne =
-  "How would you introduce a cache without making its staleness somebody else's problem?";
+  "How would you introduce a cache without making its staleness someone else's problem?";
 
 /**
  * What happens when a submission looks like something already in the bank: the Author is

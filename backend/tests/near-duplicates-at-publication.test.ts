@@ -16,7 +16,7 @@ import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
 /** The text `aQuestion` sends, reworded: alike enough to be a Near-Duplicate of it. */
 const nearlyTheCacheOne =
-  "How would you introduce a cache without making its staleness somebody else's problem?";
+  "How would you introduce a cache without making its staleness someone else's problem?";
 
 /** A reworded copy of a Pending Question naming the first Client. */
 const nearlyTheClientsRenderingOne =
