@@ -8,7 +8,7 @@ import {
 } from "../src/features/role-requests/role-requests.repository.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { viewerByRole } from "./helpers/question-bank.ts";
+import { aViewer, viewerByRole } from "./helpers/question-bank.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
 import { aMomentLater } from "./helpers/wait.ts";
 
@@ -16,7 +16,8 @@ import { aMomentLater } from "./helpers/wait.ts";
  * database keeps, and no route could show that nothing checks it first (ADR-0041). */
 describe("the Role Request store", () => {
   let database: Database;
-  let readerId: string;
+  /** An Author other than the seeded one, so two Viewers can each ask. */
+  let colleagueId: string;
   let authorId: string;
 
   beforeAll(() => {
@@ -25,7 +26,7 @@ describe("the Role Request store", () => {
   beforeEach(async () => {
     await truncateAll(database);
     await seedViewerAccounts(database);
-    readerId = (await viewerByRole(database, "reader")).id;
+    colleagueId = (await aViewer(database, "author")).id;
     authorId = (await viewerByRole(database, "author")).id;
   });
   afterAll(async () => {
@@ -33,9 +34,9 @@ describe("the Role Request store", () => {
   });
 
   it("refuses a second open Role Request for one Viewer", async () => {
-    await insertRoleRequest(database, readerId, "author");
+    await insertRoleRequest(database, colleagueId, "reviewer");
 
-    const second = insertRoleRequest(database, readerId, "reviewer");
+    const second = insertRoleRequest(database, colleagueId, "reviewer");
 
     await expect(second).rejects.toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
     await expect(second).rejects.toHaveProperty("code", "P2002");
@@ -43,32 +44,32 @@ describe("the Role Request store", () => {
   });
 
   it("takes a new Role Request once the open one is denied", async () => {
-    const first = await insertRoleRequest(database, readerId, "reviewer");
+    const first = await insertRoleRequest(database, colleagueId, "reviewer");
     await decideRoleRequest(database, first.id, { state: "denied", reason: "Not yet." });
 
-    const second = await insertRoleRequest(database, readerId, "reviewer");
+    const second = await insertRoleRequest(database, colleagueId, "reviewer");
 
     expect(second).toMatchObject({ state: "open", reason: null, decidedAt: null });
   });
 
   it("takes a new Role Request once the open one is granted", async () => {
-    const first = await insertRoleRequest(database, readerId, "author");
+    const first = await insertRoleRequest(database, colleagueId, "reviewer");
     await decideRoleRequest(database, first.id, { state: "granted", reason: null });
 
-    const second = await insertRoleRequest(database, readerId, "reviewer");
+    const second = await insertRoleRequest(database, colleagueId, "reviewer");
 
     expect(second.state).toBe("open");
   });
 
   it("lets two Viewers each hold an open Role Request", async () => {
-    await insertRoleRequest(database, readerId, "reviewer");
+    await insertRoleRequest(database, colleagueId, "reviewer");
     await insertRoleRequest(database, authorId, "reviewer");
 
     expect(await database.roleRequest.count({ where: { state: "open" } })).toBe(2);
   });
 
   it("decides a Role Request only while it is open", async () => {
-    const request = await insertRoleRequest(database, readerId, "author");
+    const request = await insertRoleRequest(database, colleagueId, "reviewer");
 
     const denied = await decideRoleRequest(database, request.id, {
       state: "denied",
@@ -85,23 +86,23 @@ describe("the Role Request store", () => {
   });
 
   it("lists a Viewer's own Role Requests newest first, and nobody else's", async () => {
-    const older = await insertRoleRequest(database, readerId, "author");
+    const older = await insertRoleRequest(database, colleagueId, "reviewer");
     await decideRoleRequest(database, older.id, { state: "denied", reason: "Not yet." });
     await aMomentLater();
-    const newer = await insertRoleRequest(database, readerId, "reviewer");
+    const newer = await insertRoleRequest(database, colleagueId, "reviewer");
     await insertRoleRequest(database, authorId, "reviewer");
 
-    const listed = await findRoleRequestsOf(database, readerId);
+    const listed = await findRoleRequestsOf(database, colleagueId);
 
     expect(listed.map(({ id }) => id)).toEqual([newer.id, older.id]);
   });
 
   it("lists only the open Role Requests, oldest first", async () => {
-    const decided = await insertRoleRequest(database, readerId, "author");
+    const decided = await insertRoleRequest(database, colleagueId, "reviewer");
     await decideRoleRequest(database, decided.id, { state: "denied", reason: "Not yet." });
     const older = await insertRoleRequest(database, authorId, "reviewer");
     await aMomentLater();
-    const newer = await insertRoleRequest(database, readerId, "reviewer");
+    const newer = await insertRoleRequest(database, colleagueId, "reviewer");
 
     const listed = await findOpenRoleRequests(database);
 

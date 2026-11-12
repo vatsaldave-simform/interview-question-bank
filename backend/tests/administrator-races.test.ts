@@ -12,7 +12,7 @@ import { setRole } from "../src/features/viewers/viewers.repository.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { ConflictError } from "../src/platform/errors.ts";
-import { viewerByRole } from "./helpers/question-bank.ts";
+import { aViewer, viewerByRole } from "./helpers/question-bank.ts";
 import {
   createTestDatabase,
   truncateAll,
@@ -36,7 +36,8 @@ describe("two administrative acts at the same moment", () => {
     await database.$disconnect();
   });
 
-  async function twoAdministratorsAndAReader(): Promise<{ a: Viewer; b: Viewer; reader: Viewer }> {
+  /** Two Administrators, and an Author other than either of them for both to act on. */
+  async function twoAdministratorsAndAnAuthor(): Promise<{ a: Viewer; b: Viewer; target: Viewer }> {
     await truncateAll(database);
     await seedViewerAccounts(database);
     // The seeded Reviewer is the only Administrator (viewers.seed.ts).
@@ -45,7 +46,7 @@ describe("two administrative acts at the same moment", () => {
     return {
       a: await viewerByRole(database, "reviewer"),
       b: await viewerByRole(database, "author"),
-      reader: await viewerByRole(database, "reader"),
+      target: await aViewer(database, "author"),
     };
   }
 
@@ -64,7 +65,7 @@ describe("two administrative acts at the same moment", () => {
 
   it("leaves one active Administrator when A and B withdraw each other", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b } = await twoAdministratorsAndAReader();
+      const { a, b } = await twoAdministratorsAndAnAuthor();
 
       const results = await Promise.allSettled([
         withdrawAdministrator(database, a, b.id),
@@ -78,7 +79,7 @@ describe("two administrative acts at the same moment", () => {
 
   it("leaves one active Administrator when A and B Deactivate each other", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b } = await twoAdministratorsAndAReader();
+      const { a, b } = await twoAdministratorsAndAnAuthor();
 
       const results = await Promise.allSettled([
         deactivateViewer(database, a, b.id),
@@ -92,15 +93,15 @@ describe("two administrative acts at the same moment", () => {
 
   it("records one Change Event when the same Viewer is Deactivated twice", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b, reader } = await twoAdministratorsAndAReader();
+      const { a, b, target } = await twoAdministratorsAndAnAuthor();
 
       const results = await Promise.all([
-        deactivateViewer(database, a, reader.id),
-        deactivateViewer(database, b, reader.id),
+        deactivateViewer(database, a, target.id),
+        deactivateViewer(database, b, target.id),
       ]);
 
       for (const deactivated of results) {
-        expect(deactivated).toMatchObject({ id: reader.id, isDeactivated: true });
+        expect(deactivated).toMatchObject({ id: target.id, isDeactivated: true });
       }
       expect(await database.changeEvent.count({ where: { type: "viewer_deactivated" } })).toBe(1);
     }
@@ -108,15 +109,15 @@ describe("two administrative acts at the same moment", () => {
 
   it("records one Change Event when the same Viewer is appointed twice", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b, reader } = await twoAdministratorsAndAReader();
+      const { a, b, target } = await twoAdministratorsAndAnAuthor();
 
       const results = await Promise.all([
-        appointAdministrator(database, a, reader.id),
-        appointAdministrator(database, b, reader.id),
+        appointAdministrator(database, a, target.id),
+        appointAdministrator(database, b, target.id),
       ]);
 
       for (const appointed of results) {
-        expect(appointed).toMatchObject({ id: reader.id, isAdministrator: true });
+        expect(appointed).toMatchObject({ id: target.id, isAdministrator: true });
       }
       expect(
         await database.changeEvent.count({ where: { type: "administrator_appointed" } }),
@@ -126,15 +127,15 @@ describe("two administrative acts at the same moment", () => {
 
   it("records one Change Event when the same Viewer is given the same role twice", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b, reader } = await twoAdministratorsAndAReader();
+      const { a, b, target } = await twoAdministratorsAndAnAuthor();
 
       const results = await Promise.all([
-        changeRole(database, a, reader.id, "author"),
-        changeRole(database, b, reader.id, "author"),
+        changeRole(database, a, target.id, "reviewer"),
+        changeRole(database, b, target.id, "reviewer"),
       ]);
 
       for (const changed of results) {
-        expect(changed).toMatchObject({ id: reader.id, role: "author" });
+        expect(changed).toMatchObject({ id: target.id, role: "reviewer" });
       }
       expect(await database.changeEvent.count({ where: { type: "role_changed" } })).toBe(1);
     }
@@ -142,16 +143,16 @@ describe("two administrative acts at the same moment", () => {
 
   it("records one Change Event when the same Viewer is reactivated twice", async () => {
     for (let round = 0; round < rounds; round++) {
-      const { a, b, reader } = await twoAdministratorsAndAReader();
-      await database.viewer.update({ where: { id: reader.id }, data: { isDeactivated: true } });
+      const { a, b, target } = await twoAdministratorsAndAnAuthor();
+      await database.viewer.update({ where: { id: target.id }, data: { isDeactivated: true } });
 
       const results = await Promise.all([
-        reactivateViewer(database, a, reader.id),
-        reactivateViewer(database, b, reader.id),
+        reactivateViewer(database, a, target.id),
+        reactivateViewer(database, b, target.id),
       ]);
 
       for (const reactivated of results) {
-        expect(reactivated).toMatchObject({ id: reader.id, isDeactivated: false });
+        expect(reactivated).toMatchObject({ id: target.id, isDeactivated: false });
       }
       expect(await database.changeEvent.count({ where: { type: "viewer_reactivated" } })).toBe(1);
     }
@@ -160,7 +161,7 @@ describe("two administrative acts at the same moment", () => {
   // Held in place by hand, because this order of steps is too rare to meet by sending
   // two requests together: `changeRole` has written its target but not yet its Change Event.
   it("does not deadlock with a role change that is between its two writes", async () => {
-    const { a, b } = await twoAdministratorsAndAReader();
+    const { a, b } = await twoAdministratorsAndAnAuthor();
     const [first, second] = [a, b].sort((x, y) => x.id.localeCompare(y.id));
     if (first === undefined || second === undefined) throw new Error("two Administrators");
     const roleWritten = Promise.withResolvers<void>();

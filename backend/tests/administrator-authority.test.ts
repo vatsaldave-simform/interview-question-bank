@@ -1,6 +1,6 @@
-import { apiErrorSchema, viewerResponseSchema } from "@iqb/shared";
+import { apiErrorSchema, viewerResponseSchema, type Viewer } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, seededViewer, signInAnother } from "./helpers/auth.ts";
 import { getQuestion, seedTheBank, seededQuestionIds, viewerByRole } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
@@ -38,7 +38,9 @@ describe("Administrator authority", () => {
   let api: TestApi;
   let administratorToken: string;
   let administratorId: string;
-  let readerId: string;
+  /** An Author other than the seeded one, who can sign in, for acts on someone else. */
+  let colleague: Viewer;
+  let colleagueToken: string;
   let authorToken: string;
 
   beforeAll(async () => {
@@ -49,7 +51,7 @@ describe("Administrator authority", () => {
     // The seeded Reviewer is the only Administrator (viewers.seed.ts).
     administratorToken = await logIn(api, seededViewer("reviewer"));
     administratorId = (await viewerByRole(api.database, "reviewer")).id;
-    readerId = (await viewerByRole(api.database, "reader")).id;
+    ({ viewer: colleague, token: colleagueToken } = await signInAnother(api, "author"));
     authorToken = await logIn(api, seededViewer("author"));
   });
   afterAll(async () => {
@@ -58,7 +60,7 @@ describe("Administrator authority", () => {
 
   describe("refusing a Viewer without the authority", () => {
     it("refuses appointing", async () => {
-      const response = await appoint(api, readerId, authorToken);
+      const response = await appoint(api, colleague.id, authorToken);
 
       expect(response.status).toBe(403);
       expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
@@ -71,7 +73,7 @@ describe("Administrator authority", () => {
     });
 
     it("refuses setting a role directly", async () => {
-      const response = await changeRole(api, readerId, "author", authorToken);
+      const response = await changeRole(api, colleague.id, "reviewer", authorToken);
 
       expect(response.status).toBe(403);
     });
@@ -79,7 +81,7 @@ describe("Administrator authority", () => {
 
   describe("appointing and withdrawing", () => {
     it("appoints another Viewer, recorded under the acting Administrator's name", async () => {
-      const response = await appoint(api, readerId, administratorToken);
+      const response = await appoint(api, colleague.id, administratorToken);
 
       expect(response.status).toBe(200);
       const body = viewerResponseSchema.parse(await response.json());
@@ -88,11 +90,11 @@ describe("Administrator authority", () => {
       const [event] = await administrativeEvents(api);
       expect(event?.type).toBe("administrator_appointed");
       expect(event?.viewerId).toBe(administratorId);
-      expect(event?.payload).toEqual({ viewer: { id: readerId, email: seededViewer("reader").email } });
+      expect(event?.payload).toEqual({ viewer: { id: colleague.id, email: colleague.email } });
     });
 
     it("withdraws a non-last Administrator's authority", async () => {
-      await appoint(api, readerId, administratorToken);
+      await appoint(api, colleague.id, administratorToken);
 
       const response = await withdraw(api, administratorId, administratorToken);
 
@@ -126,35 +128,35 @@ describe("Administrator authority", () => {
 
   describe("setting a role directly", () => {
     it("changes a Viewer's role without a Role Request, recording the before and after", async () => {
-      const response = await changeRole(api, readerId, "author", administratorToken);
+      const response = await changeRole(api, colleague.id, "reviewer", administratorToken);
 
       expect(response.status).toBe(200);
       const body = viewerResponseSchema.parse(await response.json());
-      expect(body.viewer.role).toBe("author");
+      expect(body.viewer.role).toBe("reviewer");
 
       const [event] = await administrativeEvents(api);
       expect(event?.type).toBe("role_changed");
       expect(event?.viewerId).toBe(administratorId);
-      expect(event?.payload).toMatchObject({ role: { before: "reader", after: "author" } });
+      expect(event?.payload).toMatchObject({ role: { before: "author", after: "reviewer" } });
     });
 
     it("lets an Administrator escalate their own role, in the open", async () => {
-      // The seeded Administrator appoints the Reader, who then grants themselves the
+      // The seeded Administrator appoints an Author, who then grants themselves the
       // Reviewer role: self-escalation is permitted, never silent (ADR-0015).
-      await appoint(api, readerId, administratorToken);
-      const readerToken = await logIn(api, seededViewer("reader"));
+      await appoint(api, colleague.id, administratorToken);
 
-      const response = await changeRole(api, readerId, "reviewer", readerToken);
+      const response = await changeRole(api, colleague.id, "reviewer", colleagueToken);
 
       expect(response.status).toBe(200);
       const [event] = await administrativeEvents(api);
       expect(event?.type).toBe("role_changed");
-      expect(event?.viewerId).toBe(readerId);
-      expect(event?.payload).toMatchObject({ role: { before: "reader", after: "reviewer" } });
+      expect(event?.viewerId).toBe(colleague.id);
+      expect(event?.payload).toMatchObject({ role: { before: "author", after: "reviewer" } });
     });
   });
 
   it("gives an Administrator who is a Reader no more reach than any other Reader", async () => {
+    const readerId = (await viewerByRole(api.database, "reader")).id;
     await appoint(api, readerId, administratorToken);
     const readerAdministratorToken = await logIn(api, seededViewer("reader"));
 
