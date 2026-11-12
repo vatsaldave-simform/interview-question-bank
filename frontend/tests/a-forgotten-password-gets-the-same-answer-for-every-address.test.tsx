@@ -40,12 +40,12 @@ describe("the forgotten-password page", () => {
     const api = answersEveryAddressAlike();
     renderTheWholeClient("/forgotten-password");
 
-    await askForALink("Reader@IQB.test ");
+    await askForALink("Author@IQB.test ");
 
     await waitFor(() => expect(api.sent).toHaveLength(1));
     expect(api.sent[0]!.method).toBe("POST");
     expect(new URL(api.sent[0]!.url).pathname).toBe("/api/auth/password-reset");
-    expect(await api.sent[0]!.json()).toEqual({ email: "reader@iqb.test" });
+    expect(await api.sent[0]!.json()).toEqual({ email: "author@iqb.test" });
   });
 
   /** The API answers every address alike (ADR-0016), so a page that worded any of them
@@ -54,7 +54,7 @@ describe("the forgotten-password page", () => {
     answersEveryAddressAlike();
 
     const seen: string[] = [];
-    for (const email of ["reader@iqb.test", "nobody-here@iqb.test"]) {
+    for (const email of ["author@iqb.test", "nobody-here@iqb.test"]) {
       const { container, unmount } = renderTheWholeClient("/forgotten-password");
       await askForALink(email);
       await screen.findByText(/Check your email/);
@@ -83,7 +83,7 @@ describe("the forgotten-password page", () => {
     fakeApi(() => refusesWith(429, "rate_limited", "Too many attempts. Try again in a minute."));
     renderTheWholeClient("/forgotten-password");
 
-    await askForALink("reader@iqb.test");
+    await askForALink("author@iqb.test");
 
     expect(
       await screen.findByText("Too many attempts. Try again in a minute."),

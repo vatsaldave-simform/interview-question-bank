@@ -1,4 +1,4 @@
-import type { RoleRequest, Viewer } from "@iqb/shared";
+import type { RoleRequest } from "@iqb/shared";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ import { renderTheWholeClient } from "./helpers/the-whole-client";
 
 beforeEach(() => {
   replaceSession({ status: "unknown" });
-  signInAs(aViewer({ role: "reader" }));
+  signInAs(aViewer());
 });
 
 afterEach(() => {
@@ -18,7 +18,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const open = aRoleRequest({ role: "author", createdAt: "2026-09-01T09:00:00.000Z" });
+const open = aRoleRequest({ createdAt: "2026-09-01T09:00:00.000Z" });
 
 /** A bank holding the Viewer's own Role Requests, newest first as the API sends them. */
 function aBankHoldingMine(mine: RoleRequest[]) {
@@ -36,18 +36,19 @@ async function thePanel() {
 }
 
 describe("Your Role Request on Home", () => {
-  it("shows a Reader the role they asked for, still being decided", async () => {
+  it("shows the Viewer the role they asked for, still being decided", async () => {
     aBankHoldingMine([open]);
     renderTheWholeClient("/");
 
     const asked = (await thePanel()).getByRole("time");
     expect(asked).toHaveAttribute("datetime", open.createdAt);
     expect(asked.closest("p")).toHaveTextContent(
-      /^You asked for the Author role on .+\. No Administrator has decided it yet\.$/,
+      /^You asked for the Reviewer role on .+\. No Administrator has decided it yet\.$/,
     );
   });
 
   it("is the only panel of waiting work a Reader sees", async () => {
+    signInAs(aViewer({ role: "reader" }));
     aBankHoldingMine([open]);
     renderTheWholeClient("/");
 
@@ -61,11 +62,8 @@ describe("Your Role Request on Home", () => {
     }
   });
 
-  it.each<[string, Viewer]>([
-    ["an Author", aViewer({ role: "author" })],
-    ["an Administrator", anAdministrator],
-  ])("shows %s theirs too", async (_who, viewer) => {
-    signInAs(viewer);
+  it("shows an Administrator theirs too", async () => {
+    signInAs(anAdministrator);
     aBankHoldingMine([open]);
     renderTheWholeClient("/");
 

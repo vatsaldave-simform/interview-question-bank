@@ -69,7 +69,7 @@ describe("Open Role Requests on Home", () => {
   });
 
   it("is shown to an Administrator whatever role they hold", async () => {
-    signInAs(aViewer({ role: "reader", isAdministrator: true }));
+    signInAs(aViewer({ role: "author", isAdministrator: true }));
     aBankWithOpen([open]);
     renderTheWholeClient("/");
 
@@ -77,7 +77,7 @@ describe("Open Role Requests on Home", () => {
   });
 
   it.each<[string, Viewer]>([
-    ["a Reader", aViewer({ role: "reader" })],
+    ["an Author who is not an Administrator", aViewer({ role: "author" })],
     ["a Reviewer who is not an Administrator", aViewer({ role: "reviewer" })],
   ])("is not shown to %s", async (_who, viewer) => {
     signInAs(viewer);
