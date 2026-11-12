@@ -103,11 +103,9 @@ describe("capturing a plan", () => {
       expect(await database.client.count({ where: { id: { in: clients } } })).toBe(
         new Set(clients).size,
       );
-      // The Client set is all the Reader's: the role is measured by the other two sets.
+      // The Client set is all the newcomer's: who is asking is measured by the other two sets.
       if (read !== "client") {
-        expect(new Set(scenarios.map((scenario) => scenario.viewer.role))).toEqual(
-          new Set(["reader", "author", "reviewer"]),
-        );
+        expect(new Set(scenarios.map((scenario) => scenario.viewer.id)).size).toBe(3);
       }
     },
   );
@@ -117,10 +115,10 @@ describe("capturing a plan", () => {
     async (read) => {
       const scenarios = await scenariosFor[read](database);
 
-      // The role counts: three scenarios ask the same thing as different Viewers, and the
+      // The Viewer counts: three scenarios ask the same thing as different Viewers, and the
       // second check they get is the difference being measured.
       const asked = scenarios.map((scenario) =>
-        JSON.stringify([scenario.viewer.role, queryOf(scenario)]),
+        JSON.stringify([scenario.viewer.id, queryOf(scenario)]),
       );
       expect(new Set(asked).size).toBe(scenarios.length);
     },

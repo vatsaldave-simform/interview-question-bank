@@ -20,6 +20,10 @@ export const bulkTagPrefix = "bulk-";
 /** The same for the Clients it adds. */
 export const bulkClientPrefix = "Bulk Client ";
 
+/** An Author who adds nothing to the bank, so the plans can measure someone who sees only
+ * the Published Questions. Kept off the demo seed, since nobody logs in as them. */
+export const bulkNewcomerEmail = "newcomer@iqb.test";
+
 type CategoryTagging = {
   /** Tag values added beside the ones the small seed wrote. */
   extraTags: number;
@@ -130,6 +134,11 @@ export async function seedBulkBank(
     where: { email: seedViewerByRole("author").email },
     select: { id: true },
   });
+  await database.viewer.upsert({
+    where: { email: bulkNewcomerEmail },
+    update: {},
+    create: { email: bulkNewcomerEmail, role: "author" },
+  });
   const client = await database.client.findUniqueOrThrow({
     where: { name: seedClient.name },
     select: { id: true },
@@ -167,7 +176,7 @@ export async function seedBulkBank(
       text: questionText(seed, key, words),
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
-      // What a Reader's query filters on, so the plans measure a Reader's bank (ADR-0029).
+      // What the query of a Viewer who wrote none of them filters on (ADR-0029).
       publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),

@@ -1,13 +1,8 @@
-import {
-  defaultQuestionPageSize,
-  type CategoryName,
-  type Viewer,
-  type ViewerRole,
-} from "@iqb/shared";
+import { defaultQuestionPageSize, type CategoryName, type Viewer } from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import type { Database } from "../../platform/database.ts";
 import { seedViewerByRole } from "../viewers/viewers.seed.ts";
-import { bankVocabulary, bulkClientPrefix } from "./bulk-bank.seed.ts";
+import { bankVocabulary, bulkClientPrefix, bulkNewcomerEmail } from "./bulk-bank.seed.ts";
 import {
   listStatement,
   searchStatement,
@@ -68,7 +63,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "The keyword alone, matching about half the bank. The baseline every other plan is read " +
         "against.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: { keywords: broadWord, tagsPerCategory: [], ...page },
     },
     {
@@ -76,13 +71,13 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "The same query aimed at one Question in fifty. The planner should not answer it " +
         "the same way.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: { keywords: narrowWord, tagsPerCategory: [], ...page },
     },
     {
       name: "two keywords, no Category",
       why: "Two words are AND-ed, which reaches a smaller part of the bank than either word alone.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: { keywords: pair, tagsPerCategory: [], ...page },
     },
     {
@@ -90,7 +85,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "The combined query this ticket exists for: the keyword index and the Tag index are both " +
         "usable, and the planner has to choose.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: {
         keywords: broadWord,
         tagsPerCategory: [inCategory("technology", commonTag)],
@@ -102,7 +97,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "The same pair with the selective half swapped onto the Tag, which is where driving from " +
         "question_tags should start to win.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: {
         keywords: broadWord,
         tagsPerCategory: [inCategory("technology", rareTag)],
@@ -112,7 +107,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
     {
       name: "a narrow keyword and a common Tag",
       why: "Selective on the keyword instead, so the two indexes swap roles.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: {
         keywords: narrowWord,
         tagsPerCategory: [inCategory("technology", commonTag)],
@@ -124,7 +119,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "One EXISTS per Category is the shape ADR-0011 chose; this is that shape with the search " +
         "on top of it.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: {
         keywords: broadWord,
         tagsPerCategory: [
@@ -139,7 +134,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
       why:
         "Where the limit-and-offset ceiling sits: the skipped rows still have to be produced and " +
         "thrown away.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: {
         keywords: broadWord,
         tagsPerCategory: [],
@@ -168,7 +163,7 @@ export async function scenariosForTheSearch(database: Database): Promise<SearchS
 
 /**
  * The same idea for the list, which is the search's filters without keywords: the cases
- * ADR-0011 found the planner treats differently, plus the three roles.
+ * ADR-0011 found the planner treats differently, plus the three Viewers.
  */
 export async function scenariosForTheList(database: Database): Promise<ListScenario[]> {
   const { viewer, commonTag, rareTag, commonSeniority } = await whatTheBankHolds(database);
@@ -177,15 +172,15 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
     {
       name: "no Category",
       why:
-        "The whole bank a Reader sees. The baseline every other plan is read against, and the " +
-        "query that can stop earliest.",
-      viewer: viewer.reader,
+        "The whole bank an Author with no Questions sees. The baseline every other plan is read " +
+        "against, and the query that can stop earliest.",
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [], ...page },
     },
     {
       name: "a common Tag",
       why: "One Category, matching much of the bank, so walking the ordering index still pays.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [inCategory("technology", commonTag)], ...page },
     },
     {
@@ -193,13 +188,13 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
       why:
         "One Category, matching little of the bank, which is where ADR-0011 found the planner " +
         "drives from question_tags instead.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [inCategory("technology", rareTag)], ...page },
     },
     {
       name: "two Categories",
       why: "One EXISTS per Category, which is the shape ADR-0011 chose.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: {
         tagsPerCategory: [
           inCategory("technology", commonTag),
@@ -213,7 +208,7 @@ export async function scenariosForTheList(database: Database): Promise<ListScena
       why:
         "Where ADR-0011 found the limit-and-offset ceiling: the skipped rows still have to be " +
         "produced and thrown away. One Tag, because two match too few Questions to reach the page.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: {
         tagsPerCategory: [inCategory("technology", commonTag)],
         limit: defaultQuestionPageSize,
@@ -251,7 +246,7 @@ export async function scenariosForTheClientFilter(database: Database): Promise<P
       why:
         "Matches much of the bank, so walking the newest-first index fills a page quickly. The " +
         "baseline every other plan is read against.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [], clientIds: [commonClient.id], ...page },
     },
     {
@@ -259,7 +254,7 @@ export async function scenariosForTheClientFilter(database: Database): Promise<P
       why:
         "Matches little of the bank, so walking newest first checks many Questions per match. " +
         "This is where starting from question_clients should win, if an index lets it.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [], clientIds: [rareClient.id], ...page },
     },
     {
@@ -267,19 +262,19 @@ export async function scenariosForTheClientFilter(database: Database): Promise<P
       why:
         "The far end of the same line: so few matches that reading the whole join table is " +
         "cheap however it is indexed.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [], clientIds: [handfulClient.id], ...page },
     },
     {
       name: "two Clients",
       why: "Two Clients OR-ed inside one EXISTS, as two Tags of one Category are.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: { tagsPerCategory: [], clientIds: [commonClient.id, secondClient.id], ...page },
     },
     {
       name: "a common Client and a common Tag",
       why: "One EXISTS for the Client beside one for the Category, the shape ADR-0011 chose.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       list: {
         tagsPerCategory: [inCategory("technology", commonTag)],
         clientIds: [commonClient.id],
@@ -291,13 +286,13 @@ export async function scenariosForTheClientFilter(database: Database): Promise<P
       why:
         "The search index and the Client filter can each drive the query, and the planner has " +
         "to choose, as ADR-0029 found for a Tag.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: { keywords: broadWord, tagsPerCategory: [], clientIds: [commonClient.id], ...page },
     },
     {
       name: "a rare Client and a broad keyword",
       why: "The same pair with the selective half moved onto the Client.",
-      viewer: viewer.reader,
+      viewer: viewer.newcomer,
       search: { keywords: broadWord, tagsPerCategory: [], clientIds: [rareClient.id], ...page },
     },
   ];
@@ -347,7 +342,7 @@ async function whatTheBankHolds(database: Database) {
   // Client of the small seed is named by only a handful and is measured on its own.
   const bulkClients = clients.filter((client) => client.name.startsWith(bulkClientPrefix));
   return {
-    viewer: await seededViewers(database),
+    viewer: await measuredViewers(database),
     commonTag: technology[0]!,
     rareTag: technology[technology.length - 1]!,
     commonSeniority: seniority[0]!,
@@ -384,21 +379,28 @@ async function clientsByReach(database: Database): Promise<ClientReach[]> {
   `;
 }
 
-/** The seeded Viewer of each role, as the API would have them after signing in. */
-async function seededViewers(database: Database): Promise<Record<ViewerRole, Viewer>> {
-  const roles: ViewerRole[] = ["reader", "author", "reviewer"];
+/** Who the plans are measured as. The newcomer has written nothing, so they see only what
+ * is Published, while the Author wrote the whole bulk bank. */
+const measuredAs = {
+  newcomer: bulkNewcomerEmail,
+  author: seedViewerByRole("author").email,
+  reviewer: seedViewerByRole("reviewer").email,
+};
+
+/** Each of them as the API would have them after signing in. */
+async function measuredViewers(
+  database: Database,
+): Promise<Record<keyof typeof measuredAs, Viewer>> {
   const found = await Promise.all(
-    roles.map((role) =>
-      database.viewer.findUniqueOrThrow({
-        where: { email: seedViewerByRole(role).email },
+    Object.entries(measuredAs).map(async ([name, email]) => {
+      const viewer = await database.viewer.findUniqueOrThrow({
+        where: { email },
         select: { id: true, email: true, role: true, isAdministrator: true },
-      }),
-    ),
+      });
+      return [name, viewer] as const;
+    }),
   );
-  return Object.fromEntries(found.map((viewer) => [viewer.role, viewer])) as Record<
-    ViewerRole,
-    Viewer
-  >;
+  return Object.fromEntries(found) as Record<keyof typeof measuredAs, Viewer>;
 }
 
 function inCategory(category: CategoryName, tag: TagReach): TagsInCategory {
