@@ -6,6 +6,7 @@ import {
 } from "../src/features/questions/questions.repository.ts";
 import type { Database } from "../src/platform/database.ts";
 import {
+  aViewer,
   commonestTags,
   alsoInMuchOfTheBulkBank,
   inMuchOfTheBulkBank,
@@ -26,13 +27,14 @@ const { aboutTypeScript, aboutTheClientsPipeline, aboutDisagreeing } = seededQue
 
 describe("searching the bank by keyword", () => {
   let database: Database;
-  let reader: Viewer;
+  // A fresh Author, who added none of the seeded Questions and so sees only the Published ones.
+  let newcomer: Viewer;
   let reviewer: Viewer;
 
   beforeAll(async () => {
     database = createTestDatabase();
     await seedTheBank(database);
-    reader = await viewerByRole(database, "reader");
+    newcomer = await aViewer(database, "author");
     reviewer = await viewerByRole(database, "reviewer");
   });
   afterAll(async () => {
@@ -43,7 +45,7 @@ describe("searching the bank by keyword", () => {
     searchVisibleQuestions(database, viewer, { keywords, tagsPerCategory: [], limit: 50, offset: 0 });
 
   it("finds a Question by a word that appears only in its Answer Notes", async () => {
-    const found = await search(reader, inOneAnswerNoteOnly);
+    const found = await search(newcomer, inOneAnswerNoteOnly);
 
     expect(found.map((question) => question.id)).toEqual([aboutTypeScript]);
     expect(found[0]!.text).not.toContain(inOneAnswerNoteOnly);
@@ -51,25 +53,25 @@ describe("searching the bank by keyword", () => {
   });
 
   it("answers with the Question's Tags, named rather than by id", async () => {
-    const [found] = await search(reader, inOneAnswerNoteOnly);
+    const [found] = await search(newcomer, inOneAnswerNoteOnly);
 
     expect(found!.tags).toContainEqual({ category: "technology", tag: "typescript" });
     expect(found!.tags).toContainEqual({ category: "seniority", tag: "mid" });
   });
 
   it("finds a Published Question that names a Client for every Viewer", async () => {
-    const seenByReader = await search(reader, "pipeline");
+    const seenByNewcomer = await search(newcomer, "pipeline");
     const seenByReviewer = await search(reviewer, "pipeline");
 
-    expect(seenByReader.map((question) => question.id)).toEqual([aboutTheClientsPipeline]);
+    expect(seenByNewcomer.map((question) => question.id)).toEqual([aboutTheClientsPipeline]);
     expect(seenByReviewer.map((question) => question.id)).toEqual([aboutTheClientsPipeline]);
   });
 
-  it("keeps a Pending Question from a Reader and shows it to a Reviewer", async () => {
-    const seenByReader = await search(reader, "disagreed");
+  it("keeps a Pending Question from an Author who did not add it and shows it to a Reviewer", async () => {
+    const seenByNewcomer = await search(newcomer, "disagreed");
     const seenByReviewer = await search(reviewer, "disagreed");
 
-    expect(seenByReader).toEqual([]);
+    expect(seenByNewcomer).toEqual([]);
     expect(seenByReviewer.map((question) => question.id)).toEqual([aboutDisagreeing]);
   });
 
@@ -78,7 +80,7 @@ describe("searching the bank by keyword", () => {
     // into a search box without meaning any of it as syntax.
     const typed = 'typescript & (interface "merging';
 
-    const found = await search(reader, typed);
+    const found = await search(newcomer, typed);
 
     expect(found.map((question) => question.id)).toEqual([aboutTypeScript]);
     // And the same input really is the kind that breaks strict parsing, so the test above
@@ -89,7 +91,7 @@ describe("searching the bank by keyword", () => {
   });
 
   it("finds nothing rather than everything when no Question holds the keyword", async () => {
-    expect(await search(reader, inNoQuestionAtAll)).toEqual([]);
+    expect(await search(newcomer, inNoQuestionAtAll)).toEqual([]);
   });
 });
 
@@ -98,7 +100,7 @@ const bulk = { count: 600, seed: "a-test-of-keyword-search" };
 describe("keyword search alongside a Category filter", () => {
   let sqlLog: SqlLoggingDatabase;
   let database: Database;
-  let reader: Viewer;
+  let author: Viewer;
   let technology: string[];
   let seniority: string[];
 
@@ -106,7 +108,7 @@ describe("keyword search alongside a Category filter", () => {
     sqlLog = createSqlLoggingDatabase();
     database = sqlLog.database;
     await seedTheBulkBank(database, bulk);
-    reader = await viewerByRole(database, "reader");
+    author = await viewerByRole(database, "author");
     technology = (await commonestTags(database, "technology", 2)).ids;
     seniority = (await commonestTags(database, "seniority", 1)).ids;
   });
@@ -125,7 +127,7 @@ describe("keyword search alongside a Category filter", () => {
       { category: "seniority" as const, tagIds: seniority },
     ];
 
-    const both = await searchVisibleQuestions(database, reader, {
+    const both = await searchVisibleQuestions(database, author, {
       keywords: inMuchOfTheBulkBank,
       tagsPerCategory,
       ...wholeAnswer,
@@ -135,7 +137,7 @@ describe("keyword search alongside a Category filter", () => {
     // the filter alone already return.
     const keywordOnly = new Set(
       idsOf(
-        await searchVisibleQuestions(database, reader, {
+        await searchVisibleQuestions(database, author, {
           keywords: inMuchOfTheBulkBank,
           tagsPerCategory: [],
           ...wholeAnswer,
@@ -143,7 +145,7 @@ describe("keyword search alongside a Category filter", () => {
       ),
     );
     const filterOnly = idsOf(
-      await findVisibleQuestions(database, reader, { tagsPerCategory, ...wholeAnswer }),
+      await findVisibleQuestions(database, author, { tagsPerCategory, ...wholeAnswer }),
     );
     const intersection = filterOnly.filter((id) => keywordOnly.has(id));
 
@@ -156,7 +158,7 @@ describe("keyword search alongside a Category filter", () => {
     const keywords = `${inMuchOfTheBulkBank} ${alsoInMuchOfTheBulkBank}`;
     const pageSize = 40;
 
-    const found = await searchVisibleQuestions(database, reader, {
+    const found = await searchVisibleQuestions(database, author, {
       keywords,
       tagsPerCategory: [],
       limit: pageSize,
@@ -170,7 +172,7 @@ describe("keyword search alongside a Category filter", () => {
       SELECT q.id, ts_rank(q."searchVector", search.query) AS rank
         FROM questions q, websearch_to_tsquery('english', ${keywords}) AS search(query)
        WHERE q."searchVector" @@ search.query
-         AND (q."publicationState" = 'published' OR q."authorId" = ${reader.id}::uuid)
+         AND (q."publicationState" = 'published' OR q."authorId" = ${author.id}::uuid)
     `;
     const topByRank = everyMatch
       .sort(
@@ -188,17 +190,17 @@ describe("keyword search alongside a Category filter", () => {
   it("pages without repeating a Question or skipping one", async () => {
     const query = { keywords: inMuchOfTheBulkBank, tagsPerCategory: [] };
 
-    const firstPage = await searchVisibleQuestions(database, reader, {
+    const firstPage = await searchVisibleQuestions(database, author, {
       ...query,
       limit: 20,
       offset: 0,
     });
-    const secondPage = await searchVisibleQuestions(database, reader, {
+    const secondPage = await searchVisibleQuestions(database, author, {
       ...query,
       limit: 20,
       offset: 20,
     });
-    const both = await searchVisibleQuestions(database, reader, {
+    const both = await searchVisibleQuestions(database, author, {
       ...query,
       limit: 40,
       offset: 0,
@@ -210,7 +212,7 @@ describe("keyword search alongside a Category filter", () => {
   it("asks PostgreSQL once, however many Categories the filter names", async () => {
     sqlLog.statements.length = 0;
 
-    await searchVisibleQuestions(database, reader, {
+    await searchVisibleQuestions(database, author, {
       keywords: inMuchOfTheBulkBank,
       tagsPerCategory: [
         { category: "technology", tagIds: technology },

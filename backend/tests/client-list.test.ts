@@ -32,9 +32,9 @@ describe("listing Clients", () => {
     const administratorToken = await logIn(api, seededViewer("reviewer"));
     const created = await postClient(api, { name: "Harbour Logistics" }, administratorToken);
     expect(created.status).toBe(201);
-    const readerToken = await logIn(api, seededViewer("reader"));
+    const authorToken = await logIn(api, seededViewer("author"));
 
-    expect(await clientNamesListed(api, readerToken)).toEqual([
+    expect(await clientNamesListed(api, authorToken)).toEqual([
       "Harbour Logistics",
       seedOtherClient.name,
       seedClient.name,

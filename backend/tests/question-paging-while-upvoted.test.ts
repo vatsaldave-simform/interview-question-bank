@@ -18,14 +18,14 @@ const pageSize = 25;
  * the order would show up there first (ADR-0043, ADR-0053). */
 describe("paging through the bank while Upvotes are given", () => {
   let api: TestApi;
-  let readerToken: string;
+  let authorToken: string;
   let upvoters: Viewer[];
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBulkBank(api.database, bulk);
-    readerToken = await logIn(api, seededViewer("reader"));
-    upvoters = [await aViewer(api.database, "reader"), await aViewer(api.database, "author")];
+    authorToken = await logIn(api, seededViewer("author"));
+    upvoters = [await aViewer(api.database, "author"), await aViewer(api.database, "author")];
   });
   afterAll(async () => {
     await api.stop();
@@ -41,9 +41,9 @@ describe("paging through the bank while Upvotes are given", () => {
 
   async function pagesWithUpvotesBetween(params: Record<string, string>): Promise<void> {
     const page = (offset: number) =>
-      getQuestions(api, { ...params, limit: pageSize, offset }, readerToken);
+      getQuestions(api, { ...params, limit: pageSize, offset }, authorToken);
     const expected = await idsListed(
-      await getQuestions(api, { ...params, limit: pageSize * 4, offset: 0 }, readerToken),
+      await getQuestions(api, { ...params, limit: pageSize * 4, offset: 0 }, authorToken),
     );
     expect(expected).toHaveLength(pageSize * 4);
 

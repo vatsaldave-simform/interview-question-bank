@@ -7,6 +7,7 @@ import {
 } from "../src/features/questions/questions.repository.ts";
 import type { Database } from "../src/platform/database.ts";
 import {
+  aViewer,
   clientIdNamed,
   commonestTags,
   sameAnswerInJavaScript,
@@ -20,7 +21,7 @@ const bulk = { count: 600, seed: "a-test-of-the-combined-filter" };
 describe("filtering the bank by Category", () => {
   let sqlLog: SqlLoggingDatabase;
   let database: Database;
-  let reader: Viewer;
+  let author: Viewer;
   let reviewer: Viewer;
   let technology: string[];
   let seniority: string[];
@@ -29,7 +30,7 @@ describe("filtering the bank by Category", () => {
     sqlLog = createSqlLoggingDatabase();
     database = sqlLog.database;
     await seedTheBulkBank(database, bulk);
-    reader = await viewerByRole(database, "reader");
+    author = await viewerByRole(database, "author");
     reviewer = await viewerByRole(database, "reviewer");
     technology = (await commonestTags(database, "technology", 2)).ids;
     seniority = (await commonestTags(database, "seniority", 1)).ids;
@@ -48,13 +49,13 @@ describe("filtering the bank by Category", () => {
     const first = queryForEveryMatch([{ category: "technology", tagIds: [technology[0]!] }]);
     const second = queryForEveryMatch([{ category: "technology", tagIds: [technology[1]!] }]);
 
-    const matched = await findVisibleQuestions(database, reader, both);
+    const matched = await findVisibleQuestions(database, author, both);
 
     expect(matched.map((question) => question.id)).toEqual(
-      await sameAnswerInJavaScript(database, reader, both.tagsPerCategory),
+      await sameAnswerInJavaScript(database, author, both.tagsPerCategory),
     );
-    const firstOnly = await findVisibleQuestions(database, reader, first);
-    const secondOnly = await findVisibleQuestions(database, reader, second);
+    const firstOnly = await findVisibleQuestions(database, author, first);
+    const secondOnly = await findVisibleQuestions(database, author, second);
     expect(firstOnly.length).toBeGreaterThan(0);
     expect(secondOnly.length).toBeGreaterThan(0);
     expect(matched.length).toBeGreaterThan(Math.max(firstOnly.length, secondOnly.length));
@@ -67,13 +68,13 @@ describe("filtering the bank by Category", () => {
       { category: "seniority", tagIds: seniority },
     ]);
 
-    const matched = await findVisibleQuestions(database, reader, two);
+    const matched = await findVisibleQuestions(database, author, two);
 
     expect(matched.map((question) => question.id)).toEqual(
-      await sameAnswerInJavaScript(database, reader, two.tagsPerCategory),
+      await sameAnswerInJavaScript(database, author, two.tagsPerCategory),
     );
     expect(matched.length).toBeGreaterThan(0);
-    expect(matched.length).toBeLessThan((await findVisibleQuestions(database, reader, one)).length);
+    expect(matched.length).toBeLessThan((await findVisibleQuestions(database, author, one)).length);
     for (const question of matched) {
       expect(question.tags.some((tag) => tag.category === "technology")).toBe(true);
       expect(question.tags.some((tag) => tag.category === "seniority")).toBe(true);
@@ -86,11 +87,13 @@ describe("filtering the bank by Category", () => {
     const named = await clientIdNamed(database, seedClient.name);
 
     const seenByReviewer = await findVisibleQuestions(database, reviewer, query);
-    const seenByReader = await findVisibleQuestions(database, reader, query);
+    // A fresh Author, since the seeded one also sees the Pending Questions they added.
+    const newcomer = await aViewer(database, "author");
+    const seenByNewcomer = await findVisibleQuestions(database, newcomer, query);
 
     expect(seenByReviewer.some(({ clients }) => clients.some(({ id }) => id === named))).toBe(true);
     // The whole bank is Published, so the two pages are the same page.
-    expect(seenByReviewer.map(({ id }) => id)).toEqual(seenByReader.map(({ id }) => id));
+    expect(seenByReviewer.map(({ id }) => id)).toEqual(seenByNewcomer.map(({ id }) => id));
   });
 
   it("filters in one statement carrying one EXISTS per Category", async () => {
@@ -98,7 +101,7 @@ describe("filtering the bank by Category", () => {
 
     await findVisibleQuestions(
       database,
-      reader,
+      author,
       queryForEveryMatch([
         { category: "technology", tagIds: technology },
         { category: "seniority", tagIds: seniority },

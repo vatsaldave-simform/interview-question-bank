@@ -51,8 +51,8 @@ describe("refreshing a session", () => {
     const api2 = await startTestApi({ refreshCookie: { secure: true } });
     try {
       const response = await postLogin(api2, {
-        email: seededViewer("reader").email,
-        password: seededViewer("reader").password,
+        email: seededViewer("author").email,
+        password: seededViewer("author").password,
       });
 
       const attributes = refreshCookieAttributes(response);

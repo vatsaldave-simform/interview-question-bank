@@ -28,14 +28,14 @@ type Params = Record<string, string | number | readonly string[]>;
  */
 describe("filtering the bank by Client", () => {
   let api: TestApi;
-  let readerToken: string;
+  let authorToken: string;
   let clients: string[];
   let technology: string[];
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBulkBank(api.database, bulk);
-    readerToken = await logIn(api, seededViewer("reader"));
+    authorToken = await logIn(api, seededViewer("author"));
     clients = await commonestClients(api.database, 2);
     technology = (await commonestTags(api.database, "technology", 1)).values;
   });
@@ -48,7 +48,7 @@ describe("filtering the bank by Client", () => {
     const walked: Question[] = [];
     // Bounded, so an offset the API ignored ends the test instead of looping forever.
     for (let offset = 0; offset <= bulk.count; offset += limit) {
-      const response = await getQuestions(api, { ...params, limit, offset }, readerToken);
+      const response = await getQuestions(api, { ...params, limit, offset }, authorToken);
       expect(response.status).toBe(200);
       const page = questionListResponseSchema.parse(await response.json());
       walked.push(...page.questions);
@@ -115,7 +115,7 @@ describe("filtering the bank by Client", () => {
     ["a real Client beside one no Client holds", () => [clients[0]!, randomUUID()]],
     ["something that is not an id at all", () => ["northwind"]],
   ])("refuses %s as an invalid request", async (_case, named) => {
-    const response = await getQuestions(api, { client: named() }, readerToken);
+    const response = await getQuestions(api, { client: named() }, authorToken);
 
     expect(response.status).toBe(400);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");

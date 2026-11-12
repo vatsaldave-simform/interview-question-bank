@@ -40,7 +40,7 @@ describe("listing Viewers", () => {
       where: { email: "author@iqb.test" },
       data: { isDeactivated: true },
     });
-    await api.database.viewer.create({ data: { email: "new@iqb.test", role: "reader" } });
+    await api.database.viewer.create({ data: { email: "new@iqb.test", role: "author" } });
     const token = await logIn(api, seededViewer("reviewer"));
 
     const { viewers } = viewerListResponseSchema.parse(await (await getViewers(api, token)).json());

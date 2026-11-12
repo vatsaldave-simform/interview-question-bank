@@ -25,7 +25,7 @@ describe("listing the Categories and their Tags over HTTP", () => {
   });
 
   it("lists every Category in the order of the closed list, with its Tags in alphabetical order", async () => {
-    const token = await logIn(api, seededViewer("reader"));
+    const token = await logIn(api, seededViewer("author"));
 
     const response = await getCategories(api, token);
 
@@ -53,7 +53,7 @@ describe("listing the Categories and their Tags over HTTP", () => {
 
   // Every Tag is listed, whichever Questions carry it.
   it("lists a Tag that only the second Client's Questions carry", async () => {
-    const token = await logIn(api, seededViewer("reader"));
+    const token = await logIn(api, seededViewer("author"));
 
     const body = categoryListResponseSchema.parse(await (await getCategories(api, token)).json());
 

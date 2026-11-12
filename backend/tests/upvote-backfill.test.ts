@@ -14,7 +14,7 @@ const upvotesMigrationSuffix = "_upvotes";
 
 const firstAuthor = "d0000000-0000-4000-8000-000000000001";
 const secondAuthor = "d0000000-0000-4000-8000-000000000002";
-const reader = "d0000000-0000-4000-8000-000000000003";
+const upvoter = "d0000000-0000-4000-8000-000000000003";
 const published = "a0000000-0000-4000-8000-000000000001";
 const alsoPublished = "a0000000-0000-4000-8000-000000000002";
 const pending = "a0000000-0000-4000-8000-000000000003";
@@ -46,8 +46,8 @@ describe("giving every Published Question its Author's Upvote", () => {
       `INSERT INTO viewers (id, email, role, "updatedAt") VALUES
          ($1, 'first@iqb.test', 'author', now()),
          ($2, 'second@iqb.test', 'author', now()),
-         ($3, 'reader@iqb.test', 'reader', now())`,
-      [firstAuthor, secondAuthor, reader],
+         ($3, 'upvoter@iqb.test', 'author', now())`,
+      [firstAuthor, secondAuthor, upvoter],
     );
     for (const [id, authorId, state] of [
       [published, firstAuthor, "published"],
@@ -98,10 +98,10 @@ describe("giving every Published Question its Author's Upvote", () => {
   it("refuses to delete a Viewer who gave an Upvote, rather than cascade", async () => {
     await scratch.query(`INSERT INTO upvotes ("questionId", "viewerId") VALUES ($1, $2)`, [
       published,
-      reader,
+      upvoter,
     ]);
 
-    await expect(scratch.query(`DELETE FROM viewers WHERE id = $1`, [reader])).rejects.toThrow(
+    await expect(scratch.query(`DELETE FROM viewers WHERE id = $1`, [upvoter])).rejects.toThrow(
       /upvotes_viewerId_fkey/,
     );
   });
