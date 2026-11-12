@@ -7,7 +7,13 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
 import { refreshCookieHeader, refreshCookieValue } from "./helpers/cookies.ts";
-import { addAQuestion, getQuestion, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import {
+  addAQuestion,
+  aViewer,
+  getQuestion,
+  seedTheBank,
+  viewerByRole,
+} from "./helpers/question-bank.ts";
 import { tokenMailedTo } from "./helpers/set-password-link.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
@@ -63,7 +69,8 @@ describe("Deactivating and reactivating a Viewer", () => {
   let administratorToken: string;
   let administratorId: string;
   let authorId: string;
-  let readerId: string;
+  /** An Author other than the seeded one, for the seeded Author to try acting on. */
+  let colleagueId: string;
 
   beforeAll(async () => {
     api = await startTestApi();
@@ -74,31 +81,33 @@ describe("Deactivating and reactivating a Viewer", () => {
     administratorToken = await logIn(api, seededViewer("reviewer"));
     administratorId = (await viewerByRole(api.database, "reviewer")).id;
     authorId = (await viewerByRole(api.database, "author")).id;
-    readerId = (await viewerByRole(api.database, "reader")).id;
+    colleagueId = (await aViewer(api.database, "author")).id;
   });
   afterAll(async () => {
     await api.stop();
   });
 
+  const viewerById = (id: string) => api.database.viewer.findUniqueOrThrow({ where: { id } });
+
   describe("refusing a Viewer without the authority", () => {
     it("refuses deactivating", async () => {
       const authorToken = await logIn(api, seededViewer("author"));
 
-      const response = await deactivate(api, readerId, authorToken);
+      const response = await deactivate(api, colleagueId, authorToken);
 
       expect(response.status).toBe(403);
       expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
-      expect((await viewerByRole(api.database, "reader")).isDeactivated).toBe(false);
+      expect((await viewerById(colleagueId)).isDeactivated).toBe(false);
     });
 
     it("refuses reactivating", async () => {
-      await deactivate(api, readerId, administratorToken);
+      await deactivate(api, colleagueId, administratorToken);
       const authorToken = await logIn(api, seededViewer("author"));
 
-      const response = await reactivate(api, readerId, authorToken);
+      const response = await reactivate(api, colleagueId, authorToken);
 
       expect(response.status).toBe(403);
-      expect((await viewerByRole(api.database, "reader")).isDeactivated).toBe(true);
+      expect((await viewerById(colleagueId)).isDeactivated).toBe(true);
     });
   });
 
@@ -165,8 +174,8 @@ describe("Deactivating and reactivating a Viewer", () => {
 
     it("leaves another Viewer's session alone", async () => {
       const login = await postLogin(api, {
-        email: seededViewer("reader").email,
-        password: seededViewer("reader").password,
+        email: seededViewer("reviewer").email,
+        password: seededViewer("reviewer").password,
       });
 
       await deactivate(api, authorId, administratorToken);
@@ -189,7 +198,7 @@ describe("Deactivating and reactivating a Viewer", () => {
     });
 
     it("deactivates an Administrator while another active one remains", async () => {
-      await appoint(api, readerId, administratorToken);
+      await appoint(api, authorId, administratorToken);
 
       const response = await deactivate(api, administratorId, administratorToken);
 
@@ -197,8 +206,8 @@ describe("Deactivating and reactivating a Viewer", () => {
     });
 
     it("refuses withdrawing the last active Administrator while the other one is Deactivated", async () => {
-      await appoint(api, readerId, administratorToken);
-      await deactivate(api, readerId, administratorToken);
+      await appoint(api, authorId, administratorToken);
+      await deactivate(api, authorId, administratorToken);
 
       const response = await withdraw(api, administratorId, administratorToken);
 
@@ -207,10 +216,10 @@ describe("Deactivating and reactivating a Viewer", () => {
     });
 
     it("withdraws the authority from a Deactivated Administrator", async () => {
-      await appoint(api, readerId, administratorToken);
-      await deactivate(api, readerId, administratorToken);
+      await appoint(api, authorId, administratorToken);
+      await deactivate(api, authorId, administratorToken);
 
-      const response = await withdraw(api, readerId, administratorToken);
+      const response = await withdraw(api, authorId, administratorToken);
 
       expect(response.status).toBe(200);
       expect(viewerResponseSchema.parse(await response.json()).viewer.isAdministrator).toBe(false);

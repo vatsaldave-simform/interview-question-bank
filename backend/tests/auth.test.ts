@@ -57,7 +57,7 @@ describe("logging in", () => {
   });
 
   it("never returns anything derived from the stored credential", async () => {
-    const viewer = seededViewer("reader");
+    const viewer = seededViewer("author");
 
     const body = await (
       await postLogin(api, { email: viewer.email, password: viewer.password })
@@ -82,7 +82,7 @@ describe("logging in", () => {
     // A hash written by something else is not a reason to let anyone in, and not a
     // reason to fail with a 500 either.
     await api.database.viewer.create({
-      data: { email: "corrupt@iqb.test", role: "reader", passwordHash: "not a hash" },
+      data: { email: "corrupt@iqb.test", role: "author", passwordHash: "not a hash" },
     });
 
     const response = await postLogin(api, { email: "corrupt@iqb.test", password: "anything at all" });
@@ -91,7 +91,7 @@ describe("logging in", () => {
   });
 
   it("refuses a Viewer who has no password yet, the same way as a wrong password", async () => {
-    await api.database.viewer.create({ data: { email: "not-yet-set@iqb.test", role: "reader" } });
+    await api.database.viewer.create({ data: { email: "not-yet-set@iqb.test", role: "author" } });
     const viewer = seededViewer("author");
 
     const noPassword = await postLogin(api, { email: "not-yet-set@iqb.test", password: "any guess" });
@@ -183,7 +183,7 @@ describe("the end of the anonymous path", () => {
     // The lookup is what makes a change to a Viewer take effect on their next
     // request. Removing the row is the bluntest way to observe that it happens;
     // nothing in the API does that (ADR-0017), the suite does it directly.
-    const viewer = seededViewer("reader");
+    const viewer = seededViewer("author");
     const token = await logIn(api, viewer);
     // Their refresh token goes first: nothing cascades from a Viewer (ADR-0017), so
     // the row logging in just created would otherwise hold the delete back.

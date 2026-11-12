@@ -9,7 +9,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedClient } from "../src/features/clients/clients.seed.ts";
 import type { TagsInCategory } from "../src/features/questions/questions.repository.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   clientIdNamed,
   commonestTags,
@@ -33,7 +33,7 @@ const bulk = { count: 600, seed: "a-test-of-the-question-list" };
  */
 describe("listing Questions over HTTP", () => {
   let api: TestApi;
-  let readerToken: string;
+  let authorToken: string;
   let reviewerToken: string;
   let technology: { ids: string[]; values: string[] };
   let seniority: { ids: string[]; values: string[] };
@@ -41,7 +41,7 @@ describe("listing Questions over HTTP", () => {
   beforeAll(async () => {
     api = await startTestApi({ recordSql: true });
     await seedTheBulkBank(api.database, bulk);
-    readerToken = await logIn(api, seededViewer("reader"));
+    authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     technology = await commonestTags(api.database, "technology", 2);
     seniority = await commonestTags(api.database, "seniority", 1);
@@ -70,13 +70,13 @@ describe("listing Questions over HTTP", () => {
   }
 
   it("returns the Questions matching Tags from several Categories at once", async () => {
-    const reader = await viewerByRole(api.database, "reader");
-    const expected = await sameAnswerInJavaScript(api.database, reader, asTagIds());
+    const author = await viewerByRole(api.database, "author");
+    const expected = await sameAnswerInJavaScript(api.database, author, asTagIds());
 
     const response = await getQuestions(
       api,
       { ...bothCategories(), limit: maxQuestionPageSize },
-      readerToken,
+      authorToken,
     );
 
     expect(response.status).toBe(200);
@@ -92,8 +92,8 @@ describe("listing Questions over HTTP", () => {
   });
 
   it("drops no Question and repeats none across page boundaries", async () => {
-    const reader = await viewerByRole(api.database, "reader");
-    const expected = await sameAnswerInJavaScript(api.database, reader, [
+    const author = await viewerByRole(api.database, "author");
+    const expected = await sameAnswerInJavaScript(api.database, author, [
       { category: "technology", tagIds: technology.ids },
     ]);
     const limit = 20;
@@ -104,7 +104,7 @@ describe("listing Questions over HTTP", () => {
       const response = await getQuestions(
         api,
         { technology: technology.values, limit, offset },
-        readerToken,
+        authorToken,
       );
       const page = questionListResponseSchema.parse(await response.json());
       walked.push(...page.questions.map((question) => question.id));
@@ -117,7 +117,7 @@ describe("listing Questions over HTTP", () => {
   });
 
   it("answers with a page of the default size when none is asked for", async () => {
-    const response = await getQuestions(api, {}, readerToken);
+    const response = await getQuestions(api, {}, authorToken);
 
     const body = questionListResponseSchema.parse(await response.json());
     expect(body.limit).toBe(defaultQuestionPageSize);
@@ -128,7 +128,7 @@ describe("listing Questions over HTTP", () => {
   it("refuses a Category nothing in the vocabulary names, without asking the database", async () => {
     let response!: Response;
     const asked = await statementsDuring(async () => {
-      response = await getQuestions(api, { vibes: "good" }, readerToken);
+      response = await getQuestions(api, { vibes: "good" }, authorToken);
       return response;
     });
 
@@ -144,7 +144,7 @@ describe("listing Questions over HTTP", () => {
   it("refuses a Tag value no Tag in that Category holds, once the database has been asked", async () => {
     let response!: Response;
     const asked = await statementsDuring(async () => {
-      response = await getQuestions(api, { technology: "cobol" }, readerToken);
+      response = await getQuestions(api, { technology: "cobol" }, authorToken);
       return response;
     });
 
@@ -163,7 +163,7 @@ describe("listing Questions over HTTP", () => {
     ["an offset before the start", { offset: -1 }],
     ["a limit that is not a number", { limit: "lots" }],
   ])("refuses %s rather than quietly reading it as something else", async (_case, params) => {
-    const response = await getQuestions(api, params, readerToken);
+    const response = await getQuestions(api, params, authorToken);
 
     expect(response.status).toBe(400);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
@@ -173,20 +173,22 @@ describe("listing Questions over HTTP", () => {
     const named = await clientIdNamed(api.database, seedClient.name);
 
     const forReviewer = await getQuestions(api, { limit: maxQuestionPageSize }, reviewerToken);
-    const forReader = await getQuestions(api, { limit: maxQuestionPageSize }, readerToken);
+    // A fresh Author, since the seeded one wrote these and would see them whoever else could.
+    const newcomerToken = await logInAsAnother(api, "author");
+    const forNewcomer = await getQuestions(api, { limit: maxQuestionPageSize }, newcomerToken);
 
     const seenByReviewer = questionListResponseSchema.parse(await forReviewer.json());
-    const seenByReader = questionListResponseSchema.parse(await forReader.json());
+    const seenByNewcomer = questionListResponseSchema.parse(await forNewcomer.json());
     const names = ({ clients }: { clients: { id: string }[] }) =>
       clients.some(({ id }) => id === named);
     expect(seenByReviewer.questions.some(names)).toBe(true);
-    expect(seenByReader.questions.some(names)).toBe(true);
+    expect(seenByNewcomer.questions.some(names)).toBe(true);
   });
 
   it("returns the Questions a keyword and a Category filter both match", async () => {
     const filter = { technology: "typescript" };
 
-    const searched = await getQuestions(api, { ...filter, keywords: inOneAnswerNoteOnly }, readerToken);
+    const searched = await getQuestions(api, { ...filter, keywords: inOneAnswerNoteOnly }, authorToken);
 
     const both = questionListResponseSchema.parse(await searched.json());
     expect(both.questions.map((question) => question.id)).toEqual([
@@ -195,10 +197,10 @@ describe("listing Questions over HTTP", () => {
 
     // Each half of the request alone answers with more, so neither was read and dropped.
     const filterOnly = questionListResponseSchema.parse(
-      await (await getQuestions(api, filter, readerToken)).json(),
+      await (await getQuestions(api, filter, authorToken)).json(),
     );
     const keywordOnly = questionListResponseSchema.parse(
-      await (await getQuestions(api, { keywords: inMuchOfTheBulkBank }, readerToken)).json(),
+      await (await getQuestions(api, { keywords: inMuchOfTheBulkBank }, authorToken)).json(),
     );
     expect(filterOnly.questions.length).toBeGreaterThan(both.questions.length);
     expect(keywordOnly.questions.length).toBeGreaterThan(both.questions.length);
@@ -208,7 +210,7 @@ describe("listing Questions over HTTP", () => {
     const response = await getQuestions(
       api,
       { keywords: inMuchOfTheBulkBank, technology: "no-such-tag" },
-      readerToken,
+      authorToken,
     );
 
     expect(response.status).toBe(400);
@@ -218,24 +220,24 @@ describe("listing Questions over HTTP", () => {
   it("refuses keywords longer than the cap rather than cutting them short", async () => {
     const tooLong = "a".repeat(maxKeywordsLength + 1);
 
-    const response = await getQuestions(api, { keywords: tooLong }, readerToken);
+    const response = await getQuestions(api, { keywords: tooLong }, authorToken);
 
     expect(response.status).toBe(400);
     // And the length just under it is answered, so the cap is where it says it is.
-    const atTheCap = await getQuestions(api, { keywords: "a".repeat(maxKeywordsLength) }, readerToken);
+    const atTheCap = await getQuestions(api, { keywords: "a".repeat(maxKeywordsLength) }, authorToken);
     expect(atTheCap.status).toBe(200);
   });
 
   it("reads an empty keywords parameter as no keywords at all", async () => {
-    const response = await getQuestions(api, { keywords: "  " }, readerToken);
+    const response = await getQuestions(api, { keywords: "  " }, authorToken);
 
-    // The whole bank the Reader can see, newest first, rather than an empty page.
+    // The whole bank the Author can see, newest first, rather than an empty page.
     const body = questionListResponseSchema.parse(await response.json());
     expect(body.questions.length).toBe(defaultQuestionPageSize);
   });
 
   it("carries the page it used back to a caller that searched", async () => {
-    const response = await getQuestions(api, { keywords: inMuchOfTheBulkBank }, readerToken);
+    const response = await getQuestions(api, { keywords: inMuchOfTheBulkBank }, authorToken);
 
     const body = questionListResponseSchema.parse(await response.json());
     expect(body.limit).toBe(defaultQuestionPageSize);

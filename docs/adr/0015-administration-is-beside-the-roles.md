@@ -1,5 +1,7 @@
 # Administration is an authority beside the roles, not above them
 
+_Partly replaced by ADR-0055: there is no Reader any more, so the ladder is Author and Reviewer._
+
 Reader, Author and Reviewer form a ladder about Questions: what a Viewer may read, add and edit.
 Administering access asks a different question — who may see a Client's material, who holds which
 role, who may log in at all — and putting it at the top of that ladder would make the person you

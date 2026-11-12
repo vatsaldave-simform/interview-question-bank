@@ -18,8 +18,8 @@ import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 describe("the role a Role Request shows its asker holding", () => {
   let api: TestApi;
   let administratorToken: string;
-  let readerToken: string;
-  let readerId: string;
+  let authorToken: string;
+  let authorId: string;
 
   beforeAll(async () => {
     api = await startTestApi();
@@ -28,14 +28,14 @@ describe("the role a Role Request shows its asker holding", () => {
     await seedTheBank(api.database);
     // The seeded Reviewer is the only Administrator (viewers.seed.ts).
     administratorToken = await logIn(api, seededViewer("reviewer"));
-    readerToken = await logIn(api, seededViewer("reader"));
-    readerId = (await viewerByRole(api.database, "reader")).id;
+    authorToken = await logIn(api, seededViewer("author"));
+    authorId = (await viewerByRole(api.database, "author")).id;
   });
   afterAll(async () => {
     await api.stop();
   });
 
-  const raise = (role: ViewerRole) => raisedRoleRequestId(api, role, readerToken);
+  const raise = (role: ViewerRole) => raisedRoleRequestId(api, role, authorToken);
 
   async function theQueue() {
     const response = await getRoleRequestQueue(api, administratorToken);
@@ -43,8 +43,8 @@ describe("the role a Role Request shows its asker holding", () => {
   }
 
   /** Set by an Administrator directly, not through the Role Request. */
-  async function setTheReadersRole(role: ViewerRole): Promise<void> {
-    const response = await api.request(`/api/viewers/${readerId}/role`, {
+  async function setTheAuthorsRole(role: ViewerRole): Promise<void> {
+    const response = await api.request(`/api/viewers/${authorId}/role`, {
       method: "PATCH",
       headers: {
         "content-type": "application/json",
@@ -71,43 +71,43 @@ describe("the role a Role Request shows its asker holding", () => {
   });
 
   it("is shown to the Viewer who asked, in their own list", async () => {
-    await raise("author");
+    await raise("reviewer");
 
-    const [mine] = await myRoleRequests(api, readerToken);
+    const [mine] = await myRoleRequests(api, authorToken);
 
-    expect([mine?.heldRole, mine?.role]).toEqual(["reader", "author"]);
+    expect([mine?.heldRole, mine?.role]).toEqual(["author", "reviewer"]);
   });
 
   it("is shown to an Administrator, in the open list", async () => {
-    const id = await raise("author");
+    const id = await raise("reviewer");
 
     const queued = (await theQueue()).find((roleRequest) => roleRequest.id === id);
 
-    expect([queued?.heldRole, queued?.role]).toEqual(["reader", "author"]);
+    expect([queued?.heldRole, queued?.role]).toEqual(["author", "reviewer"]);
   });
 
   it("is the role held when the list is read, not when the Role Request was raised", async () => {
     const id = await raise("reviewer");
-    await setTheReadersRole("author");
+    await setTheAuthorsRole("reviewer");
 
-    const [mine] = await myRoleRequests(api, readerToken);
+    const [mine] = await myRoleRequests(api, authorToken);
     const queued = (await theQueue()).find((roleRequest) => roleRequest.id === id);
 
-    expect(mine?.heldRole).toBe("author");
-    expect(queued?.heldRole).toBe("author");
+    expect(mine?.heldRole).toBe("reviewer");
+    expect(queued?.heldRole).toBe("reviewer");
   });
 
   it("is the role just granted, in the answer to a grant", async () => {
-    const id = await raise("author");
+    const id = await raise("reviewer");
 
     const response = await postDecision(api, id, { outcome: "granted" }, administratorToken);
 
     const { roleRequest } = roleRequestResponseSchema.parse(await response.json());
-    expect(roleRequest.heldRole).toBe("author");
+    expect(roleRequest.heldRole).toBe("reviewer");
   });
 
   it("is the role still held, in the answer to a denial", async () => {
-    const id = await raise("author");
+    const id = await raise("reviewer");
 
     const response = await postDecision(
       api,
@@ -117,6 +117,6 @@ describe("the role a Role Request shows its asker holding", () => {
     );
 
     const { roleRequest } = roleRequestResponseSchema.parse(await response.json());
-    expect(roleRequest.heldRole).toBe("reader");
+    expect(roleRequest.heldRole).toBe("author");
   });
 });

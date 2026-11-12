@@ -1,4 +1,4 @@
-import { loginResponseSchema, type ViewerRole } from "@iqb/shared";
+import { loginResponseSchema, type Viewer, type ViewerRole } from "@iqb/shared";
 import { hashPassword } from "../../src/features/auth/password.ts";
 import { type SeedViewer } from "../../src/features/viewers/viewers.seed.ts";
 import type { TestApi } from "./test-api.ts";
@@ -35,17 +35,27 @@ export async function logIn(api: TestApi, viewer: SeedViewer): Promise<string> {
 
 /** A new Viewer of the role, for a test that needs someone other than the seeded one. */
 export async function logInAsAnother(api: TestApi, role: ViewerRole): Promise<string> {
+  return (await signInAnother(api, role)).token;
+}
+
+/** The same, handing back the Viewer as well, for a test that also reads from the database
+ * as them. */
+export async function signInAnother(
+  api: TestApi,
+  role: ViewerRole,
+): Promise<{ token: string; viewer: Viewer }> {
   const credentials = {
     email: `${role}-${crypto.randomUUID()}@iqb.test`,
     password: `${role}-password`,
     role,
   };
-  await api.database.viewer.create({
+  const viewer = await api.database.viewer.create({
     data: {
       email: credentials.email,
       role,
       passwordHash: await hashPassword(credentials.password),
     },
+    select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
   });
-  return logIn(api, credentials);
+  return { token: await logIn(api, credentials), viewer };
 }

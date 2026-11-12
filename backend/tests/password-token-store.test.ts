@@ -18,7 +18,7 @@ describe("the password token store", () => {
   let viewerId: string;
   let otherViewerId: string;
 
-  const idOf = async (role: "author" | "reader"): Promise<string> => {
+  const idOf = async (role: "author" | "reviewer"): Promise<string> => {
     const viewer = await database.viewer.findUniqueOrThrow({
       where: { email: seededViewer(role).email },
       select: { id: true },
@@ -33,7 +33,7 @@ describe("the password token store", () => {
     await truncateAll(database);
     await seedViewerAccounts(database);
     viewerId = await idOf("author");
-    otherViewerId = await idOf("reader");
+    otherViewerId = await idOf("reviewer");
   });
   afterAll(async () => {
     await database.$disconnect();

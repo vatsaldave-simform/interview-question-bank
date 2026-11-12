@@ -12,7 +12,7 @@ import {
 } from "../src/features/role-requests/role-requests.service.ts";
 import { lockViewer, setRole } from "../src/features/viewers/viewers.repository.ts";
 import { ConflictError } from "../src/platform/errors.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, seededViewer, signInAnother } from "./helpers/auth.ts";
 import { unknownId } from "./helpers/clients.ts";
 import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import {
@@ -46,9 +46,10 @@ describe("deciding a Role Request", () => {
   let api: TestApi;
   let administratorToken: string;
   let administratorId: string;
-  let readerToken: string;
+  /** An Author other than the seeded one, who raises the Role Requests here. */
+  let asker: Viewer;
+  let askerToken: string;
   let authorToken: string;
-  let reader: Viewer;
 
   beforeAll(async () => {
     api = await startTestApi();
@@ -58,9 +59,8 @@ describe("deciding a Role Request", () => {
     // The seeded Reviewer is the only Administrator (viewers.seed.ts).
     administratorToken = await logIn(api, seededViewer("reviewer"));
     administratorId = (await viewerByRole(api.database, "reviewer")).id;
-    readerToken = await logIn(api, seededViewer("reader"));
+    ({ viewer: asker, token: askerToken } = await signInAnother(api, "author"));
     authorToken = await logIn(api, seededViewer("author"));
-    reader = await viewerByRole(api.database, "reader");
   });
   afterAll(async () => {
     await api.stop();
@@ -68,7 +68,7 @@ describe("deciding a Role Request", () => {
 
   describe("by a Viewer who is not an Administrator", () => {
     it("refuses them the queue", async () => {
-      await raisedRoleRequestId(api, "reviewer", readerToken);
+      await raisedRoleRequestId(api, "reviewer", askerToken);
 
       const response = await getRoleRequestQueue(api, authorToken);
 
@@ -88,12 +88,12 @@ describe("deciding a Role Request", () => {
   });
 
   it("shows an Administrator the open Role Requests, oldest first", async () => {
-    const decided = await raisedRoleRequestId(api, "author", readerToken);
+    const decided = await raisedRoleRequestId(api, "reviewer", askerToken);
     await postDecision(api, decided, { outcome: "denied", reason: "Not yet." }, administratorToken);
     await aMomentLater();
     const older = await raisedRoleRequestId(api, "reviewer", authorToken);
     await aMomentLater();
-    const newer = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const newer = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     const response = await getRoleRequestQueue(api, administratorToken);
 
@@ -103,7 +103,7 @@ describe("deciding a Role Request", () => {
   });
 
   it("changes the role of the Viewer who asked when it is granted", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     const response = await postDecision(api, id, { outcome: "granted" }, administratorToken);
 
@@ -112,20 +112,20 @@ describe("deciding a Role Request", () => {
     expect(roleRequest).toMatchObject({ id, state: "granted", reason: null });
     expect(roleRequest.decidedAt).not.toBeNull();
     // On their very next request, with the token they already held.
-    expect(await currentRole(api, readerToken)).toBe("reviewer");
+    expect(await currentRole(api, askerToken)).toBe("reviewer");
   });
 
   it("keeps a reason an Administrator gives with a grant", async () => {
-    const id = await raisedRoleRequestId(api, "author", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     await postDecision(api, id, { outcome: "granted", reason: "Welcome aboard." }, administratorToken);
 
-    const [mine] = await myRoleRequests(api, readerToken);
+    const [mine] = await myRoleRequests(api, askerToken);
     expect(mine).toMatchObject({ state: "granted", reason: "Welcome aboard." });
   });
 
   it("lets the Viewer who asked read why their Role Request was denied", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     const response = await postDecision(
       api,
@@ -135,20 +135,20 @@ describe("deciding a Role Request", () => {
     );
 
     expect(response.status).toBe(200);
-    const [mine] = await myRoleRequests(api, readerToken);
+    const [mine] = await myRoleRequests(api, askerToken);
     expect(mine).toMatchObject({
       id,
       state: "denied",
       reason: "Review a few Questions as an Author first.",
     });
-    expect(await currentRole(api, readerToken)).toBe("reader");
+    expect(await currentRole(api, askerToken)).toBe("author");
   });
 
   it("lets the Viewer who asked raise a new Role Request after a denial", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
     await postDecision(api, id, { outcome: "denied", reason: "Not yet." }, administratorToken);
 
-    const response = await postRoleRequest(api, { role: "reviewer" }, readerToken);
+    const response = await postRoleRequest(api, { role: "reviewer" }, askerToken);
 
     expect(response.status).toBe(201);
   });
@@ -159,24 +159,24 @@ describe("deciding a Role Request", () => {
     ["an outcome that does not exist", { outcome: "withdrawn" }],
     ["a field it does not know", { outcome: "granted", role: "reviewer" }],
   ])("refuses %s, and leaves the Role Request open", async (_, body) => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     const response = await postDecision(api, id, body, administratorToken);
 
     expect(response.status).toBe(400);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("invalid_request");
-    const [mine] = await myRoleRequests(api, readerToken);
+    const [mine] = await myRoleRequests(api, askerToken);
     expect(mine?.state).toBe("open");
   });
 
   it("refuses to decide a Role Request a second time", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
     await postDecision(api, id, { outcome: "denied", reason: "Not yet." }, administratorToken);
 
     const response = await postDecision(api, id, { outcome: "granted" }, administratorToken);
 
     expect(response.status).toBe(409);
-    expect(await currentRole(api, readerToken)).toBe("reader");
+    expect(await currentRole(api, askerToken)).toBe("author");
     expect(await decisionEvents(api)).toHaveLength(1);
   });
 
@@ -193,7 +193,7 @@ describe("deciding a Role Request", () => {
   });
 
   it("records a grant as a Change Event naming the Administrator who decided", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     await postDecision(api, id, { outcome: "granted" }, administratorToken);
 
@@ -205,15 +205,15 @@ describe("deciding a Role Request", () => {
       viewerId: administratorId,
       payload: {
         roleRequestId: id,
-        viewer: { id: reader.id, email: reader.email },
-        role: { before: "reader", after: "reviewer" },
+        viewer: { id: asker.id, email: asker.email },
+        role: { before: "author", after: "reviewer" },
         reason: null,
       },
     });
   });
 
   it("records a denial as a Change Event carrying the reason", async () => {
-    const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+    const id = await raisedRoleRequestId(api, "reviewer", askerToken);
 
     await postDecision(api, id, { outcome: "denied", reason: "Not yet." }, administratorToken);
 
@@ -225,7 +225,7 @@ describe("deciding a Role Request", () => {
       viewerId: administratorId,
       payload: {
         roleRequestId: id,
-        viewer: { id: reader.id, email: reader.email },
+        viewer: { id: asker.id, email: asker.email },
         role: "reviewer",
         reason: "Not yet.",
       },
@@ -245,12 +245,8 @@ describe("deciding a Role Request", () => {
         await seedTheBank(api.database);
         const first = await viewerByRole(api.database, "reviewer");
         const second = await aSecondAdministrator();
-        const target = await viewerByRole(api.database, "reader");
-        const id = await raisedRoleRequestId(
-          api,
-          "reviewer",
-          await logIn(api, seededViewer("reader")),
-        );
+        const { viewer: target, token } = await signInAnother(api, "author");
+        const id = await raisedRoleRequestId(api, "reviewer", token);
 
         const results = await Promise.allSettled([
           grantRoleRequest(api.database, first, id, null),
@@ -264,7 +260,7 @@ describe("deciding a Role Request", () => {
         expect(events).toHaveLength(1);
         // The role is the one the decision that won says it is.
         const stored = await api.database.viewer.findUniqueOrThrow({ where: { id: target.id } });
-        expect(stored.role).toBe(events[0]?.type === "role_request_granted" ? "reviewer" : "reader");
+        expect(stored.role).toBe(events[0]?.type === "role_request_granted" ? "reviewer" : "author");
       }
     });
 
@@ -272,8 +268,13 @@ describe("deciding a Role Request", () => {
     // written the role and not yet committed, which two requests sent together rarely meet.
     it("records the role a grant replaced, not the one before a role change under way", async () => {
       const administrator = await viewerByRole(api.database, "reviewer");
+      // A Reader, because the role has to change twice, to two roles other than the one held.
       const target = await viewerByRole(api.database, "reader");
-      const id = await raisedRoleRequestId(api, "reviewer", readerToken);
+      const id = await raisedRoleRequestId(
+        api,
+        "reviewer",
+        await logIn(api, seededViewer("reader")),
+      );
       const roleWritten = Promise.withResolvers<void>();
       const goOn = Promise.withResolvers<void>();
 

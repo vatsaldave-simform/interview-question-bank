@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { findVisibleQuestionById } from "../src/features/questions/questions.repository.ts";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
 import type { Database } from "../src/platform/database.ts";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { aViewer, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** The seeded Questions this file reasons about, by what makes each one interesting. */
@@ -48,20 +48,20 @@ describe("fetching a Question through the shared query function", () => {
     }
   });
 
-  it("answers a Reader a Pending Question exactly as an id that does not exist", async () => {
-    const reader = await viewer("reader");
+  it("answers another Author a Pending Question exactly as an id that does not exist", async () => {
+    const newcomer = await aViewer(database, "author");
 
-    const pending = await findVisibleQuestionById(database, reader, pendingWithNoClient);
-    const neverExisted = await findVisibleQuestionById(database, reader, crypto.randomUUID());
+    const pending = await findVisibleQuestionById(database, newcomer, pendingWithNoClient);
+    const neverExisted = await findVisibleQuestionById(database, newcomer, crypto.randomUUID());
 
     expect(pending).toBeNull();
     expect(neverExisted).toBeNull();
   });
 
-  it("answers a Reader a Rejected Question exactly as an id that does not exist", async () => {
-    const reader = await viewer("reader");
+  it("answers another Author a Rejected Question exactly as an id that does not exist", async () => {
+    const newcomer = await aViewer(database, "author");
 
-    const rejected = await findVisibleQuestionById(database, reader, rejectedWithNoClient);
+    const rejected = await findVisibleQuestionById(database, newcomer, rejectedWithNoClient);
 
     expect(rejected).toBeNull();
   });
@@ -93,11 +93,11 @@ describe("fetching a Question through the shared query function", () => {
   });
 
   // A Client opens nothing either: the Publication State rule is all that is left.
-  it("answers a Reader a Pending Question that names a Client exactly as one that does not exist", async () => {
-    const reader = await viewer("reader");
+  it("answers another Author a Pending Question that names a Client exactly as one that does not exist", async () => {
+    const newcomer = await aViewer(database, "author");
 
-    const found = await findVisibleQuestionById(database, reader, pendingWithAClient);
-    const neverExisted = await findVisibleQuestionById(database, reader, crypto.randomUUID());
+    const found = await findVisibleQuestionById(database, newcomer, pendingWithAClient);
+    const neverExisted = await findVisibleQuestionById(database, newcomer, crypto.randomUUID());
 
     expect(found).toBeNull();
     expect(neverExisted).toBeNull();

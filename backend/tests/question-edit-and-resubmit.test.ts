@@ -34,6 +34,8 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   /** Author of every seeded Question. */
   let authorToken: string;
   let readerToken: string;
+  /** An Author who added none of the seeded Questions. */
+  let newcomerToken: string;
   let reviewerToken: string;
 
   beforeAll(async () => {
@@ -41,6 +43,7 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     readerToken = await logIn(api, seededViewer("reader"));
+    newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
   // Every test here writes, so each one starts from the seeded bank again.
@@ -75,10 +78,10 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
       await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),
     );
 
-    const asAReaderSeesIt = await questionAnswered(
-      await getQuestion(api, pendingAndUnrestricted, readerToken),
+    const asOthersSeeIt = await questionAnswered(
+      await getQuestion(api, pendingAndUnrestricted, newcomerToken),
     );
-    expect(asAReaderSeesIt.text).toBe(newText);
+    expect(asOthersSeeIt.text).toBe(newText);
   });
 
   it("leaves an edited Rejected Question Rejected, and out of the queue", async () => {

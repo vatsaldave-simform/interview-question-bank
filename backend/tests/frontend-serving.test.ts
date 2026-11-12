@@ -22,7 +22,7 @@ describe("serving the client alongside the API", () => {
     await seedViewerAccounts(api.database);
     // A signed-in caller, because /api is behind the sign-in check: these tests are
     // about what the client fallback may swallow, not about the check.
-    token = await logIn(api, seededViewer("reader"));
+    token = await logIn(api, seededViewer("author"));
   });
   afterAll(async () => {
     await api.stop();

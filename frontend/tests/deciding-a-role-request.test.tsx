@@ -25,12 +25,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const fromReader = aRoleRequest({
-  viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "reader@iqb.test" },
-  heldRole: "reader",
+/** From an Author other than the seeded one, asking for Reviewer. */
+const fromColleague = aRoleRequest({
+  viewer: { id: "7c3b4a1e-0000-4000-8000-000000000007", email: "colleague@iqb.test" },
 });
 const fromAuthor = aRoleRequest({ id: "d0000000-0000-4000-8000-000000000002" });
-const reader = aViewer({ ...fromReader.viewer, role: "reader" });
+const colleague = aViewer(fromColleague.viewer);
 
 /** A bank holding the `open` Role Requests, which takes each decided one out of the queue,
  * unless `refuse` answers first. */
@@ -45,8 +45,8 @@ function aBankDeciding(
     async (request, asked) => {
       if (asked.pathname === "/api/role-requests") return answersWith({ roleRequests: open });
       if (asked.pathname === "/api/viewers") {
-        const role = rolesGranted.get(reader.id) ?? reader.role;
-        return answersWith({ viewers: [{ ...reader, role }] });
+        const role = rolesGranted.get(colleague.id) ?? colleague.role;
+        return answersWith({ viewers: [{ ...colleague, role }] });
       }
       if (asked.pathname === "/api/auth/me") {
         const role = rolesGranted.get(anAdministrator.id) ?? anAdministrator.role;
@@ -96,18 +96,18 @@ async function theDenialOf(email: string) {
 
 describe("deciding a Role Request from the administration console", () => {
   it("grants a Role Request, which leaves the queue and changes the Viewer list", async () => {
-    const api = aBankDeciding([fromReader, fromAuthor]);
+    const api = aBankDeciding([fromColleague, fromAuthor]);
     renderTheWholeClient("/administration/role-requests");
 
-    const card = await cardFor("reader@iqb.test");
+    const card = await cardFor("colleague@iqb.test");
     await userEvent.click(card.getByRole("button", { name: "Grant" }));
 
     const list = within(screen.getByRole("list", { name: "Open Role Requests" }));
-    await vi.waitFor(() => expect(list.queryByText("reader@iqb.test")).not.toBeInTheDocument());
-    expect(await theToastSaying("reader@iqb.test was granted the Reviewer role.")).toBeVisible();
+    await vi.waitFor(() => expect(list.queryByText("colleague@iqb.test")).not.toBeInTheDocument());
+    expect(await theToastSaying("colleague@iqb.test was granted the Reviewer role.")).toBeVisible();
     expect(list.getByText("author@iqb.test")).toBeVisible();
     const [sent] = decisionsSent(api);
-    expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromReader.id}/decision`);
+    expect(new URL(sent!.url).pathname).toBe(`/api/role-requests/${fromColleague.id}/decision`);
     expect(await sent!.json()).toEqual({ outcome: "granted" });
 
     const sidebar = within(screen.getByRole("navigation", { name: "Main menu" }));
@@ -117,10 +117,10 @@ describe("deciding a Role Request from the administration console", () => {
   });
 
   it("refuses a denial with no reason on its field, and sends nothing", async () => {
-    const api = aBankDeciding([fromReader]);
+    const api = aBankDeciding([fromColleague]);
     renderTheWholeClient("/administration/role-requests");
 
-    const denial = await theDenialOf("reader@iqb.test");
+    const denial = await theDenialOf("colleague@iqb.test");
     await userEvent.type(denial.getByLabelText("Why it is denied"), "   ");
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
@@ -133,27 +133,27 @@ describe("deciding a Role Request from the administration console", () => {
   });
 
   it("denies a Role Request with the reason written, which leaves the queue", async () => {
-    const api = aBankDeciding([fromReader]);
+    const api = aBankDeciding([fromColleague]);
     renderTheWholeClient("/administration/role-requests");
 
-    const denial = await theDenialOf("reader@iqb.test");
+    const denial = await theDenialOf("colleague@iqb.test");
     await userEvent.type(denial.getByLabelText("Why it is denied"), "  Not on a project yet. ");
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
     expect(await screen.findByRole("heading", { name: "No Role Request is open" })).toBeVisible();
-    expect(await theToastSaying("reader@iqb.test's Role Request was denied.")).toBeVisible();
+    expect(await theToastSaying("colleague@iqb.test's Role Request was denied.")).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const [sent] = decisionsSent(api);
     expect(await sent!.json()).toEqual({ outcome: "denied", reason: "Not on a project yet." });
   });
 
   it("closes the denial when the API refuses it, and reports it above the queue", async () => {
-    aBankDeciding([fromReader], () =>
+    aBankDeciding([fromColleague], () =>
       refusesWith(409, "conflict", "That Role Request has already been decided."),
     );
     renderTheWholeClient("/administration/role-requests");
 
-    const denial = await theDenialOf("reader@iqb.test");
+    const denial = await theDenialOf("colleague@iqb.test");
     await userEvent.type(denial.getByLabelText("Why it is denied"), "Not on a project yet.");
     await userEvent.click(denial.getByRole("button", { name: "Send the denial" }));
 
@@ -165,24 +165,26 @@ describe("deciding a Role Request from the administration console", () => {
   });
 
   it("asks again after a refusal, and keeps the refusal on screen", async () => {
-    const open = [fromReader, fromAuthor];
+    const open = [fromColleague, fromAuthor];
     aBankDeciding(open, (request) => {
-      if (!request.url.includes(fromReader.id)) return undefined;
+      if (!request.url.includes(fromColleague.id)) return undefined;
       // Decided a moment ago by another Administrator.
-      open.splice(open.indexOf(fromReader), 1);
+      open.splice(open.indexOf(fromColleague), 1);
       return refusesWith(409, "conflict", "That Role Request has already been decided.");
     });
     renderTheWholeClient("/administration/role-requests");
 
-    const card = await cardFor("reader@iqb.test");
+    const card = await cardFor("colleague@iqb.test");
     await userEvent.click(card.getByRole("button", { name: "Grant" }));
 
     const queue = within(screen.getByRole("region", { name: "Role Requests" }));
     const alert = within(await queue.findByRole("alert"));
-    expect(alert.getByText("The Role Request from reader@iqb.test was not decided.")).toBeVisible();
+    expect(
+      alert.getByText("The Role Request from colleague@iqb.test was not decided."),
+    ).toBeVisible();
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
     const list = within(queue.getByRole("list", { name: "Open Role Requests" }));
-    await vi.waitFor(() => expect(list.queryByText("reader@iqb.test")).not.toBeInTheDocument());
+    await vi.waitFor(() => expect(list.queryByText("colleague@iqb.test")).not.toBeInTheDocument());
     expect(alert.getByText("That Role Request has already been decided.")).toBeVisible();
     expect(toastsShown()).toHaveLength(0);
   });

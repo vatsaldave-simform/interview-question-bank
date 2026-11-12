@@ -1,7 +1,7 @@
 import { apiErrorSchema } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logIn, postLogin, seededViewer } from "./helpers/auth.ts";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { aViewer, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { tokenMailedTo } from "./helpers/set-password-link.ts";
 import { startTestApi, statusAndBody, type LogLine, type TestApi } from "./helpers/test-api.ts";
 import { readUntil } from "./helpers/wait.ts";
@@ -17,7 +17,7 @@ async function createViewerWithNoPassword(api: TestApi): Promise<string> {
   const response = await api.request("/api/viewers", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${administratorToken}` },
-    body: JSON.stringify({ email: newColleague, role: "reader" }),
+    body: JSON.stringify({ email: newColleague, role: "author" }),
   });
   expect(response.status).toBe(201);
   const token = tokenMailedTo(api, newColleague);
@@ -25,16 +25,17 @@ async function createViewerWithNoPassword(api: TestApi): Promise<string> {
   return token;
 }
 
-/** Deactivates the seeded Reader, whose address is then the Deactivated one. */
-async function deactivateTheReader(api: TestApi): Promise<string> {
+/** Deactivates a new Author, whose address is then the Deactivated one. Not the seeded
+ * Author, whom the same tests also ask a reset for. */
+async function deactivateSomeone(api: TestApi): Promise<string> {
   const administratorToken = await logIn(api, seededViewer("reviewer"));
-  const reader = await viewerByRole(api.database, "reader");
-  const response = await api.request(`/api/viewers/${reader.id}/deactivation`, {
+  const someone = await aViewer(api.database, "author");
+  const response = await api.request(`/api/viewers/${someone.id}/deactivation`, {
     method: "POST",
     headers: { authorization: `Bearer ${administratorToken}` },
   });
   expect(response.status).toBe(200);
-  return reader.email;
+  return someone.email;
 }
 
 const newPassword = "a long password of my own";
@@ -107,7 +108,7 @@ describe("asking for a password reset", () => {
 
   it("answers every address exactly the same, whether or not it has an account", async () => {
     await createViewerWithNoPassword(api);
-    const deactivated = await deactivateTheReader(api);
+    const deactivated = await deactivateSomeone(api);
 
     const answers = [
       await askForReset(api, seededViewer("author").email),
@@ -271,7 +272,7 @@ describe("asking for a reset again once the window has passed", () => {
 
   it("mails an active Viewer and one with no password yet, and nobody else", async () => {
     await createViewerWithNoPassword(api);
-    const deactivated = await deactivateTheReader(api);
+    const deactivated = await deactivateSomeone(api);
     await waitOutTheWindow();
 
     await askForReset(api, nobody);

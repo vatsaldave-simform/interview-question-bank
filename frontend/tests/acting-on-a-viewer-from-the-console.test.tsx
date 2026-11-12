@@ -19,10 +19,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const reader = aViewer({
-  id: "7c3b4a1e-0000-4000-8000-000000000004",
-  email: "reader@iqb.test",
-  role: "reader",
+/** An Author to act on. */
+const colleague = aViewer({
+  id: "7c3b4a1e-0000-4000-8000-000000000007",
+  email: "colleague@iqb.test",
 });
 
 /** How the bank changes a Viewer for each act, keyed by method and the path's last part. */
@@ -100,91 +100,95 @@ async function actsOfferedTo(email: string): Promise<string[]> {
 
 describe("acting on one Viewer from the administration console", () => {
   it("changes a Viewer's role to the one picked", async () => {
-    const api = aBankHolding([anAdministrator, reader]);
+    const api = aBankHolding([anAdministrator, colleague]);
     renderTheWholeClient("/administration/viewers");
 
-    await pick("Change role…", "reader@iqb.test");
+    await pick("Change role…", "colleague@iqb.test");
     const dialog = within(await screen.findByRole("dialog", { name: "Change role" }));
-    await userEvent.selectOptions(dialog.getByLabelText("Role for reader@iqb.test"), "Author");
+    await userEvent.selectOptions(dialog.getByLabelText("Role for colleague@iqb.test"), "Reviewer");
     await userEvent.click(dialog.getByRole("button", { name: "Change role" }));
 
-    const row = await rowFor("reader@iqb.test");
-    expect(await row.findByRole("cell", { name: "Author" })).toBeVisible();
+    const row = await rowFor("colleague@iqb.test");
+    expect(await row.findByRole("cell", { name: "Reviewer" })).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     // The new role shows in the row that was acted on, so it needs no toast.
     expect(toastsShown()).toHaveLength(0);
-    expect(actsSent(api)).toEqual([`PATCH /api/viewers/${reader.id}/role`]);
+    expect(actsSent(api)).toEqual([`PATCH /api/viewers/${colleague.id}/role`]);
     const [sent] = api.sent.filter((request) => request.method === "PATCH");
-    expect(await sent?.json()).toEqual({ role: "author" });
+    expect(await sent?.json()).toEqual({ role: "reviewer" });
   });
 
   it("reports a refused role change in its dialog, and leaves the role as it was", async () => {
-    aBankHolding([anAdministrator, reader], (request) =>
+    aBankHolding([anAdministrator, colleague], (request) =>
       request.method === "PATCH" ? refusesWith(404, "not_found", "Not found.") : undefined,
     );
     renderTheWholeClient("/administration/viewers");
 
-    await pick("Change role…", "reader@iqb.test");
+    await pick("Change role…", "colleague@iqb.test");
     const dialog = within(await screen.findByRole("dialog", { name: "Change role" }));
-    await userEvent.selectOptions(dialog.getByLabelText("Role for reader@iqb.test"), "Author");
+    await userEvent.selectOptions(dialog.getByLabelText("Role for colleague@iqb.test"), "Reviewer");
     await userEvent.click(dialog.getByRole("button", { name: "Change role" }));
 
     const alert = within(await dialog.findByRole("alert"));
     expect(alert.getByText("The role was not changed.")).toBeVisible();
     expect(alert.getByText("Not found.")).toBeVisible();
     await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
-    expect((await rowFor("reader@iqb.test")).getByRole("cell", { name: "Reader" })).toBeVisible();
+    expect(
+      (await rowFor("colleague@iqb.test")).getByRole("cell", { name: "Author" }),
+    ).toBeVisible();
   });
 
   it("appoints a Viewer as an Administrator, and withdraws the authority again", async () => {
-    const api = aBankHolding([anAdministrator, reader]);
+    const api = aBankHolding([anAdministrator, colleague]);
     renderTheWholeClient("/administration/viewers");
 
-    const row = await rowFor("reader@iqb.test");
-    await pick("Appoint as Administrator", "reader@iqb.test");
+    const row = await rowFor("colleague@iqb.test");
+    await pick("Appoint as Administrator", "colleague@iqb.test");
     expect(await row.findByRole("cell", { name: "Yes" })).toBeVisible();
 
-    await pick("Withdraw Administrator", "reader@iqb.test");
+    await pick("Withdraw Administrator", "colleague@iqb.test");
     expect(await row.findByRole("cell", { name: "No" })).toBeVisible();
     expect(toastsShown()).toHaveLength(0);
-    expect(await actsOfferedTo("reader@iqb.test")).toContain("Appoint as Administrator");
+    expect(await actsOfferedTo("colleague@iqb.test")).toContain("Appoint as Administrator");
     expect(actsSent(api)).toEqual([
-      `POST /api/viewers/${reader.id}/administrator`,
-      `DELETE /api/viewers/${reader.id}/administrator`,
+      `POST /api/viewers/${colleague.id}/administrator`,
+      `DELETE /api/viewers/${colleague.id}/administrator`,
     ]);
   });
 
   it("Deactivates a Viewer, and reactivates them again", async () => {
-    const api = aBankHolding([anAdministrator, reader]);
+    const api = aBankHolding([anAdministrator, colleague]);
     renderTheWholeClient("/administration/viewers");
 
-    const row = await rowFor("reader@iqb.test");
-    await pick("Deactivate", "reader@iqb.test");
+    const row = await rowFor("colleague@iqb.test");
+    await pick("Deactivate", "colleague@iqb.test");
     await confirm("Deactivate");
     expect(await row.findByRole("cell", { name: "Deactivated" })).toBeVisible();
-    expect(await theToastSaying("reader@iqb.test was Deactivated.")).toBeVisible();
+    expect(await theToastSaying("colleague@iqb.test was Deactivated.")).toBeVisible();
 
-    await pick("Reactivate", "reader@iqb.test");
+    await pick("Reactivate", "colleague@iqb.test");
     expect(await row.findByRole("cell", { name: "Active" })).toBeVisible();
-    expect(await theToastSaying("reader@iqb.test was Reactivated.")).toBeVisible();
-    expect(await actsOfferedTo("reader@iqb.test")).toContain("Deactivate");
+    expect(await theToastSaying("colleague@iqb.test was Reactivated.")).toBeVisible();
+    expect(await actsOfferedTo("colleague@iqb.test")).toContain("Deactivate");
     expect(actsSent(api)).toEqual([
-      `POST /api/viewers/${reader.id}/deactivation`,
-      `DELETE /api/viewers/${reader.id}/deactivation`,
+      `POST /api/viewers/${colleague.id}/deactivation`,
+      `DELETE /api/viewers/${colleague.id}/deactivation`,
     ]);
   });
 
   it("asks before it Deactivates, and sends nothing on Cancel", async () => {
-    const api = aBankHolding([anAdministrator, reader]);
+    const api = aBankHolding([anAdministrator, colleague]);
     renderTheWholeClient("/administration/viewers");
 
-    await pick("Deactivate", "reader@iqb.test");
+    await pick("Deactivate", "colleague@iqb.test");
     const confirmation = within(await screen.findByRole("alertdialog"));
-    expect(confirmation.getByText("Deactivate reader@iqb.test?")).toBeVisible();
+    expect(confirmation.getByText("Deactivate colleague@iqb.test?")).toBeVisible();
     await userEvent.click(confirmation.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    expect((await rowFor("reader@iqb.test")).getByRole("cell", { name: "Active" })).toBeVisible();
+    expect(
+      (await rowFor("colleague@iqb.test")).getByRole("cell", { name: "Active" }),
+    ).toBeVisible();
     expect(actsSent(api)).toEqual([]);
   });
 
@@ -204,7 +208,7 @@ describe("acting on one Viewer from the administration console", () => {
       refusal: "The last active Administrator cannot be Deactivated.",
     },
   ])("reports the refusal to $act the last Administrator on their row alone", async (refused) => {
-    aBankHolding([anAdministrator, reader], (request) =>
+    aBankHolding([anAdministrator, colleague], (request) =>
       request.method === refused.method &&
       new URL(request.url).pathname === `/api/viewers/${anAdministrator.id}/${refused.part}`
         ? refusesWith(409, "conflict", refused.refusal)
@@ -220,7 +224,7 @@ describe("acting on one Viewer from the administration console", () => {
     expect(alert.getByText(refused.refusal)).toBeVisible();
     expect(row.getByRole("cell", { name: "Yes" })).toBeVisible();
     expect(row.getByRole("cell", { name: "Active" })).toBeVisible();
-    expect((await rowFor("reader@iqb.test")).queryByRole("alert")).not.toBeInTheDocument();
+    expect((await rowFor("colleague@iqb.test")).queryByRole("alert")).not.toBeInTheDocument();
     expect(toastsShown()).toHaveLength(0);
   });
 

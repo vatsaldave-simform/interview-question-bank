@@ -1,6 +1,6 @@
 import { apiErrorSchema, questionResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   getQuestion,
@@ -48,17 +48,17 @@ describe("adding a Question over HTTP", () => {
     expect(body.question.publicationState).toBe("pending");
   });
 
-  it("keeps that Pending Question from a Reader with the same bytes as an unknown id", async () => {
+  it("keeps that Pending Question from another Author with the same bytes as an unknown id", async () => {
     const authorToken = await logIn(api, seededViewer("author"));
-    const readerToken = await logIn(api, seededViewer("reader"));
+    const newcomerToken = await logInAsAnother(api, "author");
     const question = await added(authorToken);
 
-    const toAReader = await getQuestion(api, question.id, readerToken);
-    const unknown = await getQuestion(api, unknownQuestionId, readerToken);
+    const toAnotherAuthor = await getQuestion(api, question.id, newcomerToken);
+    const unknown = await getQuestion(api, unknownQuestionId, newcomerToken);
 
-    expect(toAReader.status).toBe(unknown.status);
-    expect(toAReader.status).toBe(404);
-    expect(await toAReader.text()).toBe(await unknown.text());
+    expect(toAnotherAuthor.status).toBe(unknown.status);
+    expect(toAnotherAuthor.status).toBe(404);
+    expect(await toAnotherAuthor.text()).toBe(await unknown.text());
   });
 
   it("hands the Author their own Pending Question back", async () => {

@@ -72,7 +72,7 @@ describe("creating a Viewer", () => {
   it("stores the address lower-cased, the way login looks it up", async () => {
     const response = await postViewer(
       api,
-      { email: "  New.Colleague@IQB.test ", role: "reader" },
+      { email: "  New.Colleague@IQB.test ", role: "author" },
       administratorToken,
     );
 
@@ -138,7 +138,7 @@ describe("creating a Viewer", () => {
   });
 
   it("refuses an address that already belongs to a Viewer, whatever its case, and changes nothing", async () => {
-    const existing = seededViewer("reader");
+    const existing = seededViewer("author");
 
     const response = await postViewer(
       api,
@@ -148,7 +148,7 @@ describe("creating a Viewer", () => {
 
     expect(response.status).toBe(409);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe("conflict");
-    expect((await viewerByRole(api.database, "reader")).email).toBe(existing.email);
+    expect((await viewerByRole(api.database, "author")).email).toBe(existing.email);
     expect(await viewerCreatedEvents(api)).toHaveLength(0);
     expect(api.sentMail()).toHaveLength(0);
   });

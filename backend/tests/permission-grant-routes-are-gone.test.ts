@@ -11,14 +11,14 @@ describe("the old Permission Grant routes and the Administrator's Client list", 
   let api: TestApi;
   let administratorToken: string;
   let grantsPath: string;
-  let readerId: string;
+  let viewerId: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     administratorToken = await logIn(api, seededViewer("reviewer"));
     grantsPath = `/api/clients/${await clientIdNamed(api.database, seedClient.name)}/grants`;
-    readerId = (await viewerByRole(api.database, "reader")).id;
+    viewerId = (await viewerByRole(api.database, "author")).id;
   });
   afterAll(async () => {
     await api.stop();
@@ -27,7 +27,7 @@ describe("the old Permission Grant routes and the Administrator's Client list", 
   it.each([
     ["listing Grants", "GET", (): string => grantsPath],
     ["issuing a Grant", "POST", (): string => grantsPath],
-    ["revoking a Grant", "DELETE", (): string => `${grantsPath}/${readerId}`],
+    ["revoking a Grant", "DELETE", (): string => `${grantsPath}/${viewerId}`],
     ["listing every Client as an Administrator", "GET", (): string => "/api/clients/all"],
   ] as const)("answers %s as unknown", async (_, method, path) => {
     const headers = {
@@ -37,7 +37,7 @@ describe("the old Permission Grant routes and the Administrator's Client list", 
     const response = await api.request(path(), {
       method,
       headers,
-      ...(method === "POST" && { body: JSON.stringify({ viewerId: readerId }) }),
+      ...(method === "POST" && { body: JSON.stringify({ viewerId: viewerId }) }),
     });
 
     expect(response.status).toBe(404);
