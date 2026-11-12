@@ -5,7 +5,7 @@ import {
   insertQuestion,
 } from "../src/features/questions/questions.repository.ts";
 import type { Database } from "../src/platform/database.ts";
-import { seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
+import { aViewer, seedTheBank, viewerByRole } from "./helpers/question-bank.ts";
 import { createTestDatabase } from "./helpers/test-database.ts";
 
 /** What an Author writes comes back to them unchanged, and reaches nobody else yet. */
@@ -101,10 +101,10 @@ describe("adding a Question and fetching it back", () => {
   });
 
   // The review check applies to a Question the moment it is written: nothing
-  // unvetted reaches a Reader, including something added a second ago (ADR-0013).
-  it("keeps a newly added Question away from a Reader until it is Published", async () => {
+  // unvetted reaches anyone but its Author, including something added a second ago (ADR-0013).
+  it("keeps a newly added Question away from another Author until it is Published", async () => {
     const author = await viewer("author");
-    const reader = await viewer("reader");
+    const newcomer = await aViewer(database, "author");
 
     const added = await insertQuestion(database, author, {
       text: "Describe a deployment you would not want to repeat.",
@@ -114,11 +114,11 @@ describe("adding a Question and fetching it back", () => {
     });
 
     const toItsAuthor = await findVisibleQuestionById(database, author, added.id);
-    const toAReader = await findVisibleQuestionById(database, reader, added.id);
-    const neverExisted = await findVisibleQuestionById(database, reader, crypto.randomUUID());
+    const toAnotherAuthor = await findVisibleQuestionById(database, newcomer, added.id);
+    const neverExisted = await findVisibleQuestionById(database, newcomer, crypto.randomUUID());
 
     expect(toItsAuthor?.id).toBe(added.id);
-    expect(toAReader).toBeNull();
+    expect(toAnotherAuthor).toBeNull();
     expect(neverExisted).toBeNull();
   });
 });

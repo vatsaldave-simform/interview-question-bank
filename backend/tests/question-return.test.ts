@@ -38,6 +38,8 @@ describe("returning a Published Question to its Author", () => {
   /** Author of every seeded Question. */
   let authorToken: string;
   let readerToken: string;
+  /** An Author who added none of the seeded Questions. */
+  let newcomerToken: string;
   let reviewerToken: string;
 
   beforeAll(async () => {
@@ -45,6 +47,7 @@ describe("returning a Published Question to its Author", () => {
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     readerToken = await logIn(api, seededViewer("reader"));
+    newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
   // Every test here writes, so each one starts from the seeded bank again.
@@ -59,7 +62,7 @@ describe("returning a Published Question to its Author", () => {
     postReviewAct(api, id, "return", token, body);
 
   const searchedFor = async (keywords: string) =>
-    idsListed(await getQuestions(api, { keywords }, readerToken));
+    idsListed(await getQuestions(api, { keywords }, newcomerToken));
 
   const authorsOwnList = async () => {
     const response = await api.request("/api/questions/own", {
@@ -68,7 +71,7 @@ describe("returning a Published Question to its Author", () => {
     return questionListResponseSchema.parse(await response.json()).questions;
   };
 
-  it("takes it out of a Reader's search at once", async () => {
+  it("takes it out of another Author's search at once", async () => {
     expect(await searchedFor(inOneAnswerNoteOnly)).toContain(publishedAndUnrestricted);
 
     await questionAnswered(await returnIt(publishedAndUnrestricted, reviewerToken));
@@ -76,11 +79,11 @@ describe("returning a Published Question to its Author", () => {
     expect(await searchedFor(inOneAnswerNoteOnly)).not.toContain(publishedAndUnrestricted);
   });
 
-  it("answers a Reader fetching it afterwards as if it did not exist", async () => {
+  it("answers another Author fetching it afterwards as if it did not exist", async () => {
     await questionAnswered(await returnIt(publishedAndUnrestricted, reviewerToken));
 
-    const returned = await getQuestion(api, publishedAndUnrestricted, readerToken);
-    const nothing = await getQuestion(api, unknownQuestionId, readerToken);
+    const returned = await getQuestion(api, publishedAndUnrestricted, newcomerToken);
+    const nothing = await getQuestion(api, unknownQuestionId, newcomerToken);
 
     expect(await statusAndBody(returned)).toBe(await statusAndBody(nothing));
   });
@@ -93,13 +96,13 @@ describe("returning a Published Question to its Author", () => {
     expect(listed).toMatchObject({ publicationState: "rejected", reason: returnBody.reason });
   });
 
-  it("hides a Question naming a Client from Readers like any other, and hands it to its Author", async () => {
+  it("hides a Question naming a Client from other Authors like any other, and hands it to its Author", async () => {
     await questionAnswered(await returnIt(publishedForTheFirstClient, reviewerToken));
 
-    const returned = await getQuestion(api, publishedForTheFirstClient, readerToken);
-    const nothing = await getQuestion(api, unknownQuestionId, readerToken);
+    const returned = await getQuestion(api, publishedForTheFirstClient, newcomerToken);
+    const nothing = await getQuestion(api, unknownQuestionId, newcomerToken);
     expect(await statusAndBody(returned)).toBe(await statusAndBody(nothing));
-    expect(await idsListed(await getQuestions(api, {}, readerToken))).not.toContain(
+    expect(await idsListed(await getQuestions(api, {}, newcomerToken))).not.toContain(
       publishedForTheFirstClient,
     );
     expect((await authorsOwnList()).map(({ id }) => id)).toContain(publishedForTheFirstClient);
@@ -128,7 +131,7 @@ describe("returning a Published Question to its Author", () => {
     await questionAnswered(
       await postReviewAct(api, publishedAndUnrestricted, "publish", reviewerToken),
     );
-    expect((await getQuestion(api, publishedAndUnrestricted, readerToken)).status).toBe(200);
+    expect((await getQuestion(api, publishedAndUnrestricted, newcomerToken)).status).toBe(200);
     expect(whoDidWhat(await historyOf(api, publishedAndUnrestricted, authorToken))).toEqual([
       ["question_returned", seededViewer("reviewer").email],
       ["question_edited", seededViewer("author").email],

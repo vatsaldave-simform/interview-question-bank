@@ -40,6 +40,8 @@ describe("Publishing and Rejecting a Pending Question", () => {
   /** Author of every seeded Question. */
   let authorToken: string;
   let readerToken: string;
+  /** An Author who added none of the seeded Questions. */
+  let newcomerToken: string;
   let reviewerToken: string;
 
   beforeAll(async () => {
@@ -47,6 +49,7 @@ describe("Publishing and Rejecting a Pending Question", () => {
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     readerToken = await logIn(api, seededViewer("reader"));
+    newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
   // Every test here writes, so each one starts from the seeded bank again.
@@ -61,28 +64,28 @@ describe("Publishing and Rejecting a Pending Question", () => {
   const unknownIdAnswer = async (act: "publish" | "reject", token: string) =>
     statusAndBody(await postReviewAct(api, unknownQuestionId, act, token, bodyFor(act)));
 
-  it("puts a Published Question in front of Readers", async () => {
+  it("puts a Published Question in front of other Authors", async () => {
     const published = await questionAnswered(
       await postReviewAct(api, pendingAndUnrestricted, "publish", reviewerToken),
     );
 
     expect(published.publicationState).toBe("published");
     expect(published.reason).toBeNull();
-    expect((await getQuestion(api, pendingAndUnrestricted, readerToken)).status).toBe(200);
-    expect(await idsListed(await getQuestions(api, {}, readerToken))).toContain(
+    expect((await getQuestion(api, pendingAndUnrestricted, newcomerToken)).status).toBe(200);
+    expect(await idsListed(await getQuestions(api, {}, newcomerToken))).toContain(
       pendingAndUnrestricted,
     );
   });
 
-  it("keeps a Rejected Question away from Readers, as if it were not there", async () => {
+  it("keeps a Rejected Question away from other Authors, as if it were not there", async () => {
     await questionAnswered(
       await postReviewAct(api, pendingAndUnrestricted, "reject", reviewerToken, rejectBody),
     );
 
-    const rejected = await getQuestion(api, pendingAndUnrestricted, readerToken);
-    const nothing = await getQuestion(api, unknownQuestionId, readerToken);
+    const rejected = await getQuestion(api, pendingAndUnrestricted, newcomerToken);
+    const nothing = await getQuestion(api, unknownQuestionId, newcomerToken);
     expect(await statusAndBody(rejected)).toBe(await statusAndBody(nothing));
-    expect(await idsListed(await getQuestions(api, {}, readerToken))).not.toContain(
+    expect(await idsListed(await getQuestions(api, {}, newcomerToken))).not.toContain(
       pendingAndUnrestricted,
     );
   });

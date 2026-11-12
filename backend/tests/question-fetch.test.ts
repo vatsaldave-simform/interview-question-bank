@@ -1,7 +1,7 @@
 import { questionResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedQuestions } from "../src/features/questions/questions.seed.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import { getQuestion, seedTheBank, unknownQuestionId } from "./helpers/question-bank.ts";
 import { startTestApi, type TestApi } from "./helpers/test-api.ts";
 
@@ -36,8 +36,9 @@ describe("fetching a Question over HTTP", () => {
     expect(body.question.id).toBe(publishedWithAClient);
   });
 
-  it("answers a Reader a Pending Question that names a Client with an unknown id's bytes", async () => {
-    const token = await logIn(api, seededViewer("reader"));
+  it("answers another Author a Pending Question that names a Client with an unknown id's bytes", async () => {
+    // A fresh Author, since the seeded one added this Question and may see it.
+    const token = await logInAsAnother(api, "author");
 
     const pending = await getQuestion(api, pendingWithAClient, token);
     const unknown = await getQuestion(api, unknownQuestionId, token);
@@ -59,7 +60,7 @@ describe("fetching a Question over HTTP", () => {
   });
 
   it("answers a malformed id as it answers an unknown one, rather than as a bad request", async () => {
-    const token = await logIn(api, seededViewer("reader"));
+    const token = await logIn(api, seededViewer("author"));
 
     const malformed = await getQuestion(api, "not-a-uuid", token);
     const unknown = await getQuestion(api, unknownQuestionId, token);

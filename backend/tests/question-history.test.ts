@@ -4,7 +4,7 @@ import {
   type ChangeEvent,
 } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   addAQuestion,
@@ -155,13 +155,14 @@ describe("the history of a Question", () => {
 describe("the history of a Question that is not Visible", () => {
   let api: TestApi;
   let authorToken: string;
-  let readerToken: string;
+  /** An Author who added none of the seeded Questions. */
+  let newcomerToken: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
+    newcomerToken = await logInAsAnother(api, "author");
   });
   beforeEach(async () => {
     await resetTheQuestions(api.database);
@@ -179,13 +180,13 @@ describe("the history of a Question that is not Visible", () => {
     expect(hidden.status).toBe(404);
   }
 
-  it("answers a Reader asking for a Rejected Question's history as if it were not there", async () => {
-    await historyLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, readerToken);
+  it("answers another Author asking for a Rejected Question's history as if it were not there", async () => {
+    await historyLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, newcomerToken);
   });
 
-  it("answers a Reader asking about a Pending Question the same way", async () => {
-    // Out of reach because it is Pending and a Reader is not its Author.
-    await historyLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, readerToken);
+  it("answers another Author asking about a Pending Question the same way", async () => {
+    // Out of reach because it is Pending and they are not its Author.
+    await historyLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, newcomerToken);
   });
 
   it("answers an id that is not a uuid as one that names nothing", async () => {
@@ -205,7 +206,7 @@ describe("the history of a Question that is not Visible", () => {
       authorToken,
     );
 
-    const refused = await getHistory(api, seededQuestionIds.aboutDisagreeing, readerToken);
+    const refused = await getHistory(api, seededQuestionIds.aboutDisagreeing, newcomerToken);
     const allowed = await getHistory(api, seededQuestionIds.aboutDisagreeing, authorToken);
 
     expect(refused.status).toBe(404);

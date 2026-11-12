@@ -9,7 +9,7 @@ import {
 } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { saveUpvote, withUpvoteSummaries } from "../src/features/upvotes/upvotes.repository.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, seededViewer, signInAnother } from "./helpers/auth.ts";
 import {
   aQuestion,
   aViewer,
@@ -45,26 +45,26 @@ async function queued(response: Response): Promise<PendingQuestionListResponse["
 /** Over HTTP, because the promise is about what a response holds and what it leaves out. */
 describe("the Upvote summary on every Question", () => {
   let api: TestApi;
-  let reader: Viewer;
+  /** An Author who added none of the seeded Questions, so has upvoted none of them. */
+  let newcomer: Viewer;
   let reviewer: Viewer;
-  let readerToken: string;
+  let newcomerToken: string;
   let authorToken: string;
   let reviewerToken: string;
-  /** Upvoted the TypeScript Question, and holds no role any test signs in with. */
+  /** Upvoted the TypeScript Question, and is not anyone a test signs in as. */
   let otherUpvoter: Viewer;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
-    reader = await viewerByRole(api.database, "reader");
+    ({ viewer: newcomer, token: newcomerToken } = await signInAnother(api, "author"));
     reviewer = await viewerByRole(api.database, "reviewer");
-    readerToken = await logIn(api, seededViewer("reader"));
     authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     otherUpvoter = await aViewer(api.database, "author");
 
     // With the Author's from the seed, the TypeScript Question has three.
-    await saveUpvote(api.database, reader, published);
+    await saveUpvote(api.database, newcomer, published);
     await saveUpvote(api.database, otherUpvoter, published);
     // A returned Question keeps the Upvotes it was given, which is how a Pending one comes to
     // carry any.
@@ -75,16 +75,18 @@ describe("the Upvote summary on every Question", () => {
   });
 
   it("gives the fetched Question its count and whether the asking Viewer gave one", async () => {
-    const asReader = await questionAnswered(await getQuestion(api, published, readerToken));
+    const asNewcomer = await questionAnswered(await getQuestion(api, published, newcomerToken));
     const asReviewer = await questionAnswered(await getQuestion(api, published, reviewerToken));
 
-    expect(asReader.upvotes).toEqual({ count: 3, mine: true });
+    expect(asNewcomer.upvotes).toEqual({ count: 3, mine: true });
     expect(asReviewer.upvotes).toEqual({ count: 3, mine: false });
   });
 
   it("gives every Question in the list and in a keyword search its own summary", async () => {
-    const list = await listed(await getQuestions(api, {}, readerToken));
-    const searched = await listed(await getQuestions(api, { keywords: "TypeScript" }, readerToken));
+    const list = await listed(await getQuestions(api, {}, newcomerToken));
+    const searched = await listed(
+      await getQuestions(api, { keywords: "TypeScript" }, newcomerToken),
+    );
 
     for (const questions of [list, searched]) {
       expect(questions.find((question) => question.id === published)?.upvotes).toEqual({
@@ -143,13 +145,13 @@ describe("the Upvote summary on every Question", () => {
   });
 
   it("names no Viewer who gave an Upvote in the summary", async () => {
-    const fetched = await questionAnswered(await getQuestion(api, published, readerToken));
+    const fetched = await questionAnswered(await getQuestion(api, published, newcomerToken));
 
     expect(JSON.stringify(fetched.upvotes)).not.toContain(otherUpvoter.id);
     expect(Object.keys(fetched.upvotes).sort()).toEqual(["count", "mine"]);
   });
 
   it("answers an empty page with an empty list", async () => {
-    expect(await withUpvoteSummaries(api.database, reader, [])).toEqual([]);
+    expect(await withUpvoteSummaries(api.database, newcomer, [])).toEqual([]);
   });
 });
