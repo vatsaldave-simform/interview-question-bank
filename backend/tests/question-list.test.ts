@@ -9,7 +9,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedClient } from "../src/features/clients/clients.seed.ts";
 import type { TagsInCategory } from "../src/features/questions/questions.repository.ts";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   clientIdNamed,
   commonestTags,
@@ -173,14 +173,16 @@ describe("listing Questions over HTTP", () => {
     const named = await clientIdNamed(api.database, seedClient.name);
 
     const forReviewer = await getQuestions(api, { limit: maxQuestionPageSize }, reviewerToken);
-    const forAuthor = await getQuestions(api, { limit: maxQuestionPageSize }, authorToken);
+    // A fresh Author, since the seeded one wrote these and would see them whoever else could.
+    const newcomerToken = await logInAsAnother(api, "author");
+    const forNewcomer = await getQuestions(api, { limit: maxQuestionPageSize }, newcomerToken);
 
     const seenByReviewer = questionListResponseSchema.parse(await forReviewer.json());
-    const seenByAuthor = questionListResponseSchema.parse(await forAuthor.json());
+    const seenByNewcomer = questionListResponseSchema.parse(await forNewcomer.json());
     const names = ({ clients }: { clients: { id: string }[] }) =>
       clients.some(({ id }) => id === named);
     expect(seenByReviewer.questions.some(names)).toBe(true);
-    expect(seenByAuthor.questions.some(names)).toBe(true);
+    expect(seenByNewcomer.questions.some(names)).toBe(true);
   });
 
   it("returns the Questions a keyword and a Category filter both match", async () => {

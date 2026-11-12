@@ -168,6 +168,7 @@ describe("two administrative acts at the same moment", () => {
     const goOn = Promise.withResolvers<void>();
 
     const roleChange = database.$transaction(async (transaction) => {
+      // Reader, because it is the one role neither Administrator holds.
       await setRole(transaction, second.id, "reader");
       roleWritten.resolve();
       await goOn.promise;

@@ -379,8 +379,8 @@ async function clientsByReach(database: Database): Promise<ClientReach[]> {
   `;
 }
 
-/** Who the plans are measured as. The newcomer has written nothing, so they see only what
- * is Published, while the Author wrote the whole bulk bank. */
+/** The newcomer has written nothing, so they see only what is Published, while the Author
+ * wrote the whole bulk bank. */
 const measuredAs = {
   newcomer: bulkNewcomerEmail,
   author: seedViewerByRole("author").email,

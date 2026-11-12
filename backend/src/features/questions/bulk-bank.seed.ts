@@ -21,7 +21,7 @@ export const bulkTagPrefix = "bulk-";
 export const bulkClientPrefix = "Bulk Client ";
 
 /** An Author who adds nothing to the bank, so the plans can measure someone who sees only
- * the Published Questions. Kept off the demo seed, since nobody logs in as them. */
+ * the Published Questions. */
 export const bulkNewcomerEmail = "newcomer@iqb.test";
 
 type CategoryTagging = {
@@ -176,7 +176,7 @@ export async function seedBulkBank(
       text: questionText(seed, key, words),
       answerNotes: answerNotesText(seed, key, words),
       authorId: author.id,
-      // What the query of a Viewer who wrote none of them filters on (ADR-0029).
+      // Published, so a Viewer who wrote none of them sees them all (ADR-0029).
       publicationState: "published" as const satisfies PublicationState,
       provenance: provenances[n % provenances.length]!,
       createdAt: createdAtFor(seed, key),
