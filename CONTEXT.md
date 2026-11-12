@@ -58,10 +58,11 @@ _Avoid_: customer, account, organisation, org, restriction, restrict, classify, 
 
 **Viewer**:
 A person with an account. Every request acts as exactly one Viewer; there is no anonymous path.
-_Avoid_: user, actor, principal, requester
+_Avoid_: user, actor, principal, requester, reader
 
 **Author**:
-A Viewer who may add Questions and edit the ones they added. They may withdraw their own Pending
+A Viewer who may add Questions and edit the ones they added. Every Viewer who is not a Reviewer
+is an Author; there is no role that may only read. They may withdraw their own Pending
 Question by Rejecting it, and resubmit their own Rejected one. Adding a Client to a Question, or
 removing one, is an edit like any other.
 
@@ -70,15 +71,9 @@ A Viewer who may edit any Question that is Visible to them, and who alone Publis
 Rejects another Viewer's, or returns a Published one to its Author. A returned Question is
 Rejected, with the reason it was returned.
 
-**Reader**:
-A Viewer who may not add or edit Questions. The constraint is on Question content rather than on
-all writes: a Reader may still Upvote. Named Reader rather than "user" so that "user"
-never competes with Viewer.
-_Avoid_: user, viewer-only, basic user
-
 **Administrator**:
 A Viewer who may create Viewers and Clients, decide Role
-Requests and Deactivate Viewers. Held alongside Reader, Author or Reviewer rather than instead of one, and carrying no
+Requests and Deactivate Viewers. Held alongside Author or Reviewer rather than instead of one, and carrying no
 access to Questions of its own.
 _Avoid_: admin, superuser, owner, root
 
