@@ -25,17 +25,17 @@ export const hostedViewers: readonly HostedViewer[] = [
   },
   {
     email: "shane.austin@iqb.test",
-    role: "reader",
+    role: "author",
     passwordVariable: "HOSTED_PASSWORD_SHANE_AUSTIN",
   },
   {
     email: "cody.rhodes@iqb.test",
-    role: "reader",
+    role: "author",
     passwordVariable: "HOSTED_PASSWORD_CODY_RHODES",
   },
   {
     email: "dwayne.rook@iqb.test",
-    role: "reader",
+    role: "author",
     passwordVariable: "HOSTED_PASSWORD_DWAYNE_ROOK",
   },
 ];

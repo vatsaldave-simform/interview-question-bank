@@ -79,11 +79,11 @@ describe("the hosted seed's Viewers", () => {
 
     expect(stored).toEqual(
       [
-        { email: "cody.rhodes@iqb.test", role: "reader", isAdministrator: false },
-        { email: "dwayne.rook@iqb.test", role: "reader", isAdministrator: false },
+        { email: "cody.rhodes@iqb.test", role: "author", isAdministrator: false },
+        { email: "dwayne.rook@iqb.test", role: "author", isAdministrator: false },
         { email: "jane.doe@iqb.test", role: "reviewer", isAdministrator: true },
         { email: "john.doe@iqb.test", role: "author", isAdministrator: false },
-        { email: "shane.austin@iqb.test", role: "reader", isAdministrator: false },
+        { email: "shane.austin@iqb.test", role: "author", isAdministrator: false },
       ],
     );
   });
@@ -251,7 +251,7 @@ describe("the hosted seed's Questions", () => {
     for (const question of pending) expect(queued).toContain(question.id);
   });
 
-  it("shows every Reader the same Clients", async () => {
+  it("shows Shane, Cody and Dwayne the same Clients", async () => {
     const seen = await clientsSeenBy("shane.austin@iqb.test");
 
     expect(seen).toEqual(expect.arrayContaining([harbourline.name, brightwater.name]));
