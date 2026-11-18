@@ -43,7 +43,7 @@ type RequestRow = {
 describe("Readers become Authors", () => {
   let database: Database;
   let scratch: Client;
-  let theMigration: string;
+  let readersBecomeAuthors: string;
   let ranFrom: Date;
   let ranUntil: Date;
 
@@ -76,8 +76,8 @@ describe("Readers become Authors", () => {
     if (found === undefined) {
       throw new Error(`No migration is named *${readersBecomeAuthorsSuffix}.`);
     }
-    theMigration = found;
-    for (const name of history.slice(0, history.indexOf(theMigration))) {
+    readersBecomeAuthors = found;
+    for (const name of history.slice(0, history.indexOf(readersBecomeAuthors))) {
       await applyMigration(scratch, name);
     }
 
@@ -91,29 +91,22 @@ describe("Readers become Authors", () => {
          ($6, 'stepping.down@iqb.test', 'author', false, $7)`,
       [reader, otherReader, author, reviewer, administrator, steppingDown, longAgo],
     );
-    await scratch.query(
-      `INSERT INTO role_requests (id, "viewerId", role, state, reason, "decidedAt") VALUES
-         ($1, $6, 'reader', 'open', NULL, NULL),
-         ($2, $7, 'reviewer', 'open', NULL, NULL),
-         ($3, $8, 'reader', 'granted', NULL, $10),
-         ($4, $9, 'reader', 'denied', 'Not this month.', $10),
-         ($5, $8, 'author', 'granted', NULL, $10)`,
-      [
-        openForReader,
-        openForReviewer,
-        grantedReader,
-        deniedReader,
-        grantedAuthor,
-        steppingDown,
-        reader,
-        otherReader,
-        author,
-        longAgo,
-      ],
-    );
+    for (const [id, viewerId, role, state, reason, decidedAt] of [
+      [openForReader, steppingDown, "reader", "open", null, null],
+      [openForReviewer, reader, "reviewer", "open", null, null],
+      [grantedReader, otherReader, "reader", "granted", null, longAgo],
+      [deniedReader, author, "reader", "denied", "Not this month.", longAgo],
+      [grantedAuthor, otherReader, "author", "granted", null, longAgo],
+    ]) {
+      await scratch.query(
+        `INSERT INTO role_requests (id, "viewerId", role, state, reason, "decidedAt")
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [id, viewerId, role, state, reason, decidedAt],
+      );
+    }
 
     ranFrom = await clock();
-    await applyMigration(scratch, theMigration);
+    await applyMigration(scratch, readersBecomeAuthors);
     ranUntil = await clock();
   });
   afterAll(async () => {
@@ -194,7 +187,7 @@ describe("Readers become Authors", () => {
     const viewersBefore = await viewers();
     const requestsBefore = await requests();
 
-    await applyMigration(scratch, theMigration);
+    await applyMigration(scratch, readersBecomeAuthors);
 
     expect(await viewers()).toEqual(viewersBefore);
     expect(await requests()).toEqual(requestsBefore);
