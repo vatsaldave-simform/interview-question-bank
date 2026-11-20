@@ -62,7 +62,6 @@ describe("Waiting for your review on Home", () => {
   });
 
   it.each<[string, Viewer]>([
-    ["a Reader", aViewer({ role: "reader" })],
     ["an Author", aViewer({ role: "author" })],
     ["an Administrator who is an Author", aViewer({ role: "author", isAdministrator: true })],
   ])("is not shown to %s", async (_who, viewer) => {

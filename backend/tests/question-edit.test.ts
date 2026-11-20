@@ -46,8 +46,6 @@ describe("editing a Question over HTTP", () => {
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  /** May edit nothing. */
-  let readerToken: string;
   let reviewerToken: string;
   /** Author of nothing, holder of nothing. */
   let otherAuthorToken: string;
@@ -56,7 +54,6 @@ describe("editing a Question over HTTP", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     otherAuthorToken = await logInAsASecondAuthor(api);
   });
@@ -153,29 +150,15 @@ describe("editing a Question over HTTP", () => {
     expect(questionResponseSchema.parse(await response.json()).question.text).toBe(newText);
   });
 
-  it("refuses a Reader on a Question they can see perfectly well", async () => {
-    const response = await patchQuestion(
-      api,
-      seededQuestionIds.aboutTypeScript,
-      { text: newText },
-      readerToken,
-    );
-
-    expect(response.status).toBe(403);
-    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
-  });
-
   it("leaves the Question exactly as it was when the edit is refused", async () => {
     const before = await asItStands(seededQuestionIds.aboutTypeScript, authorToken);
 
-    for (const token of [readerToken, otherAuthorToken]) {
-      await patchQuestion(
-        api,
-        seededQuestionIds.aboutTypeScript,
-        { text: newText, answerNotes: newAnswerNotes, tags: [] },
-        token,
-      );
-    }
+    await patchQuestion(
+      api,
+      seededQuestionIds.aboutTypeScript,
+      { text: newText, answerNotes: newAnswerNotes, tags: [] },
+      otherAuthorToken,
+    );
 
     expect(await asItStands(seededQuestionIds.aboutTypeScript, authorToken)).toEqual(before);
   });
@@ -253,7 +236,6 @@ describe("editing a Question over HTTP", () => {
 describe("editing a Question that is not Visible", () => {
   let api: TestApi;
   let authorToken: string;
-  let readerToken: string;
   /** Author of nothing, holder of nothing. */
   let otherAuthorToken: string;
 
@@ -261,7 +243,6 @@ describe("editing a Question that is not Visible", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
     otherAuthorToken = await logInAsASecondAuthor(api);
   });
   beforeEach(async () => {
@@ -282,16 +263,12 @@ describe("editing a Question that is not Visible", () => {
     expect(hidden.status).toBe(404);
   }
 
-  it("answers a Reader editing a Pending Question as if it were not there", async () => {
-    await editingLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, readerToken);
-  });
-
-  it("answers a Reader editing a Rejected Question the same way", async () => {
-    await editingLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, readerToken);
-  });
-
-  it("answers an Author editing another Author's Pending Question the same way", async () => {
+  it("answers an Author editing another Author's Pending Question as if it were not there", async () => {
     await editingLooksLikeNothingThere(seededQuestionIds.aboutDisagreeing, otherAuthorToken);
+  });
+
+  it("answers an Author editing another Author's Rejected Question the same way", async () => {
+    await editingLooksLikeNothingThere(seededQuestionIds.aboutTwoPlusTwo, otherAuthorToken);
   });
 
   it("tells the two refusals apart for that same Author", async () => {
@@ -313,21 +290,6 @@ describe("editing a Question that is not Visible", () => {
 
     expect(published.status).toBe(403);
     expect(pending.status).toBe(404);
-  });
-
-  it("answers a Viewer who may not edit anyway as if the Question were not there", async () => {
-    // The Reader's refusal on a Visible Question is 403. On this one it is 404: the
-    // visibility check runs first, so the role never gets to be the reason.
-    const visible = await patchQuestion(api, seededQuestionIds.aboutTypeScript, edit, readerToken);
-    const notVisible = await patchQuestion(
-      api,
-      seededQuestionIds.aboutDisagreeing,
-      edit,
-      readerToken,
-    );
-
-    expect(visible.status).toBe(403);
-    expect(notVisible.status).toBe(404);
   });
 
   it("really is refusing something that is there and that someone else may edit", async () => {

@@ -113,8 +113,8 @@ describe("the Reviewer's Pending queue", () => {
     expect(asked.searchParams.get("offset")).toBe(String(questionPageSize));
   });
 
-  it("reports the API's refusal to a Reader who opens the address, with no Try again", async () => {
-    signInAs(aViewer({ role: "reader" }));
+  it("reports the API's refusal to an Author who opens the address, with no Try again", async () => {
+    signInAs(aViewer({ role: "author" }));
     aBankAnsweringTheQueue(() => refusesWith(403, "forbidden", "Only a Reviewer may do that."));
 
     renderTheWholeClient("/review");
@@ -135,8 +135,8 @@ describe("the link to the Pending queue", () => {
     expect(await screen.findByRole("heading", { name: "Review queue" })).toBeVisible();
   });
 
-  it.each(["reader", "author"] as const)("is not in the sidebar for a %s", async (role) => {
-    signInAs(aViewer({ role }));
+  it("is not in the sidebar for an Author", async () => {
+    signInAs(aViewer({ role: "author" }));
     aBankAnsweringTheQueue((asked) => aQueueOf([], asked));
     renderTheWholeClient("/questions");
 

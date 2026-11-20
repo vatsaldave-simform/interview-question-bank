@@ -20,7 +20,7 @@ function runningAnimations(page: Page): Promise<number> {
 }
 
 test("a card that opens a Question lifts and glows when pointed at", async ({ page }) => {
-  await signInAs(page, "reader@iqb.test", "reader-password");
+  await signInAs(page, "author@iqb.test", "author-password");
   await page.goto("/questions");
   await expect(questionCard(page)).toBeVisible();
   const before = await cardTop(page);
@@ -33,9 +33,9 @@ test("a card that opens a Question lifts and glows when pointed at", async ({ pa
 
 test("with reduced motion asked for, nothing lifts, glows or fades", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await signInAs(page, "reader@iqb.test", "reader-password");
+  await signInAs(page, "author@iqb.test", "author-password");
 
-  await page.getByRole("button", { name: "reader@iqb.test" }).click();
+  await page.getByRole("button", { name: "author@iqb.test" }).click();
   await expect(page.getByRole("menuitem", { name: "Your account" })).toBeVisible();
   expect(await runningAnimations(page)).toBe(0);
   await page.getByRole("menuitem", { name: "Your account" }).click();

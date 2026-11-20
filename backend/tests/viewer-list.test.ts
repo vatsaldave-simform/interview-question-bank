@@ -30,7 +30,6 @@ describe("listing Viewers", () => {
     const { viewers } = viewerListResponseSchema.parse(await response.json());
     expect(viewers.map(({ id: _id, ...rest }) => rest)).toEqual([
       { email: "author@iqb.test", role: "author", isAdministrator: false, isDeactivated: false },
-      { email: "reader@iqb.test", role: "reader", isAdministrator: false, isDeactivated: false },
       { email: "reviewer@iqb.test", role: "reviewer", isAdministrator: true, isDeactivated: false },
     ]);
   });
@@ -49,15 +48,12 @@ describe("listing Viewers", () => {
     expect(viewers.map(({ email }) => email)).toContain("new@iqb.test");
   });
 
-  it.each(["reader", "author"] as const)(
-    "refuses the seeded %s, who is not an Administrator",
-    async (role) => {
-      const token = await logIn(api, seededViewer(role));
+  it("refuses the seeded Author, who is not an Administrator", async () => {
+    const token = await logIn(api, seededViewer("author"));
 
-      const response = await getViewers(api, token);
+    const response = await getViewers(api, token);
 
-      expect(response.status).toBe(403);
-      expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
-    },
-  );
+    expect(response.status).toBe(403);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
+  });
 });

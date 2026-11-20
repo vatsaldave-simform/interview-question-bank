@@ -23,7 +23,7 @@ const pendingForTheFirstClient = seededQuestionIds.aboutTheClientsRendering;
 describe("a Pending Question outside its Author and the Reviewers", () => {
   let api: TestApi;
   /** Tokens for the Viewers the Pending Question must stay hidden from. */
-  let outsiders: { reader: string; otherAuthor: string };
+  let outsiders: { otherAuthor: string };
   /** Its own Author has to see it, or "hidden" would pass for an always-empty answer. */
   let itsAuthorToken: string;
 
@@ -31,7 +31,6 @@ describe("a Pending Question outside its Author and the Reviewers", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     outsiders = {
-      reader: await logIn(api, seededViewer("reader")),
       otherAuthor: await logInAsAnother(api, "author"),
     };
     itsAuthorToken = await logIn(api, seededViewer("author"));
@@ -100,17 +99,15 @@ describe("a Pending Question that names a Client", () => {
   });
 
   // Out of their sight because it is Pending, and not because of its Client.
-  for (const role of ["reader", "author"] as const) {
-    it(`answers a ${role} exactly as it answers an id that does not exist`, async () => {
-      const token = await logInAsAnother(api, role);
+  it("answers another Author exactly as it answers an id that does not exist", async () => {
+    const token = await logInAsAnother(api, "author");
 
-      const both = await getQuestion(api, pendingForTheFirstClient, token);
-      const unknown = await getQuestion(api, unknownQuestionId, token);
+    const both = await getQuestion(api, pendingForTheFirstClient, token);
+    const unknown = await getQuestion(api, unknownQuestionId, token);
 
-      expect(both.status).toBe(404);
-      expect(await statusAndBody(both)).toBe(await statusAndBody(unknown));
-    });
-  }
+    expect(both.status).toBe(404);
+    expect(await statusAndBody(both)).toBe(await statusAndBody(unknown));
+  });
 
   it("hands it to a Reviewer, whose queue it is in", async () => {
     const token = await logInAsAnother(api, "reviewer");

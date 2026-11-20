@@ -72,7 +72,7 @@ describe("the forgotten-password page", () => {
     const api = answersEveryAddressAlike();
     renderTheWholeClient("/forgotten-password");
 
-    await askForALink("reader");
+    await askForALink("author");
 
     expect(screen.getByText("Enter an email address, like author@iqb.test.")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toHaveFocus();

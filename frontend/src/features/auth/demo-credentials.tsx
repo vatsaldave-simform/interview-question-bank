@@ -2,16 +2,15 @@ import type { LoginRequest, ViewerRole } from "@iqb/shared";
 
 // Written out here rather than imported. `@iqb/shared` carries the request and response
 // shapes both ends parse with (ADR-0010), and nothing in the client may reach into the
-// backend, so these three have to match `backend/src/features/viewers/viewers.seed.ts`.
+// backend, so these two have to match `backend/src/features/viewers/viewers.seed.ts`.
 const demoViewers: readonly (LoginRequest & { role: ViewerRole })[] = [
-  { email: "reader@iqb.test", password: "reader-password", role: "reader" },
   { email: "author@iqb.test", password: "author-password", role: "author" },
   { email: "reviewer@iqb.test", password: "reviewer-password", role: "reviewer" },
 ];
 
 /** Published on purpose: an Administrator creates every Viewer and there is no
  * registration endpoint (ADR-0016), so without these nobody evaluating the bank can see
- * what a Reader, an Author and a Reviewer are each shown (ADR-0012). */
+ * what an Author and a Reviewer are each shown (ADR-0012). */
 export function DemoCredentials() {
   return (
     // `<details>` rather than Collapsible, because a closed Collapsible takes the accounts

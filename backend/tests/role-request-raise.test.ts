@@ -25,16 +25,13 @@ describe("raising a Role Request", () => {
     await api.stop();
   });
 
-  it("lets a Reader ask for Reviewer directly, with no Author step between", async () => {
-    const readerToken = await logIn(api, seededViewer("reader"));
-    const readerId = (await viewerByRole(api.database, "reader")).id;
-
-    const response = await postRoleRequest(api, { role: "reviewer" }, readerToken);
+  it("answers 201 with the open Role Request", async () => {
+    const response = await postRoleRequest(api, { role: "reviewer" }, authorToken);
 
     expect(response.status).toBe(201);
     const { roleRequest } = roleRequestResponseSchema.parse(await response.json());
     expect(roleRequest).toMatchObject({
-      viewer: { id: readerId, email: seededViewer("reader").email },
+      viewer: { id: authorId, email: seededViewer("author").email },
       role: "reviewer",
       state: "open",
       reason: null,

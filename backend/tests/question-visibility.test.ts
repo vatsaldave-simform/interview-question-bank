@@ -29,7 +29,7 @@ describe("fetching a Question through the shared query function", () => {
   });
 
   it("hands every Viewer a Published Question that names a Client", async () => {
-    for (const role of ["reader", "author", "reviewer"] as const) {
+    for (const role of ["author", "reviewer"] as const) {
       const found = await findVisibleQuestionById(database, await viewer(role), publishedWithAClient);
 
       expect(found?.id).toBe(publishedWithAClient);
@@ -37,7 +37,7 @@ describe("fetching a Question through the shared query function", () => {
   });
 
   it("shows a Question that names no Client to every Viewer", async () => {
-    for (const role of ["reader", "author", "reviewer"] as const) {
+    for (const role of ["author", "reviewer"] as const) {
       const found = await findVisibleQuestionById(
         database,
         await viewer(role),

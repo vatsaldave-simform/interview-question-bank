@@ -268,12 +268,11 @@ describe("deciding a Role Request", () => {
     // written the role and not yet committed, which two requests sent together rarely meet.
     it("records the role a grant replaced, not the one before a role change under way", async () => {
       const administrator = await viewerByRole(api.database, "reviewer");
-      // A Reader, because the role has to change twice, to two roles other than the one held.
-      const target = await viewerByRole(api.database, "reader");
+      const target = await viewerByRole(api.database, "author");
       const id = await raisedRoleRequestId(
         api,
         "reviewer",
-        await logIn(api, seededViewer("reader")),
+        await logIn(api, seededViewer("author")),
       );
       const roleWritten = Promise.withResolvers<void>();
       const goOn = Promise.withResolvers<void>();
@@ -281,7 +280,9 @@ describe("deciding a Role Request", () => {
       // What `changeRole` does to its target, stopped before it commits.
       const roleChange = api.database.$transaction(async (transaction) => {
         await lockViewer(transaction, target.id);
-        await setRole(transaction, target.id, "author");
+        // To the role asked for, so a grant that read the role too early would record
+        // "author" as the one it replaced.
+        await setRole(transaction, target.id, "reviewer");
         roleWritten.resolve();
         await goOn.promise;
       });
@@ -292,8 +293,9 @@ describe("deciding a Role Request", () => {
       await Promise.all([roleChange, grant]);
 
       const [event] = await decisionEvents(api);
-      expect(event?.payload).toMatchObject({ role: { before: "author", after: "reviewer" } });
-      expect((await viewerByRole(api.database, "reader")).role).toBe("reviewer");
+      expect(event?.payload).toMatchObject({ role: { before: "reviewer", after: "reviewer" } });
+      // The seeded Author, found by address, now holds the role.
+      expect((await viewerByRole(api.database, "author")).role).toBe("reviewer");
     });
   });
 });

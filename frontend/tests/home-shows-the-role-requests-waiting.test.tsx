@@ -24,9 +24,9 @@ afterEach(() => {
 });
 
 const open = aRoleRequest({
-  viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "reader@iqb.test" },
-  role: "author",
-  heldRole: "reader",
+  viewer: { id: "7c3b4a1e-0000-4000-8000-000000000004", email: "newcomer@iqb.test" },
+  role: "reviewer",
+  heldRole: "author",
   createdAt: "2026-09-01T09:00:00.000Z",
 });
 
@@ -50,8 +50,8 @@ describe("Open Role Requests on Home", () => {
     renderTheWholeClient("/");
 
     const panel = await thePanel();
-    const row = within((await panel.findByText("reader@iqb.test")).closest("li")!);
-    expect(row.getByText("Reader to Author")).toBeVisible();
+    const row = within((await panel.findByText("newcomer@iqb.test")).closest("li")!);
+    expect(row.getByText("Author to Reviewer")).toBeVisible();
     expect(row.getByText(/^Asked/)).toHaveTextContent("Asked Sep 1, 2026");
     expect(row.getByRole("time")).toHaveAttribute("datetime", open.createdAt);
   });
@@ -61,7 +61,7 @@ describe("Open Role Requests on Home", () => {
     aBankWithOpen([open]);
     renderTheWholeClient("/");
 
-    await userEvent.click(await (await thePanel()).findByRole("link", { name: "reader@iqb.test" }));
+    await userEvent.click(await (await thePanel()).findByRole("link", { name: "newcomer@iqb.test" }));
     expect(
       await screen.findByRole("heading", { level: 1, name: "Role Requests" }),
     ).toBeVisible();
@@ -73,7 +73,7 @@ describe("Open Role Requests on Home", () => {
     aBankWithOpen([open]);
     renderTheWholeClient("/");
 
-    expect(await (await thePanel()).findByText("reader@iqb.test")).toBeVisible();
+    expect(await (await thePanel()).findByText("newcomer@iqb.test")).toBeVisible();
   });
 
   it.each<[string, Viewer]>([
@@ -123,7 +123,7 @@ describe("Open Role Requests on Home", () => {
 
     failing = false;
     await userEvent.click(panel.getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(panel.getByText("reader@iqb.test")).toBeVisible());
+    await waitFor(() => expect(panel.getByText("newcomer@iqb.test")).toBeVisible());
   });
 
   it("shows the five waiting longest, and leads on to where they are decided", async () => {

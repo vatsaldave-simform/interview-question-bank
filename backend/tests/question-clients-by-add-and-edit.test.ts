@@ -28,7 +28,6 @@ describe("naming a Question's Clients when adding or editing it", () => {
   let api: TestApi;
   let authorToken: string;
   let reviewerToken: string;
-  let readerToken: string;
   let northwind: string;
   let kingsbridge: string;
   /** A third Client, so an edit can add one and remove another at once. */
@@ -39,7 +38,6 @@ describe("naming a Question's Clients when adding or editing it", () => {
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
-    readerToken = await logIn(api, seededViewer("reader"));
     northwind = await clientIdNamed(api.database, seedClient.name);
     kingsbridge = await clientIdNamed(api.database, seedOtherClient.name);
     contoso = (await insertClient(api.database, "Contoso Pharmaceuticals")).id;
@@ -248,27 +246,9 @@ describe("naming a Question's Clients when adding or editing it", () => {
       expect(changed.clients.map(({ id }) => id)).toEqual([kingsbridge]);
     });
 
-    it("refuses a Reader, as for any other edit, and changes nothing", async () => {
-      const question = await added([northwind]);
-      // Published, so the Reader can see it and the refusal is by role, not a 404.
-      await api.database.question.update({
-        where: { id: question.id },
-        data: { publicationState: "published" },
-      });
-
-      const response = await patchQuestion(
-        api,
-        question.id,
-        { clientIds: [kingsbridge] },
-        readerToken,
-      );
-
-      expect(response.status).toBe(403);
-      expect(await clientIdsOf(question.id)).toEqual([northwind]);
-    });
-
     it("refuses another Author, as for any other edit, and changes nothing", async () => {
       const question = await added([northwind]);
+      // Published, so they can see it and the refusal is by role, not a 404.
       await api.database.question.update({
         where: { id: question.id },
         data: { publicationState: "published" },

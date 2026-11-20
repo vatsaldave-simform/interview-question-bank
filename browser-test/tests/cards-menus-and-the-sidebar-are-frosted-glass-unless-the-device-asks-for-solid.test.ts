@@ -24,7 +24,7 @@ function blurAndBackgroundOpacity(panel: Locator) {
 test("a card, a menu and the sidebar are frosted glass, and solid when the device asks for less see-through", async ({
   page,
 }) => {
-  await signInAs(page, "reader@iqb.test", "reader-password");
+  await signInAs(page, "author@iqb.test", "author-password");
   await page.goto("/questions");
   const card = questionCard(page);
   await expect(card).toBeVisible();
@@ -35,7 +35,7 @@ test("a card, a menu and the sidebar are frosted glass, and solid when the devic
   expect(glassCard.backgroundOpacity).toBeGreaterThanOrEqual(0.7);
   expect(glassCard.backgroundOpacity).toBeLessThan(0.9);
 
-  await page.getByRole("button", { name: "reader@iqb.test" }).click();
+  await page.getByRole("button", { name: "author@iqb.test" }).click();
   const menu = page.locator('[data-slot="dropdown-menu-content"]');
   await expect(menu).toBeVisible();
   const glassMenu = await blurAndBackgroundOpacity(menu);

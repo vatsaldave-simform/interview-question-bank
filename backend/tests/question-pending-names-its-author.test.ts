@@ -28,7 +28,6 @@ async function fieldsOfEach(response: Response): Promise<string[][]> {
 
 describe("who wrote a Pending Question", () => {
   let api: TestApi;
-  let readerToken: string;
   let authorToken: string;
   let reviewerToken: string;
   let addedByTheReviewer: string;
@@ -36,7 +35,6 @@ describe("who wrote a Pending Question", () => {
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
-    readerToken = await logIn(api, seededViewer("reader"));
     authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     // A second author in the queue, so the test can tell each Question's author apart.
@@ -59,7 +57,7 @@ describe("who wrote a Pending Question", () => {
   });
 
   it("is named on no Question in Browse, to any role", async () => {
-    for (const token of [readerToken, authorToken, reviewerToken]) {
+    for (const token of [authorToken, reviewerToken]) {
       const fields = await fieldsOfEach(await getList(api, "", token));
 
       expect(fields.length).toBeGreaterThan(0);

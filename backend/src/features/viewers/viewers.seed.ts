@@ -20,7 +20,6 @@ export type SeedViewer = {
  * be an Administrator-only act nobody could ever perform.
  */
 export const seedViewers: readonly SeedViewer[] = [
-  { email: "reader@iqb.test", password: "reader-password", role: "reader" },
   { email: "author@iqb.test", password: "author-password", role: "author" },
   {
     email: "reviewer@iqb.test",

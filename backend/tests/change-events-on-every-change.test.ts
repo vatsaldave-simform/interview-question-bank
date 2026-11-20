@@ -1,6 +1,6 @@
 import type { ChangeEventType } from "@iqb/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { logIn, seededViewer } from "./helpers/auth.ts";
+import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
   aQuestion,
   addAQuestion,
@@ -28,7 +28,7 @@ async function eventsAbout(api: TestApi, questionId: string) {
 describe("the trace a change leaves", () => {
   let api: TestApi;
   let authorToken: string;
-  let readerToken: string;
+  let otherAuthorToken: string;
   let reviewerToken: string;
   let authorId: string;
   let reviewerId: string;
@@ -37,7 +37,7 @@ describe("the trace a change leaves", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
+    otherAuthorToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     authorId = (await viewerByRole(api.database, "author")).id;
     reviewerId = (await viewerByRole(api.database, "reviewer")).id;
@@ -152,10 +152,10 @@ describe("the trace a change leaves", () => {
 
   it("records nothing about an edit the API refused", async () => {
     const refused: [string, string][] = [
-      // A Reader may not edit a Question they can see perfectly well.
-      [seededQuestionIds.aboutTypeScript, readerToken],
-      // Pending and not the Reader's, so it is not even there.
-      [seededQuestionIds.aboutDisagreeing, readerToken],
+      // Another Author may not edit a Question they can see perfectly well.
+      [seededQuestionIds.aboutTypeScript, otherAuthorToken],
+      // Pending and not theirs, so it is not even there.
+      [seededQuestionIds.aboutDisagreeing, otherAuthorToken],
     ];
 
     for (const [id, token] of refused) {

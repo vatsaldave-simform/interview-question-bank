@@ -8,14 +8,6 @@ import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 import { toastsShown } from "./helpers/toasts";
 
-const aReader = {
-  id: "7c3b4a1e-0000-4000-8000-000000000002",
-  email: "reader@iqb.test",
-  role: "reader" as const,
-  isAdministrator: false,
-  isDeactivated: false,
-};
-
 beforeEach(() => {
   replaceSession({ status: "unknown" });
 });
@@ -25,7 +17,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// Written by somebody else, so neither a Reader nor another Author may change it.
+// Written by somebody else, so the signed-in Author may not change it.
 const someoneElses = aQuestion({
   id: "a0000000-0000-4000-8000-000000000007",
   authorId: "7c3b4a1e-0000-4000-8000-000000000009",
@@ -55,8 +47,8 @@ async function changeTheTextAndSave(): Promise<void> {
 /** The page hides Edit from whoever the API would refuse, but the API still decides, so
  * the edit address reports its refusal to anyone who reaches it anyway (ADR-0045). */
 describe("an edit the API refused", () => {
-  it("shows a Reader the API's refusal when they save at the edit address", async () => {
-    signInAs(aReader);
+  it("shows an Author the API's refusal when they save at the edit address", async () => {
+    signInAs();
     aBankThatRefusesEdits(() => refusesWith(403, "forbidden", "You may not do that."));
     renderTheWholeClient(`/questions/${someoneElses.id}/edit`);
 
@@ -68,16 +60,6 @@ describe("an edit the API refused", () => {
     // Still on the form, with what they typed, rather than sent back as if it had worked.
     expect(window.location.pathname).toBe(`/questions/${someoneElses.id}/edit`);
     expect(screen.getByLabelText("Question")).toHaveValue("What does satisfies do? In TypeScript.");
-  });
-
-  it("shows the same refusal to an Author editing a Question they did not write", async () => {
-    signInAs();
-    aBankThatRefusesEdits(() => refusesWith(403, "forbidden", "You may not do that."));
-    renderTheWholeClient(`/questions/${someoneElses.id}/edit`);
-
-    await changeTheTextAndSave();
-
-    expect(await screen.findByText("You may not do that.")).toBeVisible();
   });
 
   it("says there is no such Question when the edit form's Question is not found", async () => {

@@ -44,7 +44,6 @@ compose, `pnpm db:seed` does the same thing:
 
 | Address             | Password            | Role     |
 | ------------------- | ------------------- | -------- |
-| `reader@iqb.test`   | `reader-password`   | Reader   |
 | `author@iqb.test`   | `author-password`   | Author   |
 | `reviewer@iqb.test` | `reviewer-password` | Reviewer |
 
@@ -207,9 +206,9 @@ table, and nothing takes longer than 5.9ms**:
 | a broad keyword and two Categories | 5.85 | 1,122 | both |
 | a broad keyword, a deep page | 5.67 | 1,052 | the search vector index |
 
-The bulk bank is all Published, because that is what a Reader's query filters on. The
-Reader's Publication State check is still in every one of these statements; it just has
-nothing in the bulk bank to throw away, which is what a Reader's bank looks like.
+The bulk bank is all Published, because that is what a newcomer's query filters on. The
+newcomer's Publication State check is still in every one of these statements; it just has
+nothing in the bulk bank to throw away, which is what a newcomer's bank looks like.
 
 The planner chooses which index drives the query from how selective each half is, and
 dropping either one takes a strategy away. **No index was added in response**: the two the
@@ -427,7 +426,7 @@ finds Near-Duplicates, they are listed in a dialog, and the Author can go back a
 Question or say it is different and add it anyway. `/questions/:id/edit` edits one, and
 sends only the fields that changed. New text on a Published Question gets the same
 dialog, and saving it anyway sends the same edit again with the confirmation. Both forms
-are there for every Viewer, a Reader included. Whether they may add or edit is the API's answer, so a Viewer who may not sees the
+are there for every Viewer. Whether they may edit is the API's answer, so a Viewer who may not sees the
 API's refusal rather than a missing button.
 
 On load it asks `POST /api/auth/refresh` once and shows what it finds: the login screen if
