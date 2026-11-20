@@ -492,7 +492,7 @@ machine and run `pnpm db:seed` there. It is safe to run twice and leaves an exis
 Viewer untouched, so it can be re-run without resetting a password someone changed.
 
 **The hosted bank has its own seed.** `pnpm db:seed:hosted` writes the people who use it
-(John Doe the Author, Jane Doe the Reviewer and Administrator, and three Readers), three
+(John Doe the Author, Jane Doe the Reviewer and Administrator, and three more Authors), three
 made-up Clients, and 50 Questions. It does not run the demo seed. Their passwords are
 never in git: set one per person, each at least 15 characters, and run it against Neon:
 
