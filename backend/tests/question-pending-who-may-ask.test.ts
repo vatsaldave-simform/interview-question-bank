@@ -77,12 +77,6 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
     ]);
   });
 
-  it("refuses an Author's own list to a Reader, who can have added nothing", async () => {
-    const response = await getList(api, "own", {}, readerToken);
-
-    expect(response.status).toBe(403);
-  });
-
   it("hands an Author their own Pending and Rejected Questions", async () => {
     const response = await getList(api, "own", {}, authorToken);
 

@@ -6,7 +6,6 @@ import {
   questionPageRequestSchema,
   rejectQuestionRequestSchema,
   returnQuestionRequestSchema,
-  rolesThatMayAddAQuestion,
   type PendingQuestionListResponse,
   type Question,
   type QuestionHistoryResponse,
@@ -37,8 +36,9 @@ import type { Database } from "../../platform/database.ts";
 export function questionRoutes(database: Database): Router {
   const router = Router();
 
-  // On the route rather than on the router, because a Reader may still read the bank.
-  router.post("/", requireRole(...rolesThatMayAddAQuestion), async (req, res) => {
+  // No `requireRole`: every Viewer may add a Question, and it stays Pending until a Reviewer
+  // Publishes it (ADR-0055).
+  router.post("/", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const request = addQuestionRequestSchema.parse(req.body);
 
@@ -74,9 +74,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // A Viewer who may not add a Question is refused rather than handed a list that is always
-  // empty.
-  router.get("/own", requireRole(...rolesThatMayAddAQuestion), async (req, res) => {
+  router.get("/own", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const page = questionPageRequestSchema.parse(req.query);
 
@@ -96,8 +94,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // Any Viewer who can see the Question may read how it got there, so no `requireRole`:
-  // a Reader reads history like anybody else.
+  // Any Viewer who can see the Question may read how it got there, so no `requireRole`.
   router.get("/:id/history", async (req, res) => {
     const viewer = authenticatedViewer(req);
     const id = questionIdNamed(req);
@@ -109,7 +106,7 @@ export function questionRoutes(database: Database): Router {
     res.json(body);
   });
 
-  // No `requireRole` here, unlike the add route above. This route names a Question, and a
+  // No `requireRole` here, unlike the review queue above. This route names a Question, and a
   // role refused before the Question is looked up would say the Question exists; who may
   // edit is decided inside, after the visibility check has passed (ADR-0002).
   router.patch("/:id", async (req, res) => {

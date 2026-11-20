@@ -86,14 +86,4 @@ describe("Browse with no filter, when there is nothing to see", () => {
     ).toBeVisible();
     expect(empty.getByRole("link", { name: "Add a Question" })).toBeVisible();
   });
-
-  it("says so to a Reader, and offers them nothing to do", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    fakeBank((asked) => aPageOf([], asked));
-    renderTheWholeClient("/questions");
-
-    const empty = within(await theEmptyList("No Question you can see yet"));
-    expect(empty.getByText("Questions appear here once a Reviewer Publishes them.")).toBeVisible();
-    expect(empty.queryByRole("link")).not.toBeInTheDocument();
-  });
 });

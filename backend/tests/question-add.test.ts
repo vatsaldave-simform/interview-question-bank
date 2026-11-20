@@ -1,4 +1,4 @@
-import { apiErrorSchema, questionResponseSchema } from "@iqb/shared";
+import { questionResponseSchema } from "@iqb/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { logIn, logInAsAnother, seededViewer } from "./helpers/auth.ts";
 import {
@@ -27,15 +27,6 @@ describe("adding a Question over HTTP", () => {
   });
   afterAll(async () => {
     await api.stop();
-  });
-
-  it("refuses a Reader, because read-only means read-only", async () => {
-    const token = await logIn(api, seededViewer("reader"));
-
-    const response = await postQuestion(api, aQuestion(), token);
-
-    expect(response.status).toBe(403);
-    expect(apiErrorSchema.parse(await response.json()).error.code).toBe("forbidden");
   });
 
   it("answers 201 with the new Question, which is Pending", async () => {
@@ -97,7 +88,7 @@ describe("adding a Question over HTTP", () => {
     expect(question.tags).toHaveLength(3);
   });
 
-  it("lets a Reviewer add one too, since the constraint is on Readers", async () => {
+  it("lets a Reviewer add one too", async () => {
     const token = await logIn(api, seededViewer("reviewer"));
 
     const response = await postQuestion(api, aQuestion(), token);

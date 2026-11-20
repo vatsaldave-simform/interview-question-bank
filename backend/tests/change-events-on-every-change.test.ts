@@ -140,8 +140,7 @@ describe("the trace a change leaves", () => {
   it("records nothing about a Question the API refused to add", async () => {
     const before = await api.database.changeEvent.count();
 
-    // A Reader may not add one, and the Tag in the second does not exist.
-    await postQuestion(api, aQuestion(), readerToken);
+    // The Tag does not exist.
     await postQuestion(
       api,
       aQuestion({ tags: [{ category: "technology", tag: "fortran" }] }),

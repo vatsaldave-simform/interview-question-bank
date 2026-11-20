@@ -1,4 +1,4 @@
-import { mayAddAQuestion, type Viewer } from "@iqb/shared";
+import type { Viewer } from "@iqb/shared";
 import type { LinkProps } from "@tanstack/react-router";
 import {
   Building2Icon,
@@ -57,7 +57,7 @@ export const appPages = [
     name: "Add a Question",
     icon: SquarePlusIcon,
     group: "Questions",
-    shownTo: mayAddAQuestion,
+    shownTo: everyone,
   },
   {
     id: "your-questions",
@@ -65,7 +65,7 @@ export const appPages = [
     name: "Your Questions",
     icon: FileTextIcon,
     group: "Questions",
-    shownTo: mayAddAQuestion,
+    shownTo: everyone,
   },
   {
     id: "review-queue",

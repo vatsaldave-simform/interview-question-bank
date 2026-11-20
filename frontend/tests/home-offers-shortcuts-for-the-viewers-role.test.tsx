@@ -27,14 +27,13 @@ const administrationPages = ["Role Requests", "Viewers", "Clients"];
 
 describe("the shortcuts on Home", () => {
   it.each<[string, Viewer, string[]]>([
-    ["a Reader", aViewer({ role: "reader" }), ["Browse the bank"]],
     ["an Author", aViewer({ role: "author" }), authorPages],
     ["a Reviewer", aViewer({ role: "reviewer" }), [...authorPages, "Review queue"]],
     ["an Administrator", anAdministrator, [...authorPages, "Review queue", ...administrationPages]],
     [
-      "an Administrator who is also a Reader",
-      aViewer({ role: "reader", isAdministrator: true }),
-      ["Browse the bank", ...administrationPages],
+      "an Administrator who is also an Author",
+      aViewer({ role: "author", isAdministrator: true }),
+      [...authorPages, ...administrationPages],
     ],
   ])("offer %s exactly the pages their role allows", async (_who, viewer, expected) => {
     signInAs(viewer);
