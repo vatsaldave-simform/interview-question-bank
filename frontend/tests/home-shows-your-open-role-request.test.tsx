@@ -47,21 +47,6 @@ describe("Your Role Request on Home", () => {
     );
   });
 
-  it("is the only panel of waiting work a Reader sees", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    aBankHoldingMine([open]);
-    renderTheWholeClient("/");
-
-    await thePanel();
-    for (const other of [
-      "Your Pending and Rejected Questions",
-      "Waiting for your review",
-      "Open Role Requests",
-    ]) {
-      expect(screen.queryByRole("region", { name: other })).toBeNull();
-    }
-  });
-
   it("shows an Administrator theirs too", async () => {
     signInAs(anAdministrator);
     aBankHoldingMine([open]);

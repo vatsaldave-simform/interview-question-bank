@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopRenewingSession } from "@/features/auth/sign-in";
 import { replaceSession } from "@/platform/session";
-import { aQuestion, aViewer, answersWith, refusesWith } from "./helpers/fake-api";
+import { aQuestion, aViewer, answersWith } from "./helpers/fake-api";
 import { aPageOf, fakeBank, signInAs } from "./helpers/fake-bank";
 import { renderTheWholeClient } from "./helpers/the-whole-client";
 
@@ -96,17 +96,6 @@ describe("an Author's own Pending and Rejected Questions", () => {
       await screen.findByRole("heading", { name: "You have no Pending or Rejected Questions" }),
     ).toBeVisible();
   });
-
-  it("reports the API's refusal to a Reader who opens the address, with no Try again", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    aBankAnswering(() => refusesWith(403, "forbidden", "Only an Author may do that."));
-
-    renderTheWholeClient("/questions/own");
-
-    expect(await screen.findByText("The bank refused to show the Questions")).toBeVisible();
-    expect(screen.getByText("Only an Author may do that.")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
-  });
 });
 
 describe("a Rejected Question's own page", () => {
@@ -132,14 +121,4 @@ describe("the link to an Author's own list", () => {
       expect(await screen.findByRole("heading", { name: "Your Questions" })).toBeVisible();
     },
   );
-
-  it("is not in the sidebar for a Reader", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    aBankAnswering((asked) => aPageOf([], asked));
-    renderTheWholeClient("/questions");
-
-    await screen.findByRole("heading", { name: "Browse" });
-
-    expect(screen.queryByRole("link", { name: "Your Questions" })).not.toBeInTheDocument();
-  });
 });

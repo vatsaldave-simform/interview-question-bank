@@ -1,4 +1,3 @@
-import type { Viewer } from "@iqb/shared";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,21 +83,6 @@ describe("Your Pending and Rejected Questions on Home", () => {
     renderTheWholeClient("/");
 
     expect(await (await thePanel()).findByRole("link", { name: waiting.text })).toBeVisible();
-  });
-
-  it.each<[string, Viewer]>([
-    ["a Reader", aViewer({ role: "reader" })],
-    ["an Administrator who is a Reader", aViewer({ role: "reader", isAdministrator: true })],
-  ])("is not shown to %s, and their own list is never asked for", async (_who, viewer) => {
-    signInAs(viewer);
-    const api = aBankWithOwn([waiting]);
-    renderTheWholeClient("/");
-
-    await screen.findByRole("region", { name: "Recently added" });
-    expect(
-      screen.queryByRole("region", { name: "Your Pending and Rejected Questions" }),
-    ).toBeNull();
-    expect(api.sent.map(({ url }) => new URL(url).pathname)).not.toContain("/api/questions/own");
   });
 
   it("says so when nothing of the Viewer's is waiting", async () => {

@@ -48,7 +48,6 @@ describe("Home's header", () => {
   });
 
   it.each<[string, Viewer, string]>([
-    ["a Reader", aViewer({ role: "reader" }), "Signed in as author@iqb.test, a Reader."],
     ["an Author", aViewer({ role: "author" }), "Signed in as author@iqb.test, an Author."],
     ["a Reviewer", aViewer({ role: "reviewer" }), "Signed in as author@iqb.test, a Reviewer."],
     [
@@ -57,9 +56,9 @@ describe("Home's header", () => {
       "Signed in as reviewer@iqb.test, a Reviewer and an Administrator.",
     ],
     [
-      "an Administrator who is also a Reader",
-      aViewer({ role: "reader", isAdministrator: true }),
-      "Signed in as author@iqb.test, a Reader and an Administrator.",
+      "an Administrator who is also an Author",
+      aViewer({ role: "author", isAdministrator: true }),
+      "Signed in as author@iqb.test, an Author and an Administrator.",
     ],
   ])("says who is signed in, for %s", async (_who, viewer, says) => {
     signInAs(viewer);

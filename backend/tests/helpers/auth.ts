@@ -49,7 +49,7 @@ export async function signInAnother(
     password: `${role}-password`,
     role,
   };
-  const viewer = await api.database.viewer.create({
+  const row = await api.database.viewer.create({
     data: {
       email: credentials.email,
       role,
@@ -57,5 +57,5 @@ export async function signInAnother(
     },
     select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
   });
-  return { token: await logIn(api, credentials), viewer };
+  return { token: await logIn(api, credentials), viewer: { ...row, role } };
 }

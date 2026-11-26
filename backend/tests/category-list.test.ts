@@ -41,7 +41,7 @@ describe("listing the Categories and their Tags over HTTP", () => {
 
   it("answers every Viewer with the same bytes", async () => {
     const answers: string[] = [];
-    for (const role of ["reader", "author", "reviewer"] as const) {
+    for (const role of ["author", "reviewer"] as const) {
       const token = await logIn(api, seededViewer(role));
       const response = await getCategories(api, token);
       expect(response.status).toBe(200);

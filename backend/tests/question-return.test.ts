@@ -37,7 +37,6 @@ describe("returning a Published Question to its Author", () => {
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  let readerToken: string;
   /** An Author who added none of the seeded Questions. */
   let newcomerToken: string;
   let reviewerToken: string;
@@ -46,7 +45,6 @@ describe("returning a Published Question to its Author", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
     newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
@@ -156,8 +154,8 @@ describe("returning a Published Question to its Author", () => {
     ]);
   });
 
-  it("refuses its Author, and a Reader, returning a Question they can see", async () => {
-    for (const token of [authorToken, readerToken]) {
+  it("refuses its Author, and another Author, returning a Question they can see", async () => {
+    for (const token of [authorToken, newcomerToken]) {
       const response = await returnIt(publishedAndUnrestricted, token);
 
       expect(response.status).toBe(403);

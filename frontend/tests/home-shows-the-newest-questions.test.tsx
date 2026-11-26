@@ -99,12 +99,12 @@ describe("the newest Questions on Home", () => {
     expect(row.getByText(/^Added/)).toHaveTextContent("Added 2 days ago");
   });
 
-  it("tell a Reader nothing about who wrote them", async () => {
+  it("tell another Author nothing about who wrote them", async () => {
     signInAs(
       aViewer({
         id: "7c3b4a1e-0000-4000-8000-000000000002",
-        email: "reader@iqb.test",
-        role: "reader",
+        email: "newcomer@iqb.test",
+        role: "author",
       }),
     );
     fakeBank((asked) => aPageOf([older], asked));

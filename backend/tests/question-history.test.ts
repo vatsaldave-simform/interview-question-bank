@@ -33,8 +33,8 @@ describe("the history of a Question", () => {
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  /** May edit nothing. */
-  let readerToken: string;
+  /** Did not write any of them, so may edit none that is Published. */
+  let otherAuthorToken: string;
   let reviewerToken: string;
   let authorId: string;
   let reviewerId: string;
@@ -43,7 +43,7 @@ describe("the history of a Question", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
+    otherAuthorToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
     authorId = (await viewerByRole(api.database, "author")).id;
     reviewerId = (await viewerByRole(api.database, "reviewer")).id;
@@ -118,14 +118,14 @@ describe("the history of a Question", () => {
     expect(await historyOf(seededQuestionIds.aboutTypeScript, authorToken)).toEqual([]);
   });
 
-  it("lets a Reader read the history of a Question they can see", async () => {
-    // Published, so a Reader reaches it; a Question just added is
+  it("lets a Viewer who may not edit a Question read its history", async () => {
+    // Published, so another Author reaches it; a Question just added is
     // Pending, which is a reason of its own to be out of reach.
     const id = seededQuestionIds.aboutTypeScript;
     await patchQuestion(api, id, { text: newText }, authorToken);
 
-    // A Reader may edit nothing, and that has never been about reading.
-    expect(await historyOf(id, readerToken)).toHaveLength(1);
+    // Another Author may not edit it, and that has never been about reading.
+    expect(await historyOf(id, otherAuthorToken)).toHaveLength(1);
   });
 
   it("carries only the events about the Question that was asked for", async () => {

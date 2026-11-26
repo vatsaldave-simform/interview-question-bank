@@ -19,7 +19,7 @@ describe("listing Clients", () => {
   });
 
   // A Client hides nothing (ADR-0050), so what a Viewer holds changes nothing here.
-  it.each(["reader", "author", "reviewer"] as const)(
+  it.each(["author", "reviewer"] as const)(
     "shows the seeded %s every Client, in name order",
     async (role) => {
       const token = await logIn(api, seededViewer(role));

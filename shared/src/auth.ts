@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 /**
- * The three roles a Viewer holds about Questions, in the spelling the API uses and the
+ * The two roles a Viewer holds about Questions, in the spelling the API uses and the
  * database stores. Administrator is not here: it is a separate authority
- * held alongside one of these rather than a fourth value replacing them (ADR-0015).
+ * held alongside one of these rather than a third value replacing them (ADR-0015).
  */
-export const viewerRoles = ["reader", "author", "reviewer"] as const;
+export const viewerRoles = ["author", "reviewer"] as const;
 export const viewerRoleSchema = z.enum(viewerRoles);
 export type ViewerRole = z.infer<typeof viewerRoleSchema>;
 

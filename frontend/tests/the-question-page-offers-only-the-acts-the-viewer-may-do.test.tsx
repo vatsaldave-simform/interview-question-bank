@@ -49,14 +49,6 @@ async function actsOn(question: Question) {
 }
 
 describe("the acts on the Question page", () => {
-  it("offers a Reader none", async () => {
-    signInAs(aViewer({ role: "reader" }));
-    aBankHolding([othersPublished]);
-    renderTheWholeClient(`/questions/${othersPublished.id}`);
-
-    expect(await actsOn(othersPublished)).toEqual({ links: [], buttons: [] });
-  });
-
   it("offers an Author Edit and Reject on their own Pending Question, but not Publish", async () => {
     signInAs();
     aBankHolding([ownPending]);

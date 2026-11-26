@@ -1,11 +1,16 @@
-import type { NamedViewer, ViewerRole } from "@iqb/shared";
+import {
+  viewerRoleSchema,
+  type NamedViewer,
+  type RequestedRole,
+  type ViewerRole,
+} from "@iqb/shared";
 import type { Prisma, RoleRequestState } from "../../generated/prisma/client.ts";
 import type { Database, DatabaseOrTransaction } from "../../platform/database.ts";
 
 export type RoleRequestFromDb = {
   id: string;
   viewer: NamedViewer;
-  role: ViewerRole;
+  role: RequestedRole;
   heldRole: ViewerRole;
   state: RoleRequestState;
   reason: string | null;
@@ -80,7 +85,9 @@ function toRoleRequestFromDb({
   viewer: { role: heldRole, ...viewer },
   ...roleRequest
 }: RoleRequestRow): RoleRequestFromDb {
-  return { ...roleRequest, viewer, heldRole };
+  // Parsed, because no Viewer may hold Reader and one who does means the rows and the code are
+  // out of sync (ADR-0055).
+  return { ...roleRequest, viewer, heldRole: viewerRoleSchema.parse(heldRole) };
 }
 
 const publicFields = {

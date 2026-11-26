@@ -20,7 +20,6 @@ describe("the login screen", () => {
     await screen.findByText("Accounts to try");
 
     for (const [role, email, password] of [
-      ["reader", "reader@iqb.test", "reader-password"],
       ["author", "author@iqb.test", "author-password"],
       ["reviewer", "reviewer@iqb.test", "reviewer-password"],
     ]) {

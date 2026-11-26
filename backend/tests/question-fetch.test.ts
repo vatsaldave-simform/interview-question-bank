@@ -48,7 +48,7 @@ describe("fetching a Question over HTTP", () => {
   });
 
   it("returns a Question that names no Client to every authenticated Viewer", async () => {
-    for (const role of ["reader", "author", "reviewer"] as const) {
+    for (const role of ["author", "reviewer"] as const) {
       const token = await logIn(api, seededViewer(role));
 
       const response = await getQuestion(api, publishedWithNoClient, token);

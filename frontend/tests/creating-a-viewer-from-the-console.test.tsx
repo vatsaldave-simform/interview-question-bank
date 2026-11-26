@@ -52,6 +52,16 @@ async function theCreateForm() {
 }
 
 describe("creating a Viewer from the administration console", () => {
+  it("offers only Author and Reviewer, with Author chosen", async () => {
+    aBankCreatingViewers([anAdministrator], () => answersWith({ viewer: newcomer }, 201));
+    renderTheWholeClient("/administration/viewers");
+
+    const picker = (await theCreateForm()).getByLabelText("Role");
+    const offered = within(picker).getAllByRole("option").map((option) => option.textContent);
+    expect(offered).toEqual(["Author", "Reviewer"]);
+    expect(picker).toHaveValue("author");
+  });
+
   it("sends the email and role typed, and lists the new Viewer", async () => {
     const api = aBankCreatingViewers([anAdministrator], () =>
       answersWith({ viewer: newcomer }, 201),

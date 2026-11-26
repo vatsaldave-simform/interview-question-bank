@@ -39,7 +39,6 @@ describe("Publishing and Rejecting a Pending Question", () => {
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  let readerToken: string;
   /** An Author who added none of the seeded Questions. */
   let newcomerToken: string;
   let reviewerToken: string;
@@ -48,7 +47,6 @@ describe("Publishing and Rejecting a Pending Question", () => {
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
     newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
@@ -122,46 +120,32 @@ describe("Publishing and Rejecting a Pending Question", () => {
     expect(response.status).toBe(403);
   });
 
-  it("answers a Reader Publishing or Rejecting a Pending Question as if it were not there", async () => {
+  it("answers another Author Publishing or Rejecting a Pending Question as if it were not there", async () => {
+    // They may not see it, so the visibility check answers before the role rule does.
     for (const act of ["publish", "reject"] as const) {
       const response = await postReviewAct(
         api,
         pendingAndUnrestricted,
         act,
-        readerToken,
+        newcomerToken,
         bodyFor(act),
       );
 
-      expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, readerToken));
+      expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, newcomerToken));
     }
   });
 
-  it("refuses a Reader Publishing or Rejecting a Question they can see", async () => {
+  it("refuses another Author Publishing or Rejecting a Question they can see", async () => {
     for (const act of ["publish", "reject"] as const) {
       const response = await postReviewAct(
         api,
         publishedAndUnrestricted,
         act,
-        readerToken,
+        newcomerToken,
         bodyFor(act),
       );
 
       expect(response.status).toBe(403);
-    }
-  });
-
-  it("answers a Reader acting on a Pending Question as if the Question were not there", async () => {
-    // The Reader may not see it, so the visibility check answers before the role rule does.
-    for (const act of ["publish", "reject"] as const) {
-      const response = await postReviewAct(
-        api,
-        pendingForTheFirstClient,
-        act,
-        readerToken,
-        bodyFor(act),
-      );
-
-      expect(await statusAndBody(response)).toBe(await unknownIdAnswer(act, readerToken));
     }
   });
 

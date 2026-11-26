@@ -58,9 +58,8 @@ describe("the role a Role Request shows its asker holding", () => {
   }
 
   it.each<[ViewerRole, ViewerRole]>([
-    ["reader", "author"],
     ["author", "reviewer"],
-    ["reviewer", "reader"],
+    ["reviewer", "author"],
   ])("is beside the role asked for when a %s raises it", async (held, asked) => {
     const token = await logIn(api, seededViewer(held));
 

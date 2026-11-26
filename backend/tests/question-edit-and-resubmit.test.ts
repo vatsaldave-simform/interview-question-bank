@@ -33,7 +33,6 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
   let api: TestApi;
   /** Author of every seeded Question. */
   let authorToken: string;
-  let readerToken: string;
   /** An Author who added none of the seeded Questions. */
   let newcomerToken: string;
   let reviewerToken: string;
@@ -42,7 +41,6 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     api = await startTestApi();
     await seedTheBank(api.database);
     authorToken = await logIn(api, seededViewer("author"));
-    readerToken = await logIn(api, seededViewer("reader"));
     newcomerToken = await logInAsAnother(api, "author");
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
@@ -124,13 +122,10 @@ describe("editing a Question under review, and resubmitting a Rejected one", () 
     expect(response.status).toBe(403);
   });
 
-  it("refuses a Reader resubmitting, and hides a Question they cannot see", async () => {
-    const hidden = await postReviewAct(api, rejectedAndUnrestricted, "resubmit", readerToken);
-    const seen = await postReviewAct(api, publishedAndUnrestricted, "resubmit", readerToken);
+  it("refuses another Author resubmitting a Question they can see", async () => {
+    const response = await postReviewAct(api, publishedAndUnrestricted, "resubmit", newcomerToken);
 
-    const nothing = await postReviewAct(api, unknownQuestionId, "resubmit", readerToken);
-    expect(await statusAndBody(hidden)).toBe(await statusAndBody(nothing));
-    expect(seen.status).toBe(403);
+    expect(response.status).toBe(403);
   });
 
   it("refuses resubmitting a Question that is not Rejected", async () => {

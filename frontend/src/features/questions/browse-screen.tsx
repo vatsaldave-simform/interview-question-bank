@@ -9,7 +9,6 @@ import { QuestionCard } from "@/features/questions/question-card";
 import { QuestionCardsLoading, questionGrid } from "@/features/questions/question-cards-loading";
 import { QuestionPages } from "@/features/questions/question-pages";
 import { useQuestionList } from "@/features/questions/questions.queries";
-import { useMayAddAQuestion } from "@/features/questions/use-may-add-a-question";
 import { whatWentWrong } from "@/platform/api-client";
 import { EmptyList } from "@/ui/empty-list";
 import { PageHeader } from "@/ui/page-header";
@@ -26,8 +25,6 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
   const asked = listRequestFor(search);
   const request = "request" in asked ? asked.request : null;
   const list = useQuestionList(request);
-  const mayAddAQuestion = useMayAddAQuestion();
-
   const namesAFilter = Object.entries(search).some(
     ([name, value]) => name !== "offset" && value !== undefined,
   );
@@ -39,7 +36,7 @@ export function BrowseScreen({ search, onSearchChange }: BrowseScreenProps) {
         description={
           "Every Published Question you can see. Search, or narrow it by Category or Client."
         }
-        action={mayAddAQuestion && <AddAQuestionButton />}
+        action={<AddAQuestionButton />}
       />
       <div className="flex flex-wrap items-center gap-2" aria-label="Filters" role="group">
         <div className="min-w-0 flex-[1_1_17.5rem]">
@@ -120,7 +117,6 @@ function QuestionList({ page, whenEmpty }: QuestionListProps) {
 type NothingToShowProps = { namesAFilter: boolean; onClearFilter: () => void };
 
 function NothingToShow({ namesAFilter, onClearFilter }: NothingToShowProps) {
-  const mayAddAQuestion = useMayAddAQuestion();
   if (namesAFilter) {
     return (
       <EmptyList
@@ -141,11 +137,9 @@ function NothingToShow({ namesAFilter, onClearFilter }: NothingToShowProps) {
     <EmptyList
       icon={LibraryIcon}
       title="No Question you can see yet"
-      action={mayAddAQuestion ? <AddAQuestionButton /> : undefined}
+      action={<AddAQuestionButton />}
     >
-      {mayAddAQuestion
-        ? "Add the first one. A Reviewer reads it before it is in the bank."
-        : "Questions appear here once a Reviewer Publishes them."}
+      Add the first one. A Reviewer reads it before it is in the bank.
     </EmptyList>
   );
 }

@@ -88,7 +88,6 @@ describe("the dot on Review queue", () => {
   });
 
   it.each<[string, Viewer]>([
-    ["a Reader", aViewer({ role: "reader" })],
     ["an Author", aViewer({ role: "author" })],
     ["an Administrator who is not a Reviewer", aViewer({ role: "author", isAdministrator: true })],
   ])("is not asked for by %s", async (_who, viewer) => {
@@ -164,7 +163,6 @@ describe("the number beside Role Requests", () => {
   });
 
   it.each<[string, Viewer]>([
-    ["a Reader", aViewer({ role: "reader" })],
     ["an Author", aViewer({ role: "author" })],
     ["a Reviewer who is not an Administrator", aReviewer],
   ])("is not asked for by %s", async (_who, viewer) => {

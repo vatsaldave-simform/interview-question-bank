@@ -109,4 +109,31 @@ describe("the Role Request store", () => {
     expect(listed.map(({ id }) => id)).toEqual([older.id, newer.id]);
     expect(listed[0]?.viewer).toEqual({ id: authorId, email: expect.any(String) });
   });
+
+  // Written straight to the database, because the API no longer accepts Reader at all.
+  describe("the retired Reader role (ADR-0055)", () => {
+    it("still reads back a decided request for Reader, as it was asked for", async () => {
+      await database.roleRequest.create({
+        data: { viewerId: authorId, role: "reader", state: "denied", reason: "Not now." },
+      });
+
+      const [mine] = await findRoleRequestsOf(database, authorId);
+
+      expect(mine).toMatchObject({ role: "reader", heldRole: "author", state: "denied" });
+    });
+
+    it("refuses an open request for Reader", async () => {
+      const open = database.roleRequest.create({ data: { viewerId: authorId, role: "reader" } });
+
+      await expect(open).rejects.toThrow(/role_requests_reader_only_once_decided/);
+      expect(await database.roleRequest.count()).toBe(0);
+    });
+
+    it("refuses making any Viewer a Reader", async () => {
+      const made = database.viewer.update({ where: { id: authorId }, data: { role: "reader" } });
+
+      await expect(made).rejects.toThrow(/viewers_role_is_not_reader/);
+      expect((await viewerByRole(database, "author")).role).toBe("author");
+    });
+  });
 });

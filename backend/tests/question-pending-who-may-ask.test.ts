@@ -40,25 +40,17 @@ function getList(
  * the role check and the response. */
 describe("who may ask for the Pending queue and for an Author's own list", () => {
   let api: TestApi;
-  let readerToken: string;
   let authorToken: string;
   let reviewerToken: string;
 
   beforeAll(async () => {
     api = await startTestApi();
     await seedTheBank(api.database);
-    readerToken = await logIn(api, seededViewer("reader"));
     authorToken = await logIn(api, seededViewer("author"));
     reviewerToken = await logIn(api, seededViewer("reviewer"));
   });
   afterAll(async () => {
     await api.stop();
-  });
-
-  it("refuses the queue to a Reader", async () => {
-    const response = await getList(api, "pending", {}, readerToken);
-
-    expect(response.status).toBe(403);
   });
 
   it("refuses the queue to an Author", async () => {
@@ -75,12 +67,6 @@ describe("who may ask for the Pending queue and for an Author's own list", () =>
       pendingForTheFirstClient,
       pendingForTheSecondClient,
     ]);
-  });
-
-  it("refuses an Author's own list to a Reader, who can have added nothing", async () => {
-    const response = await getList(api, "own", {}, readerToken);
-
-    expect(response.status).toBe(403);
   });
 
   it("hands an Author their own Pending and Rejected Questions", async () => {

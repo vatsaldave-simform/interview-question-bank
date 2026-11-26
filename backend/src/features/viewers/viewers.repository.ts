@@ -1,18 +1,19 @@
-import type { NamedViewer, Viewer, ViewerRole } from "@iqb/shared";
+import { viewerRoleSchema, type NamedViewer, type Viewer, type ViewerRole } from "@iqb/shared";
 import type { Database, DatabaseOrTransaction, Transaction } from "../../platform/database.ts";
 
 /** Null until the Viewer sets a password, so every reader has to say what that means. */
 export type ViewerWithCredential = Viewer & { passwordHash: string | null };
 
 /** The one place the stored credential is read, so it is easy to see that it is one. */
-export function findViewerByEmail(
+export async function findViewerByEmail(
   database: Database,
   email: string,
 ): Promise<ViewerWithCredential | null> {
-  return database.viewer.findUnique({
+  const row = await database.viewer.findUnique({
     where: { email },
     select: { ...publicFields, passwordHash: true },
   });
+  return row === null ? null : toViewer(row);
 }
 
 /**
@@ -20,16 +21,18 @@ export function findViewerByEmail(
  * change to a Viewer takes effect on their next request instead of when their token
  * happens to expire.
  */
-export function findViewerById(
+export async function findViewerById(
   database: DatabaseOrTransaction,
   id: string,
 ): Promise<Viewer | null> {
-  return database.viewer.findUnique({ where: { id }, select: publicFields });
+  const row = await database.viewer.findUnique({ where: { id }, select: publicFields });
+  return row === null ? null : toViewer(row);
 }
 
 /** Deactivated Viewers too, because an Administrator has to find them to reactivate them. */
-export function findEveryViewer(database: Database): Promise<Viewer[]> {
-  return database.viewer.findMany({ orderBy: { email: "asc" }, select: publicFields });
+export async function findEveryViewer(database: Database): Promise<Viewer[]> {
+  const rows = await database.viewer.findMany({ orderBy: { email: "asc" }, select: publicFields });
+  return rows.map(toViewer);
 }
 
 /** Only for Questions already read through the visibility check, because this looks their
@@ -90,7 +93,9 @@ export function setIsAdministrator(
   id: string,
   isAdministrator: boolean,
 ): Promise<Viewer> {
-  return database.viewer.update({ where: { id }, data: { isAdministrator }, select: publicFields });
+  return database.viewer
+    .update({ where: { id }, data: { isAdministrator }, select: publicFields })
+    .then(toViewer);
 }
 
 export function setIsDeactivated(
@@ -98,7 +103,9 @@ export function setIsDeactivated(
   id: string,
   isDeactivated: boolean,
 ): Promise<Viewer> {
-  return database.viewer.update({ where: { id }, data: { isDeactivated }, select: publicFields });
+  return database.viewer
+    .update({ where: { id }, data: { isDeactivated }, select: publicFields })
+    .then(toViewer);
 }
 
 export function setRole(
@@ -106,7 +113,9 @@ export function setRole(
   id: string,
   role: ViewerRole,
 ): Promise<Viewer> {
-  return database.viewer.update({ where: { id }, data: { role }, select: publicFields });
+  return database.viewer
+    .update({ where: { id }, data: { role }, select: publicFields })
+    .then(toViewer);
 }
 
 /** Takes a hash, never a password, so nothing written here can be the credential itself. */
@@ -123,7 +132,15 @@ export function insertViewer(
   email: string,
   role: ViewerRole,
 ): Promise<Viewer> {
-  return database.viewer.create({ data: { email, role }, select: publicFields });
+  return database.viewer.create({ data: { email, role }, select: publicFields }).then(toViewer);
+}
+
+/** Parsed rather than cast, because the enum still holds `reader` for old Role Requests
+ * (ADR-0055); a Viewer holding it means the rows and the code are out of sync (ADR-0024). */
+export function toViewer<Row extends { role: string }>(
+  row: Row,
+): Omit<Row, "role"> & { role: ViewerRole } {
+  return { ...row, role: viewerRoleSchema.parse(row.role) };
 }
 
 /** Everything a response or a permission check may see. Never the stored credential. */

@@ -5,7 +5,7 @@ import type { Database } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 
 /** Not Visible is a 404, then the state is a 409, as for every other act on a Question
- * (ADR-0002). There is no rule about who: Readers and the Author may upvote (ADR-0053). */
+ * (ADR-0002). There is no rule about who: any Viewer may upvote, the Author too (ADR-0053). */
 export async function upvoteQuestion(
   database: Database,
   viewer: Viewer,

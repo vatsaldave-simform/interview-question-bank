@@ -52,7 +52,6 @@ describe("the sidebar", () => {
   });
 
   it.each<[string, Viewer, Record<string, string[]>]>([
-    ["a Reader", aViewer({ role: "reader" }), { Questions: ["Home", "Browse"] }],
     ["an Author", aViewer({ role: "author" }), { Questions: everyQuestionPage }],
     [
       "a Reviewer",
@@ -69,9 +68,9 @@ describe("the sidebar", () => {
       },
     ],
     [
-      "an Administrator who is also a Reader",
-      aViewer({ role: "reader", isAdministrator: true }),
-      { Questions: ["Home", "Browse"], Administration: everyAdministrationPage },
+      "an Administrator who is also an Author",
+      aViewer({ role: "author", isAdministrator: true }),
+      { Questions: everyQuestionPage, Administration: everyAdministrationPage },
     ],
   ])("shows %s exactly the links their role allows", async (_who, viewer, expected) => {
     signInAs(viewer);

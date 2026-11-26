@@ -155,17 +155,13 @@ describe("Administrator authority", () => {
     });
   });
 
-  it("gives an Administrator who is a Reader no more reach than any other Reader", async () => {
-    const readerId = (await viewerByRole(api.database, "reader")).id;
-    await appoint(api, readerId, administratorToken);
-    const readerAdministratorToken = await logIn(api, seededViewer("reader"));
+  it("gives an Administrator who is an Author no more reach than any other Author", async () => {
+    const { token, viewer } = await signInAnother(api, "author");
+    await appoint(api, viewer.id, administratorToken);
 
-    // Pending, which a Reader may not see whatever else they hold.
-    const response = await getQuestion(
-      api,
-      seededQuestionIds.aboutDisagreeing,
-      readerAdministratorToken,
-    );
+    // Pending and written by somebody else, which an Author may not see whatever else they
+    // hold.
+    const response = await getQuestion(api, seededQuestionIds.aboutDisagreeing, token);
 
     expect(response.status).toBe(404);
   });

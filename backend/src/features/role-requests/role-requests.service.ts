@@ -1,4 +1,10 @@
-import type { RoleRequestDenied, RoleRequestGranted, Viewer, ViewerRole } from "@iqb/shared";
+import {
+  viewerRoleSchema,
+  type RoleRequestDenied,
+  type RoleRequestGranted,
+  type Viewer,
+  type ViewerRole,
+} from "@iqb/shared";
 import { Prisma } from "../../generated/prisma/client.ts";
 import { insertChangeEvent } from "../change-events/change-events.repository.ts";
 import { findViewerById, lockViewer, setRole } from "../viewers/viewers.repository.ts";
@@ -12,7 +18,7 @@ import {
 import type { Database, Transaction } from "../../platform/database.ts";
 import { ConflictError, NotFoundError } from "../../platform/errors.ts";
 
-/** Any role other than the one held, so a Reader may ask for Reviewer directly (ADR-0016). */
+/** Any role other than the one held: there is no ladder (ADR-0016). */
 export async function raiseRoleRequest(
   database: Database,
   viewer: Viewer,
@@ -100,9 +106,11 @@ async function decideIfStillOpen(
   transaction: Transaction,
   id: string,
   decision: RoleRequestDecision,
-): Promise<RoleRequestFromDb> {
+): Promise<RoleRequestFromDb & { role: ViewerRole }> {
   const decided = await decideRoleRequest(transaction, id, decision);
-  if (decided !== null) return decided;
+  // Parsed, because the database refuses an open request for Reader (ADR-0055), so one here
+  // means the rows and the code are out of sync.
+  if (decided !== null) return { ...decided, role: viewerRoleSchema.parse(decided.role) };
   if ((await findRoleRequestById(transaction, id)) === null) throw new NotFoundError();
   throw new ConflictError("That Role Request has already been decided.");
 }
