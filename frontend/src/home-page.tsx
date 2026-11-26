@@ -16,7 +16,6 @@ type HomePageProps = {
 };
 
 const roleWithItsArticle: Record<ViewerRole, string> = {
-  reader: "a Reader",
   author: "an Author",
   reviewer: "a Reviewer",
 };

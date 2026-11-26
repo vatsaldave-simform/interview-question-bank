@@ -86,6 +86,7 @@ describe("raising a Role Request", () => {
     ["no role", {}],
     ["a role that does not exist", { role: "owner" }],
     ["Administrator, which is not a role", { role: "administrator" }],
+    ["Reader, which is not a role any more", { role: "reader" }],
     ["a field it does not know", { role: "author", reason: "please" }],
   ])("refuses a body with %s", async (_, body) => {
     const response = await postRoleRequest(api, body, authorToken);

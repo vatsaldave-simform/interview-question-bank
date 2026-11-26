@@ -1,9 +1,15 @@
 import { z } from "zod";
-import { namedViewerSchema, viewerRoleSchema } from "./auth.js";
+import { namedViewerSchema, viewerRoles, viewerRoleSchema } from "./auth.js";
 
 export const roleRequestStates = ["open", "granted", "denied"] as const;
 export const roleRequestStateSchema = z.enum(roleRequestStates);
 export type RoleRequestState = z.infer<typeof roleRequestStateSchema>;
+
+/** What a Role Request may have asked for. Wider than `ViewerRole`, because one decided
+ * before ADR-0055 may have asked for Reader, and its history has to still say so. */
+export const requestedRoles = ["reader", ...viewerRoles] as const;
+export const requestedRoleSchema = z.enum(requestedRoles);
+export type RequestedRole = z.infer<typeof requestedRoleSchema>;
 
 /** The same shape to the Viewer who asked and to an Administrator, so the reason they read
  * is exactly the one the Administrator wrote. */
@@ -13,8 +19,8 @@ export const roleRequestSchema = z
     /** Who asked, never the Administrator who decided. */
     viewer: namedViewerSchema,
     /** The role they asked for, which may be any other role: there is no ladder
-     * (ADR-0016). */
-    role: viewerRoleSchema,
+     * (ADR-0016). Reader only on a request decided before that role ended (ADR-0055). */
+    role: requestedRoleSchema,
     /** The role the Viewer who asked holds when this is read, which a grant or an
      * Administrator may have changed since they asked. */
     heldRole: viewerRoleSchema,

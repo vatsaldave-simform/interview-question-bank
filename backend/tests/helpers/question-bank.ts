@@ -17,6 +17,7 @@ import {
 import type { TagsInCategory } from "../../src/features/questions/questions.repository.ts";
 import { seedClientList } from "../../src/features/clients/clients.seed.ts";
 import { seedQuestionBank } from "../../src/features/questions/questions.seed.ts";
+import { toViewer } from "../../src/features/viewers/viewers.repository.ts";
 import { seedViewerAccounts } from "../../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../../src/platform/database.ts";
 import { seededViewer } from "./auth.ts";
@@ -164,22 +165,23 @@ const viewerFieldsToRead = {
 
 /** The seeded Viewer of a role, in the shape the shared query function wants. */
 export function viewerByRole(database: Database, role: ViewerRole): Promise<Viewer> {
-  return database.viewer.findUniqueOrThrow({
-    where: { email: seededViewer(role).email },
-    select: viewerFieldsToRead,
-  });
+  return database.viewer
+    .findUniqueOrThrow({ where: { email: seededViewer(role).email }, select: viewerFieldsToRead })
+    .then(toViewer);
 }
 
 /** A new Viewer of the role, for a test that needs someone other than the seeded one. */
 export function aViewer(database: Database, role: ViewerRole): Promise<Viewer> {
-  return database.viewer.create({
-    data: {
-      email: `${role}-${crypto.randomUUID()}@iqb.test`,
-      passwordHash: "not used by this test",
-      role,
-    },
-    select: viewerFieldsToRead,
-  });
+  return database.viewer
+    .create({
+      data: {
+        email: `${role}-${crypto.randomUUID()}@iqb.test`,
+        passwordHash: "not used by this test",
+        role,
+      },
+      select: viewerFieldsToRead,
+    })
+    .then(toViewer);
 }
 
 /** The ids of a list response, in the order it gave them. */

@@ -1,4 +1,4 @@
-import type { RoleRequest, ViewerRole } from "@iqb/shared";
+import { viewerRoleSchema, type RoleRequest, type ViewerRole } from "@iqb/shared";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,7 +60,7 @@ function aBankDeciding(
       const decision = (await request.json()) as { outcome: "granted" | "denied"; reason?: string };
       const [decided] = open.splice(index, 1);
       if (decided !== undefined && decision.outcome === "granted") {
-        rolesGranted.set(decided.viewer.id, decided.role);
+        rolesGranted.set(decided.viewer.id, viewerRoleSchema.parse(decided.role));
       }
       return answersWith({
         roleRequest: {

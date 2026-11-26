@@ -103,6 +103,21 @@ describe("a Viewer's own Role Request on their account page", () => {
     expect(section.queryByLabelText("Role to ask for") !== null).toBe(offersAnother);
   });
 
+  it("still shows a request for Reader, decided before that role ended", async () => {
+    aBankHoldingMine([
+      aRoleRequest({
+        role: "reader",
+        state: "denied",
+        reason: "The Reader role no longer exists.",
+      }),
+    ]);
+    renderTheWholeClient("/account");
+
+    const section = await theRoleRequestSection();
+    expect(await section.findByText(/You asked to be a Reader/)).toBeVisible();
+    expect(section.getByText("The Reader role no longer exists.")).toBeVisible();
+  });
+
   it("raises a Role Request for a role not held, which then reads as open", async () => {
     const api = aBankHoldingMine([]);
     renderTheWholeClient("/account");
@@ -110,7 +125,7 @@ describe("a Viewer's own Role Request on their account page", () => {
     const section = await theRoleRequestSection();
     const picker = await section.findByLabelText("Role to ask for");
     const offered = within(picker).getAllByRole("option").map((option) => option.textContent);
-    expect(offered).toEqual(["Reader", "Reviewer"]);
+    expect(offered).toEqual(["Reviewer"]);
     await userEvent.selectOptions(picker, "Reviewer");
     await userEvent.click(section.getByRole("button", { name: "Ask for this role" }));
 
@@ -157,7 +172,7 @@ describe("a Viewer's own Role Request on their account page", () => {
     const section = await theRoleRequestSection();
     const picker = await section.findByLabelText("Role to ask for");
     const offered = within(picker).getAllByRole("option").map((option) => option.textContent);
-    expect(offered).toEqual(["Reader", "Author"]);
+    expect(offered).toEqual(["Author"]);
     // Shown to a Reviewer only, so the sidebar follows the role the API sent too.
     const sidebar = within(screen.getByRole("navigation", { name: "Main menu" }));
     expect(sidebar.getByRole("link", { name: "Review queue" })).toBeVisible();

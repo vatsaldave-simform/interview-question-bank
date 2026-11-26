@@ -158,6 +158,7 @@ describe("creating a Viewer", () => {
     ["an address that is not one", { email: "not an address", role: "author" }],
     ["no role", { email: newColleague.email }],
     ["a role that does not exist", { email: newColleague.email, role: "administrator" }],
+    ["Reader, which is not a role any more", { ...newColleague, role: "reader" }],
     ["the Administrator authority", { ...newColleague, isAdministrator: true }],
     ["a password", { ...newColleague, password: "chosen by someone else" }],
   ])("refuses %s", async (_, body) => {

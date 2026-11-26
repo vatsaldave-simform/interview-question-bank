@@ -14,8 +14,6 @@ export function mayEdit(viewer: Viewer, question: Authored): boolean {
       return true;
     case "author":
       return question.authorId === viewer.id;
-    case "reader":
-      return false;
   }
 }
 

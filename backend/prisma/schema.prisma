@@ -12,9 +12,8 @@ datasource db {
   provider = "postgresql"
 }
 
-/// What a Viewer may do with Questions. Administrator is deliberately absent: it is an
-/// authority held beside one of these rather than a fourth value replacing one
-/// (ADR-0015).
+/// What a Viewer may do with Questions, Administrator being an authority held beside one
+/// (ADR-0015) and `reader` a retired value kept for old Role Requests (ADR-0055).
 enum ViewerRole {
   reader
   author
@@ -31,8 +30,10 @@ model Viewer {
   /// the database: no response, no log line.
   // Null until the Viewer sets a password, and login refuses them until then.
   passwordHash    String?
+  // Never `reader`, held by a check in the migration, which this schema has no way to say
+  // (ADR-0055).
   role            ViewerRole
-  /// The Administrator authority, held beside `role` rather than as a fourth value of it
+  /// The Administrator authority, held beside `role` rather than as a third value of it
   /// (ADR-0015). Confers no access to Questions.
   isAdministrator Boolean    @default(false)
   /// Refused at login and at every request, but never deleted: they stay the Author of
@@ -107,6 +108,8 @@ model RoleRequest {
   id        String           @id @default(uuid()) @db.Uuid
   viewerId  String           @db.Uuid
   viewer    Viewer           @relation(fields: [viewerId], references: [id])
+  // `reader` only once decided, held by a check in the migration, which this schema has no
+  // way to say (ADR-0055).
   role      ViewerRole
   state     RoleRequestState @default(open)
   reason    String?

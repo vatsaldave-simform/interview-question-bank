@@ -24,6 +24,7 @@ import {
   readHostedPasswords,
   seedHostedViewers,
 } from "../src/features/viewers/hosted-viewers.seed.ts";
+import { toViewer } from "../src/features/viewers/viewers.repository.ts";
 import { seedViewerAccounts } from "../src/features/viewers/viewers.seed.ts";
 import type { Database } from "../src/platform/database.ts";
 import { createTestDatabase, truncateAll } from "./helpers/test-database.ts";
@@ -160,11 +161,12 @@ describe("the hosted seed's Questions", () => {
   const hostedIds = new Set(hostedQuestions.map((question) => question.id));
   const everyRow = { limit: 1000, offset: 0 };
 
-  function hostedViewerNamed(email: string): Promise<Viewer> {
-    return database.viewer.findUniqueOrThrow({
+  async function hostedViewerNamed(email: string): Promise<Viewer> {
+    const row = await database.viewer.findUniqueOrThrow({
       where: { email },
       select: { id: true, email: true, role: true, isAdministrator: true, isDeactivated: true },
     });
+    return toViewer(row);
   }
 
   /** The Clients of the hosted Questions a Viewer can see in the bank. */

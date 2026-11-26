@@ -206,9 +206,9 @@ table, and nothing takes longer than 5.9ms**:
 | a broad keyword and two Categories | 5.85 | 1,122 | both |
 | a broad keyword, a deep page | 5.67 | 1,052 | the search vector index |
 
-The bulk bank is all Published, because that is what a newcomer's query filters on. The
-newcomer's Publication State check is still in every one of these statements; it just has
-nothing in the bulk bank to throw away, which is what a newcomer's bank looks like.
+The bulk bank is all Published, because that is what an Author who wrote none of it sees.
+Their Publication State check is still in every one of these statements; it just has
+nothing in the bulk bank to throw away.
 
 The planner chooses which index drives the query from how selective each half is, and
 dropping either one takes a strategy away. **No index was added in response**: the two the

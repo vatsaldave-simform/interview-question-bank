@@ -280,8 +280,7 @@ describe("deciding a Role Request", () => {
       // What `changeRole` does to its target, stopped before it commits.
       const roleChange = api.database.$transaction(async (transaction) => {
         await lockViewer(transaction, target.id);
-        // To the role asked for, so a grant that read the role too early would record
-        // "author" as the one it replaced.
+        // Changed to the role asked for, so the right event says "reviewer" was replaced.
         await setRole(transaction, target.id, "reviewer");
         roleWritten.resolve();
         await goOn.promise;
